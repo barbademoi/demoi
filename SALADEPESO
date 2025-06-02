@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sala de Peso Powerlifting</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 30px;
+    }
+    .logo {
+      width: 250px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+    p {
+      font-size: 18px;
+      max-width: 600px;
+      margin: 0 auto 30px;
+    }
+    .btn {
+      display: block;
+      width: 250px;
+      margin: 10px auto;
+      padding: 15px;
+      background-color: #ff0000;
+      color: #fff;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.3s;
+    }
+    .btn:hover {
+      background-color: #cc0000;
+    }
+  </style>
+</head>
+<body>
+  <img src="https://chatgpt.com/s/m_683dbe05008c81918b3374015c25f459" alt="Sala de Peso Powerlifting" class="logo">
+
+  <h1>Bem-vindo à Sala de Peso</h1>
+  <p>A comunidade oficial do Dione Cesar no Telegram. Dicas semanais, vídeos técnicos, tira-dúvidas e uma galera que vive o powerlifting na prática.</p>
+
+  <a href="https://pay.hotmart.com/H100066957W?off=mwtuos0z" class="btn">Assinar Mensal - R$19,90</a>
+  <a href="https://pay.hotmart.com/H100066957W?off=xfq1kf0i" class="btn">Assinar Trimestral - R$49,90</a>
+  <a href="https://pay.hotmart.com/H100066957W?off=0fp206rc" class="btn">Assinar Semestral - R$99,90</a>
+  <a href="https://pay.hotmart.com/H100066957W?off=d5vswv1h" class="btn">Assinar Anual - R$159,90</a>
+</body>
+</html>
