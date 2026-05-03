@@ -23,6 +23,7 @@ export interface Database {
           logo_url?: string | null
           cor_principal?: string
         }
+        Relationships: []
       }
       usuarios: {
         Row: {
@@ -41,6 +42,14 @@ export interface Database {
           barbearia_id?: string
           email?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: 'usuarios_barbearia_id_fkey'
+            columns: ['barbearia_id']
+            referencedRelation: 'barbearias'
+            referencedColumns: ['id']
+          }
+        ]
       }
       barbeiros: {
         Row: {
@@ -67,6 +76,14 @@ export interface Database {
           link_codigo?: string
           ativo?: boolean
         }
+        Relationships: [
+          {
+            foreignKeyName: 'barbeiros_barbearia_id_fkey'
+            columns: ['barbearia_id']
+            referencedRelation: 'barbearias'
+            referencedColumns: ['id']
+          }
+        ]
       }
       metas: {
         Row: {
@@ -91,6 +108,14 @@ export interface Database {
           meta_coletiva?: number
           premio_coletivo?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: 'metas_barbearia_id_fkey'
+            columns: ['barbearia_id']
+            referencedRelation: 'barbearias'
+            referencedColumns: ['id']
+          }
+        ]
       }
       metas_individuais: {
         Row: {
@@ -125,6 +150,20 @@ export interface Database {
           ouro_comm?: number
           ouro_premio?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: 'metas_individuais_meta_id_fkey'
+            columns: ['meta_id']
+            referencedRelation: 'metas'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'metas_individuais_barbeiro_id_fkey'
+            columns: ['barbeiro_id']
+            referencedRelation: 'barbeiros'
+            referencedColumns: ['id']
+          }
+        ]
       }
       lancamentos: {
         Row: {
@@ -166,14 +205,31 @@ export interface Database {
           perc_produto?: number | null
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: 'lancamentos_barbearia_id_fkey'
+            columns: ['barbearia_id']
+            referencedRelation: 'barbearias'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'lancamentos_barbeiro_id_fkey'
+            columns: ['barbeiro_id']
+            referencedRelation: 'barbeiros'
+            referencedColumns: ['id']
+          }
+        ]
       }
     }
+    Views: Record<string, never>
     Functions: {
       get_barbearia_id: {
         Args: Record<string, never>
         Returns: string
       }
     }
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
   }
 }
 
@@ -190,7 +246,7 @@ export interface BarbeiroComMeta extends Barbeiro {
   meta?: MetaIndividual
   lancamento?: Lancamento
   progresso?: {
-    bronze: number  // 0-100
+    bronze: number
     prata: number
     ouro: number
     tier_atual: Tier | null
