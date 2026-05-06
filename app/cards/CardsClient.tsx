@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { nomeMes } from '@/lib/utils'
+import BrandLogo from '@/components/BrandLogo'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
 const CardTemplate = dynamic(() => import('@/components/cards/CardTemplate'), { ssr: false })
@@ -102,9 +103,10 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
             <Link href="/dashboard" className="text-text-muted hover:text-text transition-colors text-sm font-sans">
               ← Dashboard
             </Link>
-            <h1 className="font-serif text-2xl text-text">
-              Cards <span className="metal-text-gold">PNG</span>
-            </h1>
+            <div className="flex items-center gap-2">
+              <BrandLogo size="md" />
+              <span className="text-text-muted text-sm font-sans">/ Cards PNG</span>
+            </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex gap-1">
