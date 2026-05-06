@@ -7,6 +7,7 @@ import { nomeMes } from '@/lib/utils'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
 const CardTemplate = dynamic(() => import('@/components/cards/CardTemplate'), { ssr: false })
+const RankingCard = dynamic(() => import('@/components/cards/RankingCard'), { ssr: false })
 
 interface MetaComIndividuais {
   id: string
@@ -20,19 +21,21 @@ interface Props {
   meta: MetaComIndividuais | null
   lancamentos: Lancamento[]
   totalEquipe: number
+  barbeariaName: string
   mes: number
   ano: number
   tipo: 'inicio' | 'resultado'
 }
 
-export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe, mes, ano, tipo }: Props) {
+export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe, barbeariaName, mes, ano, tipo }: Props) {
   const canvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map())
+  const rankingCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [baixando, setBaixando] = useState(false)
   const [tipoAtual, setTipoAtual] = useState<'inicio' | 'resultado'>(tipo)
   const [mesAtual, setMesAtual] = useState(mes)
   const [anoAtual, setAnoAtual] = useState(ano)
 
-  function registrarCanvas(canvas: HTMLCanvasElement, nome: string, id: string) {
+  function registrarCanvas(canvas: HTMLCanvasElement, id: string) {
     canvasRefs.current.set(id, canvas)
   }
 
@@ -42,14 +45,20 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
       const JSZip = (await import('jszip')).default
       const zip = new JSZip()
 
+      // Individual cards
       canvasRefs.current.forEach((canvas, barbeiroId) => {
         const barbeiro = barbeiros.find(b => b.id === barbeiroId)
         if (!barbeiro) return
         const dataURL = canvas.toDataURL('image/png')
         const base64 = dataURL.split(',')[1]
-        const nomeMesStr = nomeMes(mesAtual).replace(/\s/g, '_')
-        zip.file(`${barbeiro.nome}_${nomeMesStr}_${anoAtual}_${tipoAtual}.png`, base64, { base64: true })
+        zip.file(`${barbeiro.nome}_${nomeMes(mesAtual)}_${anoAtual}.png`, base64, { base64: true })
       })
+
+      // Ranking card
+      if (rankingCanvasRef.current) {
+        const base64 = rankingCanvasRef.current.toDataURL('image/png').split(',')[1]
+        zip.file(`ranking_${nomeMes(mesAtual)}_${anoAtual}.png`, base64, { base64: true })
+      }
 
       const blob = await zip.generateAsync({ type: 'blob' })
       const url = URL.createObjectURL(blob)
@@ -72,12 +81,20 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
     a.click()
   }
 
+  function baixarRanking() {
+    const canvas = rankingCanvasRef.current
+    if (!canvas) return
+    const a = document.createElement('a')
+    a.href = canvas.toDataURL('image/png')
+    a.download = `ranking_${nomeMes(mesAtual)}_${anoAtual}.png`
+    a.click()
+  }
+
   const meses = [1,2,3,4,5,6,7,8,9,10,11,12]
   const anos = [2024, 2025, 2026]
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
       <header className="border-b border-border bg-surface sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4">
@@ -89,7 +106,6 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
             </h1>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Tipo */}
             <div className="flex gap-1">
               <button
                 onClick={() => setTipoAtual('inicio')}
@@ -106,7 +122,6 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
                 Resultado
               </button>
             </div>
-            {/* Mês/Ano */}
             <select
               value={mesAtual}
               onChange={e => setMesAtual(parseInt(e.target.value))}
@@ -121,54 +136,84 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
             >
               {anos.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
-            {/* Baixar tudo */}
             <button
               onClick={baixarTodos}
               disabled={baixando || barbeiros.length === 0}
               className="btn-primary text-sm py-2 px-4"
             >
-              {baixando ? 'Gerando ZIP…' : `Baixar todos (${barbeiros.length})`}
+              {baixando ? 'Gerando ZIP…' : `↓ Baixar todos (${barbeiros.length + 1})`}
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        {barbeiros.length === 0 ? (
-          <div className="card p-12 text-center">
-            <p className="text-text-muted font-sans">Nenhum barbeiro cadastrado.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {barbeiros.map(barbeiro => {
-              const metaInd = meta?.metas_individuais?.find(m => m.barbeiro_id === barbeiro.id) ?? null
-              const lancamento = lancamentos.find(l => l.barbeiro_id === barbeiro.id) ?? null
+      <main className="max-w-6xl mx-auto px-4 py-8 space-y-10">
 
-              return (
-                <div key={barbeiro.id} className="space-y-2">
-                  <CardTemplate
-                    tipo={tipoAtual}
-                    barbeiro={barbeiro}
-                    metaInd={metaInd}
-                    lancamento={lancamento}
-                    metaColetiva={meta?.meta_coletiva ?? 0}
-                    premioColetivo={meta?.premio_coletivo ?? null}
-                    totalEquipe={totalEquipe}
-                    mes={mesAtual}
-                    ano={anoAtual}
-                    onCanvas={(canvas) => registrarCanvas(canvas, barbeiro.nome, barbeiro.id)}
-                  />
-                  <button
-                    onClick={() => baixarUm(barbeiro.id, barbeiro.nome)}
-                    className="w-full btn-ghost text-xs py-2 border border-border"
-                  >
-                    ↓ {barbeiro.nome}
-                  </button>
-                </div>
-              )
-            })}
+        {/* Card Ranking da Barbearia */}
+        <div>
+          <h2 className="font-serif text-xl text-text mb-4">
+            Card da Barbearia <span className="text-text-muted text-sm font-sans">— Ranking completo</span>
+          </h2>
+          <div className="max-w-xs space-y-2">
+            <RankingCard
+              barbeiros={barbeiros}
+              meta={meta}
+              lancamentos={lancamentos}
+              barbeariaName={barbeariaName}
+              mes={mesAtual}
+              ano={anoAtual}
+              onCanvas={(canvas) => { rankingCanvasRef.current = canvas }}
+            />
+            <button
+              onClick={baixarRanking}
+              className="w-full btn-ghost text-xs py-2 border border-border"
+            >
+              ↓ Ranking {barbeariaName}
+            </button>
           </div>
-        )}
+        </div>
+
+        {/* Cards individuais */}
+        <div>
+          <h2 className="font-serif text-xl text-text mb-4">
+            Cards individuais <span className="text-text-muted text-sm font-sans">— {barbeiros.length} barbeiros</span>
+          </h2>
+          {barbeiros.length === 0 ? (
+            <div className="card p-12 text-center">
+              <p className="text-text-muted font-sans">Nenhum barbeiro cadastrado.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {barbeiros.map(barbeiro => {
+                const metaInd = meta?.metas_individuais?.find(m => m.barbeiro_id === barbeiro.id) ?? null
+                const lancamento = lancamentos.find(l => l.barbeiro_id === barbeiro.id) ?? null
+                return (
+                  <div key={barbeiro.id} className="space-y-2">
+                    <CardTemplate
+                      tipo={tipoAtual}
+                      barbeiro={barbeiro}
+                      metaInd={metaInd}
+                      lancamento={lancamento}
+                      metaColetiva={meta?.meta_coletiva ?? 0}
+                      premioColetivo={meta?.premio_coletivo ?? null}
+                      totalEquipe={totalEquipe}
+                      mes={mesAtual}
+                      ano={anoAtual}
+                      onCanvas={(canvas) => registrarCanvas(canvas, barbeiro.id)}
+                    />
+                    <button
+                      onClick={() => baixarUm(barbeiro.id, barbeiro.nome)}
+                      className="w-full btn-ghost text-xs py-2 border border-border"
+                    >
+                      ↓ {barbeiro.nome}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
       </main>
     </div>
   )

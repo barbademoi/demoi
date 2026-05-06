@@ -23,18 +23,36 @@ export async function salvarMetas(formData: FormData) {
   const premio_coletivo = formData.get('premio_coletivo') as string
   const faturamento_acumulado = parseFloat(formData.get('faturamento_acumulado') as string) || 0
 
+  // Upsert meta coletiva
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: metaResult, error: metaError } = await (supabase as any)
+  const { data: existingMeta } = await (supabase as any)
     .from('metas')
-    .upsert(
-      { barbearia_id: usuario.barbearia_id, mes, ano, meta_coletiva, premio_coletivo, faturamento_acumulado },
-      { onConflict: 'barbearia_id,mes,ano' }
-    )
     .select('id')
+    .eq('barbearia_id', usuario.barbearia_id)
+    .eq('mes', mes)
+    .eq('ano', ano)
     .single()
 
-  if (metaError) return { error: metaError.message }
-  const meta_id = (metaResult as { id: string }).id
+  let meta_id: string
+
+  if (existingMeta) {
+    meta_id = (existingMeta as { id: string }).id
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any)
+      .from('metas')
+      .update({ meta_coletiva, premio_coletivo, faturamento_acumulado })
+      .eq('id', meta_id)
+    if (error) return { error: error.message }
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: newMeta, error } = await (supabase as any)
+      .from('metas')
+      .insert({ barbearia_id: usuario.barbearia_id, mes, ano, meta_coletiva, premio_coletivo, faturamento_acumulado })
+      .select('id')
+      .single()
+    if (error) return { error: error.message }
+    meta_id = (newMeta as { id: string }).id
+  }
 
   const barbeiros = JSON.parse(formData.get('barbeiros') as string) as {
     id: string
@@ -47,25 +65,51 @@ export async function salvarMetas(formData: FormData) {
   }[]
 
   for (const b of barbeiros) {
+    // Check if meta individual already exists
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any)
+    const { data: existing } = await (supabase as any)
       .from('metas_individuais')
-      .upsert(
-        {
+      .select('id')
+      .eq('meta_id', meta_id)
+      .eq('barbeiro_id', b.id)
+      .single()
+
+    if (existing) {
+      // Update comm values (always exists)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from('metas_individuais')
+        .update({ bronze_comm: b.bronze_comm, prata_comm: b.prata_comm, ouro_comm: b.ouro_comm })
+        .eq('id', (existing as { id: string }).id)
+      if (error) return { error: error.message }
+
+      // Try to update prize values (silently skip if columns don't exist yet)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('metas_individuais')
+        .update({
+          bronze_premio: b.bronze_premio || null,
+          prata_premio: b.prata_premio || null,
+          ouro_premio: b.ouro_premio || null,
+        })
+        .eq('id', (existing as { id: string }).id)
+    } else {
+      // Insert
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from('metas_individuais')
+        .insert({
           meta_id,
           barbeiro_id: b.id,
           bronze_comm: b.bronze_comm,
           prata_comm: b.prata_comm,
           ouro_comm: b.ouro_comm,
-          bronze_premio: b.bronze_premio || null,
-          prata_premio: b.prata_premio || null,
-          ouro_premio: b.ouro_premio || null,
-        },
-        { onConflict: 'meta_id,barbeiro_id' }
-      )
-    if (error) return { error: error.message }
+        })
+      if (error) return { error: error.message }
+    }
   }
 
   revalidatePath('/dashboard')
+  revalidatePath('/cards')
   return { ok: true }
 }

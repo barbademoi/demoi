@@ -73,6 +73,7 @@ export default async function CardsPage({
       meta={meta}
       lancamentos={lancamentos}
       totalEquipe={totalEquipe}
+      barbeariaName={barbearia.nome}
       mes={mes}
       ano={ano}
       tipo={tipo}

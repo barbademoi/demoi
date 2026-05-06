@@ -97,7 +97,7 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 overflow-y-auto">
-      <div className="flex min-h-full items-start justify-center p-4 py-8">
+      <div className="min-h-full py-8 px-4 flex items-start justify-center">
       <div className="card p-6 w-full max-w-2xl animate-fade-in">
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-serif text-2xl text-text">

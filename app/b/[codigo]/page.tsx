@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/utils'
+import { gerarInsightsBarbeiro } from '@/lib/insights'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
 interface Props {
@@ -95,6 +96,16 @@ export default async function BarbeiroPage({ params }: Props) {
   const totalEquipe = ranking.reduce((s, l) => s + l.comissao_acumulada, 0)
   const progressoColetivo = meta ? calcProgresso(totalEquipe, meta.meta_coletiva) : 0
 
+  const insights = gerarInsightsBarbeiro({
+    comissao,
+    metaInd,
+    posicaoRanking: posicaoRanking || 99,
+    totalBarbeiros: ranking.length,
+    totalEquipe,
+    metaColetiva: meta?.meta_coletiva ?? 0,
+    barberoNome: barbeiro.nome,
+  })
+
   return (
     <div className="min-h-screen pb-16">
       <header className="border-b border-border bg-surface">
@@ -137,6 +148,19 @@ export default async function BarbeiroPage({ params }: Props) {
             </div>
           )}
         </div>
+
+        {/* Insights */}
+        {insights.length > 0 && (
+          <div className="card p-5 space-y-3">
+            <p className="text-text-muted text-xs font-sans uppercase tracking-wide">Insights do mês</p>
+            {insights.map((ins, i) => (
+              <div key={i} className={`flex items-start gap-3 p-3 rounded-xl ${ins.destaque ? 'bg-primary/10 border border-primary/20' : 'bg-surface-2'}`}>
+                <span className="text-xl shrink-0">{ins.emoji}</span>
+                <p className={`font-sans text-sm ${ins.destaque ? 'text-text font-medium' : 'text-text-muted'}`}>{ins.texto}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Barras Bronze / Prata / Ouro */}
         {metaInd && progresso && (
