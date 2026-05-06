@@ -42,13 +42,13 @@ export default async function BarbeiroPage({ params }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
     .from('metas')
-    .select('id, meta_coletiva, premio_coletivo')
+    .select('id, meta_coletiva, premio_coletivo, faturamento_acumulado')
     .eq('barbearia_id', barbeiro.barbearia_id)
     .eq('mes', mes)
     .eq('ano', ano)
     .single()
 
-  const meta = metaRaw as { id: string; meta_coletiva: number; premio_coletivo: string | null } | null
+  const meta = metaRaw as { id: string; meta_coletiva: number; premio_coletivo: string | null; faturamento_acumulado: number } | null
 
   let metaInd: MetaIndividual | null = null
   if (meta) {
@@ -94,14 +94,15 @@ export default async function BarbeiroPage({ params }: Props) {
 
   const posicaoRanking = ranking.findIndex((l) => l.barbeiro_id === barbeiro.id) + 1
   const totalEquipe = ranking.reduce((s, l) => s + l.comissao_acumulada, 0)
-  const progressoColetivo = meta ? calcProgresso(totalEquipe, meta.meta_coletiva) : 0
+  const faturamentoColetivo = (meta?.faturamento_acumulado ?? 0) > 0 ? meta!.faturamento_acumulado : totalEquipe
+  const progressoColetivo = meta ? calcProgresso(faturamentoColetivo, meta.meta_coletiva) : 0
 
   const insights = gerarInsightsBarbeiro({
     comissao,
     metaInd,
     posicaoRanking: posicaoRanking || 99,
     totalBarbeiros: ranking.length,
-    totalEquipe,
+    totalEquipe: faturamentoColetivo,
     metaColetiva: meta?.meta_coletiva ?? 0,
     barberoNome: barbeiro.nome,
   })
@@ -252,7 +253,7 @@ export default async function BarbeiroPage({ params }: Props) {
               />
             </div>
             <p className="text-text-muted text-xs font-sans mt-2 text-right">
-              {formatBRL(totalEquipe)} de {formatBRL(meta.meta_coletiva)}
+              {formatBRL(faturamentoColetivo)} de {formatBRL(meta.meta_coletiva)}
             </p>
           </div>
         )}
