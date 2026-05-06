@@ -26,23 +26,23 @@
 @layer components {
   /* Metallic bar base */
   .bar-bronze {
-    background: linear-gradient(135deg, #8B4513 0%, #CD7F32 30%, #E8A855 50%, #CD7F32 70%, #8B4513 100%);
+    background: linear-gradient(90deg, #8B4513 0%, #CD7F32 30%, #E8A855 50%, #CD7F32 70%, #8B4513 100%);
     background-size: 200% auto;
-    box-shadow: 0 0 12px 2px rgba(205, 127, 50, 0.45);
+    box-shadow: 0 0 14px 4px rgba(205, 127, 50, 0.65), 0 0 4px 1px rgba(232, 168, 85, 0.5);
     animation: shimmer 2.5s linear infinite;
   }
 
   .bar-silver {
-    background: linear-gradient(135deg, #6B7280 0%, #9CA3AF 30%, #D1D5DB 50%, #9CA3AF 70%, #6B7280 100%);
+    background: linear-gradient(90deg, #6B7280 0%, #9CA3AF 30%, #D1D5DB 50%, #9CA3AF 70%, #6B7280 100%);
     background-size: 200% auto;
-    box-shadow: 0 0 12px 2px rgba(168, 169, 173, 0.45);
+    box-shadow: 0 0 14px 4px rgba(168, 169, 173, 0.6), 0 0 4px 1px rgba(209, 213, 219, 0.45);
     animation: shimmer 2.5s linear infinite;
   }
 
   .bar-gold {
-    background: linear-gradient(135deg, #92400E 0%, #D97706 25%, #FFD700 50%, #D97706 75%, #92400E 100%);
+    background: linear-gradient(90deg, #92400E 0%, #D97706 25%, #FFD700 50%, #D97706 75%, #92400E 100%);
     background-size: 200% auto;
-    box-shadow: 0 0 16px 4px rgba(255, 215, 0, 0.55);
+    box-shadow: 0 0 18px 5px rgba(255, 215, 0, 0.7), 0 0 6px 2px rgba(255, 215, 0, 0.5);
     animation: shimmer 2.5s linear infinite;
   }
 
