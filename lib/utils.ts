@@ -13,9 +13,9 @@ export function calcTier(
   prataComm: number,
   ouroComm: number
 ): Tier | null {
-  if (comissao >= ouroComm) return 'ouro'
-  if (comissao >= prataComm) return 'prata'
-  if (comissao >= bronzeComm) return 'bronze'
+  if (ouroComm > 0 && comissao >= ouroComm) return 'ouro'
+  if (prataComm > 0 && comissao >= prataComm) return 'prata'
+  if (bronzeComm > 0 && comissao >= bronzeComm) return 'bronze'
   return null
 }
 
