@@ -150,11 +150,13 @@ export default function CardTemplate({
     ctx.fillStyle = '#1E2028'
     ctx.fillRect(80, 200, W - 160, 2)
 
-    // Barbeiro name
-    ctx.font = `400 96px ${FONT_SERIF}`
+    // Barbeiro name — tamanho adaptável ao comprimento do nome
+    const nomeLen = barbeiro.nome.length
+    const nomeFontSize = nomeLen <= 12 ? 120 : nomeLen <= 18 ? 96 : 80
+    ctx.font = `400 ${nomeFontSize}px ${FONT_SERIF}`
     ctx.fillStyle = '#EEF0F6'
     ctx.textAlign = 'left'
-    ctx.fillText(barbeiro.nome, 80, 340)
+    ctx.fillText(barbeiro.nome, 80, 345)
 
     if (tipo === 'resultado') {
       // Comissão

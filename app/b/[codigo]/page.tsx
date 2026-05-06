@@ -181,7 +181,7 @@ export default async function BarbeiroPage({ params }: Props) {
                       {formatBRL(comissao)} / {formatBRL(metaVal)}
                     </span>
                   </div>
-                  <div className="bar-track h-4">
+                  <div className="bar-track h-2.5">
                     <div
                       className={`${TIER_CONFIG[tier].barClass} h-full rounded-full transition-all duration-700`}
                       style={{ width: progresso[tier] > 0 ? `${progresso[tier]}%` : '3px' }}

@@ -166,6 +166,11 @@ export default async function DashboardPage() {
                 {progressoColetivo}% · faltam {formatBRL(Math.max(0, meta.meta_coletiva - faturamentoExibido))}
               </p>
             </div>
+            {progressoColetivo < 20 && meta.meta_coletiva > 0 && (
+              <p className="text-text-muted text-xs font-sans mt-3 text-center opacity-70">
+                💪 A jornada começa agora — cada atendimento conta para a meta da equipe!
+              </p>
+            )}
           </div>
         ) : (
           <div className="card p-6 text-center">
@@ -248,7 +253,7 @@ export default async function DashboardPage() {
                           Sem metas configuradas — clique em &quot;Configurar metas&quot;
                         </p>
                       ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {(['bronze', 'prata', 'ouro'] as const).map((t) => {
                             const commKey = `${t}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm'
                             const premioKey = `${t}_premio` as 'bronze_premio' | 'prata_premio' | 'ouro_premio'
@@ -259,11 +264,11 @@ export default async function DashboardPage() {
 
                             return (
                               <div key={t}>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-3 mb-1">
                                   <span className={`text-xs font-sans w-12 text-right shrink-0 ${semMeta ? 'text-text-muted opacity-30' : TIER_CONFIG[t].textClass}`}>
                                     {TIER_CONFIG[t].label}
                                   </span>
-                                  <div className="bar-track flex-1 h-2">
+                                  <div className="bar-track flex-1 h-2.5">
                                     {!semMeta && (
                                       <div
                                         className={`${TIER_CONFIG[t].barClass} h-full rounded-full transition-all duration-700`}
@@ -271,18 +276,12 @@ export default async function DashboardPage() {
                                       />
                                     )}
                                   </div>
-                                  <span className="text-text-muted text-xs font-sans w-20 text-right shrink-0">
-                                    {semMeta
-                                      ? <span className="opacity-30 text-xs">não config.</span>
-                                      : pct > 0
-                                        ? `${pct}% de ${formatBRL(metaVal)}`
-                                        : `meta: ${formatBRL(metaVal)}`}
-                                  </span>
                                 </div>
-                                {premio && !semMeta && (
-                                  <p className="text-xs font-sans text-text-muted ml-14 mt-0.5">
-                                    🏆 {premio}
-                                  </p>
+                                {!semMeta && (
+                                  <div className="ml-14 flex items-center gap-2">
+                                    <span className="text-text-muted text-xs font-sans">{pct}%</span>
+                                    {premio && <span className="text-text-muted text-xs font-sans opacity-60">· 🏆 {premio}</span>}
+                                  </div>
                                 )}
                               </div>
                             )
