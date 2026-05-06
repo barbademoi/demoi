@@ -8,11 +8,13 @@ import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
 import MesSelector from '@/components/dashboard/MesSelector'
 import CopiarLinkBtn from '@/components/dashboard/CopiarLinkBtn'
+import EditarBarbeiroModal from '@/components/dashboard/EditarBarbeiroModal'
+import LogoUpload from '@/components/dashboard/LogoUpload'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
 type UsuarioComBarbearia = {
   barbearia_id: string
-  barbearias: { id: string; nome: string }
+  barbearias: { id: string; nome: string; logo_url: string | null }
 }
 
 type MetaComIndividuais = {
@@ -35,7 +37,7 @@ export default async function DashboardPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, barbearias(id, nome)')
+    .select('barbearia_id, barbearias(id, nome, logo_url)')
     .eq('id', user.id)
     .single()
 
@@ -97,11 +99,14 @@ export default async function DashboardPage({
       {/* Header */}
       <header className="border-b border-border bg-surface sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="font-serif text-2xl text-text">
-              Barber<span className="metal-text-gold">Meta</span>
-            </h1>
-            <p className="text-text-muted text-xs font-sans">{barbearia.nome}</p>
+          <div className="flex items-center gap-3">
+            <LogoUpload logoUrl={barbearia.logo_url} nomeAbrev={barbearia.nome[0]} />
+            <div>
+              <h1 className="font-serif text-2xl text-text">
+                Barber<span className="metal-text-gold">Meta</span>
+              </h1>
+              <p className="text-text-muted text-xs font-sans">{barbearia.nome}</p>
+            </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
             {/* Seletor mês/ano */}
@@ -202,14 +207,18 @@ export default async function DashboardPage({
                       </span>
 
                       {/* Avatar */}
-                      <div className="w-10 h-10 rounded-full bg-surface-2 border border-border flex items-center justify-center font-serif text-lg text-text-muted shrink-0">
-                        {barbeiro.nome[0]}
+                      <div className="w-10 h-10 rounded-full bg-surface-2 border border-border flex items-center justify-center font-serif text-lg text-text-muted shrink-0 overflow-hidden">
+                        {barbeiro.foto_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={barbeiro.foto_url} alt={barbeiro.nome} className="w-full h-full object-cover" />
+                        ) : barbeiro.nome[0]}
                       </div>
 
                       {/* Nome e link */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-sans font-semibold text-text">{barbeiro.nome}</p>
+                          <EditarBarbeiroModal barbeiro={barbeiro} />
                           {tier && (
                             <span className={`text-xs font-sans font-semibold ${TIER_CONFIG[tier].textClass}`}>
                               ★ {TIER_CONFIG[tier].label}

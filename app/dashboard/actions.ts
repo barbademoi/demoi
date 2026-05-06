@@ -21,6 +21,8 @@ export async function criarBarbeiro(formData: FormData) {
   const nome = (formData.get('nome') as string).trim()
   if (!nome) return { error: 'Nome obrigatório.' }
 
+  const foto_url = (formData.get('foto_url') as string) || null
+
   let link_codigo = ''
   for (let i = 0; i < 5; i++) {
     const candidato = gerarLinkCodigo()
@@ -37,12 +39,61 @@ export async function criarBarbeiro(formData: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from('barbeiros')
-    .insert({ barbearia_id: usuario.barbearia_id, nome, link_codigo })
+    .insert({ barbearia_id: usuario.barbearia_id, nome, link_codigo, foto_url })
 
   if (error) return { error: (error as { message: string }).message }
 
   revalidatePath('/dashboard')
   return { link_codigo }
+}
+
+export async function atualizarBarbeiro(formData: FormData) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  const id = formData.get('id') as string
+  const nome = (formData.get('nome') as string)?.trim()
+  const foto_url = (formData.get('foto_url') as string) || null
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('barbeiros')
+    .update({ nome, foto_url })
+    .eq('id', id)
+
+  if (error) return { error: (error as { message: string }).message }
+
+  revalidatePath('/dashboard')
+  return { ok: true }
+}
+
+export async function atualizarLogo(formData: FormData) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: usuario } = await (supabase as any)
+    .from('usuarios')
+    .select('barbearia_id')
+    .eq('id', user.id)
+    .single() as { data: { barbearia_id: string } | null }
+
+  if (!usuario) return { error: 'Barbearia não encontrada.' }
+
+  const logo_url = formData.get('logo_url') as string
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('barbearias')
+    .update({ logo_url })
+    .eq('id', usuario.barbearia_id)
+
+  if (error) return { error: (error as { message: string }).message }
+
+  revalidatePath('/dashboard')
+  return { ok: true }
 }
 
 export async function lancarComissao(formData: FormData) {
