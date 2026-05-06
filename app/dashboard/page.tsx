@@ -10,6 +10,7 @@ import CopiarLinkBtn from '@/components/dashboard/CopiarLinkBtn'
 import EditarBarbeiroModal from '@/components/dashboard/EditarBarbeiroModal'
 import LogoUpload from '@/components/dashboard/LogoUpload'
 import FaturamentoEdit from '@/components/dashboard/FaturamentoEdit'
+import BrandLogo from '@/components/BrandLogo'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
 type UsuarioComBarbearia = {
@@ -103,9 +104,7 @@ export default async function DashboardPage() {
           <div className="flex items-center gap-3">
             <LogoUpload logoUrl={barbearia.logo_url} nomeAbrev={barbearia.nome[0]} />
             <div>
-              <h1 className="font-serif text-2xl text-text">
-                Barber<span className="metal-text-gold">Meta</span>
-              </h1>
+              <BrandLogo size="md" />
               <p className="text-text-muted text-xs font-sans">{barbearia.nome}</p>
             </div>
           </div>

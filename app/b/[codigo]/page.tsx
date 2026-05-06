@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/utils'
 import { gerarInsightsBarbeiro } from '@/lib/insights'
+import BrandLogo from '@/components/BrandLogo'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
 interface Props {
@@ -111,9 +112,7 @@ export default async function BarbeiroPage({ params }: Props) {
     <div className="min-h-screen pb-16">
       <header className="border-b border-border bg-surface">
         <div className="max-w-lg mx-auto px-4 py-4 text-center">
-          <h1 className="font-serif text-2xl text-text">
-            Barber<span className="metal-text-gold">Meta</span>
-          </h1>
+          <BrandLogo size="md" />
           {barbearia && <p className="text-text-muted text-xs font-sans">{barbearia.nome}</p>}
         </div>
       </header>
