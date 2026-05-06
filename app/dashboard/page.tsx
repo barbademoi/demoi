@@ -6,6 +6,7 @@ import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/
 import LancamentoForm from '@/components/dashboard/LancamentoForm'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
+import MesSelector from '@/components/dashboard/MesSelector'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
 type UsuarioComBarbearia = {
@@ -257,43 +258,3 @@ export default async function DashboardPage({
   )
 }
 
-// Componente inline de seletor de mês
-function MesSelector({ mes, ano }: { mes: number; ano: number }) {
-  const meses = [1,2,3,4,5,6,7,8,9,10,11,12]
-  const anos = [2024, 2025, 2026]
-
-  return (
-    <div className="flex gap-1">
-      <select
-        name="mes"
-        defaultValue={mes}
-        onChange={e => {
-          const url = new URL(window.location.href)
-          url.searchParams.set('mes', e.target.value)
-          window.location.href = url.toString()
-        }}
-        className="bg-surface-2 border border-border text-text text-sm rounded-xl px-3 py-2 font-sans focus:outline-none focus:border-primary cursor-pointer"
-        suppressHydrationWarning
-      >
-        {meses.map(m => (
-          <option key={m} value={m}>{String(m).padStart(2,'0')}</option>
-        ))}
-      </select>
-      <select
-        name="ano"
-        defaultValue={ano}
-        onChange={e => {
-          const url = new URL(window.location.href)
-          url.searchParams.set('ano', e.target.value)
-          window.location.href = url.toString()
-        }}
-        className="bg-surface-2 border border-border text-text text-sm rounded-xl px-3 py-2 font-sans focus:outline-none focus:border-primary cursor-pointer"
-        suppressHydrationWarning
-      >
-        {anos.map(a => (
-          <option key={a} value={a}>{a}</option>
-        ))}
-      </select>
-    </div>
-  )
-}
