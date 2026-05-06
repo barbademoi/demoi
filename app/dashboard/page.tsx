@@ -6,10 +6,10 @@ import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/
 import LancamentoForm from '@/components/dashboard/LancamentoForm'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
-import MesSelector from '@/components/dashboard/MesSelector'
 import CopiarLinkBtn from '@/components/dashboard/CopiarLinkBtn'
 import EditarBarbeiroModal from '@/components/dashboard/EditarBarbeiroModal'
 import LogoUpload from '@/components/dashboard/LogoUpload'
+import FaturamentoEdit from '@/components/dashboard/FaturamentoEdit'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
 type UsuarioComBarbearia = {
@@ -25,11 +25,7 @@ type MetaComIndividuais = {
   metas_individuais: MetaIndividual[]
 }
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: { mes?: string; ano?: string }
-}) {
+export default async function DashboardPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -46,13 +42,13 @@ export default async function DashboardPage({
 
   const barbearia = usuario.barbearias
   const hoje = new Date()
-  const mes = parseInt(searchParams.mes ?? String(hoje.getMonth() + 1))
-  const ano = parseInt(searchParams.ano ?? String(hoje.getFullYear()))
+  const mes = hoje.getMonth() + 1
+  const ano = hoje.getFullYear()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
     .from('metas')
-    .select('id, meta_coletiva, premio_coletivo, metas_individuais(*)')
+    .select('id, meta_coletiva, premio_coletivo, faturamento_acumulado, metas_individuais(*)')
     .eq('barbearia_id', barbearia.id)
     .eq('mes', mes)
     .eq('ano', ano)
@@ -80,23 +76,19 @@ export default async function DashboardPage({
   const lancamentos = (lancamentosRaw ?? []) as Lancamento[]
 
   const totalComissoes = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
-  const faturamentoExibido = meta?.faturamento_acumulado ?? 0
-  const totalAcumulado = faturamentoExibido > 0 ? faturamentoExibido : totalComissoes
-  const progressoColetivo = meta ? calcProgresso(totalAcumulado, meta.meta_coletiva) : 0
+  const faturamentoExibido = (meta?.faturamento_acumulado ?? 0) > 0 ? meta!.faturamento_acumulado : totalComissoes
+  const progressoColetivo = meta ? calcProgresso(faturamentoExibido, meta.meta_coletiva) : 0
 
-  // Monta ranking
   const ranking = [...barbeiros]
     .map(b => ({
       ...b,
       comissao: lancamentos.find(l => l.barbeiro_id === b.id)?.comissao_acumulada ?? 0,
       metaInd: meta?.metas_individuais?.find(m => m.barbeiro_id === b.id),
-      lancamento: lancamentos.find(l => l.barbeiro_id === b.id),
     }))
     .sort((a, b) => b.comissao - a.comissao)
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
       <header className="border-b border-border bg-surface sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -108,9 +100,7 @@ export default async function DashboardPage({
               <p className="text-text-muted text-xs font-sans">{barbearia.nome}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            {/* Seletor mês/ano */}
-            <MesSelector mes={mes} ano={ano} />
+          <div className="flex items-center gap-2">
             <Link href="/cards" className="btn-ghost text-sm py-2 px-3 border border-border">
               Cards PNG
             </Link>
@@ -123,7 +113,7 @@ export default async function DashboardPage({
 
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
-        {/* Ações rápidas */}
+        {/* Ações */}
         <div className="flex gap-3 flex-wrap">
           <NovoBarbeiroModal />
           <MetasModal
@@ -143,10 +133,10 @@ export default async function DashboardPage({
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="font-serif text-xl text-text">Meta Coletiva</h2>
-                <p className="text-text-muted text-sm font-sans mt-0.5">{meta.premio_coletivo}</p>
+                <p className="text-text-muted text-sm font-sans mt-0.5">{nomeMes(mes)} {ano} · {meta.premio_coletivo}</p>
               </div>
               <div className="text-right">
-                <p className="font-serif text-3xl text-text">{formatBRL(totalAcumulado)}</p>
+                <p className="font-serif text-3xl text-text">{formatBRL(faturamentoExibido)}</p>
                 <p className="text-text-muted text-sm font-sans">de {formatBRL(meta.meta_coletiva)}</p>
               </div>
             </div>
@@ -156,27 +146,33 @@ export default async function DashboardPage({
                 style={{ width: `${progressoColetivo}%` }}
               />
             </div>
-            <p className="text-text-muted text-xs font-sans mt-2 text-right">
-              {progressoColetivo}% · faltam {formatBRL(Math.max(0, meta.meta_coletiva - totalAcumulado))}
-            </p>
+            <div className="flex items-center justify-between mt-2">
+              <FaturamentoEdit
+                metaId={meta.id}
+                faturamentoAtual={meta.faturamento_acumulado ?? 0}
+                metaColetiva={meta.meta_coletiva}
+                mes={mes}
+                ano={ano}
+              />
+              <p className="text-text-muted text-xs font-sans">
+                {progressoColetivo}% · faltam {formatBRL(Math.max(0, meta.meta_coletiva - faturamentoExibido))}
+              </p>
+            </div>
           </div>
         ) : (
           <div className="card p-6 text-center">
             <p className="text-text-muted font-sans text-sm">
-              Nenhuma meta configurada para {nomeMes(mes)} {ano}.
-              <span className="text-primary cursor-pointer ml-1">Configure as metas →</span>
+              Nenhuma meta configurada para {nomeMes(mes)} {ano}.{' '}
+              <span className="text-primary">Configure as metas →</span>
             </p>
           </div>
         )}
 
         {/* Barbeiros */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-serif text-xl text-text">
-              Barbeiros <span className="text-text-muted text-base font-sans">({barbeiros.length})</span>
-            </h2>
-            <p className="text-text-muted text-sm font-sans capitalize">{nomeMes(mes)} {ano}</p>
-          </div>
+          <h2 className="font-serif text-xl text-text mb-4">
+            Ranking <span className="text-text-muted text-base font-sans">— {nomeMes(mes)} {ano}</span>
+          </h2>
 
           {barbeiros.length === 0 ? (
             <div className="card p-8 text-center">
@@ -198,15 +194,12 @@ export default async function DashboardPage({
 
                 return (
                   <div key={barbeiro.id} className="card p-5">
-                    {/* Linha principal */}
                     <div className="flex items-center gap-3">
-                      {/* Posição no ranking */}
                       <span className={`font-serif text-lg w-6 text-center shrink-0
                         ${idx === 0 ? 'metal-text-gold' : idx === 1 ? 'metal-text-silver' : idx === 2 ? 'metal-text-bronze' : 'text-text-muted'}`}>
                         {idx + 1}
                       </span>
 
-                      {/* Avatar */}
                       <div className="w-10 h-10 rounded-full bg-surface-2 border border-border flex items-center justify-center font-serif text-lg text-text-muted shrink-0 overflow-hidden">
                         {barbeiro.foto_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -214,9 +207,8 @@ export default async function DashboardPage({
                         ) : barbeiro.nome[0]}
                       </div>
 
-                      {/* Nome e link */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-sans font-semibold text-text">{barbeiro.nome}</p>
                           <EditarBarbeiroModal barbeiro={barbeiro} />
                           {tier && (
@@ -225,13 +217,12 @@ export default async function DashboardPage({
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1">
-                          <p className="text-text-muted text-xs font-sans truncate">/b/{barbeiro.link_codigo}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-text-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
                           <CopiarLinkBtn codigo={barbeiro.link_codigo} />
                         </div>
                       </div>
 
-                      {/* Comissão + botão lançar */}
                       <div className="text-right shrink-0">
                         <p className="font-serif text-xl text-text">{formatBRL(barbeiro.comissao)}</p>
                         <LancamentoForm
@@ -242,40 +233,42 @@ export default async function DashboardPage({
                       </div>
                     </div>
 
-                    {/* Barras — só exibe tiers com meta configurada */}
+                    {/* Barras — mostra os 3 tiers quando metaInd existe */}
                     {barbeiro.metaInd && progresso && (
                       <div className="mt-4 space-y-2">
-                        {(['bronze', 'prata', 'ouro'] as const)
-                          .filter(t => (barbeiro.metaInd![`${t}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm'] ?? 0) > 0)
-                          .map((t) => {
-                            const commKey = `${t}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm'
-                            const premioKey = `${t}_premio` as 'bronze_premio' | 'prata_premio' | 'ouro_premio'
-                            const metaVal = barbeiro.metaInd![commKey]
-                            const premio = barbeiro.metaInd![premioKey]
-                            return (
-                              <div key={t}>
-                                <div className="flex items-center gap-3">
-                                  <span className={`text-xs font-sans w-12 text-right shrink-0 ${TIER_CONFIG[t].textClass}`}>
-                                    {TIER_CONFIG[t].label}
-                                  </span>
-                                  <div className="bar-track flex-1 h-2">
+                        {(['bronze', 'prata', 'ouro'] as const).map((t) => {
+                          const commKey = `${t}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm'
+                          const premioKey = `${t}_premio` as 'bronze_premio' | 'prata_premio' | 'ouro_premio'
+                          const metaVal = barbeiro.metaInd![commKey]
+                          const premio = barbeiro.metaInd![premioKey]
+                          const semMeta = !metaVal || metaVal <= 0
+
+                          return (
+                            <div key={t}>
+                              <div className="flex items-center gap-3">
+                                <span className={`text-xs font-sans w-12 text-right shrink-0 ${semMeta ? 'text-text-muted opacity-40' : TIER_CONFIG[t].textClass}`}>
+                                  {TIER_CONFIG[t].label}
+                                </span>
+                                <div className="bar-track flex-1 h-2">
+                                  {!semMeta && (
                                     <div
                                       className={`${TIER_CONFIG[t].barClass} h-full rounded-full transition-all duration-700`}
                                       style={{ width: `${progresso[t]}%` }}
                                     />
-                                  </div>
-                                  <span className="text-text-muted text-xs font-sans w-8 text-right shrink-0">
-                                    {progresso[t]}%
-                                  </span>
+                                  )}
                                 </div>
-                                {premio && (
-                                  <p className="text-xs font-sans text-text-muted ml-14 mt-0.5">
-                                    🏆 {premio} · meta: {formatBRL(metaVal)}
-                                  </p>
-                                )}
+                                <span className="text-text-muted text-xs font-sans w-16 text-right shrink-0">
+                                  {semMeta ? '—' : `${progresso[t]}% de ${formatBRL(metaVal)}`}
+                                </span>
                               </div>
-                            )
-                          })}
+                              {premio && !semMeta && (
+                                <p className="text-xs font-sans text-text-muted ml-14 mt-0.5">
+                                  🏆 {premio}
+                                </p>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
@@ -289,4 +282,3 @@ export default async function DashboardPage({
     </div>
   )
 }
-

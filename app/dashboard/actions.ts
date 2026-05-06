@@ -96,6 +96,25 @@ export async function atualizarLogo(formData: FormData) {
   return { ok: true }
 }
 
+export async function atualizarFaturamento(formData: FormData) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  const meta_id = formData.get('meta_id') as string
+  const faturamento_acumulado = parseFloat(formData.get('faturamento_acumulado') as string) || 0
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('metas')
+    .update({ faturamento_acumulado })
+    .eq('id', meta_id)
+
+  if (error) return { error: (error as { message: string }).message }
+  revalidatePath('/dashboard')
+  return { ok: true }
+}
+
 export async function lancarComissao(formData: FormData) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
