@@ -31,6 +31,7 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
   const [isPending, startTransition] = useTransition()
   const [erro, setErro] = useState<string | null>(null)
   const [sucesso, setSucesso] = useState(false)
+  const [msgSucesso, setMsgSucesso] = useState('✓ Metas salvas')
 
   const [metaColetivaVal, setMetaColetivaVal] = useState(String(metaColetiva ?? ''))
   const [faturamentoVal, setFaturamentoVal] = useState(String(faturamentoAcumulado ?? ''))
@@ -80,9 +81,11 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
       if (res && 'error' in res) {
         setErro(res.error)
       } else {
+        const salvos = res && 'salvos' in res ? (res as { salvos: number }).salvos : 0
         setSucesso(true)
+        setMsgSucesso(`✓ Metas salvas (${salvos} barbeiro${salvos !== 1 ? 's' : ''})`)
         setOpen(false)
-        setTimeout(() => setSucesso(false), 3000)
+        setTimeout(() => setSucesso(false), 4000)
       }
     })
   }
@@ -90,15 +93,21 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
   if (!open) {
     return (
       <button onClick={() => setOpen(true)} className="btn-ghost text-sm py-2 px-4 border border-border">
-        {sucesso ? '✓ Metas salvas' : 'Configurar metas'}
+        {sucesso ? msgSucesso : 'Configurar metas'}
       </button>
     )
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 overflow-y-auto">
-      <div className="min-h-full py-8 px-4 flex items-start justify-center">
-      <div className="card p-6 w-full max-w-2xl animate-fade-in">
+    <div
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)',
+        zIndex: 50, overflowY: 'auto', WebkitOverflowScrolling: 'touch' as never,
+      }}
+    >
+      <div style={{ minHeight: '100%', padding: '32px 16px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+      <div className="card p-6 w-full max-w-2xl" style={{ maxWidth: '672px' }}>
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-serif text-2xl text-text">
             Metas — <span className="capitalize">{nomeMes(mes)} {ano}</span>

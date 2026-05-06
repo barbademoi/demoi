@@ -64,52 +64,61 @@ export async function salvarMetas(formData: FormData) {
     ouro_premio: string
   }[]
 
+  let salvos = 0
+  const erros: string[] = []
+
   for (const b of barbeiros) {
-    // Check if meta individual already exists
+    // Check if meta individual already exists (ignore error — means "not found")
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: existing } = await (supabase as any)
       .from('metas_individuais')
       .select('id')
       .eq('meta_id', meta_id)
       .eq('barbeiro_id', b.id)
-      .single()
+      .maybeSingle()
 
     if (existing) {
-      // Update comm values (always exists)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)
         .from('metas_individuais')
         .update({ bronze_comm: b.bronze_comm, prata_comm: b.prata_comm, ouro_comm: b.ouro_comm })
         .eq('id', (existing as { id: string }).id)
-      if (error) return { error: error.message }
+      if (error) { erros.push(`Atualizar ${b.id}: ${error.message}`); continue }
 
-      // Try to update prize values (silently skip if columns don't exist yet)
+      // Prize columns (silently ignore if not in DB yet)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any)
         .from('metas_individuais')
-        .update({
-          bronze_premio: b.bronze_premio || null,
-          prata_premio: b.prata_premio || null,
-          ouro_premio: b.ouro_premio || null,
-        })
+        .update({ bronze_premio: b.bronze_premio || null, prata_premio: b.prata_premio || null, ouro_premio: b.ouro_premio || null })
         .eq('id', (existing as { id: string }).id)
+
+      salvos++
     } else {
-      // Insert
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
+      const { data: inserted, error } = await (supabase as any)
         .from('metas_individuais')
-        .insert({
-          meta_id,
-          barbeiro_id: b.id,
-          bronze_comm: b.bronze_comm,
-          prata_comm: b.prata_comm,
-          ouro_comm: b.ouro_comm,
-        })
-      if (error) return { error: error.message }
+        .insert({ meta_id, barbeiro_id: b.id, bronze_comm: b.bronze_comm, prata_comm: b.prata_comm, ouro_comm: b.ouro_comm })
+        .select('id')
+        .single()
+      if (error) { erros.push(`Inserir ${b.id}: ${error.message}`); continue }
+
+      // Prize columns after insert
+      if (inserted && (b.bronze_premio || b.prata_premio || b.ouro_premio)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any)
+          .from('metas_individuais')
+          .update({ bronze_premio: b.bronze_premio || null, prata_premio: b.prata_premio || null, ouro_premio: b.ouro_premio || null })
+          .eq('id', (inserted as { id: string }).id)
+      }
+      salvos++
     }
+  }
+
+  if (erros.length > 0 && salvos === 0) {
+    return { error: erros[0] }
   }
 
   revalidatePath('/dashboard')
   revalidatePath('/cards')
-  return { ok: true }
+  return { ok: true, salvos, erros: erros.length > 0 ? erros : undefined }
 }

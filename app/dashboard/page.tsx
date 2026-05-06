@@ -17,12 +17,11 @@ type UsuarioComBarbearia = {
   barbearias: { id: string; nome: string; logo_url: string | null }
 }
 
-type MetaComIndividuais = {
+type MetaSimples = {
   id: string
   meta_coletiva: number
   premio_coletivo: string | null
   faturamento_acumulado: number
-  metas_individuais: MetaIndividual[]
 }
 
 export default async function DashboardPage() {
@@ -45,16 +44,26 @@ export default async function DashboardPage() {
   const mes = hoje.getMonth() + 1
   const ano = hoje.getFullYear()
 
+  // Busca meta coletiva (sem nested — nested join do Supabase pode falhar silenciosamente)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
     .from('metas')
-    .select('id, meta_coletiva, premio_coletivo, faturamento_acumulado, metas_individuais(*)')
+    .select('id, meta_coletiva, premio_coletivo, faturamento_acumulado')
     .eq('barbearia_id', barbearia.id)
     .eq('mes', mes)
     .eq('ano', ano)
     .single()
 
-  const meta = metaRaw as unknown as MetaComIndividuais | null
+  const meta = metaRaw as MetaSimples | null
+
+  // Busca metas individuais em query separada
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: metasIndRaw } = meta ? await (supabase as any)
+    .from('metas_individuais')
+    .select('*')
+    .eq('meta_id', meta.id) : { data: null }
+
+  const metasIndividuais = (metasIndRaw ?? []) as MetaIndividual[]
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barbeirosRaw } = await (supabase as any)
@@ -83,7 +92,7 @@ export default async function DashboardPage() {
     .map(b => ({
       ...b,
       comissao: lancamentos.find(l => l.barbeiro_id === b.id)?.comissao_acumulada ?? 0,
-      metaInd: meta?.metas_individuais?.find(m => m.barbeiro_id === b.id),
+      metaInd: metasIndividuais.find(m => m.barbeiro_id === b.id) ?? null,
     }))
     .sort((a, b) => b.comissao - a.comissao)
 
@@ -118,7 +127,7 @@ export default async function DashboardPage() {
           <NovoBarbeiroModal />
           <MetasModal
             barbeiros={barbeiros}
-            metasAtuais={meta?.metas_individuais}
+            metasAtuais={metasIndividuais}
             metaColetiva={meta?.meta_coletiva}
             faturamentoAcumulado={meta?.faturamento_acumulado}
             premioColetivo={meta?.premio_coletivo ?? undefined}
@@ -227,50 +236,57 @@ export default async function DashboardPage() {
                         <p className="font-serif text-xl text-text">{formatBRL(barbeiro.comissao)}</p>
                         <LancamentoForm
                           barbeiro={barbeiro}
-                          metaInd={barbeiro.metaInd}
+                          metaInd={barbeiro.metaInd ?? undefined}
                           comissaoAtual={barbeiro.comissao}
                         />
                       </div>
                     </div>
 
-                    {/* Barras — mostra os 3 tiers quando metaInd existe */}
-                    {barbeiro.metaInd && progresso && (
-                      <div className="mt-4 space-y-2">
-                        {(['bronze', 'prata', 'ouro'] as const).map((t) => {
-                          const commKey = `${t}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm'
-                          const premioKey = `${t}_premio` as 'bronze_premio' | 'prata_premio' | 'ouro_premio'
-                          const metaVal = barbeiro.metaInd![commKey]
-                          const premio = barbeiro.metaInd![premioKey]
-                          const semMeta = !metaVal || metaVal <= 0
+                    {/* Barras de progresso */}
+                    <div className="mt-4">
+                      {!barbeiro.metaInd ? (
+                        <p className="text-text-muted text-xs font-sans opacity-50">
+                          Sem metas individuais — clique em &quot;Configurar metas&quot;
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {(['bronze', 'prata', 'ouro'] as const).map((t) => {
+                            const commKey = `${t}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm'
+                            const premioKey = `${t}_premio` as 'bronze_premio' | 'prata_premio' | 'ouro_premio'
+                            const metaVal = barbeiro.metaInd![commKey]
+                            const premio = barbeiro.metaInd![premioKey]
+                            const semMeta = !metaVal || metaVal <= 0
+                            const pct = progresso ? progresso[t] : 0
 
-                          return (
-                            <div key={t}>
-                              <div className="flex items-center gap-3">
-                                <span className={`text-xs font-sans w-12 text-right shrink-0 ${semMeta ? 'text-text-muted opacity-40' : TIER_CONFIG[t].textClass}`}>
-                                  {TIER_CONFIG[t].label}
-                                </span>
-                                <div className="bar-track flex-1 h-2">
-                                  {!semMeta && (
-                                    <div
-                                      className={`${TIER_CONFIG[t].barClass} h-full rounded-full transition-all duration-700`}
-                                      style={{ width: progresso[t] > 0 ? `${progresso[t]}%` : '3px' }}
-                                    />
-                                  )}
+                            return (
+                              <div key={t}>
+                                <div className="flex items-center gap-3">
+                                  <span className={`text-xs font-sans w-12 text-right shrink-0 ${semMeta ? 'text-text-muted opacity-30' : TIER_CONFIG[t].textClass}`}>
+                                    {TIER_CONFIG[t].label}
+                                  </span>
+                                  <div className="bar-track flex-1 h-2">
+                                    {!semMeta && (
+                                      <div
+                                        className={`${TIER_CONFIG[t].barClass} h-full rounded-full transition-all duration-700`}
+                                        style={{ width: pct > 0 ? `${pct}%` : '3px' }}
+                                      />
+                                    )}
+                                  </div>
+                                  <span className="text-text-muted text-xs font-sans w-20 text-right shrink-0">
+                                    {semMeta ? <span className="opacity-30">—</span> : pct > 0 ? `${pct}% de ${formatBRL(metaVal)}` : `meta: ${formatBRL(metaVal)}`}
+                                  </span>
                                 </div>
-                                <span className="text-text-muted text-xs font-sans w-20 text-right shrink-0">
-                                  {semMeta ? '—' : progresso[t] > 0 ? `${progresso[t]}% de ${formatBRL(metaVal)}` : `meta: ${formatBRL(metaVal)}`}
-                                </span>
+                                {premio && !semMeta && (
+                                  <p className="text-xs font-sans text-text-muted ml-14 mt-0.5">
+                                    🏆 {premio}
+                                  </p>
+                                )}
                               </div>
-                              {premio && !semMeta && (
-                                <p className="text-xs font-sans text-text-muted ml-14 mt-0.5">
-                                  🏆 {premio}
-                                </p>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )
               })}
