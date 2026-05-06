@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from 'react'
 import { formatBRL, TIER_CONFIG, calcProgresso, calcTier, nomeMes } from '@/lib/utils'
+import { gerarInsightsBarbeiro } from '@/lib/insights'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
 interface Props {
@@ -258,6 +259,55 @@ export default function CardTemplate({
     ctx.fillStyle = '#8B8FA8'
     ctx.textAlign = 'right'
     ctx.fillText(`${colPct}% atingido`, W - 80, colY + 180)
+
+    // Insights de motivação (apenas resultado)
+    if (tipo === 'resultado') {
+      const insights = gerarInsightsBarbeiro({
+        comissao,
+        metaInd,
+        posicaoRanking: 0, // não temos ranking aqui, ignorar posição
+        totalBarbeiros: 0,
+        totalEquipe,
+        metaColetiva,
+        barberoNome: barbeiro.nome,
+      }).filter(ins => !['🥇','🔥','🎯'].includes(ins.emoji)) // remove insights de ranking no card individual
+
+      if (insights.length > 0) {
+        const insY = colY + 210
+        ctx.fillStyle = '#1E2028'
+        ctx.fillRect(80, insY, W - 160, 2)
+
+        ctx.font = `400 26px ${FONT_SANS}`
+        ctx.fillStyle = '#8B8FA8'
+        ctx.textAlign = 'left'
+        ctx.fillText('INSIGHTS', 80, insY + 40)
+
+        insights.forEach((ins, i) => {
+          const lineY = insY + 80 + i * 58
+          ctx.font = `400 30px ${FONT_SANS}`
+          ctx.fillStyle = ins.destaque ? '#EEF0F6' : '#8B8FA8'
+          ctx.textAlign = 'left'
+          // word-wrap manually: max ~38 chars per line
+          const texto = `${ins.emoji}  ${ins.texto}`
+          if (texto.length <= 44) {
+            ctx.fillText(texto, 80, lineY)
+          } else {
+            const words = texto.split(' ')
+            let line1 = '', line2 = ''
+            for (const w of words) {
+              if ((line1 + ' ' + w).trim().length <= 44) line1 = (line1 + ' ' + w).trim()
+              else line2 = (line2 + ' ' + w).trim()
+            }
+            ctx.fillText(line1, 80, lineY)
+            if (line2) {
+              ctx.font = `400 26px ${FONT_SANS}`
+              ctx.fillStyle = '#6B7280'
+              ctx.fillText(line2, 80, lineY + 34)
+            }
+          }
+        })
+      }
+    }
 
     // Bottom accent
     const botGrad = ctx.createLinearGradient(0, H - 4, W, H)

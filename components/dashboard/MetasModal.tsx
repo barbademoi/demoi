@@ -42,9 +42,9 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
       return {
         id: b.id,
         nome: b.nome,
-        bronze_comm: String(m?.bronze_comm ?? ''),
-        prata_comm: String(m?.prata_comm ?? ''),
-        ouro_comm: String(m?.ouro_comm ?? ''),
+        bronze_comm: m?.bronze_comm ? String(m.bronze_comm) : '',
+        prata_comm: m?.prata_comm ? String(m.prata_comm) : '',
+        ouro_comm: m?.ouro_comm ? String(m.ouro_comm) : '',
         bronze_premio: m?.bronze_premio ?? '',
         prata_premio: m?.prata_premio ?? '',
         ouro_premio: m?.ouro_premio ?? '',
@@ -100,14 +100,9 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
 
   return (
     <div
-      style={{
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)',
-        zIndex: 50, overflowY: 'auto', WebkitOverflowScrolling: 'touch' as never,
-      }}
+      style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.7)', zIndex:50, overflowY:'scroll' }}
     >
-      <div style={{ minHeight: '100%', padding: '32px 16px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
-      <div className="card p-6 w-full max-w-2xl" style={{ maxWidth: '672px' }}>
+      <div className="card p-6 w-full mx-auto my-8" style={{ maxWidth:'672px' }}>
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-serif text-2xl text-text">
             Metas — <span className="capitalize">{nomeMes(mes)} {ano}</span>
@@ -229,7 +224,6 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
             </button>
           </div>
         </form>
-      </div>
       </div>
     </div>
   )

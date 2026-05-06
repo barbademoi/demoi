@@ -246,7 +246,7 @@ export default async function DashboardPage() {
                     <div className="mt-4">
                       {!barbeiro.metaInd ? (
                         <p className="text-text-muted text-xs font-sans opacity-50">
-                          Sem metas individuais — clique em &quot;Configurar metas&quot;
+                          Sem metas configuradas — clique em &quot;Configurar metas&quot;
                         </p>
                       ) : (
                         <div className="space-y-2">
@@ -273,7 +273,11 @@ export default async function DashboardPage() {
                                     )}
                                   </div>
                                   <span className="text-text-muted text-xs font-sans w-20 text-right shrink-0">
-                                    {semMeta ? <span className="opacity-30">—</span> : pct > 0 ? `${pct}% de ${formatBRL(metaVal)}` : `meta: ${formatBRL(metaVal)}`}
+                                    {semMeta
+                                      ? <span className="opacity-30 text-xs">não config.</span>
+                                      : pct > 0
+                                        ? `${pct}% de ${formatBRL(metaVal)}`
+                                        : `meta: ${formatBRL(metaVal)}`}
                                   </span>
                                 </div>
                                 {premio && !semMeta && (
