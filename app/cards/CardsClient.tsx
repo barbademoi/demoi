@@ -21,13 +21,14 @@ interface Props {
   meta: MetaComIndividuais | null
   lancamentos: Lancamento[]
   totalEquipe: number
+  faturamentoAcumulado: number
   barbeariaName: string
   mes: number
   ano: number
   tipo: 'inicio' | 'resultado'
 }
 
-export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe, barbeariaName, mes, ano, tipo }: Props) {
+export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe, faturamentoAcumulado, barbeariaName, mes, ano, tipo }: Props) {
   const canvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map())
   const rankingCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [baixando, setBaixando] = useState(false)
@@ -197,6 +198,7 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
                       metaColetiva={meta?.meta_coletiva ?? 0}
                       premioColetivo={meta?.premio_coletivo ?? null}
                       totalEquipe={totalEquipe}
+                      faturamentoAcumulado={faturamentoAcumulado}
                       mes={mesAtual}
                       ano={anoAtual}
                       onCanvas={(canvas) => registrarCanvas(canvas, barbeiro.id)}

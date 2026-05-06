@@ -13,6 +13,7 @@ interface Props {
   metaColetiva: number
   premioColetivo: string | null
   totalEquipe: number
+  faturamentoAcumulado: number
   mes: number
   ano: number
   onCanvas?: (canvas: HTMLCanvasElement, nome: string) => void
@@ -78,7 +79,7 @@ function drawMetallicBar(
 }
 
 export default function CardTemplate({
-  tipo, barbeiro, metaInd, lancamento, metaColetiva, premioColetivo, totalEquipe, mes, ano, onCanvas
+  tipo, barbeiro, metaInd, lancamento, metaColetiva, premioColetivo, totalEquipe, faturamentoAcumulado, mes, ano, onCanvas
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -230,9 +231,10 @@ export default function CardTemplate({
       })
     }
 
-    // Meta coletiva section
+    // Meta coletiva section — usa faturamentoAcumulado se disponível (igual ao dashboard)
+    const faturamentoExibido = faturamentoAcumulado > 0 ? faturamentoAcumulado : totalEquipe
     const colY = tipo === 'resultado' ? 1200 : 780
-    const colPct = calcProgresso(totalEquipe, metaColetiva)
+    const colPct = calcProgresso(faturamentoExibido, metaColetiva)
 
     ctx.fillStyle = '#1E2028'
     ctx.fillRect(80, colY, W - 160, 2)
@@ -251,7 +253,7 @@ export default function CardTemplate({
     ctx.font = `300 30px ${FONT_SANS}`
     ctx.fillStyle = '#8B8FA8'
     ctx.textAlign = 'right'
-    ctx.fillText(`${formatBRL(totalEquipe)} de ${formatBRL(metaColetiva)}`, W - 80, colY + 56)
+    ctx.fillText(`${formatBRL(faturamentoExibido)} de ${formatBRL(metaColetiva)}`, W - 80, colY + 56)
 
     drawMetallicBar(ctx, 80, colY + 120, W - 160, 28, 'ouro', colPct, colPct >= 100)
 
@@ -265,12 +267,12 @@ export default function CardTemplate({
       const insights = gerarInsightsBarbeiro({
         comissao,
         metaInd,
-        posicaoRanking: 0, // não temos ranking aqui, ignorar posição
-        totalBarbeiros: 0,
-        totalEquipe,
+        posicaoRanking: 99,  // sem ranking no card individual
+        totalBarbeiros: 1,   // sem ranking no card individual
+        totalEquipe: faturamentoExibido,
         metaColetiva,
         barberoNome: barbeiro.nome,
-      }).filter(ins => !['🥇','🔥','🎯'].includes(ins.emoji)) // remove insights de ranking no card individual
+      })
 
       if (insights.length > 0) {
         const insY = colY + 210

@@ -39,7 +39,7 @@ export default async function CardsPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
     .from('metas')
-    .select('id, meta_coletiva, premio_coletivo, metas_individuais(*)')
+    .select('id, meta_coletiva, premio_coletivo, faturamento_acumulado, metas_individuais(*)')
     .eq('barbearia_id', barbearia.id)
     .eq('mes', mes)
     .eq('ano', ano)
@@ -66,6 +66,7 @@ export default async function CardsPage({
   const barbeiros = (barbeirosRaw ?? []) as Barbeiro[]
   const lancamentos = (lancamentosRaw ?? []) as Lancamento[]
   const totalEquipe = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
+  const faturamentoAcumulado = (meta as unknown as { faturamento_acumulado?: number })?.faturamento_acumulado ?? 0
 
   return (
     <CardsClient
@@ -73,6 +74,7 @@ export default async function CardsPage({
       meta={meta}
       lancamentos={lancamentos}
       totalEquipe={totalEquipe}
+      faturamentoAcumulado={faturamentoAcumulado}
       barbeariaName={barbearia.nome}
       mes={mes}
       ano={ano}
