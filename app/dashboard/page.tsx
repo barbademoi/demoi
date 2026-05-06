@@ -253,12 +253,12 @@ export default async function DashboardPage() {
                                   {!semMeta && (
                                     <div
                                       className={`${TIER_CONFIG[t].barClass} h-full rounded-full transition-all duration-700`}
-                                      style={{ width: `${progresso[t]}%` }}
+                                      style={{ width: progresso[t] > 0 ? `${progresso[t]}%` : '3px' }}
                                     />
                                   )}
                                 </div>
-                                <span className="text-text-muted text-xs font-sans w-16 text-right shrink-0">
-                                  {semMeta ? '—' : `${progresso[t]}% de ${formatBRL(metaVal)}`}
+                                <span className="text-text-muted text-xs font-sans w-20 text-right shrink-0">
+                                  {semMeta ? '—' : progresso[t] > 0 ? `${progresso[t]}% de ${formatBRL(metaVal)}` : `meta: ${formatBRL(metaVal)}`}
                                 </span>
                               </div>
                               {premio && !semMeta && (
