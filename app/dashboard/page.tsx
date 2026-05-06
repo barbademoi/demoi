@@ -7,6 +7,7 @@ import LancamentoForm from '@/components/dashboard/LancamentoForm'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
 import MesSelector from '@/components/dashboard/MesSelector'
+import CopiarLinkBtn from '@/components/dashboard/CopiarLinkBtn'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
 type UsuarioComBarbearia = {
@@ -215,7 +216,10 @@ export default async function DashboardPage({
                             </span>
                           )}
                         </div>
-                        <p className="text-text-muted text-xs font-sans truncate">/b/{barbeiro.link_codigo}</p>
+                        <div className="flex items-center gap-1">
+                          <p className="text-text-muted text-xs font-sans truncate">/b/{barbeiro.link_codigo}</p>
+                          <CopiarLinkBtn codigo={barbeiro.link_codigo} />
+                        </div>
                       </div>
 
                       {/* Comissão + botão lançar */}
@@ -229,25 +233,40 @@ export default async function DashboardPage({
                       </div>
                     </div>
 
-                    {/* Barras */}
+                    {/* Barras — só exibe tiers com meta configurada */}
                     {barbeiro.metaInd && progresso && (
                       <div className="mt-4 space-y-2">
-                        {(['bronze', 'prata', 'ouro'] as const).map((t) => (
-                          <div key={t} className="flex items-center gap-3">
-                            <span className={`text-xs font-sans w-12 text-right shrink-0 ${TIER_CONFIG[t].textClass}`}>
-                              {TIER_CONFIG[t].label}
-                            </span>
-                            <div className="bar-track flex-1 h-2">
-                              <div
-                                className={`${TIER_CONFIG[t].barClass} h-full rounded-full transition-all duration-700`}
-                                style={{ width: `${progresso[t]}%` }}
-                              />
-                            </div>
-                            <span className="text-text-muted text-xs font-sans w-8 text-right shrink-0">
-                              {progresso[t]}%
-                            </span>
-                          </div>
-                        ))}
+                        {(['bronze', 'prata', 'ouro'] as const)
+                          .filter(t => (barbeiro.metaInd![`${t}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm'] ?? 0) > 0)
+                          .map((t) => {
+                            const commKey = `${t}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm'
+                            const premioKey = `${t}_premio` as 'bronze_premio' | 'prata_premio' | 'ouro_premio'
+                            const metaVal = barbeiro.metaInd![commKey]
+                            const premio = barbeiro.metaInd![premioKey]
+                            return (
+                              <div key={t}>
+                                <div className="flex items-center gap-3">
+                                  <span className={`text-xs font-sans w-12 text-right shrink-0 ${TIER_CONFIG[t].textClass}`}>
+                                    {TIER_CONFIG[t].label}
+                                  </span>
+                                  <div className="bar-track flex-1 h-2">
+                                    <div
+                                      className={`${TIER_CONFIG[t].barClass} h-full rounded-full transition-all duration-700`}
+                                      style={{ width: `${progresso[t]}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-text-muted text-xs font-sans w-8 text-right shrink-0">
+                                    {progresso[t]}%
+                                  </span>
+                                </div>
+                                {premio && (
+                                  <p className="text-xs font-sans text-text-muted ml-14 mt-0.5">
+                                    🏆 {premio} · meta: {formatBRL(metaVal)}
+                                  </p>
+                                )}
+                              </div>
+                            )
+                          })}
                       </div>
                     )}
                   </div>
