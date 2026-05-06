@@ -21,13 +21,13 @@ export async function salvarMetas(formData: FormData) {
   const ano = parseInt(formData.get('ano') as string)
   const meta_coletiva = parseFloat(formData.get('meta_coletiva') as string) || 0
   const premio_coletivo = formData.get('premio_coletivo') as string
+  const faturamento_acumulado = parseFloat(formData.get('faturamento_acumulado') as string) || 0
 
-  // Upsert meta coletiva
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaResult, error: metaError } = await (supabase as any)
     .from('metas')
     .upsert(
-      { barbearia_id: usuario.barbearia_id, mes, ano, meta_coletiva, premio_coletivo },
+      { barbearia_id: usuario.barbearia_id, mes, ano, meta_coletiva, premio_coletivo, faturamento_acumulado },
       { onConflict: 'barbearia_id,mes,ano' }
     )
     .select('id')
@@ -36,12 +36,14 @@ export async function salvarMetas(formData: FormData) {
   if (metaError) return { error: metaError.message }
   const meta_id = (metaResult as { id: string }).id
 
-  // Upsert metas individuais
   const barbeiros = JSON.parse(formData.get('barbeiros') as string) as {
     id: string
     bronze_comm: number
     prata_comm: number
     ouro_comm: number
+    bronze_premio: string
+    prata_premio: string
+    ouro_premio: string
   }[]
 
   for (const b of barbeiros) {
@@ -55,6 +57,9 @@ export async function salvarMetas(formData: FormData) {
           bronze_comm: b.bronze_comm,
           prata_comm: b.prata_comm,
           ouro_comm: b.ouro_comm,
+          bronze_premio: b.bronze_premio || null,
+          prata_premio: b.prata_premio || null,
+          ouro_premio: b.ouro_premio || null,
         },
         { onConflict: 'meta_id,barbeiro_id' }
       )

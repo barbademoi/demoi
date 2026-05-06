@@ -93,6 +93,7 @@ export interface Database {
           ano: number
           meta_coletiva: number
           premio_coletivo: string | null
+          faturamento_acumulado: number
           created_at: string
         }
         Insert: {
@@ -102,11 +103,13 @@ export interface Database {
           ano: number
           meta_coletiva?: number
           premio_coletivo?: string | null
+          faturamento_acumulado?: number
           created_at?: string
         }
         Update: {
           meta_coletiva?: number
           premio_coletivo?: string | null
+          faturamento_acumulado?: number
         }
         Relationships: [
           {

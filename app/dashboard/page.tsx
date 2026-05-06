@@ -18,6 +18,7 @@ type MetaComIndividuais = {
   id: string
   meta_coletiva: number
   premio_coletivo: string | null
+  faturamento_acumulado: number
   metas_individuais: MetaIndividual[]
 }
 
@@ -75,7 +76,9 @@ export default async function DashboardPage({
   const barbeiros = (barbeirosRaw ?? []) as Barbeiro[]
   const lancamentos = (lancamentosRaw ?? []) as Lancamento[]
 
-  const totalAcumulado = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
+  const totalComissoes = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
+  const faturamentoExibido = meta?.faturamento_acumulado ?? 0
+  const totalAcumulado = faturamentoExibido > 0 ? faturamentoExibido : totalComissoes
   const progressoColetivo = meta ? calcProgresso(totalAcumulado, meta.meta_coletiva) : 0
 
   // Monta ranking
@@ -121,6 +124,7 @@ export default async function DashboardPage({
             barbeiros={barbeiros}
             metasAtuais={meta?.metas_individuais}
             metaColetiva={meta?.meta_coletiva}
+            faturamentoAcumulado={meta?.faturamento_acumulado}
             premioColetivo={meta?.premio_coletivo ?? undefined}
             mes={mes}
             ano={ano}
