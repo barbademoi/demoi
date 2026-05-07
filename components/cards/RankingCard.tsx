@@ -8,6 +8,7 @@ interface Props {
   barbeiros: Barbeiro[]
   meta: { id: string; meta_coletiva: number; premio_coletivo: string | null; metas_individuais: MetaIndividual[] } | null
   lancamentos: Lancamento[]
+  faturamentoAcumulado: number
   barbeariaName: string
   mes: number
   ano: number
@@ -31,7 +32,7 @@ function makeMetalGrad(ctx: CanvasRenderingContext2D, tier: 'bronze' | 'prata' |
   return g
 }
 
-export default function RankingCard({ barbeiros, meta, lancamentos, barbeariaName, mes, ano, onCanvas }: Props) {
+export default function RankingCard({ barbeiros, meta, lancamentos, faturamentoAcumulado, barbeariaName, mes, ano, onCanvas }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -182,7 +183,8 @@ export default function RankingCard({ barbeiros, meta, lancamentos, barbeariaNam
     // Meta coletiva section
     const colY = H - 200
     const totalEquipe = ranking.reduce((s, b) => s + b.comissao, 0)
-    const colPct = meta ? calcProgresso(totalEquipe, meta.meta_coletiva) : 0
+    const faturamentoExibido = faturamentoAcumulado > 0 ? faturamentoAcumulado : totalEquipe
+    const colPct = meta ? calcProgresso(faturamentoExibido, meta.meta_coletiva) : 0
 
     ctx.fillStyle = '#1E2028'
     ctx.fillRect(80, colY - 20, W - 160, 2)
@@ -201,7 +203,7 @@ export default function RankingCard({ barbeiros, meta, lancamentos, barbeariaNam
     ctx.font = `400 28px ${FONT_SANS}`
     ctx.fillStyle = '#8B8FA8'
     ctx.textAlign = 'right'
-    ctx.fillText(`${formatBRL(totalEquipe)} de ${formatBRL(meta?.meta_coletiva ?? 0)}`, W - 80, colY + 24)
+    ctx.fillText(`${formatBRL(faturamentoExibido)} de ${formatBRL(meta?.meta_coletiva ?? 0)}`, W - 80, colY + 24)
 
     // Bar
     const bY = colY + 68
