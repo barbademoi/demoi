@@ -1,0 +1,344 @@
+'use client'
+
+import { useState } from 'react'
+import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso } from '@/lib/utils'
+import LancarDiaForm from './LancarDiaForm'
+import type {
+  Barbeiro, MetaIndividual, Lancamento,
+  CampanhaComDetalhes, ControleDiario, ModoPontos,
+} from '@/types/database'
+
+type LancamentoComNome = Lancamento & { barbeiros: { nome: string } | null }
+
+interface PontosEntry { barbeiro_id: string; pontos: number }
+
+interface Props {
+  barbeiro: Barbeiro
+  barbeariaName: string
+  mes: number
+  ano: number
+  modo: ModoPontos
+  // metas
+  metaInd: MetaIndividual | null
+  lancamento: Lancamento | null
+  progresso: { bronze: number; prata: number; ouro: number; tier_atual: import('@/types/database').Tier | null } | null
+  ranking: LancamentoComNome[]
+  posicaoRanking: number
+  faturamentoColetivo: number
+  progressoColetivo: number
+  metaColetiva: number
+  premioColetivo: string | null
+  insights: { emoji: string; texto: string; destaque?: boolean }[]
+  // pontos
+  campanha: CampanhaComDetalhes | null
+  controlesDiario: ControleDiario[]
+  pontosTotal: number
+  rankingPontos: PontosEntry[]
+  pontosMap: Record<string, number>
+  controleHoje: Record<string, number>
+  historico: { data: string; pontos: number; label: string }[]
+}
+
+export default function BarbeiroClient({
+  barbeiro, barbeariaName: _, mes, ano,
+  modo, metaInd, lancamento, progresso, ranking, posicaoRanking,
+  faturamentoColetivo, progressoColetivo, metaColetiva, premioColetivo,
+  insights, campanha, controlesDiario, pontosTotal, rankingPontos, pontosMap,
+  controleHoje, historico,
+}: Props) {
+  const comissao = lancamento?.comissao_acumulada ?? 0
+  const mostraPontos = modo === 'pontos' || modo === 'ambos'
+  const mostraMetas = modo === 'metas' || modo === 'ambos'
+  const [aba, setAba] = useState<'progresso' | 'lancar'>('progresso')
+
+  const posicaoPts = rankingPontos.findIndex(r => r.barbeiro_id === barbeiro.id)
+  const qualificado = campanha ? pontosTotal >= campanha.min_pontos : false
+  const premioAtual = campanha?.campanha_premios.find(p => p.posicao === posicaoPts + 1)
+
+  // Contagem de assinaturas para bônus
+  const assinaturaServico = campanha?.campanha_servicos.find(s =>
+    s.nome.toLowerCase().includes('assinatura')
+  )
+  const totalAssinaturas = assinaturaServico
+    ? (controlesDiario ?? []).filter(cd => cd.servico_id === assinaturaServico.id)
+        .reduce((s, cd) => s + cd.quantidade, 0)
+    : 0
+  const temBonus = campanha && totalAssinaturas >= campanha.bonus_assin_qtd
+
+  return (
+    <>
+      {/* Tabs — só se houver campanha de pontos */}
+      {mostraPontos && campanha && (
+        <div className="flex border-b border-border mb-0">
+          <button
+            onClick={() => setAba('progresso')}
+            className={`flex-1 py-3.5 text-sm font-sans font-semibold transition-colors
+              ${aba === 'progresso' ? 'text-text border-b-2 border-primary' : 'text-text-muted hover:text-text'}`}
+          >
+            Progresso
+          </button>
+          <button
+            onClick={() => setAba('lancar')}
+            className={`flex-1 py-3.5 text-sm font-sans font-semibold transition-colors
+              ${aba === 'lancar' ? 'text-text border-b-2 border-primary' : 'text-text-muted hover:text-text'}`}
+          >
+            Lançar dia
+          </button>
+        </div>
+      )}
+
+      {/* ── ABA: PROGRESSO ── */}
+      {(aba === 'progresso' || !mostraPontos || !campanha) && (
+        <div className="space-y-6 pt-2">
+
+          {/* Card do barbeiro */}
+          <div className="card p-6 text-center">
+            <div className="w-16 h-16 rounded-full bg-surface-2 border border-border flex items-center justify-center font-serif text-3xl text-text-muted mx-auto mb-3 overflow-hidden">
+              {barbeiro.foto_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={barbeiro.foto_url} alt={barbeiro.nome} className="w-full h-full object-cover" />
+              ) : barbeiro.nome[0]}
+            </div>
+            <h2 className="font-serif text-3xl text-text">{barbeiro.nome}</h2>
+            <p className="text-text-muted text-sm font-sans mt-1 capitalize">{nomeMes(mes)} {ano}</p>
+
+            {mostraMetas && (
+              <div className="mt-6">
+                <p className="text-text-muted text-xs font-sans uppercase tracking-wide mb-1">Comissão acumulada</p>
+                <p className="font-serif text-5xl text-text">{formatBRL(comissao)}</p>
+              </div>
+            )}
+
+            {progresso?.tier_atual && mostraMetas && (
+              <div className={`mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full border
+                ${progresso.tier_atual === 'ouro'  ? 'border-yellow-500/30 bg-yellow-500/5' :
+                  progresso.tier_atual === 'prata' ? 'border-gray-400/30 bg-gray-400/5' :
+                  'border-amber-700/30 bg-amber-700/5'}`}>
+                <span className={`text-sm font-sans font-semibold ${TIER_CONFIG[progresso.tier_atual].textClass}`}>
+                  ★ {TIER_CONFIG[progresso.tier_atual].label} atingido!
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Seção de pontos */}
+          {mostraPontos && campanha && (
+            <div className="card p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-serif text-lg text-text">Pontuação do mês</h3>
+                {posicaoPts >= 0 && qualificado && (
+                  <span className="text-text-muted text-sm font-sans">
+                    #{posicaoPts + 1} no ranking
+                  </span>
+                )}
+              </div>
+
+              {/* Total */}
+              <div className="flex items-end gap-3">
+                <p className="font-serif text-5xl text-text">{pontosTotal}</p>
+                <p className="text-text-muted text-lg font-sans mb-1">pts</p>
+              </div>
+
+              {/* Barra até mínimo */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-text-muted text-xs font-sans">
+                    {qualificado ? '✓ Qualificado para o ranking' : `Faltam ${campanha.min_pontos - pontosTotal} pts para qualificar`}
+                  </span>
+                  <span className="text-text-muted text-xs font-sans">{campanha.min_pontos} pts</span>
+                </div>
+                <div className="bar-track h-2.5">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${qualificado ? 'bar-gold' : 'bar-bronze'}`}
+                    style={{ width: `${Math.min(100, Math.round((pontosTotal / campanha.min_pontos) * 100))}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Prêmio estimado */}
+              {qualificado && premioAtual && (
+                <div className="bg-primary/10 border border-primary/20 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <span className="text-2xl">🏆</span>
+                  <div>
+                    <p className="text-primary text-sm font-sans font-semibold">Prêmio estimado</p>
+                    <p className="font-serif text-2xl text-text">{formatBRL(Number(premioAtual.valor))}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Alerta abaixo do mínimo */}
+              {!qualificado && pontosTotal > 0 && (
+                <p className="text-text-muted text-xs font-sans text-center opacity-70">
+                  ⚡ Continue lançando seus serviços para entrar no ranking!
+                </p>
+              )}
+
+              {/* Bônus assinaturas */}
+              {campanha.bonus_assin_qtd > 0 && (
+                <div className={`rounded-xl px-4 py-3 text-xs font-sans
+                  ${temBonus ? 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400' : 'bg-surface-2 text-text-muted'}`}>
+                  {temBonus
+                    ? `⭐ Bônus de assinaturas desbloqueado! +${formatBRL(Number(campanha.bonus_assin_valor))}`
+                    : `${totalAssinaturas}/${campanha.bonus_assin_qtd} assinaturas para bônus de ${formatBRL(Number(campanha.bonus_assin_valor))}`
+                  }
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Insights */}
+          {insights.length > 0 && mostraMetas && (
+            <div className="card p-5 space-y-3">
+              <p className="text-text-muted text-xs font-sans uppercase tracking-wide">Insights do mês</p>
+              {insights.map((ins, i) => (
+                <div key={i} className={`flex items-start gap-3 p-3 rounded-xl ${ins.destaque === true ? 'bg-primary/10 border border-primary/20' : 'bg-surface-2'}`}>
+                  <span className="text-xl shrink-0">{ins.emoji}</span>
+                  <p className={`font-sans text-sm ${ins.destaque === true ? 'text-text font-medium' : 'text-text-muted'}`}>{ins.texto}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Barras Bronze / Prata / Ouro */}
+          {metaInd && progresso && mostraMetas && (
+            <div className="card p-6 space-y-5">
+              <h3 className="font-serif text-lg text-text">Suas metas</h3>
+              {(['bronze', 'prata', 'ouro'] as const).map((tier) => {
+                const metaVal = metaInd[`${tier}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm']
+                const premio  = metaInd[`${tier}_premio` as 'bronze_premio' | 'prata_premio' | 'ouro_premio']
+                if (!metaVal || metaVal <= 0) return null
+                return (
+                  <div key={tier}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-sm font-sans font-semibold ${TIER_CONFIG[tier].textClass}`}>
+                        {TIER_CONFIG[tier].label}
+                        {premio && <span className="text-text-muted font-normal ml-2">· {premio}</span>}
+                      </span>
+                      <span className="text-text-muted text-xs font-sans">
+                        {formatBRL(comissao)} / {formatBRL(metaVal)}
+                      </span>
+                    </div>
+                    <div className="bar-track h-2.5">
+                      <div
+                        className={`${TIER_CONFIG[tier].barClass} h-full rounded-full transition-all duration-700`}
+                        style={{ width: progresso[tier] > 0 ? `${progresso[tier]}%` : '3px' }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-text-muted text-xs font-sans">{progresso[tier]}%</span>
+                      {comissao < metaVal && (
+                        <span className="text-text-muted text-xs font-sans">faltam {formatBRL(metaVal - comissao)}</span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Ranking pontos da equipe */}
+          {mostraPontos && rankingPontos.length > 0 && (
+            <div className="card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-serif text-lg text-text">Ranking de pontos</h3>
+                {posicaoPts >= 0 && (
+                  <span className="text-text-muted text-sm font-sans">
+                    Você em <span className="text-text font-semibold">#{posicaoPts + 1}</span>
+                  </span>
+                )}
+              </div>
+              <div className="space-y-2">
+                {rankingPontos.slice(0, 8).map((r, i) => {
+                  const isMe = r.barbeiro_id === barbeiro.id
+                  const b = ranking.find(l => l.barbeiro_id === r.barbeiro_id)
+                  const nome = b?.barbeiros?.nome ?? '—'
+                  const qual = campanha ? r.pontos >= campanha.min_pontos : true
+                  return (
+                    <div key={r.barbeiro_id} className={`flex items-center gap-3 px-3 py-2 rounded-xl
+                      ${isMe ? 'bg-primary/10 border border-primary/20' : 'hover:bg-surface-2'}`}>
+                      <span className={`font-sans text-sm w-5 text-center
+                        ${i === 0 ? 'metal-text-gold' : i === 1 ? 'metal-text-silver' : i === 2 ? 'metal-text-bronze' : 'text-text-muted'}`}>
+                        {i + 1}
+                      </span>
+                      <span className={`font-sans text-sm flex-1 ${isMe ? 'text-text font-semibold' : qual ? 'text-text-muted' : 'text-text-muted opacity-50'}`}>
+                        {nome} {isMe && '(você)'}
+                      </span>
+                      <span className={`font-sans text-sm ${isMe ? 'text-text' : 'text-text-muted'}`}>
+                        {r.pontos} pts
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Ranking comissão da equipe */}
+          {mostraMetas && ranking.length > 0 && (
+            <div className="card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-serif text-lg text-text">Ranking da equipe</h3>
+                {posicaoRanking > 0 && (
+                  <span className="text-text-muted text-sm font-sans">
+                    Você em <span className="text-text font-semibold">#{posicaoRanking}</span>
+                  </span>
+                )}
+              </div>
+              <div className="space-y-2">
+                {ranking.map((l, i) => {
+                  const isMe = l.barbeiro_id === barbeiro.id
+                  return (
+                    <div key={l.barbeiro_id} className={`flex items-center gap-3 px-3 py-2 rounded-xl
+                      ${isMe ? 'bg-primary/10 border border-primary/20' : 'hover:bg-surface-2'}`}>
+                      <span className={`font-sans text-sm w-5 text-center
+                        ${i === 0 ? 'metal-text-gold' : i === 1 ? 'metal-text-silver' : i === 2 ? 'metal-text-bronze' : 'text-text-muted'}`}>
+                        {i + 1}
+                      </span>
+                      <span className={`font-sans text-sm flex-1 ${isMe ? 'text-text font-semibold' : 'text-text-muted'}`}>
+                        {l.barbeiros?.nome ?? '—'} {isMe && '(você)'}
+                      </span>
+                      <span className={`font-sans text-sm ${isMe ? 'text-text' : 'text-text-muted'}`}>
+                        {formatBRL(l.comissao_acumulada)}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Meta coletiva */}
+          {metaColetiva > 0 && mostraMetas && (
+            <div className="card p-6">
+              <h3 className="font-serif text-lg text-text mb-1">Meta coletiva</h3>
+              {premioColetivo && <p className="text-text-muted text-sm font-sans mb-4">{premioColetivo}</p>}
+              <div className="bar-track h-3">
+                <div
+                  className="bar-gold h-full rounded-full transition-all duration-700"
+                  style={{ width: progressoColetivo > 0 ? `${progressoColetivo}%` : '3px' }}
+                />
+              </div>
+              <p className="text-text-muted text-xs font-sans mt-2 text-right">
+                {formatBRL(faturamentoColetivo)} de {formatBRL(metaColetiva)}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── ABA: LANÇAR DIA ── */}
+      {aba === 'lancar' && mostraPontos && campanha && (
+        <div className="pt-2">
+          <LancarDiaForm
+            linkCodigo={barbeiro.link_codigo}
+            servicos={campanha.campanha_servicos}
+            controleHoje={controleHoje}
+            historico={historico}
+            minPontos={campanha.min_pontos}
+          />
+        </div>
+      )}
+    </>
+  )
+}
+
