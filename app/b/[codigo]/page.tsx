@@ -4,7 +4,7 @@ import { nomeMes, calcProgresso, calcTier } from '@/lib/utils'
 import { gerarInsightsBarbeiro } from '@/lib/insights'
 import BrandLogo from '@/components/BrandLogo'
 import BarbeiroClient from './BarbeiroClient'
-import { computeHistorico } from './LancarDiaForm'
+import { computeHistorico } from './pontos-utils'
 import type {
   Barbeiro, MetaIndividual, Lancamento,
   ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario,

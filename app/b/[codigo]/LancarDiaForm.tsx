@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useMemo } from 'react'
 import { lancarDiaBarbeiro } from './actions'
-import type { CampanhaServico, ControleDiario } from '@/types/database'
+import type { CampanhaServico } from '@/types/database'
 
 interface Props {
   linkCodigo: string
@@ -165,18 +165,3 @@ export default function LancarDiaForm({ linkCodigo, servicos, controleHoje, hist
   )
 }
 
-// Helper: compute historico from controle_diario rows
-export function computeHistorico(
-  controles: Pick<ControleDiario, 'data' | 'servico_id' | 'quantidade'>[],
-  servicos: CampanhaServico[],
-): { data: string; pontos: number; label: string }[] {
-  const map: Record<string, number> = {}
-  for (const cd of controles) {
-    const pts = servicos.find(s => s.id === cd.servico_id)?.pontos ?? 0
-    map[cd.data] = (map[cd.data] ?? 0) + cd.quantidade * pts
-  }
-  return Object.entries(map)
-    .sort(([a], [b]) => b.localeCompare(a))
-    .slice(0, 7)
-    .map(([data, pontos]) => ({ data, pontos, label: labelData(data) }))
-}
