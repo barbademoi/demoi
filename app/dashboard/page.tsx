@@ -11,7 +11,6 @@ import EditarBarbeiroModal from '@/components/dashboard/EditarBarbeiroModal'
 import LogoUpload from '@/components/dashboard/LogoUpload'
 import FaturamentoEdit from '@/components/dashboard/FaturamentoEdit'
 import BrandLogo from '@/components/BrandLogo'
-import ImportarModal from '@/components/dashboard/ImportarModal'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
 type UsuarioComBarbearia = {
@@ -125,7 +124,6 @@ export default async function DashboardPage() {
         {/* Ações */}
         <div className="flex gap-3 flex-wrap">
           <NovoBarbeiroModal />
-          <ImportarModal barbeariaId={barbearia.id} mes={mes} ano={ano} />
           <MetasModal
             barbeiros={barbeiros}
             metasAtuais={metasIndividuais}
