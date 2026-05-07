@@ -162,6 +162,7 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
               barbeiros={barbeiros}
               meta={meta}
               lancamentos={lancamentos}
+              faturamentoAcumulado={faturamentoAcumulado}
               barbeariaName={barbeariaName}
               mes={mesAtual}
               ano={anoAtual}
