@@ -31,6 +31,7 @@ export async function salvarCampanha(params: {
   mes: number
   ano: number
   minPontos: number
+  minPontosRecep: number
   bonusAssinQtd: number
   bonusAssinValor: number
   servicos: ServicoInput[]
@@ -54,6 +55,7 @@ export async function salvarCampanha(params: {
       mes: params.mes,
       ano: params.ano,
       min_pontos: params.minPontos,
+      min_pontos_recep: params.minPontosRecep,
       bonus_assin_qtd: params.bonusAssinQtd,
       bonus_assin_valor: params.bonusAssinValor,
     }, { onConflict: 'barbearia_id,mes,ano' })

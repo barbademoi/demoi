@@ -100,6 +100,9 @@ export default async function DashboardPage() {
     }))
     .sort((a, b) => b.comissao - a.comissao)
 
+  const rankingBarbeiros = ranking.filter(b => b.tipo !== 'recepcionista')
+  const rankingRecepcionistas = ranking.filter(b => b.tipo === 'recepcionista')
+
   // ── Gamificação ────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: modoRaw } = await (supabase as any)
@@ -141,6 +144,9 @@ export default async function DashboardPage() {
     .map(([id, pts]) => ({ id, pts }))
     .sort((a, b) => b.pts - a.pts)
 
+  const rankingPontosBarb  = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo !== 'recepcionista')
+  const rankingPontosRecep = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo === 'recepcionista')
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-border bg-surface sticky top-0 z-40">
@@ -171,6 +177,7 @@ export default async function DashboardPage() {
         {/* Ações */}
         <div className="flex gap-3 flex-wrap">
           <NovoBarbeiroModal />
+          <NovoBarbeiroModal tipo="recepcionista" />
           {modoAtual !== 'pontos' && (
             <MetasModal
               barbeiros={barbeiros}
@@ -243,10 +250,10 @@ export default async function DashboardPage() {
         {/* Barbeiros */}
         <div>
           <h2 className="font-serif text-xl text-text mb-4">
-            Ranking <span className="text-text-muted text-base font-sans">— {nomeMes(mes)} {ano}</span>
+            Barbeiros <span className="text-text-muted text-base font-sans">— {nomeMes(mes)} {ano}</span>
           </h2>
 
-          {barbeiros.length === 0 ? (
+          {rankingBarbeiros.length === 0 ? (
             <div className="card p-8 text-center">
               <p className="text-text-muted font-sans text-sm">
                 Nenhum barbeiro cadastrado. Clique em &ldquo;+ Novo barbeiro&rdquo; para começar.
@@ -254,7 +261,7 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {ranking.map((barbeiro, idx) => {
+              {rankingBarbeiros.map((barbeiro, idx) => {
                 const tier = barbeiro.metaInd
                   ? calcTier(barbeiro.comissao, barbeiro.metaInd.bronze_comm, barbeiro.metaInd.prata_comm, barbeiro.metaInd.ouro_comm)
                   : null
@@ -263,10 +270,8 @@ export default async function DashboardPage() {
                   prata:  calcProgresso(barbeiro.comissao, barbeiro.metaInd.prata_comm),
                   ouro:   calcProgresso(barbeiro.comissao, barbeiro.metaInd.ouro_comm),
                 } : null
-
-                // Pontuação
                 const pts = pontosMap[barbeiro.id] ?? 0
-                const posicaoPts = rankingPontos.findIndex(r => r.id === barbeiro.id)
+                const posicaoPts = rankingPontosBarb.findIndex(r => r.id === barbeiro.id)
                 const qualificado = campanha ? pts >= campanha.min_pontos : false
 
                 return (
@@ -276,14 +281,12 @@ export default async function DashboardPage() {
                         ${idx === 0 ? 'metal-text-gold' : idx === 1 ? 'metal-text-silver' : idx === 2 ? 'metal-text-bronze' : 'text-text-muted'}`}>
                         {idx + 1}
                       </span>
-
                       <div className="w-10 h-10 rounded-full bg-surface-2 border border-border flex items-center justify-center font-serif text-lg text-text-muted shrink-0 overflow-hidden">
                         {barbeiro.foto_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={barbeiro.foto_url} alt={barbeiro.nome} className="w-full h-full object-cover" />
                         ) : barbeiro.nome[0]}
                       </div>
-
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-sans font-semibold text-text">{barbeiro.nome}</p>
@@ -305,7 +308,6 @@ export default async function DashboardPage() {
                           <CopiarLinkBtn codigo={barbeiro.link_codigo} />
                         </div>
                       </div>
-
                       <div className="text-right shrink-0">
                         {modoAtual !== 'pontos' && (
                           <p className="font-serif text-xl text-text">{formatBRL(barbeiro.comissao)}</p>
@@ -322,8 +324,6 @@ export default async function DashboardPage() {
                         )}
                       </div>
                     </div>
-
-                    {/* Barras de progresso */}
                     <div className="mt-4">
                       {!barbeiro.metaInd ? (
                         <p className="text-text-muted text-xs font-sans opacity-50">
@@ -338,7 +338,6 @@ export default async function DashboardPage() {
                             const premio = barbeiro.metaInd![premioKey]
                             const semMeta = !metaVal || metaVal <= 0
                             const pct = progresso ? progresso[t] : 0
-
                             return (
                               <div key={t}>
                                 <div className="flex items-center gap-3 mb-1">
@@ -365,6 +364,76 @@ export default async function DashboardPage() {
                           })}
                         </div>
                       )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Recepcionistas */}
+        <div>
+          <h2 className="font-serif text-xl text-text mb-4">Recepcionistas</h2>
+
+          {rankingRecepcionistas.length === 0 ? (
+            <div className="card p-8 text-center">
+              <p className="text-text-muted font-sans text-sm">
+                Nenhuma recepcionista cadastrada. Clique em &ldquo;+ Nova recepcionista&rdquo; para começar.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {rankingRecepcionistas.map((barbeiro, idx) => {
+                const pts = pontosMap[barbeiro.id] ?? 0
+                const posicaoPts = rankingPontosRecep.findIndex(r => r.id === barbeiro.id)
+                const minPtsRecep = campanha?.min_pontos_recep ?? 400
+                const qualificado = campanha ? pts >= minPtsRecep : false
+
+                return (
+                  <div key={barbeiro.id} className="card p-5">
+                    <div className="flex items-center gap-3">
+                      <span className={`font-serif text-lg w-6 text-center shrink-0
+                        ${idx === 0 ? 'metal-text-gold' : idx === 1 ? 'metal-text-silver' : idx === 2 ? 'metal-text-bronze' : 'text-text-muted'}`}>
+                        {idx + 1}
+                      </span>
+                      <div className="w-10 h-10 rounded-full bg-surface-2 border border-border flex items-center justify-center font-serif text-lg text-text-muted shrink-0 overflow-hidden">
+                        {barbeiro.foto_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={barbeiro.foto_url} alt={barbeiro.nome} className="w-full h-full object-cover" />
+                        ) : barbeiro.nome[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-sans font-semibold text-text">{barbeiro.nome}</p>
+                          <EditarBarbeiroModal barbeiro={barbeiro} />
+                          {modoAtual !== 'metas' && campanha && (
+                            <span className={`text-xs font-sans font-semibold px-2 py-0.5 rounded-full
+                              ${qualificado ? 'bg-primary/10 text-primary' : 'bg-surface-2 text-text-muted'}`}>
+                              🏅 {pts} pts {posicaoPts >= 0 && qualificado ? `· #${posicaoPts + 1}` : ''}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-text-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
+                          <CopiarLinkBtn codigo={barbeiro.link_codigo} />
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        {modoAtual !== 'pontos' && (
+                          <p className="font-serif text-xl text-text">{formatBRL(barbeiro.comissao)}</p>
+                        )}
+                        {modoAtual === 'pontos' && (
+                          <p className="font-serif text-xl text-text">{pts} pts</p>
+                        )}
+                        {modoAtual !== 'pontos' && (
+                          <LancamentoForm
+                            barbeiro={barbeiro}
+                            metaInd={barbeiro.metaInd ?? undefined}
+                            comissaoAtual={barbeiro.comissao}
+                          />
+                        )}
+                      </div>
                     </div>
                   </div>
                 )

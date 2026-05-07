@@ -52,7 +52,10 @@ export default function BarbeiroClient({
   const [aba, setAba] = useState<'progresso' | 'lancar'>('progresso')
 
   const posicaoPts = rankingPontos.findIndex(r => r.barbeiro_id === barbeiro.id)
-  const qualificado = campanha ? pontosTotal >= campanha.min_pontos : false
+  const minPontosEfetivo = campanha
+    ? (barbeiro.tipo === 'recepcionista' ? campanha.min_pontos_recep : campanha.min_pontos)
+    : 0
+  const qualificado = campanha ? pontosTotal >= minPontosEfetivo : false
   const premioAtual = campanha?.campanha_premios.find(p => p.posicao === posicaoPts + 1)
 
   // Contagem de assinaturas para bônus
@@ -143,14 +146,14 @@ export default function BarbeiroClient({
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-text-muted text-xs font-sans">
-                    {qualificado ? '✓ Qualificado para o ranking' : `Faltam ${campanha.min_pontos - pontosTotal} pts para qualificar`}
+                    {qualificado ? '✓ Qualificado para o ranking' : `Faltam ${minPontosEfetivo - pontosTotal} pts para qualificar`}
                   </span>
-                  <span className="text-text-muted text-xs font-sans">{campanha.min_pontos} pts</span>
+                  <span className="text-text-muted text-xs font-sans">{minPontosEfetivo} pts</span>
                 </div>
                 <div className="bar-track h-2.5">
                   <div
                     className={`h-full rounded-full transition-all duration-700 ${qualificado ? 'bar-gold' : 'bar-bronze'}`}
-                    style={{ width: `${Math.min(100, Math.round((pontosTotal / campanha.min_pontos) * 100))}%` }}
+                    style={{ width: `${Math.min(100, Math.round((pontosTotal / minPontosEfetivo) * 100))}%` }}
                   />
                 </div>
               </div>
@@ -339,7 +342,7 @@ export default function BarbeiroClient({
               servicos={campanha.campanha_servicos}
               controleHoje={controleHoje}
               historico={historico}
-              minPontos={campanha.min_pontos}
+              minPontos={minPontosEfetivo}
             />
           ) : (
             <div className="card p-10 text-center space-y-3">

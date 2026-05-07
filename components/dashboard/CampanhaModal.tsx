@@ -38,9 +38,10 @@ export default function CampanhaModal({ campanha, mes, ano }: Props) {
   const [erro, setErro] = useState<string | null>(null)
   const [aba, setAba] = useState<'servicos' | 'premios' | 'config'>('servicos')
 
-  const [minPontos,     setMinPontos]     = useState(campanha?.min_pontos      ?? 800)
-  const [bonusQtd,      setBonusQtd]      = useState(campanha?.bonus_assin_qtd ?? 10)
-  const [bonusValor,    setBonusValor]    = useState(campanha?.bonus_assin_valor ?? 200)
+  const [minPontos,      setMinPontos]      = useState(campanha?.min_pontos       ?? 800)
+  const [minPontosRecep, setMinPontosRecep] = useState(campanha?.min_pontos_recep ?? 400)
+  const [bonusQtd,       setBonusQtd]       = useState(campanha?.bonus_assin_qtd  ?? 10)
+  const [bonusValor,     setBonusValor]     = useState(campanha?.bonus_assin_valor ?? 200)
 
   const [servicos, setServicos] = useState<ServicoState[]>(
     campanha?.campanha_servicos?.length
@@ -77,7 +78,7 @@ export default function CampanhaModal({ campanha, mes, ano }: Props) {
   function salvar() {
     setErro(null)
     startTransition(async () => {
-      const res = await salvarCampanha({ mes, ano, minPontos, bonusAssinQtd: bonusQtd, bonusAssinValor: bonusValor, servicos, premios })
+      const res = await salvarCampanha({ mes, ano, minPontos, minPontosRecep, bonusAssinQtd: bonusQtd, bonusAssinValor: bonusValor, servicos, premios })
       if (res?.error) { setErro(res.error); return }
       setOpen(false)
     })
@@ -213,7 +214,7 @@ export default function CampanhaModal({ campanha, mes, ano }: Props) {
           {aba === 'config' && (
             <div className="space-y-4">
               <div>
-                <label className="label">Mínimo de pontos para participar do ranking</label>
+                <label className="label">Mínimo de pontos — barbeiros</label>
                 <input
                   type="number" value={minPontos}
                   onChange={e => setMinPontos(parseInt(e.target.value) || 0)}
@@ -221,6 +222,17 @@ export default function CampanhaModal({ campanha, mes, ano }: Props) {
                 />
                 <p className="text-text-muted text-xs font-sans mt-1.5">
                   Barbeiros abaixo de {minPontos} pts ficam fora do ranking de premiação.
+                </p>
+              </div>
+              <div>
+                <label className="label">Mínimo de pontos — recepcionistas</label>
+                <input
+                  type="number" value={minPontosRecep}
+                  onChange={e => setMinPontosRecep(parseInt(e.target.value) || 0)}
+                  className="input" min={0}
+                />
+                <p className="text-text-muted text-xs font-sans mt-1.5">
+                  Recepcionistas abaixo de {minPontosRecep} pts ficam fora do ranking de premiação.
                 </p>
               </div>
               <div className="border-t border-border pt-4">

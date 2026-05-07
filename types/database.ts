@@ -59,6 +59,7 @@ export interface Database {
           foto_url: string | null
           link_codigo: string
           ativo: boolean
+          tipo: 'barbeiro' | 'recepcionista'
           created_at: string
         }
         Insert: {
@@ -68,6 +69,7 @@ export interface Database {
           foto_url?: string | null
           link_codigo: string
           ativo?: boolean
+          tipo?: 'barbeiro' | 'recepcionista'
           created_at?: string
         }
         Update: {
@@ -75,6 +77,7 @@ export interface Database {
           foto_url?: string | null
           link_codigo?: string
           ativo?: boolean
+          tipo?: 'barbeiro' | 'recepcionista'
         }
         Relationships: [
           {
@@ -263,6 +266,7 @@ export interface Campanha {
   mes: number
   ano: number
   min_pontos: number
+  min_pontos_recep: number
   bonus_assin_qtd: number
   bonus_assin_valor: number
   ativo: boolean
