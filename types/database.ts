@@ -265,6 +265,7 @@ export interface Campanha {
   min_pontos: number
   bonus_assin_qtd: number
   bonus_assin_valor: number
+  ativo: boolean
   created_at: string
 }
 

@@ -13,6 +13,7 @@ import FaturamentoEdit from '@/components/dashboard/FaturamentoEdit'
 import BrandLogo from '@/components/BrandLogo'
 import ModoMesSelector from '@/components/dashboard/ModoMesSelector'
 import CampanhaModal from '@/components/dashboard/CampanhaModal'
+import CampanhaToggle from '@/components/dashboard/CampanhaToggle'
 import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario } from '@/types/database'
 
 type UsuarioComBarbearia = {
@@ -183,6 +184,9 @@ export default async function DashboardPage() {
           )}
           {modoAtual !== 'metas' && (
             <CampanhaModal campanha={campanha} mes={mes} ano={ano} />
+          )}
+          {modoAtual !== 'metas' && campanha && (
+            <CampanhaToggle campanhaId={campanha.id} ativo={campanha.ativo} />
           )}
         </div>
 

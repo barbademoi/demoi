@@ -100,3 +100,17 @@ export async function salvarCampanha(params: {
   revalidatePath('/dashboard')
   return { ok: true }
 }
+
+export async function toggleCampanhaAtivo(campanhaId: string, ativo: boolean) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('campanha').update({ ativo }).eq('id', campanhaId)
+
+  if (error) return { error: (error as { message: string }).message }
+  revalidatePath('/dashboard')
+  return { ok: true }
+}

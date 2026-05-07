@@ -107,7 +107,8 @@ export default async function BarbeiroPage({ params }: Props) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: campRaw } = await (supabase as any)
       .from('campanha').select('*')
-      .eq('barbearia_id', barbeiro.barbearia_id).eq('mes', mes).eq('ano', ano).single()
+      .eq('barbearia_id', barbeiro.barbearia_id).eq('mes', mes).eq('ano', ano)
+      .eq('ativo', true).single()
 
     if (campRaw) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

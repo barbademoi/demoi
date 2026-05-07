@@ -67,8 +67,8 @@ export default function BarbeiroClient({
 
   return (
     <>
-      {/* Tabs — só se houver campanha de pontos */}
-      {mostraPontos && campanha && (
+      {/* Tabs — aparece quando modo inclui pontos, independente de campanha */}
+      {mostraPontos && (
         <div className="flex border-b border-border mb-0">
           <button
             onClick={() => setAba('progresso')}
@@ -88,7 +88,7 @@ export default function BarbeiroClient({
       )}
 
       {/* ── ABA: PROGRESSO ── */}
-      {(aba === 'progresso' || !mostraPontos || !campanha) && (
+      {(aba === 'progresso' || !mostraPontos) && (
         <div className="space-y-6 pt-2">
 
           {/* Card do barbeiro */}
@@ -327,15 +327,26 @@ export default function BarbeiroClient({
       )}
 
       {/* ── ABA: LANÇAR DIA ── */}
-      {aba === 'lancar' && mostraPontos && campanha && (
+      {aba === 'lancar' && mostraPontos && (
         <div className="pt-2">
-          <LancarDiaForm
-            linkCodigo={barbeiro.link_codigo}
-            servicos={campanha.campanha_servicos}
-            controleHoje={controleHoje}
-            historico={historico}
-            minPontos={campanha.min_pontos}
-          />
+          {campanha ? (
+            <LancarDiaForm
+              linkCodigo={barbeiro.link_codigo}
+              servicos={campanha.campanha_servicos}
+              controleHoje={controleHoje}
+              historico={historico}
+              minPontos={campanha.min_pontos}
+            />
+          ) : (
+            <div className="card p-10 text-center space-y-3">
+              <p className="text-4xl">⏳</p>
+              <p className="font-serif text-lg text-text">Campanha não configurada</p>
+              <p className="text-text-muted text-sm font-sans">
+                O dono da barbearia ainda não configurou a campanha deste mês.<br />
+                Aguarde e volte em breve!
+              </p>
+            </div>
+          )}
         </div>
       )}
     </>

@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
 interface ServicoLancado { servico_id: string; quantidade: number }
@@ -25,8 +26,9 @@ export async function lancarDiaBarbeiro(params: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: campRaw } = await (supabase as any)
     .from('campanha').select('id')
-    .eq('barbearia_id', barbeiroRaw.barbearia_id).eq('mes', mes).eq('ano', ano).single()
-  if (!campRaw) return { error: 'Campanha não encontrada para este mês.' }
+    .eq('barbearia_id', barbeiroRaw.barbearia_id).eq('mes', mes).eq('ano', ano)
+    .eq('ativo', true).single()
+  if (!campRaw) return { error: 'Campanha não encontrada ou inativa para este mês.' }
 
   const campanha_id = (campRaw as { id: string }).id
   const barbeiro_id = (barbeiroRaw as { id: string }).id
@@ -54,5 +56,6 @@ export async function lancarDiaBarbeiro(params: {
     }
   }
 
+  revalidatePath('/b/' + params.linkCodigo)
   return { ok: true }
 }
