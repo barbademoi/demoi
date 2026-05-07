@@ -11,7 +11,9 @@ import EditarBarbeiroModal from '@/components/dashboard/EditarBarbeiroModal'
 import LogoUpload from '@/components/dashboard/LogoUpload'
 import FaturamentoEdit from '@/components/dashboard/FaturamentoEdit'
 import BrandLogo from '@/components/BrandLogo'
-import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
+import ModoMesSelector from '@/components/dashboard/ModoMesSelector'
+import CampanhaModal from '@/components/dashboard/CampanhaModal'
+import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario } from '@/types/database'
 
 type UsuarioComBarbearia = {
   barbearia_id: string
@@ -97,6 +99,47 @@ export default async function DashboardPage() {
     }))
     .sort((a, b) => b.comissao - a.comissao)
 
+  // ── Gamificação ────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: modoRaw } = await (supabase as any)
+    .from('modo_mes').select('modo').eq('barbearia_id', barbearia.id).eq('mes', mes).eq('ano', ano).single()
+  const modoAtual: ModoPontos = (modoRaw?.modo as ModoPontos) ?? 'metas'
+
+  let campanha: CampanhaComDetalhes | null = null
+  let pontosMap: Record<string, number> = {}
+
+  if (modoAtual !== 'metas') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: campRaw } = await (supabase as any)
+      .from('campanha').select('*').eq('barbearia_id', barbearia.id).eq('mes', mes).eq('ano', ano).single()
+    if (campRaw) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: servicosRaw } = await (supabase as any)
+        .from('campanha_servicos').select('*').eq('campanha_id', campRaw.id)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: premiosRaw } = await (supabase as any)
+        .from('campanha_premios').select('*').eq('campanha_id', campRaw.id).order('posicao')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: controlesRaw } = await (supabase as any)
+        .from('controle_diario').select('barbeiro_id, servico_id, quantidade').eq('campanha_id', campRaw.id)
+      campanha = {
+        ...campRaw,
+        campanha_servicos: (servicosRaw ?? []) as CampanhaServico[],
+        campanha_premios:  (premiosRaw  ?? []) as CampanhaPremio[],
+      }
+      const servicos = campanha!.campanha_servicos
+      for (const cd of ((controlesRaw ?? []) as Pick<ControleDiario, 'barbeiro_id' | 'servico_id' | 'quantidade'>[])) {
+        const pts = servicos.find(s => s.id === cd.servico_id)?.pontos ?? 0
+        pontosMap[cd.barbeiro_id] = (pontosMap[cd.barbeiro_id] ?? 0) + cd.quantidade * pts
+      }
+    }
+  }
+
+  // Ranking de pontos (para badge de posição)
+  const rankingPontos = Object.entries(pontosMap)
+    .map(([id, pts]) => ({ id, pts }))
+    .sort((a, b) => b.pts - a.pts)
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-border bg-surface sticky top-0 z-40">
@@ -121,18 +164,26 @@ export default async function DashboardPage() {
 
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
+        {/* Modo do mês */}
+        <ModoMesSelector modoAtual={modoAtual} mes={mes} ano={ano} />
+
         {/* Ações */}
         <div className="flex gap-3 flex-wrap">
           <NovoBarbeiroModal />
-          <MetasModal
-            barbeiros={barbeiros}
-            metasAtuais={metasIndividuais}
-            metaColetiva={meta?.meta_coletiva}
-            faturamentoAcumulado={meta?.faturamento_acumulado}
-            premioColetivo={meta?.premio_coletivo ?? undefined}
-            mes={mes}
-            ano={ano}
-          />
+          {modoAtual !== 'pontos' && (
+            <MetasModal
+              barbeiros={barbeiros}
+              metasAtuais={metasIndividuais}
+              metaColetiva={meta?.meta_coletiva}
+              faturamentoAcumulado={meta?.faturamento_acumulado}
+              premioColetivo={meta?.premio_coletivo ?? undefined}
+              mes={mes}
+              ano={ano}
+            />
+          )}
+          {modoAtual !== 'metas' && (
+            <CampanhaModal campanha={campanha} mes={mes} ano={ano} />
+          )}
         </div>
 
         {/* Meta Coletiva */}
@@ -205,6 +256,11 @@ export default async function DashboardPage() {
                   ouro:   calcProgresso(barbeiro.comissao, barbeiro.metaInd.ouro_comm),
                 } : null
 
+                // Pontuação
+                const pts = pontosMap[barbeiro.id] ?? 0
+                const posicaoPts = rankingPontos.findIndex(r => r.id === barbeiro.id)
+                const qualificado = campanha ? pts >= campanha.min_pontos : false
+
                 return (
                   <div key={barbeiro.id} className="card p-5">
                     <div className="flex items-center gap-3">
@@ -229,6 +285,12 @@ export default async function DashboardPage() {
                               ★ {TIER_CONFIG[tier].label}
                             </span>
                           )}
+                          {modoAtual !== 'metas' && campanha && (
+                            <span className={`text-xs font-sans font-semibold px-2 py-0.5 rounded-full
+                              ${qualificado ? 'bg-primary/10 text-primary' : 'bg-surface-2 text-text-muted'}`}>
+                              🏅 {pts} pts {posicaoPts >= 0 && qualificado ? `· #${posicaoPts + 1}` : ''}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
                           <p className="text-text-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
@@ -237,12 +299,19 @@ export default async function DashboardPage() {
                       </div>
 
                       <div className="text-right shrink-0">
-                        <p className="font-serif text-xl text-text">{formatBRL(barbeiro.comissao)}</p>
-                        <LancamentoForm
-                          barbeiro={barbeiro}
-                          metaInd={barbeiro.metaInd ?? undefined}
-                          comissaoAtual={barbeiro.comissao}
-                        />
+                        {modoAtual !== 'pontos' && (
+                          <p className="font-serif text-xl text-text">{formatBRL(barbeiro.comissao)}</p>
+                        )}
+                        {modoAtual === 'pontos' && (
+                          <p className="font-serif text-xl text-text">{pts} pts</p>
+                        )}
+                        {modoAtual !== 'pontos' && (
+                          <LancamentoForm
+                            barbeiro={barbeiro}
+                            metaInd={barbeiro.metaInd ?? undefined}
+                            comissaoAtual={barbeiro.comissao}
+                          />
+                        )}
                       </div>
                     </div>
 
