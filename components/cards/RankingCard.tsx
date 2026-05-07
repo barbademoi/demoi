@@ -21,7 +21,7 @@ const FONT_SERIF = '"DM Serif Display", Georgia, serif'
 const FONT_SANS = '"DM Sans", system-ui, sans-serif'
 
 const GRADIENTS = {
-  bronze: ['#8B4513', '#CD7F32', '#E8A855', '#CD7F32', '#8B4513'],
+  bronze: ['#3D1A00', '#7B3F00', '#A0522D', '#7B3F00', '#3D1A00'],
   prata:  ['#6B7280', '#9CA3AF', '#D1D5DB', '#9CA3AF', '#6B7280'],
   ouro:   ['#92400E', '#D97706', '#FFD700', '#D97706', '#92400E'],
 }

@@ -26,9 +26,9 @@
 @layer components {
   /* Metallic bar base */
   .bar-bronze {
-    background: linear-gradient(90deg, #8B4513 0%, #CD7F32 30%, #E8A855 50%, #CD7F32 70%, #8B4513 100%);
+    background: linear-gradient(90deg, #3D1A00 0%, #7B3F00 30%, #A0522D 50%, #7B3F00 70%, #3D1A00 100%);
     background-size: 200% auto;
-    box-shadow: 0 0 14px 4px rgba(205, 127, 50, 0.65), 0 0 4px 1px rgba(232, 168, 85, 0.5);
+    box-shadow: 0 0 14px 4px rgba(139, 60, 20, 0.65), 0 0 4px 1px rgba(160, 82, 45, 0.5);
     animation: shimmer 2.5s linear infinite;
   }
 
@@ -93,7 +93,7 @@
   }
 
   .metal-text-bronze {
-    background: linear-gradient(135deg, #CD7F32, #E8A855, #CD7F32);
+    background: linear-gradient(135deg, #7B3F00, #A0522D, #7B3F00);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
