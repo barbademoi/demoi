@@ -205,8 +205,12 @@ export default async function DashboardPage() {
             </div>
             <div className="bar-track h-5">
               <div
-                className="bar-gold h-full rounded-full transition-all duration-700"
-                style={{ width: `${progressoColetivo}%` }}
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${progressoColetivo}%`,
+                  background: `hsl(${Math.round(progressoColetivo * 1.2)}, 80%, 42%)`,
+                  boxShadow: `0 0 14px 4px hsla(${Math.round(progressoColetivo * 1.2)}, 80%, 42%, 0.5)`,
+                }}
               />
             </div>
             <div className="flex items-center justify-between mt-2">

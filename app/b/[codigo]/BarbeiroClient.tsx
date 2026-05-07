@@ -314,8 +314,12 @@ export default function BarbeiroClient({
               {premioColetivo && <p className="text-text-muted text-sm font-sans mb-4">{premioColetivo}</p>}
               <div className="bar-track h-3">
                 <div
-                  className="bar-gold h-full rounded-full transition-all duration-700"
-                  style={{ width: progressoColetivo > 0 ? `${progressoColetivo}%` : '3px' }}
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: progressoColetivo > 0 ? `${progressoColetivo}%` : '3px',
+                    background: `hsl(${Math.round(progressoColetivo * 1.2)}, 80%, 42%)`,
+                    boxShadow: `0 0 10px 3px hsla(${Math.round(progressoColetivo * 1.2)}, 80%, 42%, 0.45)`,
+                  }}
                 />
               </div>
               <p className="text-text-muted text-xs font-sans mt-2 text-right">
