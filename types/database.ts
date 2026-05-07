@@ -244,6 +244,62 @@ export type MetaIndividual = Database['public']['Tables']['metas_individuais']['
 export type Lancamento = Database['public']['Tables']['lancamentos']['Row']
 
 export type Tier = 'bronze' | 'prata' | 'ouro'
+export type ModoPontos = 'metas' | 'pontos' | 'ambos'
+
+// ── Gamificação ────────────────────────────────────────
+
+export interface ModoMes {
+  id: string
+  barbearia_id: string
+  mes: number
+  ano: number
+  modo: ModoPontos
+  created_at: string
+}
+
+export interface Campanha {
+  id: string
+  barbearia_id: string
+  mes: number
+  ano: number
+  min_pontos: number
+  bonus_assin_qtd: number
+  bonus_assin_valor: number
+  created_at: string
+}
+
+export interface CampanhaServico {
+  id: string
+  campanha_id: string
+  emoji: string
+  nome: string
+  pontos: number
+  created_at: string
+}
+
+export interface CampanhaPremio {
+  id: string
+  campanha_id: string
+  posicao: number
+  valor: number
+  created_at: string
+}
+
+export interface ControleDiario {
+  id: string
+  barbeiro_id: string
+  campanha_id: string
+  data: string
+  servico_id: string
+  quantidade: number
+  lancado_por: 'dono' | 'barbeiro'
+  created_at: string
+}
+
+export interface CampanhaComDetalhes extends Campanha {
+  campanha_servicos: CampanhaServico[]
+  campanha_premios: CampanhaPremio[]
+}
 
 export interface BarbeiroComMeta extends Barbeiro {
   meta?: MetaIndividual
