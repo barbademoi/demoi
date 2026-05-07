@@ -25,10 +25,10 @@ export async function lancarDiaBarbeiro(params: {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: campRaw } = await (supabase as any)
-    .from('campanha').select('id')
-    .eq('barbearia_id', barbeiroRaw.barbearia_id).eq('mes', mes).eq('ano', ano)
-    .eq('ativo', true).single()
-  if (!campRaw) return { error: 'Campanha não encontrada ou inativa para este mês.' }
+    .from('campanha').select('id, ativo')
+    .eq('barbearia_id', barbeiroRaw.barbearia_id).eq('mes', mes).eq('ano', ano).single()
+  if (!campRaw) return { error: 'Campanha não encontrada para este mês.' }
+  if (campRaw.ativo === false) return { error: 'Campanha inativa.' }
 
   const campanha_id = (campRaw as { id: string }).id
   const barbeiro_id = (barbeiroRaw as { id: string }).id

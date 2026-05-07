@@ -107,10 +107,10 @@ export default async function BarbeiroPage({ params }: Props) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: campRaw } = await (supabase as any)
       .from('campanha').select('*')
-      .eq('barbearia_id', barbeiro.barbearia_id).eq('mes', mes).eq('ano', ano)
-      .eq('ativo', true).single()
+      .eq('barbearia_id', barbeiro.barbearia_id).eq('mes', mes).eq('ano', ano).single()
 
-    if (campRaw) {
+    // ativo: undefined (coluna não existe) ou true → campanha ativa
+    if (campRaw && campRaw.ativo !== false) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: servicosRaw } = await (supabase as any)
         .from('campanha_servicos').select('*').eq('campanha_id', campRaw.id)
