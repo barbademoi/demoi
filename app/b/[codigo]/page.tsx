@@ -1,88 +1,82 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/utils'
+import { nomeMes, calcProgresso, calcTier } from '@/lib/utils'
 import { gerarInsightsBarbeiro } from '@/lib/insights'
 import BrandLogo from '@/components/BrandLogo'
-import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
+import BarbeiroClient from './BarbeiroClient'
+import { computeHistorico } from './pontos-utils'
+import type {
+  Barbeiro, MetaIndividual, Lancamento,
+  ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario,
+} from '@/types/database'
 
 interface Props {
   params: { codigo: string }
 }
 
-type LancamentoComNome = Lancamento & {
-  barbeiros: { nome: string } | null
-}
+type LancamentoComNome = Lancamento & { barbeiros: { nome: string } | null }
+
+function toDateStr(d: Date) { return d.toISOString().split('T')[0] }
 
 export default async function BarbeiroPage({ params }: Props) {
   const supabase = createClient()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barbeiroRaw } = await (supabase as any)
-    .from('barbeiros')
-    .select('*')
-    .eq('link_codigo', params.codigo)
-    .eq('ativo', true)
-    .single()
-
+    .from('barbeiros').select('*')
+    .eq('link_codigo', params.codigo).eq('ativo', true).single()
   if (!barbeiroRaw) notFound()
   const barbeiro = barbeiroRaw as Barbeiro
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barbeariaRaw } = await (supabase as any)
-    .from('barbearias')
-    .select('nome, cor_principal')
-    .eq('id', barbeiro.barbearia_id)
-    .single()
-
+    .from('barbearias').select('nome, cor_principal')
+    .eq('id', barbeiro.barbearia_id).single()
   const barbearia = barbeariaRaw as { nome: string; cor_principal: string } | null
 
   const hoje = new Date()
   const mes = hoje.getMonth() + 1
   const ano = hoje.getFullYear()
+  const diaHoje = hoje.getDate()
 
+  // ── Datas para lançamentos diários ──────────────────────
+  const dataHojeStr = toDateStr(hoje)
+  const primeiroAtual = `${ano}-${String(mes).padStart(2, '0')}-01`
+
+  const mesAntMes = mes === 1 ? 12 : mes - 1
+  const mesAntAno = mes === 1 ? ano - 1 : ano
+  const primeiroAnterior = `${mesAntAno}-${String(mesAntMes).padStart(2, '0')}-01`
+  const ultimoDiaMesAnt = new Date(ano, mes - 1, 0).getDate()
+  const diaAnt = Math.min(diaHoje, ultimoDiaMesAnt)
+  const mesmoDiaAnterior = `${mesAntAno}-${String(mesAntMes).padStart(2, '0')}-${String(diaAnt).padStart(2, '0')}`
+
+  // ── Metas ─────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
-    .from('metas')
-    .select('id, meta_coletiva, premio_coletivo, faturamento_acumulado')
-    .eq('barbearia_id', barbeiro.barbearia_id)
-    .eq('mes', mes)
-    .eq('ano', ano)
-    .single()
-
+    .from('metas').select('id, meta_coletiva, premio_coletivo, faturamento_acumulado')
+    .eq('barbearia_id', barbeiro.barbearia_id).eq('mes', mes).eq('ano', ano).single()
   const meta = metaRaw as { id: string; meta_coletiva: number; premio_coletivo: string | null; faturamento_acumulado: number } | null
 
   let metaInd: MetaIndividual | null = null
   if (meta) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: miRaw } = await (supabase as any)
-      .from('metas_individuais')
-      .select('*')
-      .eq('meta_id', meta.id)
-      .eq('barbeiro_id', barbeiro.id)
-      .single()
-    metaInd = (miRaw as MetaIndividual | null)
+      .from('metas_individuais').select('*')
+      .eq('meta_id', meta.id).eq('barbeiro_id', barbeiro.id).single()
+    metaInd = miRaw as MetaIndividual | null
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: lancamentoRaw } = await (supabase as any)
-    .from('lancamentos')
-    .select('*')
-    .eq('barbeiro_id', barbeiro.id)
-    .eq('mes', mes)
-    .eq('ano', ano)
-    .single()
-
+    .from('lancamentos').select('*')
+    .eq('barbeiro_id', barbeiro.id).eq('mes', mes).eq('ano', ano).single()
   const lancamento = lancamentoRaw as Lancamento | null
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: rankingRaw } = await (supabase as any)
-    .from('lancamentos')
-    .select('barbeiro_id, comissao_acumulada, barbeiros(nome)')
-    .eq('barbearia_id', barbeiro.barbearia_id)
-    .eq('mes', mes)
-    .eq('ano', ano)
+    .from('lancamentos').select('barbeiro_id, comissao_acumulada, barbeiros(nome)')
+    .eq('barbearia_id', barbeiro.barbearia_id).eq('mes', mes).eq('ano', ano)
     .order('comissao_acumulada', { ascending: false })
-
   const ranking = (rankingRaw ?? []) as unknown as LancamentoComNome[]
 
   const comissao = lancamento?.comissao_acumulada ?? 0
@@ -93,7 +87,7 @@ export default async function BarbeiroPage({ params }: Props) {
     tier_atual: calcTier(comissao, metaInd.bronze_comm, metaInd.prata_comm, metaInd.ouro_comm),
   } : null
 
-  const posicaoRanking = ranking.findIndex((l) => l.barbeiro_id === barbeiro.id) + 1
+  const posicaoRanking = ranking.findIndex(l => l.barbeiro_id === barbeiro.id) + 1
   const totalEquipe = ranking.reduce((s, l) => s + l.comissao_acumulada, 0)
   const faturamentoColetivo = (meta?.faturamento_acumulado ?? 0) > 0 ? meta!.faturamento_acumulado : totalEquipe
   const progressoColetivo = meta ? calcProgresso(faturamentoColetivo, meta.meta_coletiva) : 0
@@ -108,6 +102,95 @@ export default async function BarbeiroPage({ params }: Props) {
     barberoNome: barbeiro.nome,
   })
 
+  // ── Lançamentos diários deste barbeiro ──────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: ldAtualRaw } = await (supabase as any)
+    .from('lancamentos_diarios')
+    .select('valor')
+    .eq('barbeiro_id', barbeiro.id)
+    .gte('data', primeiroAtual)
+    .lte('data', dataHojeStr)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: ldAnteriorRaw } = await (supabase as any)
+    .from('lancamentos_diarios')
+    .select('valor')
+    .eq('barbeiro_id', barbeiro.id)
+    .gte('data', primeiroAnterior)
+    .lte('data', mesmoDiaAnterior)
+
+  const acumDiarioAtual   = ((ldAtualRaw    ?? []) as { valor: number }[]).reduce((s, r) => s + Number(r.valor), 0)
+  const acumDiarioAnterior = ((ldAnteriorRaw ?? []) as { valor: number }[]).reduce((s, r) => s + Number(r.valor), 0)
+
+  const deltaDiario: number | null = acumDiarioAnterior > 0
+    ? Math.round(((acumDiarioAtual - acumDiarioAnterior) / acumDiarioAnterior) * 100)
+    : null
+
+  // ── Modo + Gamificação ─────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: modoRaw } = await (supabase as any)
+    .from('modo_mes').select('modo')
+    .eq('barbearia_id', barbeiro.barbearia_id).eq('mes', mes).eq('ano', ano).single()
+  const modo: ModoPontos = (modoRaw?.modo as ModoPontos) ?? 'metas'
+
+  let campanha: CampanhaComDetalhes | null = null
+  let controlesDiario: ControleDiario[] = []
+  let pontosTotal = 0
+  let rankingPontos: { barbeiro_id: string; pontos: number }[] = []
+  const pontosMap: Record<string, number> = {}
+
+  if (modo !== 'metas') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: campRaw } = await (supabase as any)
+      .from('campanha').select('*')
+      .eq('barbearia_id', barbeiro.barbearia_id).eq('mes', mes).eq('ano', ano).single()
+
+    if (campRaw && campRaw.ativo !== false) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: servicosRaw } = await (supabase as any)
+        .from('campanha_servicos').select('*').eq('campanha_id', campRaw.id)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: premiosRaw } = await (supabase as any)
+        .from('campanha_premios').select('*').eq('campanha_id', campRaw.id).order('posicao')
+      campanha = {
+        ...campRaw,
+        campanha_servicos: (servicosRaw ?? []) as CampanhaServico[],
+        campanha_premios:  (premiosRaw  ?? []) as CampanhaPremio[],
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: todosControlesRaw } = await (supabase as any)
+        .from('controle_diario').select('barbeiro_id, servico_id, quantidade')
+        .eq('campanha_id', campRaw.id)
+
+      for (const cd of ((todosControlesRaw ?? []) as Pick<ControleDiario, 'barbeiro_id' | 'servico_id' | 'quantidade'>[])) {
+        const pts = campanha!.campanha_servicos.find(s => s.id === cd.servico_id)?.pontos ?? 0
+        pontosMap[cd.barbeiro_id] = (pontosMap[cd.barbeiro_id] ?? 0) + cd.quantidade * pts
+      }
+
+      rankingPontos = Object.entries(pontosMap)
+        .map(([barbeiro_id, pontos]) => ({ barbeiro_id, pontos }))
+        .sort((a, b) => b.pontos - a.pontos)
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: meusControlesRaw } = await (supabase as any)
+        .from('controle_diario').select('*')
+        .eq('barbeiro_id', barbeiro.id).eq('campanha_id', campRaw.id)
+        .order('data', { ascending: false })
+
+      controlesDiario = (meusControlesRaw ?? []) as ControleDiario[]
+      pontosTotal = pontosMap[barbeiro.id] ?? 0
+    }
+  }
+
+  const controleHoje = controlesDiario
+    .filter(cd => cd.data === dataHojeStr)
+    .reduce((acc, cd) => { acc[cd.servico_id] = cd.quantidade; return acc }, {} as Record<string, number>)
+
+  const historico = campanha
+    ? computeHistorico(controlesDiario, campanha.campanha_servicos)
+    : []
+
   return (
     <div className="min-h-screen pb-16">
       <header className="border-b border-border bg-surface">
@@ -117,146 +200,36 @@ export default async function BarbeiroPage({ params }: Props) {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-8 space-y-6">
-
-        {/* Card do barbeiro */}
-        <div className="card p-6 text-center">
-          <div className="w-16 h-16 rounded-full bg-surface-2 border border-border flex items-center justify-center font-serif text-3xl text-text-muted mx-auto mb-3 overflow-hidden">
-            {barbeiro.foto_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={barbeiro.foto_url} alt={barbeiro.nome} className="w-full h-full object-cover" />
-            ) : barbeiro.nome[0]}
-          </div>
-          <h2 className="font-serif text-3xl text-text">{barbeiro.nome}</h2>
-          <p className="text-text-muted text-sm font-sans mt-1 capitalize">
-            {nomeMes(mes)} {ano}
-          </p>
-          <div className="mt-6">
-            <p className="text-text-muted text-xs font-sans uppercase tracking-wide mb-1">
-              Comissão acumulada
-            </p>
-            <p className="font-serif text-5xl text-text">{formatBRL(comissao)}</p>
-          </div>
-          {progresso?.tier_atual && (
-            <div className={`mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full border
-              ${progresso.tier_atual === 'ouro'   ? 'border-yellow-500/30 bg-yellow-500/5' :
-                progresso.tier_atual === 'prata'  ? 'border-gray-400/30 bg-gray-400/5' :
-                'border-amber-700/30 bg-amber-700/5'}`}>
-              <span className={`text-sm font-sans font-semibold ${TIER_CONFIG[progresso.tier_atual].textClass}`}>
-                ★ {TIER_CONFIG[progresso.tier_atual].label} atingido!
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Insights */}
-        {insights.length > 0 && (
-          <div className="card p-5 space-y-3">
-            <p className="text-text-muted text-xs font-sans uppercase tracking-wide">Insights do mês</p>
-            {insights.map((ins, i) => (
-              <div key={i} className={`flex items-start gap-3 p-3 rounded-xl ${ins.destaque ? 'bg-primary/10 border border-primary/20' : 'bg-surface-2'}`}>
-                <span className="text-xl shrink-0">{ins.emoji}</span>
-                <p className={`font-sans text-sm ${ins.destaque ? 'text-text font-medium' : 'text-text-muted'}`}>{ins.texto}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Barras Bronze / Prata / Ouro */}
-        {metaInd && progresso && (
-          <div className="card p-6 space-y-5">
-            <h3 className="font-serif text-lg text-text">Suas metas</h3>
-            {(['bronze', 'prata', 'ouro'] as const).map((tier) => {
-              const metaVal = metaInd[`${tier}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm']
-              const premio = metaInd[`${tier}_premio` as 'bronze_premio' | 'prata_premio' | 'ouro_premio']
-              if (!metaVal || metaVal <= 0) return null
-              return (
-                <div key={tier}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`text-sm font-sans font-semibold ${TIER_CONFIG[tier].textClass}`}>
-                      {TIER_CONFIG[tier].label}
-                      {premio && <span className="text-text-muted font-normal ml-2">· {premio}</span>}
-                    </span>
-                    <span className="text-text-muted text-xs font-sans">
-                      {formatBRL(comissao)} / {formatBRL(metaVal)}
-                    </span>
-                  </div>
-                  <div className="bar-track h-2.5">
-                    <div
-                      className={`${TIER_CONFIG[tier].barClass} h-full rounded-full transition-all duration-700`}
-                      style={{ width: progresso[tier] > 0 ? `${progresso[tier]}%` : '3px' }}
-                    />
-                  </div>
-                  <div className="flex justify-between mt-1">
-                    <span className="text-text-muted text-xs font-sans">{progresso[tier]}%</span>
-                    {comissao < metaVal && (
-                      <span className="text-text-muted text-xs font-sans">
-                        faltam {formatBRL(metaVal - comissao)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Ranking da equipe */}
-        {ranking.length > 0 && (
-          <div className="card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-serif text-lg text-text">Ranking da equipe</h3>
-              {posicaoRanking > 0 && (
-                <span className="text-text-muted text-sm font-sans">
-                  Você em <span className="text-text font-semibold">#{posicaoRanking}</span>
-                </span>
-              )}
-            </div>
-            <div className="space-y-2">
-              {ranking.map((l, i) => {
-                const isMe = l.barbeiro_id === barbeiro.id
-                return (
-                  <div
-                    key={l.barbeiro_id}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-xl
-                      ${isMe ? 'bg-primary/10 border border-primary/20' : 'hover:bg-surface-2'}`}
-                  >
-                    <span className={`font-sans text-sm w-5 text-center
-                      ${i === 0 ? 'metal-text-gold' : i === 1 ? 'metal-text-silver' : i === 2 ? 'metal-text-bronze' : 'text-text-muted'}`}>
-                      {i + 1}
-                    </span>
-                    <span className={`font-sans text-sm flex-1 ${isMe ? 'text-text font-semibold' : 'text-text-muted'}`}>
-                      {l.barbeiros?.nome ?? '—'} {isMe && '(você)'}
-                    </span>
-                    <span className={`font-sans text-sm ${isMe ? 'text-text' : 'text-text-muted'}`}>
-                      {formatBRL(l.comissao_acumulada)}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Meta coletiva */}
-        {meta && (
-          <div className="card p-6">
-            <h3 className="font-serif text-lg text-text mb-1">Meta coletiva</h3>
-            {meta.premio_coletivo && (
-              <p className="text-text-muted text-sm font-sans mb-4">{meta.premio_coletivo}</p>
-            )}
-            <div className="bar-track h-3">
-              <div
-                className="bar-gold h-full rounded-full transition-all duration-700"
-                style={{ width: progressoColetivo > 0 ? `${progressoColetivo}%` : '3px' }}
-              />
-            </div>
-            <p className="text-text-muted text-xs font-sans mt-2 text-right">
-              {formatBRL(faturamentoColetivo)} de {formatBRL(meta.meta_coletiva)}
-            </p>
-          </div>
-        )}
-
+      <main className="max-w-lg mx-auto px-4 py-6">
+        <BarbeiroClient
+          barbeiro={barbeiro}
+          barbeariaName={barbearia?.nome ?? ''}
+          mes={mes}
+          ano={ano}
+          modo={modo}
+          metaInd={metaInd}
+          lancamento={lancamento}
+          progresso={progresso}
+          ranking={ranking}
+          posicaoRanking={posicaoRanking}
+          faturamentoColetivo={faturamentoColetivo}
+          progressoColetivo={progressoColetivo}
+          metaColetiva={meta?.meta_coletiva ?? 0}
+          premioColetivo={meta?.premio_coletivo ?? null}
+          insights={insights}
+          campanha={campanha}
+          controlesDiario={controlesDiario}
+          pontosTotal={pontosTotal}
+          rankingPontos={rankingPontos}
+          pontosMap={pontosMap}
+          controleHoje={controleHoje}
+          historico={historico}
+          acumDiarioAtual={acumDiarioAtual}
+          acumDiarioAnterior={acumDiarioAnterior}
+          deltaDiario={deltaDiario}
+          diaHoje={diaHoje}
+          nomeMesAnterior={nomeMes(mesAntMes)}
+        />
       </main>
     </div>
   )
