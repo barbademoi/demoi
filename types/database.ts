@@ -306,6 +306,16 @@ export interface CampanhaComDetalhes extends Campanha {
   campanha_premios: CampanhaPremio[]
 }
 
+export interface LancamentoDiario {
+  id: string
+  barbearia_id: string
+  barbeiro_id: string
+  data: string          // 'YYYY-MM-DD'
+  valor: number
+  criado_em: string
+  atualizado_em: string
+}
+
 export interface BarbeiroComMeta extends Barbeiro {
   meta?: MetaIndividual
   lancamento?: Lancamento

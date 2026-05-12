@@ -37,6 +37,12 @@ interface Props {
   pontosMap: Record<string, number>
   controleHoje: Record<string, number>
   historico: { data: string; pontos: number; label: string }[]
+  // diário
+  acumDiarioAtual: number
+  acumDiarioAnterior: number
+  deltaDiario: number | null
+  diaHoje: number
+  nomeMesAnterior: string
 }
 
 export default function BarbeiroClient({
@@ -45,6 +51,7 @@ export default function BarbeiroClient({
   faturamentoColetivo, progressoColetivo, metaColetiva, premioColetivo,
   insights, campanha, controlesDiario, pontosTotal, rankingPontos, pontosMap,
   controleHoje, historico,
+  acumDiarioAtual, acumDiarioAnterior, deltaDiario, diaHoje, nomeMesAnterior,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
   const mostraPontos = modo === 'pontos' || modo === 'ambos'
@@ -123,6 +130,46 @@ export default function BarbeiroClient({
               </div>
             )}
           </div>
+
+          {/* Acumulado diário vs mesmo período */}
+          {acumDiarioAtual > 0 && (
+            <div className="card p-6 space-y-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-text-muted text-xs font-sans uppercase tracking-wide mb-1">Seu acumulado até hoje</p>
+                  <p className="font-serif text-4xl text-text">{formatBRL(acumDiarioAtual)}</p>
+                </div>
+                <p className="text-text-muted text-xs font-sans mt-1">dia {diaHoje} de {nomeMes(mes)}</p>
+              </div>
+
+              {acumDiarioAnterior > 0 && (
+                <>
+                  <div className="pt-3 border-t border-border">
+                    <p className="text-text-muted text-xs font-sans mb-0.5">Mesmo período em {nomeMesAnterior}</p>
+                    <p className="font-serif text-xl text-text-muted">{formatBRL(acumDiarioAnterior)}</p>
+                  </div>
+
+                  {deltaDiario !== null && (
+                    <div className={`flex items-center gap-2 px-4 py-3 rounded-xl
+                      ${deltaDiario >= 0 ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-400/10 border border-red-400/20'}`}>
+                      <span className={`text-lg ${deltaDiario >= 0 ? 'text-green-500' : 'text-red-400'}`}>
+                        {deltaDiario >= 0 ? '↑' : '↓'}
+                      </span>
+                      <p className={`font-sans text-sm font-semibold ${deltaDiario >= 0 ? 'text-green-500' : 'text-red-400'}`}>
+                        {deltaDiario >= 10
+                          ? `Você está ${deltaDiario}% acima — mês excelente! ✅`
+                          : deltaDiario >= 0
+                          ? 'Você está acima do mês passado — no caminho certo!'
+                          : deltaDiario >= -10
+                          ? `Você está ${Math.abs(deltaDiario)}% abaixo do mês passado — ainda dá tempo de virar!`
+                          : `Atenção — ${Math.abs(deltaDiario)}% abaixo do mês passado. Foca no restante do mês!`}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           {/* Seção de pontos */}
           {mostraPontos && campanha && (

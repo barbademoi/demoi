@@ -14,6 +14,7 @@ import BrandLogo from '@/components/BrandLogo'
 import ModoMesSelector from '@/components/dashboard/ModoMesSelector'
 import CampanhaModal from '@/components/dashboard/CampanhaModal'
 import CampanhaToggle from '@/components/dashboard/CampanhaToggle'
+import LancarDiarioModal from '@/components/dashboard/LancarDiarioModal'
 import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario } from '@/types/database'
 
 type UsuarioComBarbearia = {
@@ -26,6 +27,15 @@ type MetaSimples = {
   meta_coletiva: number
   premio_coletivo: string | null
   faturamento_acumulado: number
+}
+
+function toDateStr(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function calcDelta(atual: number, anterior: number): number | null {
+  if (anterior <= 0) return null
+  return Math.round(((atual - anterior) / anterior) * 100)
 }
 
 export default async function DashboardPage() {
@@ -47,8 +57,26 @@ export default async function DashboardPage() {
   const hoje = new Date()
   const mes = hoje.getMonth() + 1
   const ano = hoje.getFullYear()
+  const diaHoje = hoje.getDate()
 
-  // Busca meta coletiva (sem nested — nested join do Supabase pode falhar silenciosamente)
+  // ── Datas para lançamentos diários ──────────────────────
+  const dataHojeStr = toDateStr(hoje)
+
+  // Primeiro dia do mês atual
+  const primeiroAtual = `${ano}-${String(mes).padStart(2, '0')}-01`
+
+  // Mês anterior
+  const mesAntMes = mes === 1 ? 12 : mes - 1
+  const mesAntAno = mes === 1 ? ano - 1 : ano
+  const primeiroAnterior = `${mesAntAno}-${String(mesAntMes).padStart(2, '0')}-01`
+  // Mesmo dia no mês anterior (capped no último dia do mês anterior)
+  const ultimoDiaMesAnt = new Date(ano, mes - 1, 0).getDate()
+  const diaAnt = Math.min(diaHoje, ultimoDiaMesAnt)
+  const mesmoDiaAnterior = `${mesAntAno}-${String(mesAntMes).padStart(2, '0')}-${String(diaAnt).padStart(2, '0')}`
+
+  // Label legível para o modal
+  const labelHoje = `${diaHoje} de ${nomeMes(mes)}`
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
     .from('metas')
@@ -60,7 +88,6 @@ export default async function DashboardPage() {
 
   const meta = metaRaw as MetaSimples | null
 
-  // Busca metas individuais em query separada
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metasIndRaw } = meta ? await (supabase as any)
     .from('metas_individuais')
@@ -88,6 +115,50 @@ export default async function DashboardPage() {
   const barbeiros = (barbeirosRaw ?? []) as Barbeiro[]
   const lancamentos = (lancamentosRaw ?? []) as Lancamento[]
 
+  // ── Lançamentos diários ─────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: ldHojeRaw } = await (supabase as any)
+    .from('lancamentos_diarios')
+    .select('barbeiro_id, valor')
+    .eq('barbearia_id', barbearia.id)
+    .eq('data', dataHojeStr)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: ldAtualRaw } = await (supabase as any)
+    .from('lancamentos_diarios')
+    .select('barbeiro_id, valor')
+    .eq('barbearia_id', barbearia.id)
+    .gte('data', primeiroAtual)
+    .lte('data', dataHojeStr)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: ldAnteriorRaw } = await (supabase as any)
+    .from('lancamentos_diarios')
+    .select('barbeiro_id, valor')
+    .eq('barbearia_id', barbearia.id)
+    .gte('data', primeiroAnterior)
+    .lte('data', mesmoDiaAnterior)
+
+  // Agregar por barbeiro_id
+  const ldHojeMap: Record<string, number> = {}
+  for (const r of (ldHojeRaw ?? []) as { barbeiro_id: string; valor: number }[]) {
+    ldHojeMap[r.barbeiro_id] = (ldHojeMap[r.barbeiro_id] ?? 0) + Number(r.valor)
+  }
+  const ldAtualMap: Record<string, number> = {}
+  for (const r of (ldAtualRaw ?? []) as { barbeiro_id: string; valor: number }[]) {
+    ldAtualMap[r.barbeiro_id] = (ldAtualMap[r.barbeiro_id] ?? 0) + Number(r.valor)
+  }
+  const ldAnteriorMap: Record<string, number> = {}
+  for (const r of (ldAnteriorRaw ?? []) as { barbeiro_id: string; valor: number }[]) {
+    ldAnteriorMap[r.barbeiro_id] = (ldAnteriorMap[r.barbeiro_id] ?? 0) + Number(r.valor)
+  }
+
+  // Total coletivo do mesmo período do mês anterior
+  const totalAnteriorColetivo = Object.values(ldAnteriorMap).reduce((s, v) => s + v, 0)
+  const totalAtualColetivo = Object.values(ldAtualMap).reduce((s, v) => s + v, 0)
+  const deltaColetivo = calcDelta(totalAtualColetivo, totalAnteriorColetivo)
+
+  // ── Cálculos gerais ─────────────────────────────────────
   const totalComissoes = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
   const faturamentoExibido = (meta?.faturamento_acumulado ?? 0) > 0 ? meta!.faturamento_acumulado : totalComissoes
   const progressoColetivo = meta ? calcProgresso(faturamentoExibido, meta.meta_coletiva) : 0
@@ -103,7 +174,7 @@ export default async function DashboardPage() {
   const rankingBarbeiros = ranking.filter(b => b.tipo !== 'recepcionista')
   const rankingRecepcionistas = ranking.filter(b => b.tipo === 'recepcionista')
 
-  // ── Gamificação ────────────────────────────────────────
+  // ── Gamificação ──────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: modoRaw } = await (supabase as any)
     .from('modo_mes').select('modo').eq('barbearia_id', barbearia.id).eq('mes', mes).eq('ano', ano).single()
@@ -139,13 +210,19 @@ export default async function DashboardPage() {
     }
   }
 
-  // Ranking de pontos (para badge de posição)
   const rankingPontos = Object.entries(pontosMap)
     .map(([id, pts]) => ({ id, pts }))
     .sort((a, b) => b.pts - a.pts)
 
   const rankingPontosBarb  = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo !== 'recepcionista')
   const rankingPontosRecep = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo === 'recepcionista')
+
+  // Barbers for the daily modal (only barbers, not receptionists)
+  const barbeirosParaModal = barbeiros
+    .filter(b => b.tipo !== 'recepcionista')
+    .map(b => ({ ...b, valorHoje: ldHojeMap[b.id] ?? 0 }))
+
+  const nomeMesAnterior = nomeMes(mesAntMes)
 
   return (
     <div className="min-h-screen">
@@ -176,6 +253,11 @@ export default async function DashboardPage() {
 
         {/* Ações */}
         <div className="flex gap-3 flex-wrap">
+          <LancarDiarioModal
+            barbeiros={barbeirosParaModal}
+            dataHoje={dataHojeStr}
+            labelHoje={labelHoje}
+          />
           <NovoBarbeiroModal />
           <NovoBarbeiroModal tipo="recepcionista" />
           {modoAtual !== 'pontos' && (
@@ -232,6 +314,21 @@ export default async function DashboardPage() {
                 {progressoColetivo}% · faltam {formatBRL(Math.max(0, meta.meta_coletiva - faturamentoExibido))}
               </p>
             </div>
+
+            {/* Comparativo período anterior */}
+            {totalAnteriorColetivo > 0 && (
+              <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
+                <p className="text-text-muted text-xs font-sans">
+                  Mesmo período em {nomeMesAnterior}: <span className="text-text">{formatBRL(totalAnteriorColetivo)}</span>
+                </p>
+                {deltaColetivo !== null && (
+                  <span className={`text-xs font-sans font-semibold ${deltaColetivo >= 0 ? 'text-green-500' : 'text-red-400'}`}>
+                    {deltaColetivo >= 0 ? '↑' : '↓'} {Math.abs(deltaColetivo)}%
+                  </span>
+                )}
+              </div>
+            )}
+
             {progressoColetivo < 20 && meta.meta_coletiva > 0 && (
               <p className="text-text-muted text-xs font-sans mt-3 text-center opacity-70">
                 💪 A jornada começa agora — cada atendimento conta para a meta da equipe!
@@ -274,6 +371,11 @@ export default async function DashboardPage() {
                 const posicaoPts = rankingPontosBarb.findIndex(r => r.id === barbeiro.id)
                 const qualificado = campanha ? pts >= campanha.min_pontos : false
 
+                const valorHoje = ldHojeMap[barbeiro.id] ?? 0
+                const acumAtual = ldAtualMap[barbeiro.id] ?? 0
+                const acumAnterior = ldAnteriorMap[barbeiro.id] ?? 0
+                const delta = calcDelta(acumAtual, acumAnterior)
+
                 return (
                   <div key={barbeiro.id} className="card p-5">
                     <div className="flex items-center gap-3">
@@ -306,6 +408,19 @@ export default async function DashboardPage() {
                         <div className="flex items-center gap-2 mt-0.5">
                           <p className="text-text-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
                           <CopiarLinkBtn codigo={barbeiro.link_codigo} />
+                        </div>
+                        {/* Diário */}
+                        <div className="mt-1.5 flex items-center gap-3 flex-wrap">
+                          {valorHoje > 0 && (
+                            <span className="text-xs font-sans text-text-muted">
+                              Hoje: <span className="text-text font-semibold">{formatBRL(valorHoje)}</span>
+                            </span>
+                          )}
+                          {delta !== null && (
+                            <span className={`text-xs font-sans font-semibold ${delta >= 0 ? 'text-green-500' : 'text-red-400'}`}>
+                              {delta >= 0 ? '↑' : '↓'} {Math.abs(delta)}% vs {nomeMesAnterior}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="text-right shrink-0">

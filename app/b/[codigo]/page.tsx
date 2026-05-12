@@ -37,8 +37,20 @@ export default async function BarbeiroPage({ params }: Props) {
   const hoje = new Date()
   const mes = hoje.getMonth() + 1
   const ano = hoje.getFullYear()
+  const diaHoje = hoje.getDate()
 
-  // ── Metas ────────────────────────────────────────
+  // ── Datas para lançamentos diários ──────────────────────
+  const dataHojeStr = toDateStr(hoje)
+  const primeiroAtual = `${ano}-${String(mes).padStart(2, '0')}-01`
+
+  const mesAntMes = mes === 1 ? 12 : mes - 1
+  const mesAntAno = mes === 1 ? ano - 1 : ano
+  const primeiroAnterior = `${mesAntAno}-${String(mesAntMes).padStart(2, '0')}-01`
+  const ultimoDiaMesAnt = new Date(ano, mes - 1, 0).getDate()
+  const diaAnt = Math.min(diaHoje, ultimoDiaMesAnt)
+  const mesmoDiaAnterior = `${mesAntAno}-${String(mesAntMes).padStart(2, '0')}-${String(diaAnt).padStart(2, '0')}`
+
+  // ── Metas ─────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
     .from('metas').select('id, meta_coletiva, premio_coletivo, faturamento_acumulado')
@@ -90,7 +102,31 @@ export default async function BarbeiroPage({ params }: Props) {
     barberoNome: barbeiro.nome,
   })
 
-  // ── Modo + Gamificação ────────────────────────────────
+  // ── Lançamentos diários deste barbeiro ──────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: ldAtualRaw } = await (supabase as any)
+    .from('lancamentos_diarios')
+    .select('valor')
+    .eq('barbeiro_id', barbeiro.id)
+    .gte('data', primeiroAtual)
+    .lte('data', dataHojeStr)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: ldAnteriorRaw } = await (supabase as any)
+    .from('lancamentos_diarios')
+    .select('valor')
+    .eq('barbeiro_id', barbeiro.id)
+    .gte('data', primeiroAnterior)
+    .lte('data', mesmoDiaAnterior)
+
+  const acumDiarioAtual   = ((ldAtualRaw    ?? []) as { valor: number }[]).reduce((s, r) => s + Number(r.valor), 0)
+  const acumDiarioAnterior = ((ldAnteriorRaw ?? []) as { valor: number }[]).reduce((s, r) => s + Number(r.valor), 0)
+
+  const deltaDiario: number | null = acumDiarioAnterior > 0
+    ? Math.round(((acumDiarioAtual - acumDiarioAnterior) / acumDiarioAnterior) * 100)
+    : null
+
+  // ── Modo + Gamificação ─────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: modoRaw } = await (supabase as any)
     .from('modo_mes').select('modo')
@@ -109,7 +145,6 @@ export default async function BarbeiroPage({ params }: Props) {
       .from('campanha').select('*')
       .eq('barbearia_id', barbeiro.barbearia_id).eq('mes', mes).eq('ano', ano).single()
 
-    // ativo: undefined (coluna não existe) ou true → campanha ativa
     if (campRaw && campRaw.ativo !== false) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: servicosRaw } = await (supabase as any)
@@ -123,7 +158,6 @@ export default async function BarbeiroPage({ params }: Props) {
         campanha_premios:  (premiosRaw  ?? []) as CampanhaPremio[],
       }
 
-      // Todos os controles da campanha (para ranking de pontos)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: todosControlesRaw } = await (supabase as any)
         .from('controle_diario').select('barbeiro_id, servico_id, quantidade')
@@ -138,7 +172,6 @@ export default async function BarbeiroPage({ params }: Props) {
         .map(([barbeiro_id, pontos]) => ({ barbeiro_id, pontos }))
         .sort((a, b) => b.pontos - a.pontos)
 
-      // Controles deste barbeiro (para histórico + hoje)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: meusControlesRaw } = await (supabase as any)
         .from('controle_diario').select('*')
@@ -150,9 +183,8 @@ export default async function BarbeiroPage({ params }: Props) {
     }
   }
 
-  const dataHoje = toDateStr(hoje)
   const controleHoje = controlesDiario
-    .filter(cd => cd.data === dataHoje)
+    .filter(cd => cd.data === dataHojeStr)
     .reduce((acc, cd) => { acc[cd.servico_id] = cd.quantidade; return acc }, {} as Record<string, number>)
 
   const historico = campanha
@@ -192,6 +224,11 @@ export default async function BarbeiroPage({ params }: Props) {
           pontosMap={pontosMap}
           controleHoje={controleHoje}
           historico={historico}
+          acumDiarioAtual={acumDiarioAtual}
+          acumDiarioAnterior={acumDiarioAnterior}
+          deltaDiario={deltaDiario}
+          diaHoje={diaHoje}
+          nomeMesAnterior={nomeMes(mesAntMes)}
         />
       </main>
     </div>

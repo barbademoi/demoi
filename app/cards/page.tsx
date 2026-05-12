@@ -11,6 +11,8 @@ type MetaComIndividuais = {
   metas_individuais: MetaIndividual[]
 }
 
+function pad2(n: number) { return String(n).padStart(2, '0') }
+
 export default async function CardsPage({
   searchParams,
 }: {
@@ -68,6 +70,52 @@ export default async function CardsPage({
   const totalEquipe = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
   const faturamentoAcumulado = (meta as unknown as { faturamento_acumulado?: number })?.faturamento_acumulado ?? 0
 
+  // ── Lançamentos diários — delta por barbeiro ─────────────
+  const isCurrentMonth = mes === hoje.getMonth() + 1 && ano === hoje.getFullYear()
+  const diaRef = isCurrentMonth ? hoje.getDate() : new Date(ano, mes, 0).getDate()
+
+  const primeiroAtual = `${ano}-${pad2(mes)}-01`
+  const dataFinal = `${ano}-${pad2(mes)}-${pad2(diaRef)}`
+
+  const mesAntMes = mes === 1 ? 12 : mes - 1
+  const mesAntAno = mes === 1 ? ano - 1 : ano
+  const ultimoDiaMesAnt = new Date(mesAntAno, mesAntMes, 0).getDate()
+  const diaAnt = Math.min(diaRef, ultimoDiaMesAnt)
+  const primeiroAnterior = `${mesAntAno}-${pad2(mesAntMes)}-01`
+  const mesmoDiaAnterior = `${mesAntAno}-${pad2(mesAntMes)}-${pad2(diaAnt)}`
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: ldAtualRaw } = await (supabase as any)
+    .from('lancamentos_diarios')
+    .select('barbeiro_id, valor')
+    .eq('barbearia_id', barbearia.id)
+    .gte('data', primeiroAtual)
+    .lte('data', dataFinal)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: ldAnteriorRaw } = await (supabase as any)
+    .from('lancamentos_diarios')
+    .select('barbeiro_id, valor')
+    .eq('barbearia_id', barbearia.id)
+    .gte('data', primeiroAnterior)
+    .lte('data', mesmoDiaAnterior)
+
+  const ldAtualMap: Record<string, number> = {}
+  for (const r of (ldAtualRaw ?? []) as { barbeiro_id: string; valor: number }[]) {
+    ldAtualMap[r.barbeiro_id] = (ldAtualMap[r.barbeiro_id] ?? 0) + Number(r.valor)
+  }
+  const ldAnteriorMap: Record<string, number> = {}
+  for (const r of (ldAnteriorRaw ?? []) as { barbeiro_id: string; valor: number }[]) {
+    ldAnteriorMap[r.barbeiro_id] = (ldAnteriorMap[r.barbeiro_id] ?? 0) + Number(r.valor)
+  }
+
+  const deltaMap: Record<string, number | null> = {}
+  for (const b of barbeiros) {
+    const atual = ldAtualMap[b.id] ?? 0
+    const anterior = ldAnteriorMap[b.id] ?? 0
+    deltaMap[b.id] = anterior > 0 ? Math.round(((atual - anterior) / anterior) * 100) : null
+  }
+
   return (
     <CardsClient
       barbeiros={barbeiros}
@@ -79,6 +127,7 @@ export default async function CardsPage({
       mes={mes}
       ano={ano}
       tipo={tipo}
+      deltaMap={deltaMap}
     />
   )
 }

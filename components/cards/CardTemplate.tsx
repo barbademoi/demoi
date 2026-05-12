@@ -16,6 +16,7 @@ interface Props {
   faturamentoAcumulado: number
   mes: number
   ano: number
+  delta?: number | null
   onCanvas?: (canvas: HTMLCanvasElement, nome: string) => void
 }
 
@@ -79,7 +80,7 @@ function drawMetallicBar(
 }
 
 export default function CardTemplate({
-  tipo, barbeiro, metaInd, lancamento, metaColetiva, premioColetivo, totalEquipe, faturamentoAcumulado, mes, ano, onCanvas
+  tipo, barbeiro, metaInd, lancamento, metaColetiva, premioColetivo, totalEquipe, faturamentoAcumulado, mes, ano, delta, onCanvas
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -168,10 +169,20 @@ export default function CardTemplate({
       ctx.fillStyle = '#EEF0F6'
       ctx.fillText(formatBRL(comissao), 80, 560)
 
+      // Delta vs mesmo período do mês anterior
+      if (delta !== null && delta !== undefined) {
+        const arrow = delta >= 0 ? '↑' : '↓'
+        const deltaText = `${arrow} ${Math.abs(delta)}% vs mês anterior`
+        ctx.font = `600 34px ${FONT_SANS}`
+        ctx.fillStyle = delta >= 0 ? '#22C55E' : '#EF4444'
+        ctx.textAlign = 'left'
+        ctx.fillText(deltaText, 80, 612)
+      }
+
       // Tier badge
       if (tier) {
         const tierConf = TIER_CONFIG[tier]
-        const badgeY = 620
+        const badgeY = delta !== null && delta !== undefined ? 680 : 620
         const tierGradColors = GRADIENTS[tier]
         const tierGrad = ctx.createLinearGradient(80, badgeY - 50, 80 + 300, badgeY)
         tierGradColors.forEach((c, i) => tierGrad.addColorStop(i / (tierGradColors.length - 1), c))
@@ -329,7 +340,7 @@ export default function CardTemplate({
 
     onCanvas?.(canvas, barbeiro.nome)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [barbeiro.id, tipo, lancamento?.comissao_acumulada, mes, ano])
+  }, [barbeiro.id, tipo, lancamento?.comissao_acumulada, mes, ano, delta])
 
   return (
     <canvas
