@@ -312,6 +312,7 @@ export interface LancamentoDiario {
   barbeiro_id: string
   data: string          // 'YYYY-MM-DD'
   valor: number
+  faturamento_geral: number
   criado_em: string
   atualizado_em: string
 }

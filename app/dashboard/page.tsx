@@ -119,14 +119,14 @@ export default async function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: ldHojeRaw } = await (supabase as any)
     .from('lancamentos_diarios')
-    .select('barbeiro_id, valor')
+    .select('barbeiro_id, valor, faturamento_geral')
     .eq('barbearia_id', barbearia.id)
     .eq('data', dataHojeStr)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: ldAtualRaw } = await (supabase as any)
     .from('lancamentos_diarios')
-    .select('barbeiro_id, valor')
+    .select('barbeiro_id, valor, data, faturamento_geral')
     .eq('barbearia_id', barbearia.id)
     .gte('data', primeiroAtual)
     .lte('data', dataHojeStr)
@@ -134,26 +134,51 @@ export default async function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: ldAnteriorRaw } = await (supabase as any)
     .from('lancamentos_diarios')
-    .select('barbeiro_id, valor')
+    .select('barbeiro_id, valor, data, faturamento_geral')
     .eq('barbearia_id', barbearia.id)
     .gte('data', primeiroAnterior)
     .lte('data', mesmoDiaAnterior)
 
+  type LdRow = { barbeiro_id: string; valor: number; data: string; faturamento_geral: number }
+
   // Agregar por barbeiro_id
   const ldHojeMap: Record<string, number> = {}
-  for (const r of (ldHojeRaw ?? []) as { barbeiro_id: string; valor: number }[]) {
+  for (const r of (ldHojeRaw ?? []) as { barbeiro_id: string; valor: number; faturamento_geral: number }[]) {
     ldHojeMap[r.barbeiro_id] = (ldHojeMap[r.barbeiro_id] ?? 0) + Number(r.valor)
   }
   const ldAtualMap: Record<string, number> = {}
-  for (const r of (ldAtualRaw ?? []) as { barbeiro_id: string; valor: number }[]) {
+  for (const r of (ldAtualRaw ?? []) as LdRow[]) {
     ldAtualMap[r.barbeiro_id] = (ldAtualMap[r.barbeiro_id] ?? 0) + Number(r.valor)
   }
   const ldAnteriorMap: Record<string, number> = {}
-  for (const r of (ldAnteriorRaw ?? []) as { barbeiro_id: string; valor: number }[]) {
+  for (const r of (ldAnteriorRaw ?? []) as LdRow[]) {
     ldAnteriorMap[r.barbeiro_id] = (ldAnteriorMap[r.barbeiro_id] ?? 0) + Number(r.valor)
   }
 
-  // Total coletivo do mesmo período do mês anterior
+  // Faturamento geral: MAX por dia (armazenado em todas as linhas do dia, mesmo valor)
+  const fatGeralPorDiaAtual: Record<string, number> = {}
+  for (const r of (ldAtualRaw ?? []) as LdRow[]) {
+    const v = Number(r.faturamento_geral)
+    if (v > (fatGeralPorDiaAtual[r.data] ?? 0)) fatGeralPorDiaAtual[r.data] = v
+  }
+  const fatGeralAcumuladoAtual = Object.values(fatGeralPorDiaAtual).reduce((s, v) => s + v, 0)
+
+  const fatGeralPorDiaAnterior: Record<string, number> = {}
+  for (const r of (ldAnteriorRaw ?? []) as LdRow[]) {
+    const v = Number(r.faturamento_geral)
+    if (v > (fatGeralPorDiaAnterior[r.data] ?? 0)) fatGeralPorDiaAnterior[r.data] = v
+  }
+  const fatGeralAcumuladoAnterior = Object.values(fatGeralPorDiaAnterior).reduce((s, v) => s + v, 0)
+
+  const deltaFatGeral = calcDelta(fatGeralAcumuladoAtual, fatGeralAcumuladoAnterior)
+
+  // Faturamento geral de hoje (para pré-preencher modal)
+  const fatGeralHoje = Math.max(
+    0,
+    ...((ldHojeRaw ?? []) as { faturamento_geral: number }[]).map(r => Number(r.faturamento_geral))
+  )
+
+  // Total coletivo do mesmo período do mês anterior (comissões)
   const totalAnteriorColetivo = Object.values(ldAnteriorMap).reduce((s, v) => s + v, 0)
   const totalAtualColetivo = Object.values(ldAtualMap).reduce((s, v) => s + v, 0)
   const deltaColetivo = calcDelta(totalAtualColetivo, totalAnteriorColetivo)
@@ -222,6 +247,7 @@ export default async function DashboardPage() {
     .filter(b => b.tipo !== 'recepcionista')
     .map(b => ({ ...b, valorHoje: ldHojeMap[b.id] ?? 0 }))
 
+
   const nomeMesAnterior = nomeMes(mesAntMes)
 
   return (
@@ -257,6 +283,7 @@ export default async function DashboardPage() {
             barbeiros={barbeirosParaModal}
             dataHoje={dataHojeStr}
             labelHoje={labelHoje}
+            fatGeralHoje={fatGeralHoje}
           />
           <NovoBarbeiroModal />
           <NovoBarbeiroModal tipo="recepcionista" />
@@ -315,16 +342,29 @@ export default async function DashboardPage() {
               </p>
             </div>
 
-            {/* Comparativo período anterior */}
-            {totalAnteriorColetivo > 0 && (
-              <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
-                <p className="text-text-muted text-xs font-sans">
-                  Mesmo período em {nomeMesAnterior}: <span className="text-text">{formatBRL(totalAnteriorColetivo)}</span>
-                </p>
-                {deltaColetivo !== null && (
-                  <span className={`text-xs font-sans font-semibold ${deltaColetivo >= 0 ? 'text-green-500' : 'text-red-400'}`}>
-                    {deltaColetivo >= 0 ? '↑' : '↓'} {Math.abs(deltaColetivo)}%
-                  </span>
+            {/* Faturamento geral acumulado */}
+            {fatGeralAcumuladoAtual > 0 && (
+              <div className="mt-3 pt-3 border-t border-border space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-text-muted text-xs font-sans">
+                    Faturamento acumulado {nomeMes(mes)}
+                  </p>
+                  <p className="text-text text-sm font-sans font-semibold">{formatBRL(fatGeralAcumuladoAtual)}</p>
+                </div>
+                {fatGeralAcumuladoAnterior > 0 && (
+                  <div className="flex items-center justify-between">
+                    <p className="text-text-muted text-xs font-sans">
+                      Mesmo período em {nomeMesAnterior}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-text-muted text-xs font-sans">{formatBRL(fatGeralAcumuladoAnterior)}</p>
+                      {deltaFatGeral !== null && (
+                        <span className={`text-xs font-sans font-semibold ${deltaFatGeral >= 0 ? 'text-green-500' : 'text-red-400'}`}>
+                          {deltaFatGeral >= 0 ? '↑' : '↓'} {Math.abs(deltaFatGeral)}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
             )}

@@ -11,6 +11,7 @@ interface LancamentoItem {
 export async function salvarLancamentosDiarios(
   lancamentos: LancamentoItem[],
   data: string,         // 'YYYY-MM-DD'
+  fatGeral: number,
 ) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -26,11 +27,12 @@ export async function salvarLancamentosDiarios(
   const rows = lancamentos
     .filter(l => l.valor >= 0)
     .map(l => ({
-      barbearia_id:  usuario.barbearia_id,
-      barbeiro_id:   l.barbeiro_id,
+      barbearia_id:     usuario.barbearia_id,
+      barbeiro_id:      l.barbeiro_id,
       data,
-      valor:         l.valor,
-      atualizado_em: agora,
+      valor:            l.valor,
+      faturamento_geral: fatGeral >= 0 ? fatGeral : 0,
+      atualizado_em:    agora,
     }))
 
   if (rows.length === 0) return { ok: true }

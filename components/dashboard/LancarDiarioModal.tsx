@@ -13,14 +13,18 @@ interface Props {
   barbeiros: BarbeiroComHoje[]
   dataHoje: string          // 'YYYY-MM-DD'
   labelHoje: string         // ex: "8 de maio"
+  fatGeralHoje: number      // faturamento geral já salvo hoje
 }
 
-export default function LancarDiarioModal({ barbeiros, dataHoje, labelHoje }: Props) {
+export default function LancarDiarioModal({ barbeiros, dataHoje, labelHoje, fatGeralHoje }: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [erro, setErro] = useState<string | null>(null)
   const [sucesso, setSucesso] = useState(false)
 
+  const [fatGeral, setFatGeral] = useState<string>(
+    fatGeralHoje > 0 ? String(fatGeralHoje) : ''
+  )
   const [valores, setValores] = useState<Record<string, string>>(() =>
     Object.fromEntries(barbeiros.map(b => [b.id, b.valorHoje > 0 ? String(b.valorHoje) : '']))
   )
@@ -36,9 +40,10 @@ export default function LancarDiarioModal({ barbeiros, dataHoje, labelHoje }: Pr
       barbeiro_id: b.id,
       valor: parseFloat(valores[b.id] || '0') || 0,
     }))
+    const fatGeralNum = parseFloat(fatGeral || '0') || 0
 
     startTransition(async () => {
-      const res = await salvarLancamentosDiarios(lancamentos, dataHoje)
+      const res = await salvarLancamentosDiarios(lancamentos, dataHoje, fatGeralNum)
       if (res?.error) { setErro(res.error); return }
       setSucesso(true)
       setTimeout(() => { setSucesso(false); setOpen(false) }, 900)
@@ -75,7 +80,34 @@ export default function LancarDiarioModal({ barbeiros, dataHoje, labelHoje }: Pr
         </div>
 
         {/* Body */}
-        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-3">
+        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+
+          {/* Faturamento geral da barbearia */}
+          <div className="bg-surface-2 border border-border rounded-xl px-4 py-4 space-y-2">
+            <p className="text-text text-xs font-sans font-semibold uppercase tracking-wide">
+              Faturamento total da barbearia hoje
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-text-muted text-sm font-sans shrink-0">R$</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0,00"
+                value={fatGeral}
+                onChange={e => setFatGeral(e.target.value)}
+                className="input flex-1 py-2 text-lg font-serif"
+              />
+            </div>
+          </div>
+
+          {/* Separador */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-border" />
+            <p className="text-text-muted text-xs font-sans">Comissões individuais</p>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
           <p className="text-text-muted text-xs font-sans">Faturamento de hoje por barbeiro. Preencha apenas quem trabalhou.</p>
 
           {barbeiros.map(b => (
