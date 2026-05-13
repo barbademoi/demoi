@@ -39,7 +39,8 @@ export async function middleware(request: NextRequest) {
 
     const isAuthRoute    = request.nextUrl.pathname === '/login'
     const isBarbeiroRoute = request.nextUrl.pathname.startsWith('/b/')
-    const isPublicRoute  = isAuthRoute || isBarbeiroRoute
+    const isApiRoute     = request.nextUrl.pathname.startsWith('/api/')
+    const isPublicRoute  = isAuthRoute || isBarbeiroRoute || isApiRoute
 
     if (!session && !isPublicRoute) {
       return NextResponse.redirect(new URL('/login', request.url))
@@ -51,7 +52,8 @@ export async function middleware(request: NextRequest) {
     console.error('[middleware] erro ao verificar sessão:', err)
     // Em caso de falha, redireciona para login apenas rotas protegidas
     const isPublicRoute = request.nextUrl.pathname === '/login' ||
-                         request.nextUrl.pathname.startsWith('/b/')
+                         request.nextUrl.pathname.startsWith('/b/') ||
+                         request.nextUrl.pathname.startsWith('/api/')
     if (!isPublicRoute) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
