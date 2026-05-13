@@ -255,7 +255,7 @@ export default async function DashboardPage() {
           {rankingBarbeiros.length === 0 ? (
             <div className="card p-8 text-center">
               <p className="text-text-muted font-sans text-sm">
-                Nenhum barbeiro cadastrado. Clique em &ldquo;+ Novo barbeiro&rdquo; para começar.
+                Nenhum barbeiro cadastrado. Clique em &ldquo;+ Barbeiro&rdquo; para começar.
               </p>
             </div>
           ) : (
@@ -378,7 +378,7 @@ export default async function DashboardPage() {
           {rankingRecepcionistas.length === 0 ? (
             <div className="card p-8 text-center">
               <p className="text-text-muted font-sans text-sm">
-                Nenhuma recepcionista cadastrada. Clique em &ldquo;+ Nova recepcionista&rdquo; para começar.
+                Nenhuma recepcionista cadastrada. Clique em &ldquo;+ Recepcionista&rdquo; para começar.
               </p>
             </div>
           ) : (
