@@ -27,11 +27,15 @@ export default function CircularProgress({
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {/* Defs: glow filter */}
         <defs>
-          <filter id="ring-glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="5" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          {/* Filtro SVG nativo — segue a forma do arco, sem caixa retangular */}
+          <filter id="arc-glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
           </filter>
         </defs>
         {/* Track */}
@@ -46,10 +50,8 @@ export default function CircularProgress({
             strokeLinecap="round"
             strokeDasharray={`${dash} ${circumference}`}
             transform={`rotate(-90 ${cx} ${cy})`}
-            style={{
-              filter: `drop-shadow(0 0 6px ${glow}) drop-shadow(0 0 14px ${glow})`,
-              transition: 'stroke-dasharray 1s ease',
-            }}
+            filter="url(#arc-glow)"
+            style={{ transition: 'stroke-dasharray 1s ease' }}
           />
         )}
       </svg>
