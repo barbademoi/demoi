@@ -152,15 +152,15 @@ function ConfigPanel({
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="text-text-muted hover:text-text transition-colors p-1.5 rounded-lg hover:bg-surface-2"
-          aria-label="Voltar"
+          className="flex items-center gap-2 text-text-muted hover:text-text transition-colors px-3 py-2 rounded-xl hover:bg-surface-2 font-sans text-sm"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
             <polyline points="15 18 9 12 15 6" />
           </svg>
+          Voltar ao Dashboard
         </button>
-        <h1 className="font-serif text-2xl text-text">Configurações</h1>
       </div>
+      <h1 className="font-serif text-2xl text-text">Configurações</h1>
 
       {/* Modo do Mês */}
       <section className="card p-5 space-y-3">
