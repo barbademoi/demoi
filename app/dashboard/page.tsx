@@ -1,7 +1,5 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { logout } from '@/app/login/actions'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/utils'
 import LancamentoForm from '@/components/dashboard/LancamentoForm'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
@@ -14,6 +12,7 @@ import BrandLogo from '@/components/BrandLogo'
 import ModoMesSelector from '@/components/dashboard/ModoMesSelector'
 import CampanhaModal from '@/components/dashboard/CampanhaModal'
 import CampanhaToggle from '@/components/dashboard/CampanhaToggle'
+import Sidebar from '@/components/dashboard/Sidebar'
 import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario } from '@/types/database'
 
 type UsuarioComBarbearia = {
@@ -146,26 +145,15 @@ export default async function DashboardPage() {
   const rankingPontosRecep = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo === 'recepcionista')
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-border bg-surface sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <LogoUpload logoUrl={barbearia.logo_url} nomeAbrev={barbearia.nome[0]} />
-            <div>
-              <BrandLogo size="md" />
-              <p className="text-text-muted text-xs font-sans">{barbearia.nome}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/cards" className="btn-ghost text-sm py-2 px-3 border border-border">
-              Cards PNG
-            </Link>
-            <form action={logout}>
-              <button type="submit" className="btn-ghost text-sm py-2 px-3">Sair</button>
-            </form>
-          </div>
+    <div className="min-h-screen flex">
+      <Sidebar barbeariaNome={barbearia.nome} />
+
+      <div className="flex-1 min-w-0 lg:pl-64 pt-14 lg:pt-0">
+        {/* Desktop header strip */}
+        <div className="hidden lg:flex items-center gap-3 px-6 py-4 border-b border-border">
+          <LogoUpload logoUrl={barbearia.logo_url} nomeAbrev={barbearia.nome[0]} />
+          <p className="text-text-muted text-xs font-sans">{barbearia.nome}</p>
         </div>
-      </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
@@ -253,8 +241,8 @@ export default async function DashboardPage() {
           </h2>
 
           {rankingBarbeiros.length === 0 ? (
-            <div className="card p-8 text-center">
-              <p className="text-text-muted font-sans text-sm">
+            <div className="card-light p-8 text-center">
+              <p className="text-on-cream-muted font-sans text-sm">
                 Nenhum barbeiro cadastrado. Clique em &ldquo;+ Barbeiro&rdquo; para começar.
               </p>
             </div>
@@ -274,13 +262,13 @@ export default async function DashboardPage() {
                 const qualificado = campanha ? pts >= campanha.min_pontos : false
 
                 return (
-                  <div key={barbeiro.id} className="card p-5">
+                  <div key={barbeiro.id} className="card-light p-5">
                     <div className="flex items-center gap-3">
                       <span className={`font-serif text-lg w-6 text-center shrink-0
-                        ${idx === 0 ? 'metal-text-gold' : idx === 1 ? 'metal-text-silver' : idx === 2 ? 'metal-text-bronze' : 'text-text-muted'}`}>
+                        ${idx === 0 ? 'metal-text-gold' : idx === 1 ? 'metal-text-silver' : idx === 2 ? 'metal-text-bronze' : 'text-on-cream-muted'}`}>
                         {idx + 1}
                       </span>
-                      <div className="w-10 h-10 rounded-full bg-surface-2 border border-border flex items-center justify-center font-serif text-lg text-text-muted shrink-0 overflow-hidden">
+                      <div className="w-10 h-10 rounded-full bg-cream-surface border border-cream-border flex items-center justify-center font-serif text-lg text-on-cream-muted shrink-0 overflow-hidden">
                         {barbeiro.foto_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={barbeiro.foto_url} alt={barbeiro.nome} className="w-full h-full object-cover" />
@@ -288,7 +276,7 @@ export default async function DashboardPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-sans font-semibold text-text">{barbeiro.nome}</p>
+                          <p className="font-sans font-semibold text-on-cream">{barbeiro.nome}</p>
                           <EditarBarbeiroModal barbeiro={barbeiro} />
                           {tier && (
                             <span className={`text-xs font-sans font-semibold ${TIER_CONFIG[tier].textClass}`}>
@@ -297,22 +285,22 @@ export default async function DashboardPage() {
                           )}
                           {modoAtual !== 'metas' && campanha && (
                             <span className={`text-xs font-sans font-semibold px-2 py-0.5 rounded-full
-                              ${qualificado ? 'bg-primary/10 text-primary' : 'bg-surface-2 text-text-muted'}`}>
+                              ${qualificado ? 'bg-primary/10 text-primary' : 'bg-cream-surface text-on-cream-muted'}`}>
                               🏅 {pts} pts {posicaoPts >= 0 && qualificado ? `· #${posicaoPts + 1}` : ''}
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <p className="text-text-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
+                          <p className="text-on-cream-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
                           <CopiarLinkBtn codigo={barbeiro.link_codigo} />
                         </div>
                       </div>
                       <div className="text-right shrink-0">
                         {modoAtual !== 'pontos' && (
-                          <p className="font-serif text-xl text-text">{formatBRL(barbeiro.comissao)}</p>
+                          <p className="font-serif text-xl text-on-cream">{formatBRL(barbeiro.comissao)}</p>
                         )}
                         {modoAtual === 'pontos' && (
-                          <p className="font-serif text-xl text-text">{pts} pts</p>
+                          <p className="font-serif text-xl text-on-cream">{pts} pts</p>
                         )}
                         {modoAtual !== 'pontos' && (
                           <LancamentoForm
@@ -325,7 +313,7 @@ export default async function DashboardPage() {
                     </div>
                     <div className="mt-4">
                       {!barbeiro.metaInd ? (
-                        <p className="text-text-muted text-xs font-sans opacity-50">
+                        <p className="text-on-cream-muted text-xs font-sans opacity-50">
                           Sem metas configuradas — clique em &quot;Configurar metas&quot;
                         </p>
                       ) : (
@@ -340,7 +328,7 @@ export default async function DashboardPage() {
                             return (
                               <div key={t}>
                                 <div className="flex items-center gap-3 mb-1">
-                                  <span className={`text-xs font-sans w-12 text-right shrink-0 ${semMeta ? 'text-text-muted opacity-30' : TIER_CONFIG[t].textClass}`}>
+                                  <span className={`text-xs font-sans w-12 text-right shrink-0 ${semMeta ? 'text-on-cream-muted opacity-30' : TIER_CONFIG[t].textClass}`}>
                                     {TIER_CONFIG[t].label}
                                   </span>
                                   <div className="bar-track flex-1 h-2.5">
@@ -354,8 +342,8 @@ export default async function DashboardPage() {
                                 </div>
                                 {!semMeta && (
                                   <div className="ml-14 flex items-center gap-2">
-                                    <span className="text-text-muted text-xs font-sans">{pct}%</span>
-                                    {premio && <span className="text-text-muted text-xs font-sans opacity-60">· 🏆 {premio}</span>}
+                                    <span className="text-on-cream-muted text-xs font-sans">{pct}%</span>
+                                    {premio && <span className="text-on-cream-muted text-xs font-sans opacity-60">· 🏆 {premio}</span>}
                                   </div>
                                 )}
                               </div>
@@ -376,8 +364,8 @@ export default async function DashboardPage() {
           <h2 className="font-serif text-xl text-text mb-4">Recepcionistas</h2>
 
           {rankingRecepcionistas.length === 0 ? (
-            <div className="card p-8 text-center">
-              <p className="text-text-muted font-sans text-sm">
+            <div className="card-light p-8 text-center">
+              <p className="text-on-cream-muted font-sans text-sm">
                 Nenhuma recepcionista cadastrada. Clique em &ldquo;+ Recepcionista&rdquo; para começar.
               </p>
             </div>
@@ -390,13 +378,13 @@ export default async function DashboardPage() {
                 const qualificado = campanha ? pts >= minPtsRecep : false
 
                 return (
-                  <div key={barbeiro.id} className="card p-5">
+                  <div key={barbeiro.id} className="card-light p-5">
                     <div className="flex items-center gap-3">
                       <span className={`font-serif text-lg w-6 text-center shrink-0
-                        ${idx === 0 ? 'metal-text-gold' : idx === 1 ? 'metal-text-silver' : idx === 2 ? 'metal-text-bronze' : 'text-text-muted'}`}>
+                        ${idx === 0 ? 'metal-text-gold' : idx === 1 ? 'metal-text-silver' : idx === 2 ? 'metal-text-bronze' : 'text-on-cream-muted'}`}>
                         {idx + 1}
                       </span>
-                      <div className="w-10 h-10 rounded-full bg-surface-2 border border-border flex items-center justify-center font-serif text-lg text-text-muted shrink-0 overflow-hidden">
+                      <div className="w-10 h-10 rounded-full bg-cream-surface border border-cream-border flex items-center justify-center font-serif text-lg text-on-cream-muted shrink-0 overflow-hidden">
                         {barbeiro.foto_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={barbeiro.foto_url} alt={barbeiro.nome} className="w-full h-full object-cover" />
@@ -404,26 +392,26 @@ export default async function DashboardPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-sans font-semibold text-text">{barbeiro.nome}</p>
+                          <p className="font-sans font-semibold text-on-cream">{barbeiro.nome}</p>
                           <EditarBarbeiroModal barbeiro={barbeiro} />
                           {modoAtual !== 'metas' && campanha && (
                             <span className={`text-xs font-sans font-semibold px-2 py-0.5 rounded-full
-                              ${qualificado ? 'bg-primary/10 text-primary' : 'bg-surface-2 text-text-muted'}`}>
+                              ${qualificado ? 'bg-primary/10 text-primary' : 'bg-cream-surface text-on-cream-muted'}`}>
                               🏅 {pts} pts {posicaoPts >= 0 && qualificado ? `· #${posicaoPts + 1}` : ''}
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <p className="text-text-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
+                          <p className="text-on-cream-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
                           <CopiarLinkBtn codigo={barbeiro.link_codigo} />
                         </div>
                       </div>
                       <div className="text-right shrink-0">
                         {modoAtual !== 'pontos' && (
-                          <p className="font-serif text-xl text-text">{formatBRL(barbeiro.comissao)}</p>
+                          <p className="font-serif text-xl text-on-cream">{formatBRL(barbeiro.comissao)}</p>
                         )}
                         {modoAtual === 'pontos' && (
-                          <p className="font-serif text-xl text-text">{pts} pts</p>
+                          <p className="font-serif text-xl text-on-cream">{pts} pts</p>
                         )}
                         {modoAtual !== 'pontos' && (
                           <LancamentoForm
@@ -442,6 +430,7 @@ export default async function DashboardPage() {
         </div>
 
       </main>
+      </div>
     </div>
   )
 }
