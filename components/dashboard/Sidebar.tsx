@@ -8,6 +8,7 @@ import BrandLogo from '@/components/BrandLogo'
 
 interface Props {
   barbeariaNome: string
+  configSlot?: React.ReactNode
 }
 
 const navItems = [
@@ -34,7 +35,7 @@ const navItems = [
   },
 ]
 
-export default function Sidebar({ barbeariaNome }: Props) {
+export default function Sidebar({ barbeariaNome, configSlot }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
@@ -116,6 +117,14 @@ export default function Sidebar({ barbeariaNome }: Props) {
             )
           })}
         </nav>
+
+        {/* Config section */}
+        {configSlot && (
+          <div className="p-3 border-t border-border space-y-2">
+            <p className="text-text-muted text-xs font-sans uppercase tracking-wider px-2 pb-1">Configurações</p>
+            {configSlot}
+          </div>
+        )}
 
         {/* Logout */}
         <div className="p-3 border-t border-border">

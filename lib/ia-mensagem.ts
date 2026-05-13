@@ -9,8 +9,8 @@ interface Params {
   metaInd: MetaIndividual | null
   diasRestantes: number
   diasCorridos: number
-  posicaoRanking: number
-  totalBarbeiros: number
+  posicaoRanking: number   // 1-based; 0 = não está no ranking este mês
+  totalBarbeiros: number   // total de barbeiros ATIVOS da barbearia (não só quem lançou)
 }
 
 export async function obterMensagemDiaria(params: Params): Promise<string | null> {
@@ -46,17 +46,45 @@ export async function obterMensagemDiaria(params: Params): Promise<string | null
       ? Math.round((proximaMeta - comissao) / diasRestantes)
       : 0
 
+    // Só inclui ranking se o dado é confiável
+    const rankingValido = posicaoRanking >= 1 && posicaoRanking <= totalBarbeiros && totalBarbeiros >= 2
+    const rankingLine = rankingValido
+      ? `Posição no ranking da equipe: ${posicaoRanking}º de ${totalBarbeiros} barbeiros`
+      : `Total de barbeiros na equipe: ${totalBarbeiros}`
+
     const prompt = `Você é o assistente do BarberMeta. Escreva UMA mensagem motivacional curta (máximo 2 frases) para o barbeiro abaixo.
 Tom: direto, humano, sem coach motivacional, sem exagero, sem emojis.
+REGRA CRÍTICA: use SOMENTE os dados fornecidos abaixo. Nunca invente ou infira posições, valores ou porcentagens.
 
 Nome: ${nome}
-Comissão: R$ ${Math.round(comissao)}
-Bronze: ${pct(b)}% | Prata: ${pct(p)}% | Ouro: ${pct(o)}%
-Próxima meta: ${proximaNivel || 'todas atingidas'}${proximaNivel ? ` — faltam R$ ${Math.round(proximaMeta - comissao)}` : ''}
-Ritmo atual: R$ ${Math.round(ritmoAtual)}/dia | Necessário: R$ ${necesarioPorDia}/dia
-Dias restantes: ${diasRestantes} | Posição no ranking: ${posicaoRanking}º de ${totalBarbeiros}
+Comissão acumulada no mês: R$ ${Math.round(comissao)}
+Meta Bronze: R$ ${Math.round(b)} (${pct(b)}% atingido)
+Meta Prata: R$ ${Math.round(p)} (${pct(p)}% atingido)
+Meta Ouro: R$ ${Math.round(o)} (${pct(o)}% atingido)
+Próxima meta a atingir: ${proximaNivel || 'todas atingidas'}${proximaNivel ? ` — faltam R$ ${Math.round(proximaMeta - comissao)}` : ''}
+Ritmo atual: R$ ${Math.round(ritmoAtual)}/dia
+Ritmo necessário para próxima meta: R$ ${necesarioPorDia}/dia
+Dias corridos no mês: ${diasCorridos} | Dias restantes: ${diasRestantes}
+${rankingLine}
 
-Responda APENAS com a mensagem, sem aspas.`
+Responda APENAS com a mensagem, sem aspas, sem prefixo.`
+
+    // Log de validação — visível nos logs do servidor/Vercel
+    console.log('[IA-MENSAGEM] Dados enviados para API:', {
+      nome,
+      comissao: Math.round(comissao),
+      pctBronze: pct(b),
+      pctPrata: pct(p),
+      pctOuro: pct(o),
+      proximaNivel,
+      ritmoAtual: Math.round(ritmoAtual),
+      necesarioPorDia,
+      diasCorridos,
+      diasRestantes,
+      posicaoRanking,
+      totalBarbeiros,
+      rankingValido,
+    })
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const msg = await anthropic.messages.create({
@@ -76,7 +104,8 @@ Responda APENAS com a mensagem, sem aspas.`
     })
 
     return mensagem
-  } catch {
+  } catch (err) {
+    console.error('[IA-MENSAGEM] Erro ao gerar mensagem:', err)
     return null
   }
 }
