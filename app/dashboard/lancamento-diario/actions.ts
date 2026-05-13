@@ -25,17 +25,51 @@ export async function salvarLancamentosDiarios(
 
   const { barbearia_id } = usuario
   const agora = new Date().toISOString()
+  const barbeirosIds = lancamentos.map(l => l.barbeiro_id)
 
-  // ── 1. Salva lançamentos diários ───────────────────────────
+  const [anoStr, mesStr] = data.split('-')
+  const mes = parseInt(mesStr)
+  const ano = parseInt(anoStr)
+
+  // ── 1. Valores anteriores do dia (antes do upsert) ────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: prevDiasRaw } = await (supabase as any)
+    .from('lancamentos_diarios')
+    .select('barbeiro_id, valor')
+    .eq('barbearia_id', barbearia_id)
+    .in('barbeiro_id', barbeirosIds)
+    .eq('data', data)
+
+  const prevValorMap: Record<string, number> = {}
+  for (const r of (prevDiasRaw ?? []) as { barbeiro_id: string; valor: number }[]) {
+    prevValorMap[r.barbeiro_id] = Number(r.valor)
+  }
+
+  // ── 2. Acumulado mensal atual ─────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: prevAcumRaw } = await (supabase as any)
+    .from('lancamentos')
+    .select('barbeiro_id, comissao_acumulada')
+    .eq('barbearia_id', barbearia_id)
+    .in('barbeiro_id', barbeirosIds)
+    .eq('mes', mes)
+    .eq('ano', ano)
+
+  const accumMap: Record<string, number> = {}
+  for (const r of (prevAcumRaw ?? []) as { barbeiro_id: string; comissao_acumulada: number }[]) {
+    accumMap[r.barbeiro_id] = Number(r.comissao_acumulada)
+  }
+
+  // ── 3. Salva lançamentos diários ──────────────────────────
   const rows = lancamentos
     .filter(l => l.valor >= 0)
     .map(l => ({
       barbearia_id,
-      barbeiro_id:      l.barbeiro_id,
+      barbeiro_id:       l.barbeiro_id,
       data,
-      valor:            l.valor,
+      valor:             l.valor,
       faturamento_geral: fatGeral >= 0 ? fatGeral : 0,
-      atualizado_em:    agora,
+      atualizado_em:     agora,
     }))
 
   if (rows.length === 0) return { ok: true }
@@ -47,41 +81,21 @@ export async function salvarLancamentosDiarios(
 
   if (errDiario) return { error: (errDiario as { message: string }).message }
 
-  // ── 2. Recalcula acumulado mensal para cada barbeiro ───────
-  const [anoStr, mesStr] = data.split('-')
-  const mes = parseInt(mesStr)
-  const ano = parseInt(anoStr)
-  const primeiroDiaMes = `${anoStr}-${mesStr}-01`
-  // último dia do mês
-  const ultimoDia = new Date(ano, mes, 0).getDate()
-  const ultimoDiaMes = `${anoStr}-${mesStr}-${String(ultimoDia).padStart(2, '0')}`
-
-  const barbeirosIds = lancamentos.map(l => l.barbeiro_id)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: somasRaw } = await (supabase as any)
-    .from('lancamentos_diarios')
-    .select('barbeiro_id, valor')
-    .eq('barbearia_id', barbearia_id)
-    .in('barbeiro_id', barbeirosIds)
-    .gte('data', primeiroDiaMes)
-    .lte('data', ultimoDiaMes)
-
-  // Agrupa soma por barbeiro
-  const somaMap: Record<string, number> = {}
-  for (const r of (somasRaw ?? []) as { barbeiro_id: string; valor: number }[]) {
-    somaMap[r.barbeiro_id] = (somaMap[r.barbeiro_id] ?? 0) + Number(r.valor)
-  }
-
-  // Upsert em lancamentos (acumulado mensal)
-  const lancRows = barbeirosIds.map(bid => ({
-    barbearia_id,
-    barbeiro_id:        bid,
-    mes,
-    ano,
-    comissao_acumulada: somaMap[bid] ?? 0,
-    modo:               'direto',
-  }))
+  // ── 4. Atualiza acumulado: acum + (novo - anterior) ──────
+  // Só aplica o delta → preserva lançamentos manuais existentes
+  const lancRows = lancamentos.map(l => {
+    const prevDia = prevValorMap[l.barbeiro_id] ?? 0
+    const delta   = l.valor - prevDia
+    const novoAcum = Math.max(0, (accumMap[l.barbeiro_id] ?? 0) + delta)
+    return {
+      barbearia_id,
+      barbeiro_id:        l.barbeiro_id,
+      mes,
+      ano,
+      comissao_acumulada: novoAcum,
+      modo:               'direto',
+    }
+  })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: errAcum } = await (supabase as any)
