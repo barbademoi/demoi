@@ -66,6 +66,15 @@ export default async function BarbeiroPage({ params }: Props) {
     .order('comissao_acumulada', { ascending: false })
   const ranking = (rankingRaw ?? []) as unknown as LancamentoComNome[]
 
+  // Total de barbeiros ativos da barbearia (usado pela IA — mais preciso que ranking.length)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { count: totalBarbeirosAtivos } = await (supabase as any)
+    .from('barbeiros')
+    .select('id', { count: 'exact', head: true })
+    .eq('barbearia_id', barbeiro.barbearia_id)
+    .eq('ativo', true)
+    .neq('tipo', 'recepcionista')
+
   const comissao = lancamento?.comissao_acumulada ?? 0
   const progresso = metaInd ? {
     bronze: calcProgresso(comissao, metaInd.bronze_comm),
@@ -169,8 +178,8 @@ export default async function BarbeiroPage({ params }: Props) {
     metaInd,
     diasRestantes,
     diasCorridos,
-    posicaoRanking: posicaoRanking || 99,
-    totalBarbeiros: ranking.length,
+    posicaoRanking,            // 0 = não está no ranking; ia-mensagem.ts trata
+    totalBarbeiros: totalBarbeirosAtivos ?? ranking.length,
   })
 
   // ── Celebrações já exibidas ────────────────────────────
