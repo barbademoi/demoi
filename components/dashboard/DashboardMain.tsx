@@ -46,6 +46,8 @@ interface Props {
   ano: number
   diaAtual: number
   diasRestantes: number
+  diasUteisCorridos: number
+  diasUteisRestantes: number
   faturamentoEditSlot: React.ReactNode
 }
 
@@ -78,6 +80,8 @@ export default function DashboardMain({
   ano,
   diaAtual,
   diasRestantes,
+  diasUteisCorridos,
+  diasUteisRestantes,
   faturamentoEditSlot,
 }: Props) {
   const [filtro, setFiltro] = useState<'todos' | string>('todos')
@@ -127,6 +131,8 @@ export default function DashboardMain({
           ano={ano}
           diaAtual={diaAtual}
           diasRestantes={diasRestantes}
+          diasUteisCorridos={diasUteisCorridos}
+          diasUteisRestantes={diasUteisRestantes}
           faturamentoEditSlot={faturamentoEditSlot}
         />
       ) : barbeiroSel ? (
@@ -165,6 +171,8 @@ interface TodosProps {
   ano: number
   diaAtual: number
   diasRestantes: number
+  diasUteisCorridos: number
+  diasUteisRestantes: number
   faturamentoEditSlot: React.ReactNode
 }
 
@@ -181,13 +189,16 @@ function TodosView({
   rankingPontosRecep,
   mes,
   ano,
-  diaAtual,
+  diaAtual: _diaAtual,
   diasRestantes,
+  diasUteisCorridos,
+  diasUteisRestantes,
   faturamentoEditSlot,
 }: TodosProps) {
   const falta = meta ? meta.meta_coletiva - faturamentoExibido : 0
-  const necesarioPorDia = diasRestantes > 0 && falta > 0 ? falta / diasRestantes : 0
-  const ritmoColetivo = diaAtual > 0 ? faturamentoExibido / diaAtual : 0
+  // Usa dias úteis (Seg–Sáb, sem feriados) para ritmo mais preciso
+  const necesarioPorDia = diasUteisRestantes > 0 && falta > 0 ? falta / diasUteisRestantes : 0
+  const ritmoColetivo = diasUteisCorridos > 0 ? faturamentoExibido / diasUteisCorridos : 0
   const ritmoOk = ritmoColetivo >= necesarioPorDia
 
   return (
@@ -234,11 +245,11 @@ function TodosView({
               {faturamentoEditSlot}
 
               {/* Countdown */}
-              {diasRestantes > 0 && falta > 0 && (
+              {diasUteisRestantes > 0 && falta > 0 && (
                 <div className={`rounded-2xl border p-4 ${ritmoOk ? 'border-green-500/30 bg-green-500/5' : 'border-amber-500/30 bg-amber-500/5'}`}>
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-text-muted text-xs font-sans">
-                      <span className="text-text font-semibold">{diasRestantes}</span> dias restantes
+                      <span className="text-text font-semibold">{diasUteisRestantes}</span> dias úteis restantes
                     </p>
                     <p className={`text-xs font-sans font-semibold ${ritmoOk ? 'text-green-400' : 'text-amber-400'}`}>
                       {ritmoOk ? '✅ No ritmo' : '⚠️ Acelerar'}

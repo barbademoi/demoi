@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { nomeMes } from '@/lib/utils'
+import { nomeMes, calcDiasUteis } from '@/lib/utils'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
 import LogoUpload from '@/components/dashboard/LogoUpload'
@@ -47,6 +47,7 @@ export default async function DashboardPage() {
   const diaAtual = hoje.getDate()
   const diasNoMes = new Date(ano, mes, 0).getDate()
   const diasRestantes = diasNoMes - diaAtual
+  const { diasUteisCorridos, diasUteisRestantes } = calcDiasUteis(ano, mes, diaAtual)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
@@ -211,6 +212,8 @@ export default async function DashboardPage() {
           ano={ano}
           diaAtual={diaAtual}
           diasRestantes={diasRestantes}
+          diasUteisCorridos={diasUteisCorridos}
+          diasUteisRestantes={diasUteisRestantes}
           faturamentoEditSlot={faturamentoEditSlot}
         />
       </div>

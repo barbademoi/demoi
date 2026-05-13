@@ -20,6 +20,8 @@ interface Props {
   ano: number
   diaAtual: number
   diasRestantes: number
+  diasUteisCorridos: number
+  diasUteisRestantes: number
   modo: ModoPontos
   // metas
   metaInd: MetaIndividual | null
@@ -45,7 +47,7 @@ interface Props {
 }
 
 export default function BarbeiroClient({
-  barbeiro, barbeariaName: _, mes, ano, diaAtual, diasRestantes,
+  barbeiro, barbeariaName: _, mes, ano, diaAtual, diasRestantes, diasUteisCorridos, diasUteisRestantes,
   modo, metaInd, lancamento, progresso, ranking, posicaoRanking,
   faturamentoColetivo, progressoColetivo, metaColetiva, premioColetivo,
   insights, mensagemIA, tiersJaCelebrados, campanha, controlesDiario,
@@ -88,8 +90,8 @@ export default function BarbeiroClient({
 
   // ── Contagem regressiva (2C) ─────────────────────────
   const diasNoMes = new Date(ano, mes, 0).getDate()
-  const diasCorridos = diaAtual
-  const ritmoAtual = diasCorridos > 0 ? comissao / diasCorridos : 0
+  // Usa dias úteis (Seg-Sáb, sem feriados) para ritmo mais preciso
+  const ritmoAtual = diasUteisCorridos > 0 ? comissao / diasUteisCorridos : 0
 
   let tierId: 'bronze' | 'prata' | 'ouro' | null = null
   let metaFoco = 0
@@ -98,11 +100,11 @@ export default function BarbeiroClient({
     else if (comissao < metaInd.prata_comm) { tierId = 'prata'; metaFoco = metaInd.prata_comm }
     else if (comissao < metaInd.ouro_comm) { tierId = 'ouro'; metaFoco = metaInd.ouro_comm }
   }
-  const valorNecessarioPorDia = diasRestantes > 0 && metaFoco > comissao
-    ? (metaFoco - comissao) / diasRestantes
+  const valorNecessarioPorDia = diasUteisRestantes > 0 && metaFoco > comissao
+    ? (metaFoco - comissao) / diasUteisRestantes
     : 0
   const ritmoOk = valorNecessarioPorDia === 0 || ritmoAtual >= valorNecessarioPorDia
-  const mostrarContagem = mostraMetas && metaInd !== null && diasRestantes > 0 && diasNoMes > 0
+  const mostrarContagem = mostraMetas && metaInd !== null && diasUteisRestantes > 0 && diasNoMes > 0
 
   return (
     <>
@@ -186,7 +188,7 @@ export default function BarbeiroClient({
             <div className="card-light p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-on-cream-muted text-xs font-sans uppercase tracking-wide">
-                  Faltam {diasRestantes} {diasRestantes === 1 ? 'dia' : 'dias'} para fechar
+                  Faltam {diasUteisRestantes} {diasUteisRestantes === 1 ? 'dia útil' : 'dias úteis'}
                 </p>
                 {tierId && (
                   <span className={`text-xs font-sans font-semibold ${TIER_CONFIG[tierId].textClass}`}>
@@ -199,7 +201,7 @@ export default function BarbeiroClient({
                 <>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-on-cream-muted text-xs font-sans">Necessário/dia para {TIER_CONFIG[tierId].label}</p>
+                      <p className="text-on-cream-muted text-xs font-sans">Necessário/dia útil para {TIER_CONFIG[tierId].label}</p>
                       <p className="font-serif text-2xl text-on-cream">{formatBRL(valorNecessarioPorDia)}</p>
                     </div>
                     <div className="text-right">
@@ -216,7 +218,7 @@ export default function BarbeiroClient({
                   }`}>
                     {ritmoOk
                       ? `✅ No ritmo certo para ${TIER_CONFIG[tierId].label}`
-                      : `⚠️ Precisa de ${formatBRL(valorNecessarioPorDia - ritmoAtual)}/dia a mais`}
+                      : `⚠️ Precisa de ${formatBRL(valorNecessarioPorDia - ritmoAtual)}/dia útil a mais`}
                   </div>
                 </>
               ) : tierId === null ? (
