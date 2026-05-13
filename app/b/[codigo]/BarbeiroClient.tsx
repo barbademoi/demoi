@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso } from '@/lib/utils'
 import LancarDiaForm from './LancarDiaForm'
+import CelebracaoOverlay from '@/components/barbeiro/CelebracaoOverlay'
 import type {
   Barbeiro, MetaIndividual, Lancamento,
   CampanhaComDetalhes, ControleDiario, ModoPontos,
@@ -17,6 +18,8 @@ interface Props {
   barbeariaName: string
   mes: number
   ano: number
+  diaAtual: number
+  diasRestantes: number
   modo: ModoPontos
   // metas
   metaInd: MetaIndividual | null
@@ -29,6 +32,8 @@ interface Props {
   metaColetiva: number
   premioColetivo: string | null
   insights: { emoji: string; texto: string; destaque?: boolean }[]
+  mensagemIA: string | null
+  tiersJaCelebrados: string[]
   // pontos
   campanha: CampanhaComDetalhes | null
   controlesDiario: ControleDiario[]
@@ -40,16 +45,17 @@ interface Props {
 }
 
 export default function BarbeiroClient({
-  barbeiro, barbeariaName: _, mes, ano,
+  barbeiro, barbeariaName: _, mes, ano, diaAtual, diasRestantes,
   modo, metaInd, lancamento, progresso, ranking, posicaoRanking,
   faturamentoColetivo, progressoColetivo, metaColetiva, premioColetivo,
-  insights, campanha, controlesDiario, pontosTotal, rankingPontos, pontosMap,
-  controleHoje, historico,
+  insights, mensagemIA, tiersJaCelebrados, campanha, controlesDiario,
+  pontosTotal, rankingPontos, pontosMap, controleHoje, historico,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
   const mostraPontos = modo === 'pontos' || modo === 'ambos'
   const mostraMetas = modo === 'metas' || modo === 'ambos'
   const [aba, setAba] = useState<'progresso' | 'lancar'>('progresso')
+  const [celebracaoFechada, setCelebracaoFechada] = useState(false)
 
   const posicaoPts = rankingPontos.findIndex(r => r.barbeiro_id === barbeiro.id)
   const minPontosEfetivo = campanha
@@ -68,8 +74,51 @@ export default function BarbeiroClient({
     : 0
   const temBonus = campanha && totalAssinaturas >= campanha.bonus_assin_qtd
 
+  // ── Celebração (2B) ────────────────────────────────────
+  const tierAtual = progresso?.tier_atual ?? null
+  const deveComemorar = (
+    !celebracaoFechada &&
+    tierAtual !== null &&
+    mostraMetas &&
+    !tiersJaCelebrados.includes(tierAtual)
+  )
+  const premioParaCelebrar = tierAtual
+    ? (metaInd?.[`${tierAtual}_premio` as 'bronze_premio' | 'prata_premio' | 'ouro_premio'] ?? null)
+    : null
+
+  // ── Contagem regressiva (2C) ─────────────────────────
+  const diasNoMes = new Date(ano, mes, 0).getDate()
+  const diasCorridos = diaAtual
+  const ritmoAtual = diasCorridos > 0 ? comissao / diasCorridos : 0
+
+  let tierId: 'bronze' | 'prata' | 'ouro' | null = null
+  let metaFoco = 0
+  if (metaInd) {
+    if (comissao < metaInd.bronze_comm) { tierId = 'bronze'; metaFoco = metaInd.bronze_comm }
+    else if (comissao < metaInd.prata_comm) { tierId = 'prata'; metaFoco = metaInd.prata_comm }
+    else if (comissao < metaInd.ouro_comm) { tierId = 'ouro'; metaFoco = metaInd.ouro_comm }
+  }
+  const valorNecessarioPorDia = diasRestantes > 0 && metaFoco > comissao
+    ? (metaFoco - comissao) / diasRestantes
+    : 0
+  const ritmoOk = valorNecessarioPorDia === 0 || ritmoAtual >= valorNecessarioPorDia
+  const mostrarContagem = mostraMetas && metaInd !== null && diasRestantes > 0 && diasNoMes > 0
+
   return (
     <>
+      {/* Celebração fullscreen */}
+      {deveComemorar && tierAtual && (
+        <CelebracaoOverlay
+          barbeiro_id={barbeiro.id}
+          nome={barbeiro.nome}
+          tier={tierAtual}
+          premio={premioParaCelebrar}
+          mes={mes}
+          ano={ano}
+          onClose={() => setCelebracaoFechada(true)}
+        />
+      )}
+
       {/* Tabs — aparece quando modo inclui pontos, independente de campanha */}
       {mostraPontos && (
         <div className="flex border-b border-border mb-0">
@@ -123,6 +172,60 @@ export default function BarbeiroClient({
               </div>
             )}
           </div>
+
+          {/* Mensagem IA (2A) */}
+          {mensagemIA && mostraMetas && (
+            <div className="card-light px-5 py-4">
+              <p className="text-on-cream-muted text-xs font-sans uppercase tracking-wide mb-2">Mensagem do dia</p>
+              <p className="font-sans text-sm text-on-cream leading-relaxed">{mensagemIA}</p>
+            </div>
+          )}
+
+          {/* Contagem regressiva (2C) */}
+          {mostrarContagem && (
+            <div className="card-light p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-on-cream-muted text-xs font-sans uppercase tracking-wide">
+                  Faltam {diasRestantes} {diasRestantes === 1 ? 'dia' : 'dias'} para fechar
+                </p>
+                {tierId && (
+                  <span className={`text-xs font-sans font-semibold ${TIER_CONFIG[tierId].textClass}`}>
+                    Foco: {TIER_CONFIG[tierId].label}
+                  </span>
+                )}
+              </div>
+
+              {tierId && valorNecessarioPorDia > 0 ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-on-cream-muted text-xs font-sans">Necessário/dia para {TIER_CONFIG[tierId].label}</p>
+                      <p className="font-serif text-2xl text-on-cream">{formatBRL(valorNecessarioPorDia)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-on-cream-muted text-xs font-sans">Seu ritmo atual</p>
+                      <p className={`font-serif text-2xl ${ritmoOk ? 'text-green-600' : 'text-amber-500'}`}>
+                        {formatBRL(ritmoAtual)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={`text-xs font-sans px-3 py-2 rounded-xl ${
+                    ritmoOk
+                      ? 'bg-green-500/10 text-green-700'
+                      : 'bg-amber-500/10 text-amber-700'
+                  }`}>
+                    {ritmoOk
+                      ? `✅ No ritmo certo para ${TIER_CONFIG[tierId].label}`
+                      : `⚠️ Precisa de ${formatBRL(valorNecessarioPorDia - ritmoAtual)}/dia a mais`}
+                  </div>
+                </>
+              ) : tierId === null ? (
+                <p className="text-green-700 text-sm font-sans font-medium">✅ Todas as metas atingidas!</p>
+              ) : (
+                <p className="text-on-cream-muted text-xs font-sans">Meta impossível neste mês — foque no próximo.</p>
+              )}
+            </div>
+          )}
 
           {/* Seção de pontos */}
           {mostraPontos && campanha && (

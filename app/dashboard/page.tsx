@@ -46,6 +46,9 @@ export default async function DashboardPage() {
   const hoje = new Date()
   const mes = hoje.getMonth() + 1
   const ano = hoje.getFullYear()
+  const diaAtual = hoje.getDate()
+  const diasNoMes = new Date(ano, mes, 0).getDate()
+  const diasRestantes = diasNoMes - diaAtual
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
@@ -224,6 +227,38 @@ export default async function DashboardPage() {
                 💪 A jornada começa agora — cada atendimento conta para a meta da equipe!
               </p>
             )}
+
+            {/* Contagem regressiva coletiva (2D) */}
+            {diasRestantes > 0 && meta.meta_coletiva > 0 && faturamentoExibido < meta.meta_coletiva && (() => {
+              const falta = meta.meta_coletiva - faturamentoExibido
+              const necesarioPorDia = falta / diasRestantes
+              const ritmoColetivo = diaAtual > 0 ? faturamentoExibido / diaAtual : 0
+              const ok = ritmoColetivo >= necesarioPorDia
+              return (
+                <div className="mt-4 border-t border-border pt-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-text-muted text-xs font-sans">
+                      Faltam <span className="text-text font-semibold">{diasRestantes} dias</span>
+                    </p>
+                    <p className={`text-xs font-sans font-semibold ${ok ? 'text-green-400' : 'text-amber-400'}`}>
+                      {ok ? '✅ No ritmo' : '⚠️ Acelerar'}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-text-muted text-xs font-sans">Necessário/dia</p>
+                      <p className="font-serif text-xl text-text">{formatBRL(necesarioPorDia)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-text-muted text-xs font-sans">Ritmo atual</p>
+                      <p className={`font-serif text-xl ${ok ? 'text-green-400' : 'text-amber-400'}`}>
+                        {formatBRL(ritmoColetivo)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         ) : (
           <div className="card p-6 text-center">

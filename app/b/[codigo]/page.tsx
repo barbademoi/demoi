@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { calcProgresso, calcTier } from '@/lib/utils'
 import { gerarInsightsBarbeiro } from '@/lib/insights'
+import { obterMensagemDiaria } from '@/lib/ia-mensagem'
 import BrandLogo from '@/components/BrandLogo'
 import BarbeiroClient from './BarbeiroClient'
 import { computeHistorico } from './pontos-utils'
@@ -154,6 +155,34 @@ export default async function BarbeiroPage({ params }: Props) {
     ? computeHistorico(controlesDiario, campanha.campanha_servicos)
     : []
 
+  const diaAtual = hoje.getDate()
+
+  // ── Mensagem IA ────────────────────────────────────────
+  const diasNoMes = new Date(ano, mes, 0).getDate()
+  const diasCorridos = diaAtual
+  const diasRestantes = diasNoMes - diaAtual
+
+  const mensagemIA = await obterMensagemDiaria({
+    barbeiro_id: barbeiro.id,
+    nome: barbeiro.nome,
+    comissao,
+    metaInd,
+    diasRestantes,
+    diasCorridos,
+    posicaoRanking: posicaoRanking || 99,
+    totalBarbeiros: ranking.length,
+  })
+
+  // ── Celebrações já exibidas ────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: celebracoesRaw } = await (supabase as any)
+    .from('celebracoes')
+    .select('tier')
+    .eq('barbeiro_id', barbeiro.id)
+    .eq('mes', mes)
+    .eq('ano', ano)
+  const tiersJaCelebrados: string[] = (celebracoesRaw ?? []).map((c: { tier: string }) => c.tier)
+
   return (
     <div className="min-h-screen pb-16">
       <header className="border-b border-border bg-surface">
@@ -169,6 +198,8 @@ export default async function BarbeiroPage({ params }: Props) {
           barbeariaName={barbearia?.nome ?? ''}
           mes={mes}
           ano={ano}
+          diaAtual={diaAtual}
+          diasRestantes={diasRestantes}
           modo={modo}
           metaInd={metaInd}
           lancamento={lancamento}
@@ -180,6 +211,8 @@ export default async function BarbeiroPage({ params }: Props) {
           metaColetiva={meta?.meta_coletiva ?? 0}
           premioColetivo={meta?.premio_coletivo ?? null}
           insights={insights}
+          mensagemIA={mensagemIA}
+          tiersJaCelebrados={tiersJaCelebrados}
           campanha={campanha}
           controlesDiario={controlesDiario}
           pontosTotal={pontosTotal}
