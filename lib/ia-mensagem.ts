@@ -9,6 +9,8 @@ interface Params {
   metaInd: MetaIndividual | null
   diasRestantes: number
   diasCorridos: number
+  diasUteisRestantes: number
+  diasUteisCorridos: number
   posicaoRanking: number   // 1-based; 0 = não está no ranking este mês
   totalBarbeiros: number   // total de barbeiros ATIVOS da barbearia (não só quem lançou)
 }
@@ -28,8 +30,10 @@ export async function obterMensagemDiaria(params: Params): Promise<string | null
   if (cached?.mensagem) return cached.mensagem as string
 
   try {
-    const { nome, comissao, metaInd, diasRestantes, diasCorridos, posicaoRanking, totalBarbeiros } = params
-    const ritmoAtual = diasCorridos > 0 ? comissao / diasCorridos : 0
+    const { nome, comissao, metaInd, diasRestantes, diasCorridos, diasUteisRestantes, diasUteisCorridos, posicaoRanking, totalBarbeiros } = params
+
+    // Usa dias úteis para ritmo — mais preciso para barbearia (Seg–Sáb)
+    const ritmoAtual = diasUteisCorridos > 0 ? comissao / diasUteisCorridos : 0
 
     const pct = (meta: number) => meta > 0 ? Math.round((comissao / meta) * 100) : 0
     const b = metaInd?.bronze_comm ?? 0
@@ -42,8 +46,8 @@ export async function obterMensagemDiaria(params: Params): Promise<string | null
     else if (p > 0 && comissao < p) { proximaMeta = p; proximaNivel = 'Prata' }
     else if (o > 0 && comissao < o) { proximaMeta = o; proximaNivel = 'Ouro' }
 
-    const necesarioPorDia = diasRestantes > 0 && proximaMeta > comissao
-      ? Math.round((proximaMeta - comissao) / diasRestantes)
+    const necesarioPorDiaUtil = diasUteisRestantes > 0 && proximaMeta > comissao
+      ? Math.round((proximaMeta - comissao) / diasUteisRestantes)
       : 0
 
     // Só inclui ranking se o dado é confiável
@@ -62,9 +66,10 @@ Meta Bronze: R$ ${Math.round(b)} (${pct(b)}% atingido)
 Meta Prata: R$ ${Math.round(p)} (${pct(p)}% atingido)
 Meta Ouro: R$ ${Math.round(o)} (${pct(o)}% atingido)
 Próxima meta a atingir: ${proximaNivel || 'todas atingidas'}${proximaNivel ? ` — faltam R$ ${Math.round(proximaMeta - comissao)}` : ''}
-Ritmo atual: R$ ${Math.round(ritmoAtual)}/dia
-Ritmo necessário para próxima meta: R$ ${necesarioPorDia}/dia
-Dias corridos no mês: ${diasCorridos} | Dias restantes: ${diasRestantes}
+Ritmo atual (dias úteis trabalhados): R$ ${Math.round(ritmoAtual)}/dia útil
+Ritmo necessário para próxima meta: R$ ${necesarioPorDiaUtil}/dia útil
+Dias úteis trabalhados no mês: ${diasUteisCorridos} | Dias úteis restantes: ${diasUteisRestantes}
+Dias corridos: ${diasCorridos} | Dias corridos restantes: ${diasRestantes}
 ${rankingLine}
 
 Responda APENAS com a mensagem, sem aspas, sem prefixo.`
@@ -78,7 +83,9 @@ Responda APENAS com a mensagem, sem aspas, sem prefixo.`
       pctOuro: pct(o),
       proximaNivel,
       ritmoAtual: Math.round(ritmoAtual),
-      necesarioPorDia,
+      necesarioPorDiaUtil,
+      diasUteisCorridos,
+      diasUteisRestantes,
       diasCorridos,
       diasRestantes,
       posicaoRanking,

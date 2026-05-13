@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { calcProgresso, calcTier } from '@/lib/utils'
+import { calcProgresso, calcTier, calcDiasUteis } from '@/lib/utils'
 import { gerarInsightsBarbeiro } from '@/lib/insights'
 import { obterMensagemDiaria } from '@/lib/ia-mensagem'
 import BrandLogo from '@/components/BrandLogo'
@@ -36,6 +36,7 @@ export default async function BarbeiroPage({ params }: Props) {
   const hoje = new Date()
   const mes = hoje.getMonth() + 1
   const ano = hoje.getFullYear()
+  const diaAtual = hoje.getDate()
 
   // ── Metas ─────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -164,12 +165,11 @@ export default async function BarbeiroPage({ params }: Props) {
     ? computeHistorico(controlesDiario, campanha.campanha_servicos)
     : []
 
-  const diaAtual = hoje.getDate()
-
   // ── Mensagem IA ────────────────────────────────────────
   const diasNoMes = new Date(ano, mes, 0).getDate()
   const diasCorridos = diaAtual
   const diasRestantes = diasNoMes - diaAtual
+  const { diasUteisCorridos, diasUteisRestantes } = calcDiasUteis(ano, mes, diaAtual)
 
   const mensagemIA = await obterMensagemDiaria({
     barbeiro_id: barbeiro.id,
@@ -178,6 +178,8 @@ export default async function BarbeiroPage({ params }: Props) {
     metaInd,
     diasRestantes,
     diasCorridos,
+    diasUteisCorridos,
+    diasUteisRestantes,
     posicaoRanking,            // 0 = não está no ranking; ia-mensagem.ts trata
     totalBarbeiros: totalBarbeirosAtivos ?? ranking.length,
   })
@@ -209,6 +211,8 @@ export default async function BarbeiroPage({ params }: Props) {
           ano={ano}
           diaAtual={diaAtual}
           diasRestantes={diasRestantes}
+          diasUteisCorridos={diasUteisCorridos}
+          diasUteisRestantes={diasUteisRestantes}
           modo={modo}
           metaInd={metaInd}
           lancamento={lancamento}
