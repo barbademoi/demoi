@@ -35,14 +35,16 @@ export async function salvarLancamentosDiarios(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: prevDiasRaw } = await (supabase as any)
     .from('lancamentos_diarios')
-    .select('barbeiro_id, valor')
+    .select('barbeiro_id, valor, faturamento_geral')
     .eq('barbearia_id', barbearia_id)
     .in('barbeiro_id', barbeirosIds)
     .eq('data', data)
 
   const prevValorMap: Record<string, number> = {}
-  for (const r of (prevDiasRaw ?? []) as { barbeiro_id: string; valor: number }[]) {
+  let prevFatGeral = 0
+  for (const r of (prevDiasRaw ?? []) as { barbeiro_id: string; valor: number; faturamento_geral: number }[]) {
     prevValorMap[r.barbeiro_id] = Number(r.valor)
+    prevFatGeral = Math.max(prevFatGeral, Number(r.faturamento_geral))
   }
 
   // ── 2. Acumulado mensal atual ─────────────────────────────
@@ -103,6 +105,30 @@ export async function salvarLancamentosDiarios(
     .upsert(lancRows, { onConflict: 'barbearia_id,barbeiro_id,mes,ano' })
 
   if (errAcum) return { error: (errAcum as { message: string }).message }
+
+  // ── 5. Atualiza faturamento_acumulado da meta coletiva ────
+  const fatGeralNovo = fatGeral >= 0 ? fatGeral : 0
+  const fatGeralDelta = fatGeralNovo - prevFatGeral
+
+  if (fatGeralDelta !== 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: metaRaw } = await (supabase as any)
+      .from('metas')
+      .select('id, faturamento_acumulado')
+      .eq('barbearia_id', barbearia_id)
+      .eq('mes', mes)
+      .eq('ano', ano)
+      .single() as { data: { id: string; faturamento_acumulado: number } | null }
+
+    if (metaRaw) {
+      const novoFat = Math.max(0, Number(metaRaw.faturamento_acumulado) + fatGeralDelta)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('metas')
+        .update({ faturamento_acumulado: novoFat })
+        .eq('id', metaRaw.id)
+    }
+  }
 
   revalidatePath('/dashboard')
   return { ok: true }
