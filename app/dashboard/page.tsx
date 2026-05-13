@@ -14,7 +14,6 @@ import BrandLogo from '@/components/BrandLogo'
 import ModoMesSelector from '@/components/dashboard/ModoMesSelector'
 import CampanhaModal from '@/components/dashboard/CampanhaModal'
 import CampanhaToggle from '@/components/dashboard/CampanhaToggle'
-import LancarDiarioModal from '@/components/dashboard/LancarDiarioModal'
 import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario } from '@/types/database'
 
 type UsuarioComBarbearia = {
@@ -27,15 +26,6 @@ type MetaSimples = {
   meta_coletiva: number
   premio_coletivo: string | null
   faturamento_acumulado: number
-}
-
-function toDateStr(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function calcDelta(atual: number, anterior: number): number | null {
-  if (anterior <= 0) return null
-  return Math.round(((atual - anterior) / anterior) * 100)
 }
 
 export default async function DashboardPage() {
@@ -57,25 +47,6 @@ export default async function DashboardPage() {
   const hoje = new Date()
   const mes = hoje.getMonth() + 1
   const ano = hoje.getFullYear()
-  const diaHoje = hoje.getDate()
-
-  // ── Datas para lançamentos diários ──────────────────────
-  const dataHojeStr = toDateStr(hoje)
-
-  // Primeiro dia do mês atual
-  const primeiroAtual = `${ano}-${String(mes).padStart(2, '0')}-01`
-
-  // Mês anterior
-  const mesAntMes = mes === 1 ? 12 : mes - 1
-  const mesAntAno = mes === 1 ? ano - 1 : ano
-  const primeiroAnterior = `${mesAntAno}-${String(mesAntMes).padStart(2, '0')}-01`
-  // Mesmo dia no mês anterior (capped no último dia do mês anterior)
-  const ultimoDiaMesAnt = new Date(ano, mes - 1, 0).getDate()
-  const diaAnt = Math.min(diaHoje, ultimoDiaMesAnt)
-  const mesmoDiaAnterior = `${mesAntAno}-${String(mesAntMes).padStart(2, '0')}-${String(diaAnt).padStart(2, '0')}`
-
-  // Label legível para o modal
-  const labelHoje = `${diaHoje} de ${nomeMes(mes)}`
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
@@ -114,74 +85,6 @@ export default async function DashboardPage() {
 
   const barbeiros = (barbeirosRaw ?? []) as Barbeiro[]
   const lancamentos = (lancamentosRaw ?? []) as Lancamento[]
-
-  // ── Lançamentos diários ─────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: ldHojeRaw } = await (supabase as any)
-    .from('lancamentos_diarios')
-    .select('barbeiro_id, valor, faturamento_geral')
-    .eq('barbearia_id', barbearia.id)
-    .eq('data', dataHojeStr)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: ldAtualRaw } = await (supabase as any)
-    .from('lancamentos_diarios')
-    .select('barbeiro_id, valor, data, faturamento_geral')
-    .eq('barbearia_id', barbearia.id)
-    .gte('data', primeiroAtual)
-    .lte('data', dataHojeStr)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: ldAnteriorRaw } = await (supabase as any)
-    .from('lancamentos_diarios')
-    .select('barbeiro_id, valor, data, faturamento_geral')
-    .eq('barbearia_id', barbearia.id)
-    .gte('data', primeiroAnterior)
-    .lte('data', mesmoDiaAnterior)
-
-  type LdRow = { barbeiro_id: string; valor: number; data: string; faturamento_geral: number }
-
-  // Agregar por barbeiro_id
-  const ldHojeMap: Record<string, number> = {}
-  for (const r of (ldHojeRaw ?? []) as { barbeiro_id: string; valor: number; faturamento_geral: number }[]) {
-    ldHojeMap[r.barbeiro_id] = (ldHojeMap[r.barbeiro_id] ?? 0) + Number(r.valor)
-  }
-  const ldAtualMap: Record<string, number> = {}
-  for (const r of (ldAtualRaw ?? []) as LdRow[]) {
-    ldAtualMap[r.barbeiro_id] = (ldAtualMap[r.barbeiro_id] ?? 0) + Number(r.valor)
-  }
-  const ldAnteriorMap: Record<string, number> = {}
-  for (const r of (ldAnteriorRaw ?? []) as LdRow[]) {
-    ldAnteriorMap[r.barbeiro_id] = (ldAnteriorMap[r.barbeiro_id] ?? 0) + Number(r.valor)
-  }
-
-  // Faturamento geral: MAX por dia (armazenado em todas as linhas do dia, mesmo valor)
-  const fatGeralPorDiaAtual: Record<string, number> = {}
-  for (const r of (ldAtualRaw ?? []) as LdRow[]) {
-    const v = Number(r.faturamento_geral)
-    if (v > (fatGeralPorDiaAtual[r.data] ?? 0)) fatGeralPorDiaAtual[r.data] = v
-  }
-  const fatGeralAcumuladoAtual = Object.values(fatGeralPorDiaAtual).reduce((s, v) => s + v, 0)
-
-  const fatGeralPorDiaAnterior: Record<string, number> = {}
-  for (const r of (ldAnteriorRaw ?? []) as LdRow[]) {
-    const v = Number(r.faturamento_geral)
-    if (v > (fatGeralPorDiaAnterior[r.data] ?? 0)) fatGeralPorDiaAnterior[r.data] = v
-  }
-  const fatGeralAcumuladoAnterior = Object.values(fatGeralPorDiaAnterior).reduce((s, v) => s + v, 0)
-
-  const deltaFatGeral = calcDelta(fatGeralAcumuladoAtual, fatGeralAcumuladoAnterior)
-
-  // Faturamento geral de hoje (para pré-preencher modal)
-  const fatGeralHoje = Math.max(
-    0,
-    ...((ldHojeRaw ?? []) as { faturamento_geral: number }[]).map(r => Number(r.faturamento_geral))
-  )
-
-  // Total coletivo do mesmo período do mês anterior (comissões)
-  const totalAnteriorColetivo = Object.values(ldAnteriorMap).reduce((s, v) => s + v, 0)
-  const totalAtualColetivo = Object.values(ldAtualMap).reduce((s, v) => s + v, 0)
-  const deltaColetivo = calcDelta(totalAtualColetivo, totalAnteriorColetivo)
 
   // ── Cálculos gerais ─────────────────────────────────────
   const totalComissoes = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
@@ -242,14 +145,6 @@ export default async function DashboardPage() {
   const rankingPontosBarb  = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo !== 'recepcionista')
   const rankingPontosRecep = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo === 'recepcionista')
 
-  // Barbers for the daily modal (only barbers, not receptionists)
-  const barbeirosParaModal = barbeiros
-    .filter(b => b.tipo !== 'recepcionista')
-    .map(b => ({ ...b, valorHoje: ldHojeMap[b.id] ?? 0 }))
-
-
-  const nomeMesAnterior = nomeMes(mesAntMes)
-
   return (
     <div className="min-h-screen">
       <header className="border-b border-border bg-surface sticky top-0 z-40">
@@ -279,12 +174,6 @@ export default async function DashboardPage() {
 
         {/* Ações */}
         <div className="flex gap-3 flex-wrap">
-          <LancarDiarioModal
-            barbeiros={barbeirosParaModal}
-            dataHoje={dataHojeStr}
-            labelHoje={labelHoje}
-            fatGeralHoje={fatGeralHoje}
-          />
           <NovoBarbeiroModal />
           <NovoBarbeiroModal tipo="recepcionista" />
           {modoAtual !== 'pontos' && (
@@ -342,33 +231,6 @@ export default async function DashboardPage() {
               </p>
             </div>
 
-            {/* Faturamento geral acumulado */}
-            {fatGeralAcumuladoAtual > 0 && (
-              <div className="mt-3 pt-3 border-t border-border space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <p className="text-text-muted text-xs font-sans">
-                    Faturamento acumulado {nomeMes(mes)}
-                  </p>
-                  <p className="text-text text-sm font-sans font-semibold">{formatBRL(fatGeralAcumuladoAtual)}</p>
-                </div>
-                {fatGeralAcumuladoAnterior > 0 && (
-                  <div className="flex items-center justify-between">
-                    <p className="text-text-muted text-xs font-sans">
-                      Mesmo período em {nomeMesAnterior}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-text-muted text-xs font-sans">{formatBRL(fatGeralAcumuladoAnterior)}</p>
-                      {deltaFatGeral !== null && (
-                        <span className={`text-xs font-sans font-semibold ${deltaFatGeral >= 0 ? 'text-green-500' : 'text-red-400'}`}>
-                          {deltaFatGeral >= 0 ? '↑' : '↓'} {Math.abs(deltaFatGeral)}%
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
             {progressoColetivo < 20 && meta.meta_coletiva > 0 && (
               <p className="text-text-muted text-xs font-sans mt-3 text-center opacity-70">
                 💪 A jornada começa agora — cada atendimento conta para a meta da equipe!
@@ -411,11 +273,6 @@ export default async function DashboardPage() {
                 const posicaoPts = rankingPontosBarb.findIndex(r => r.id === barbeiro.id)
                 const qualificado = campanha ? pts >= campanha.min_pontos : false
 
-                const valorHoje = ldHojeMap[barbeiro.id] ?? 0
-                const acumAtual = ldAtualMap[barbeiro.id] ?? 0
-                const acumAnterior = ldAnteriorMap[barbeiro.id] ?? 0
-                const delta = calcDelta(acumAtual, acumAnterior)
-
                 return (
                   <div key={barbeiro.id} className="card p-5">
                     <div className="flex items-center gap-3">
@@ -448,19 +305,6 @@ export default async function DashboardPage() {
                         <div className="flex items-center gap-2 mt-0.5">
                           <p className="text-text-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
                           <CopiarLinkBtn codigo={barbeiro.link_codigo} />
-                        </div>
-                        {/* Diário */}
-                        <div className="mt-1.5 flex items-center gap-3 flex-wrap">
-                          {valorHoje > 0 && (
-                            <span className="text-xs font-sans text-text-muted">
-                              Hoje: <span className="text-text font-semibold">{formatBRL(valorHoje)}</span>
-                            </span>
-                          )}
-                          {delta !== null && (
-                            <span className={`text-xs font-sans font-semibold ${delta >= 0 ? 'text-green-500' : 'text-red-400'}`}>
-                              {delta >= 0 ? '↑' : '↓'} {Math.abs(delta)}% vs {nomeMesAnterior}
-                            </span>
-                          )}
                         </div>
                       </div>
                       <div className="text-right shrink-0">

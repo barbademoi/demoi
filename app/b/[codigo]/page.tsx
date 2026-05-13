@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { nomeMes, calcProgresso, calcTier } from '@/lib/utils'
+import { calcProgresso, calcTier } from '@/lib/utils'
 import { gerarInsightsBarbeiro } from '@/lib/insights'
 import BrandLogo from '@/components/BrandLogo'
 import BarbeiroClient from './BarbeiroClient'
@@ -15,8 +15,6 @@ interface Props {
 }
 
 type LancamentoComNome = Lancamento & { barbeiros: { nome: string } | null }
-
-function toDateStr(d: Date) { return d.toISOString().split('T')[0] }
 
 export default async function BarbeiroPage({ params }: Props) {
   const supabase = createClient()
@@ -37,18 +35,6 @@ export default async function BarbeiroPage({ params }: Props) {
   const hoje = new Date()
   const mes = hoje.getMonth() + 1
   const ano = hoje.getFullYear()
-  const diaHoje = hoje.getDate()
-
-  // ── Datas para lançamentos diários ──────────────────────
-  const dataHojeStr = toDateStr(hoje)
-  const primeiroAtual = `${ano}-${String(mes).padStart(2, '0')}-01`
-
-  const mesAntMes = mes === 1 ? 12 : mes - 1
-  const mesAntAno = mes === 1 ? ano - 1 : ano
-  const primeiroAnterior = `${mesAntAno}-${String(mesAntMes).padStart(2, '0')}-01`
-  const ultimoDiaMesAnt = new Date(ano, mes - 1, 0).getDate()
-  const diaAnt = Math.min(diaHoje, ultimoDiaMesAnt)
-  const mesmoDiaAnterior = `${mesAntAno}-${String(mesAntMes).padStart(2, '0')}-${String(diaAnt).padStart(2, '0')}`
 
   // ── Metas ─────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -101,30 +87,6 @@ export default async function BarbeiroPage({ params }: Props) {
     metaColetiva: meta?.meta_coletiva ?? 0,
     barberoNome: barbeiro.nome,
   })
-
-  // ── Lançamentos diários deste barbeiro ──────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: ldAtualRaw } = await (supabase as any)
-    .from('lancamentos_diarios')
-    .select('valor')
-    .eq('barbeiro_id', barbeiro.id)
-    .gte('data', primeiroAtual)
-    .lte('data', dataHojeStr)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: ldAnteriorRaw } = await (supabase as any)
-    .from('lancamentos_diarios')
-    .select('valor')
-    .eq('barbeiro_id', barbeiro.id)
-    .gte('data', primeiroAnterior)
-    .lte('data', mesmoDiaAnterior)
-
-  const acumDiarioAtual   = ((ldAtualRaw    ?? []) as { valor: number }[]).reduce((s, r) => s + Number(r.valor), 0)
-  const acumDiarioAnterior = ((ldAnteriorRaw ?? []) as { valor: number }[]).reduce((s, r) => s + Number(r.valor), 0)
-
-  const deltaDiario: number | null = acumDiarioAnterior > 0
-    ? Math.round(((acumDiarioAtual - acumDiarioAnterior) / acumDiarioAnterior) * 100)
-    : null
 
   // ── Modo + Gamificação ─────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -183,6 +145,7 @@ export default async function BarbeiroPage({ params }: Props) {
     }
   }
 
+  const dataHojeStr = hoje.toISOString().split('T')[0]
   const controleHoje = controlesDiario
     .filter(cd => cd.data === dataHojeStr)
     .reduce((acc, cd) => { acc[cd.servico_id] = cd.quantidade; return acc }, {} as Record<string, number>)
@@ -224,11 +187,6 @@ export default async function BarbeiroPage({ params }: Props) {
           pontosMap={pontosMap}
           controleHoje={controleHoje}
           historico={historico}
-          acumDiarioAtual={acumDiarioAtual}
-          acumDiarioAnterior={acumDiarioAnterior}
-          deltaDiario={deltaDiario}
-          diaHoje={diaHoje}
-          nomeMesAnterior={nomeMes(mesAntMes)}
         />
       </main>
     </div>
