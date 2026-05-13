@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { nomeMes, calcDiasUteis } from '@/lib/utils'
+import { calcDiasUteis, calcProgresso } from '@/lib/utils'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
 import LogoUpload from '@/components/dashboard/LogoUpload'
@@ -8,9 +8,7 @@ import FaturamentoEdit from '@/components/dashboard/FaturamentoEdit'
 import ModoMesSelector from '@/components/dashboard/ModoMesSelector'
 import CampanhaModal from '@/components/dashboard/CampanhaModal'
 import CampanhaToggle from '@/components/dashboard/CampanhaToggle'
-import Sidebar from '@/components/dashboard/Sidebar'
-import DashboardMain from '@/components/dashboard/DashboardMain'
-import { calcProgresso, calcTier } from '@/lib/utils'
+import DashboardShell from '@/components/dashboard/DashboardShell'
 import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario } from '@/types/database'
 
 type UsuarioComBarbearia = {
@@ -87,7 +85,6 @@ export default async function DashboardPage() {
   const barbeiros = (barbeirosRaw ?? []) as Barbeiro[]
   const lancamentos = (lancamentosRaw ?? []) as Lancamento[]
 
-  // ── Cálculos gerais ─────────────────────────────────────
   const totalComissoes = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
   const faturamentoExibido = (meta?.faturamento_acumulado ?? 0) > 0 ? meta!.faturamento_acumulado : totalComissoes
   const progressoColetivo = meta ? calcProgresso(faturamentoExibido, meta.meta_coletiva) : 0
@@ -146,77 +143,55 @@ export default async function DashboardPage() {
   const rankingPontosBarb  = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo !== 'recepcionista')
   const rankingPontosRecep = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo === 'recepcionista')
 
-  const configSlot = (
-    <div className="space-y-3">
-      <ModoMesSelector modoAtual={modoAtual} mes={mes} ano={ano} />
-      <div className="flex flex-col gap-2 px-1">
-        <NovoBarbeiroModal />
-        <NovoBarbeiroModal tipo="recepcionista" />
-        {modoAtual !== 'pontos' && (
-          <MetasModal
-            barbeiros={barbeiros}
-            metasAtuais={metasIndividuais}
-            metaColetiva={meta?.meta_coletiva}
-            faturamentoAcumulado={meta?.faturamento_acumulado}
-            premioColetivo={meta?.premio_coletivo ?? undefined}
-            mes={mes}
-            ano={ano}
-          />
-        )}
-        {modoAtual !== 'metas' && (
-          <CampanhaModal campanha={campanha} mes={mes} ano={ano} />
-        )}
-        {modoAtual !== 'metas' && campanha && (
-          <CampanhaToggle campanhaId={campanha.id} ativo={campanha.ativo} />
-        )}
-      </div>
-    </div>
-  )
-
-  const faturamentoEditSlot = meta ? (
-    <FaturamentoEdit
-      metaId={meta.id}
-      faturamentoAtual={meta.faturamento_acumulado ?? 0}
-      metaColetiva={meta.meta_coletiva}
+  return (
+    <DashboardShell
+      barbeariaNome={barbearia.nome}
       mes={mes}
       ano={ano}
-    />
-  ) : null
-
-  return (
-    <div className="min-h-screen flex">
-      <Sidebar barbeariaNome={barbearia.nome} configSlot={configSlot} />
-
-      <div className="flex-1 min-w-0 lg:pl-64 pt-14 lg:pt-0">
-        {/* Desktop header strip */}
-        <div className="hidden lg:flex items-center gap-3 px-6 py-4 border-b border-border">
-          <LogoUpload logoUrl={barbearia.logo_url} nomeAbrev={barbearia.nome[0]} />
-          <div>
-            <p className="text-text font-sans font-semibold text-sm">{barbearia.nome}</p>
-            <p className="text-text-muted text-xs font-sans">{nomeMes(mes)} {ano}</p>
-          </div>
-        </div>
-
-        <DashboardMain
-          meta={meta}
-          faturamentoExibido={faturamentoExibido}
-          progressoColetivo={progressoColetivo}
-          rankingBarbeiros={rankingBarbeiros}
-          rankingRecepcionistas={rankingRecepcionistas}
-          modoAtual={modoAtual}
-          campanha={campanha}
-          pontosMap={pontosMap}
-          rankingPontosBarb={rankingPontosBarb}
-          rankingPontosRecep={rankingPontosRecep}
+      meta={meta}
+      faturamentoExibido={faturamentoExibido}
+      progressoColetivo={progressoColetivo}
+      rankingBarbeiros={rankingBarbeiros}
+      rankingRecepcionistas={rankingRecepcionistas}
+      modoAtual={modoAtual}
+      campanha={campanha}
+      pontosMap={pontosMap}
+      rankingPontosBarb={rankingPontosBarb}
+      rankingPontosRecep={rankingPontosRecep}
+      diaAtual={diaAtual}
+      diasRestantes={diasRestantes}
+      diasUteisCorridos={diasUteisCorridos}
+      diasUteisRestantes={diasUteisRestantes}
+      logoUploadSlot={<LogoUpload logoUrl={barbearia.logo_url} nomeAbrev={barbearia.nome[0]} />}
+      faturamentoEditSlot={meta ? (
+        <FaturamentoEdit
+          metaId={meta.id}
+          faturamentoAtual={meta.faturamento_acumulado ?? 0}
+          metaColetiva={meta.meta_coletiva}
           mes={mes}
           ano={ano}
-          diaAtual={diaAtual}
-          diasRestantes={diasRestantes}
-          diasUteisCorridos={diasUteisCorridos}
-          diasUteisRestantes={diasUteisRestantes}
-          faturamentoEditSlot={faturamentoEditSlot}
         />
-      </div>
-    </div>
+      ) : null}
+      modoMesSlot={<ModoMesSelector modoAtual={modoAtual} mes={mes} ano={ano} />}
+      novoBarbeiroSlot={<NovoBarbeiroModal />}
+      novaRecepcionistaSlot={<NovoBarbeiroModal tipo="recepcionista" />}
+      metasSlot={modoAtual !== 'pontos' ? (
+        <MetasModal
+          barbeiros={barbeiros}
+          metasAtuais={metasIndividuais}
+          metaColetiva={meta?.meta_coletiva}
+          faturamentoAcumulado={meta?.faturamento_acumulado}
+          premioColetivo={meta?.premio_coletivo ?? undefined}
+          mes={mes}
+          ano={ano}
+        />
+      ) : null}
+      campanhaSlot={modoAtual !== 'metas' ? (
+        <CampanhaModal campanha={campanha} mes={mes} ano={ano} />
+      ) : null}
+      campanhaToggleSlot={modoAtual !== 'metas' && campanha ? (
+        <CampanhaToggle campanhaId={campanha.id} ativo={campanha.ativo} />
+      ) : null}
+    />
   )
 }
