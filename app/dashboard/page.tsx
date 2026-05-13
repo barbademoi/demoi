@@ -39,6 +39,10 @@ export default async function DashboardPage() {
   if (!usuario) redirect('/login')
 
   const barbearia = usuario.barbearias
+  if (!barbearia) {
+    console.error('[dashboard] barbearia não encontrada para usuario:', user.id)
+    redirect('/login')
+  }
   const hoje = new Date()
   const mes = hoje.getMonth() + 1
   const ano = hoje.getFullYear()
