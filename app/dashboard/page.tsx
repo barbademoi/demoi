@@ -1,7 +1,5 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { logout } from '@/app/login/actions'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/utils'
 import LancamentoForm from '@/components/dashboard/LancamentoForm'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
@@ -14,7 +12,7 @@ import BrandLogo from '@/components/BrandLogo'
 import ModoMesSelector from '@/components/dashboard/ModoMesSelector'
 import CampanhaModal from '@/components/dashboard/CampanhaModal'
 import CampanhaToggle from '@/components/dashboard/CampanhaToggle'
-import LancarDiarioModal from '@/components/dashboard/LancarDiarioModal'
+import Sidebar from '@/components/dashboard/Sidebar'
 import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario } from '@/types/database'
 
 type UsuarioComBarbearia = {
@@ -27,15 +25,6 @@ type MetaSimples = {
   meta_coletiva: number
   premio_coletivo: string | null
   faturamento_acumulado: number
-}
-
-function toDateStr(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function calcDelta(atual: number, anterior: number): number | null {
-  if (anterior <= 0) return null
-  return Math.round(((atual - anterior) / anterior) * 100)
 }
 
 export default async function DashboardPage() {
@@ -57,25 +46,9 @@ export default async function DashboardPage() {
   const hoje = new Date()
   const mes = hoje.getMonth() + 1
   const ano = hoje.getFullYear()
-  const diaHoje = hoje.getDate()
-
-  // ── Datas para lançamentos diários ──────────────────────
-  const dataHojeStr = toDateStr(hoje)
-
-  // Primeiro dia do mês atual
-  const primeiroAtual = `${ano}-${String(mes).padStart(2, '0')}-01`
-
-  // Mês anterior
-  const mesAntMes = mes === 1 ? 12 : mes - 1
-  const mesAntAno = mes === 1 ? ano - 1 : ano
-  const primeiroAnterior = `${mesAntAno}-${String(mesAntMes).padStart(2, '0')}-01`
-  // Mesmo dia no mês anterior (capped no último dia do mês anterior)
-  const ultimoDiaMesAnt = new Date(ano, mes - 1, 0).getDate()
-  const diaAnt = Math.min(diaHoje, ultimoDiaMesAnt)
-  const mesmoDiaAnterior = `${mesAntAno}-${String(mesAntMes).padStart(2, '0')}-${String(diaAnt).padStart(2, '0')}`
-
-  // Label legível para o modal
-  const labelHoje = `${diaHoje} de ${nomeMes(mes)}`
+  const diaAtual = hoje.getDate()
+  const diasNoMes = new Date(ano, mes, 0).getDate()
+  const diasRestantes = diasNoMes - diaAtual
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
@@ -114,74 +87,6 @@ export default async function DashboardPage() {
 
   const barbeiros = (barbeirosRaw ?? []) as Barbeiro[]
   const lancamentos = (lancamentosRaw ?? []) as Lancamento[]
-
-  // ── Lançamentos diários ─────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: ldHojeRaw } = await (supabase as any)
-    .from('lancamentos_diarios')
-    .select('barbeiro_id, valor, faturamento_geral')
-    .eq('barbearia_id', barbearia.id)
-    .eq('data', dataHojeStr)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: ldAtualRaw } = await (supabase as any)
-    .from('lancamentos_diarios')
-    .select('barbeiro_id, valor, data, faturamento_geral')
-    .eq('barbearia_id', barbearia.id)
-    .gte('data', primeiroAtual)
-    .lte('data', dataHojeStr)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: ldAnteriorRaw } = await (supabase as any)
-    .from('lancamentos_diarios')
-    .select('barbeiro_id, valor, data, faturamento_geral')
-    .eq('barbearia_id', barbearia.id)
-    .gte('data', primeiroAnterior)
-    .lte('data', mesmoDiaAnterior)
-
-  type LdRow = { barbeiro_id: string; valor: number; data: string; faturamento_geral: number }
-
-  // Agregar por barbeiro_id
-  const ldHojeMap: Record<string, number> = {}
-  for (const r of (ldHojeRaw ?? []) as { barbeiro_id: string; valor: number; faturamento_geral: number }[]) {
-    ldHojeMap[r.barbeiro_id] = (ldHojeMap[r.barbeiro_id] ?? 0) + Number(r.valor)
-  }
-  const ldAtualMap: Record<string, number> = {}
-  for (const r of (ldAtualRaw ?? []) as LdRow[]) {
-    ldAtualMap[r.barbeiro_id] = (ldAtualMap[r.barbeiro_id] ?? 0) + Number(r.valor)
-  }
-  const ldAnteriorMap: Record<string, number> = {}
-  for (const r of (ldAnteriorRaw ?? []) as LdRow[]) {
-    ldAnteriorMap[r.barbeiro_id] = (ldAnteriorMap[r.barbeiro_id] ?? 0) + Number(r.valor)
-  }
-
-  // Faturamento geral: MAX por dia (armazenado em todas as linhas do dia, mesmo valor)
-  const fatGeralPorDiaAtual: Record<string, number> = {}
-  for (const r of (ldAtualRaw ?? []) as LdRow[]) {
-    const v = Number(r.faturamento_geral)
-    if (v > (fatGeralPorDiaAtual[r.data] ?? 0)) fatGeralPorDiaAtual[r.data] = v
-  }
-  const fatGeralAcumuladoAtual = Object.values(fatGeralPorDiaAtual).reduce((s, v) => s + v, 0)
-
-  const fatGeralPorDiaAnterior: Record<string, number> = {}
-  for (const r of (ldAnteriorRaw ?? []) as LdRow[]) {
-    const v = Number(r.faturamento_geral)
-    if (v > (fatGeralPorDiaAnterior[r.data] ?? 0)) fatGeralPorDiaAnterior[r.data] = v
-  }
-  const fatGeralAcumuladoAnterior = Object.values(fatGeralPorDiaAnterior).reduce((s, v) => s + v, 0)
-
-  const deltaFatGeral = calcDelta(fatGeralAcumuladoAtual, fatGeralAcumuladoAnterior)
-
-  // Faturamento geral de hoje (para pré-preencher modal)
-  const fatGeralHoje = Math.max(
-    0,
-    ...((ldHojeRaw ?? []) as { faturamento_geral: number }[]).map(r => Number(r.faturamento_geral))
-  )
-
-  // Total coletivo do mesmo período do mês anterior (comissões)
-  const totalAnteriorColetivo = Object.values(ldAnteriorMap).reduce((s, v) => s + v, 0)
-  const totalAtualColetivo = Object.values(ldAtualMap).reduce((s, v) => s + v, 0)
-  const deltaColetivo = calcDelta(totalAtualColetivo, totalAnteriorColetivo)
 
   // ── Cálculos gerais ─────────────────────────────────────
   const totalComissoes = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
@@ -242,35 +147,16 @@ export default async function DashboardPage() {
   const rankingPontosBarb  = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo !== 'recepcionista')
   const rankingPontosRecep = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo === 'recepcionista')
 
-  // Barbers for the daily modal (only barbers, not receptionists)
-  const barbeirosParaModal = barbeiros
-    .filter(b => b.tipo !== 'recepcionista')
-    .map(b => ({ ...b, valorHoje: ldHojeMap[b.id] ?? 0 }))
-
-
-  const nomeMesAnterior = nomeMes(mesAntMes)
-
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-border bg-surface sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <LogoUpload logoUrl={barbearia.logo_url} nomeAbrev={barbearia.nome[0]} />
-            <div>
-              <BrandLogo size="md" />
-              <p className="text-text-muted text-xs font-sans">{barbearia.nome}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/cards" className="btn-ghost text-sm py-2 px-3 border border-border">
-              Cards PNG
-            </Link>
-            <form action={logout}>
-              <button type="submit" className="btn-ghost text-sm py-2 px-3">Sair</button>
-            </form>
-          </div>
+    <div className="min-h-screen flex">
+      <Sidebar barbeariaNome={barbearia.nome} />
+
+      <div className="flex-1 min-w-0 lg:pl-64 pt-14 lg:pt-0">
+        {/* Desktop header strip */}
+        <div className="hidden lg:flex items-center gap-3 px-6 py-4 border-b border-border">
+          <LogoUpload logoUrl={barbearia.logo_url} nomeAbrev={barbearia.nome[0]} />
+          <p className="text-text-muted text-xs font-sans">{barbearia.nome}</p>
         </div>
-      </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
@@ -279,12 +165,6 @@ export default async function DashboardPage() {
 
         {/* Ações */}
         <div className="flex gap-3 flex-wrap">
-          <LancarDiarioModal
-            barbeiros={barbeirosParaModal}
-            dataHoje={dataHojeStr}
-            labelHoje={labelHoje}
-            fatGeralHoje={fatGeralHoje}
-          />
           <NovoBarbeiroModal />
           <NovoBarbeiroModal tipo="recepcionista" />
           {modoAtual !== 'pontos' && (
@@ -342,38 +222,43 @@ export default async function DashboardPage() {
               </p>
             </div>
 
-            {/* Faturamento geral acumulado */}
-            {fatGeralAcumuladoAtual > 0 && (
-              <div className="mt-3 pt-3 border-t border-border space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <p className="text-text-muted text-xs font-sans">
-                    Faturamento acumulado {nomeMes(mes)}
-                  </p>
-                  <p className="text-text text-sm font-sans font-semibold">{formatBRL(fatGeralAcumuladoAtual)}</p>
-                </div>
-                {fatGeralAcumuladoAnterior > 0 && (
-                  <div className="flex items-center justify-between">
-                    <p className="text-text-muted text-xs font-sans">
-                      Mesmo período em {nomeMesAnterior}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-text-muted text-xs font-sans">{formatBRL(fatGeralAcumuladoAnterior)}</p>
-                      {deltaFatGeral !== null && (
-                        <span className={`text-xs font-sans font-semibold ${deltaFatGeral >= 0 ? 'text-green-500' : 'text-red-400'}`}>
-                          {deltaFatGeral >= 0 ? '↑' : '↓'} {Math.abs(deltaFatGeral)}%
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
             {progressoColetivo < 20 && meta.meta_coletiva > 0 && (
               <p className="text-text-muted text-xs font-sans mt-3 text-center opacity-70">
                 💪 A jornada começa agora — cada atendimento conta para a meta da equipe!
               </p>
             )}
+
+            {/* Contagem regressiva coletiva (2D) */}
+            {diasRestantes > 0 && meta.meta_coletiva > 0 && faturamentoExibido < meta.meta_coletiva && (() => {
+              const falta = meta.meta_coletiva - faturamentoExibido
+              const necesarioPorDia = falta / diasRestantes
+              const ritmoColetivo = diaAtual > 0 ? faturamentoExibido / diaAtual : 0
+              const ok = ritmoColetivo >= necesarioPorDia
+              return (
+                <div className="mt-4 border-t border-border pt-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-text-muted text-xs font-sans">
+                      Faltam <span className="text-text font-semibold">{diasRestantes} dias</span>
+                    </p>
+                    <p className={`text-xs font-sans font-semibold ${ok ? 'text-green-400' : 'text-amber-400'}`}>
+                      {ok ? '✅ No ritmo' : '⚠️ Acelerar'}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-text-muted text-xs font-sans">Necessário/dia</p>
+                      <p className="font-serif text-xl text-text">{formatBRL(necesarioPorDia)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-text-muted text-xs font-sans">Ritmo atual</p>
+                      <p className={`font-serif text-xl ${ok ? 'text-green-400' : 'text-amber-400'}`}>
+                        {formatBRL(ritmoColetivo)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         ) : (
           <div className="card p-6 text-center">
@@ -391,9 +276,9 @@ export default async function DashboardPage() {
           </h2>
 
           {rankingBarbeiros.length === 0 ? (
-            <div className="card p-8 text-center">
-              <p className="text-text-muted font-sans text-sm">
-                Nenhum barbeiro cadastrado. Clique em &ldquo;+ Novo barbeiro&rdquo; para começar.
+            <div className="card-light p-8 text-center">
+              <p className="text-on-cream-muted font-sans text-sm">
+                Nenhum barbeiro cadastrado. Clique em &ldquo;+ Barbeiro&rdquo; para começar.
               </p>
             </div>
           ) : (
@@ -411,19 +296,14 @@ export default async function DashboardPage() {
                 const posicaoPts = rankingPontosBarb.findIndex(r => r.id === barbeiro.id)
                 const qualificado = campanha ? pts >= campanha.min_pontos : false
 
-                const valorHoje = ldHojeMap[barbeiro.id] ?? 0
-                const acumAtual = ldAtualMap[barbeiro.id] ?? 0
-                const acumAnterior = ldAnteriorMap[barbeiro.id] ?? 0
-                const delta = calcDelta(acumAtual, acumAnterior)
-
                 return (
-                  <div key={barbeiro.id} className="card p-5">
+                  <div key={barbeiro.id} className="card-light p-5">
                     <div className="flex items-center gap-3">
                       <span className={`font-serif text-lg w-6 text-center shrink-0
-                        ${idx === 0 ? 'metal-text-gold' : idx === 1 ? 'metal-text-silver' : idx === 2 ? 'metal-text-bronze' : 'text-text-muted'}`}>
+                        ${idx === 0 ? 'metal-text-gold' : idx === 1 ? 'metal-text-silver' : idx === 2 ? 'metal-text-bronze' : 'text-on-cream-muted'}`}>
                         {idx + 1}
                       </span>
-                      <div className="w-10 h-10 rounded-full bg-surface-2 border border-border flex items-center justify-center font-serif text-lg text-text-muted shrink-0 overflow-hidden">
+                      <div className="w-10 h-10 rounded-full bg-cream-surface border border-cream-border flex items-center justify-center font-serif text-lg text-on-cream-muted shrink-0 overflow-hidden">
                         {barbeiro.foto_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={barbeiro.foto_url} alt={barbeiro.nome} className="w-full h-full object-cover" />
@@ -431,7 +311,7 @@ export default async function DashboardPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-sans font-semibold text-text">{barbeiro.nome}</p>
+                          <p className="font-sans font-semibold text-on-cream">{barbeiro.nome}</p>
                           <EditarBarbeiroModal barbeiro={barbeiro} />
                           {tier && (
                             <span className={`text-xs font-sans font-semibold ${TIER_CONFIG[tier].textClass}`}>
@@ -440,35 +320,22 @@ export default async function DashboardPage() {
                           )}
                           {modoAtual !== 'metas' && campanha && (
                             <span className={`text-xs font-sans font-semibold px-2 py-0.5 rounded-full
-                              ${qualificado ? 'bg-primary/10 text-primary' : 'bg-surface-2 text-text-muted'}`}>
+                              ${qualificado ? 'bg-primary/10 text-primary' : 'bg-cream-surface text-on-cream-muted'}`}>
                               🏅 {pts} pts {posicaoPts >= 0 && qualificado ? `· #${posicaoPts + 1}` : ''}
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <p className="text-text-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
+                          <p className="text-on-cream-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
                           <CopiarLinkBtn codigo={barbeiro.link_codigo} />
-                        </div>
-                        {/* Diário */}
-                        <div className="mt-1.5 flex items-center gap-3 flex-wrap">
-                          {valorHoje > 0 && (
-                            <span className="text-xs font-sans text-text-muted">
-                              Hoje: <span className="text-text font-semibold">{formatBRL(valorHoje)}</span>
-                            </span>
-                          )}
-                          {delta !== null && (
-                            <span className={`text-xs font-sans font-semibold ${delta >= 0 ? 'text-green-500' : 'text-red-400'}`}>
-                              {delta >= 0 ? '↑' : '↓'} {Math.abs(delta)}% vs {nomeMesAnterior}
-                            </span>
-                          )}
                         </div>
                       </div>
                       <div className="text-right shrink-0">
                         {modoAtual !== 'pontos' && (
-                          <p className="font-serif text-xl text-text">{formatBRL(barbeiro.comissao)}</p>
+                          <p className="font-serif text-xl text-on-cream">{formatBRL(barbeiro.comissao)}</p>
                         )}
                         {modoAtual === 'pontos' && (
-                          <p className="font-serif text-xl text-text">{pts} pts</p>
+                          <p className="font-serif text-xl text-on-cream">{pts} pts</p>
                         )}
                         {modoAtual !== 'pontos' && (
                           <LancamentoForm
@@ -481,7 +348,7 @@ export default async function DashboardPage() {
                     </div>
                     <div className="mt-4">
                       {!barbeiro.metaInd ? (
-                        <p className="text-text-muted text-xs font-sans opacity-50">
+                        <p className="text-on-cream-muted text-xs font-sans opacity-50">
                           Sem metas configuradas — clique em &quot;Configurar metas&quot;
                         </p>
                       ) : (
@@ -496,7 +363,7 @@ export default async function DashboardPage() {
                             return (
                               <div key={t}>
                                 <div className="flex items-center gap-3 mb-1">
-                                  <span className={`text-xs font-sans w-12 text-right shrink-0 ${semMeta ? 'text-text-muted opacity-30' : TIER_CONFIG[t].textClass}`}>
+                                  <span className={`text-xs font-sans w-12 text-right shrink-0 ${semMeta ? 'text-on-cream-muted opacity-30' : TIER_CONFIG[t].textClass}`}>
                                     {TIER_CONFIG[t].label}
                                   </span>
                                   <div className="bar-track flex-1 h-2.5">
@@ -510,8 +377,8 @@ export default async function DashboardPage() {
                                 </div>
                                 {!semMeta && (
                                   <div className="ml-14 flex items-center gap-2">
-                                    <span className="text-text-muted text-xs font-sans">{pct}%</span>
-                                    {premio && <span className="text-text-muted text-xs font-sans opacity-60">· 🏆 {premio}</span>}
+                                    <span className="text-on-cream-muted text-xs font-sans">{pct}%</span>
+                                    {premio && <span className="text-on-cream-muted text-xs font-sans opacity-60">· 🏆 {premio}</span>}
                                   </div>
                                 )}
                               </div>
@@ -532,9 +399,9 @@ export default async function DashboardPage() {
           <h2 className="font-serif text-xl text-text mb-4">Recepcionistas</h2>
 
           {rankingRecepcionistas.length === 0 ? (
-            <div className="card p-8 text-center">
-              <p className="text-text-muted font-sans text-sm">
-                Nenhuma recepcionista cadastrada. Clique em &ldquo;+ Nova recepcionista&rdquo; para começar.
+            <div className="card-light p-8 text-center">
+              <p className="text-on-cream-muted font-sans text-sm">
+                Nenhuma recepcionista cadastrada. Clique em &ldquo;+ Recepcionista&rdquo; para começar.
               </p>
             </div>
           ) : (
@@ -546,13 +413,13 @@ export default async function DashboardPage() {
                 const qualificado = campanha ? pts >= minPtsRecep : false
 
                 return (
-                  <div key={barbeiro.id} className="card p-5">
+                  <div key={barbeiro.id} className="card-light p-5">
                     <div className="flex items-center gap-3">
                       <span className={`font-serif text-lg w-6 text-center shrink-0
-                        ${idx === 0 ? 'metal-text-gold' : idx === 1 ? 'metal-text-silver' : idx === 2 ? 'metal-text-bronze' : 'text-text-muted'}`}>
+                        ${idx === 0 ? 'metal-text-gold' : idx === 1 ? 'metal-text-silver' : idx === 2 ? 'metal-text-bronze' : 'text-on-cream-muted'}`}>
                         {idx + 1}
                       </span>
-                      <div className="w-10 h-10 rounded-full bg-surface-2 border border-border flex items-center justify-center font-serif text-lg text-text-muted shrink-0 overflow-hidden">
+                      <div className="w-10 h-10 rounded-full bg-cream-surface border border-cream-border flex items-center justify-center font-serif text-lg text-on-cream-muted shrink-0 overflow-hidden">
                         {barbeiro.foto_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={barbeiro.foto_url} alt={barbeiro.nome} className="w-full h-full object-cover" />
@@ -560,26 +427,26 @@ export default async function DashboardPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-sans font-semibold text-text">{barbeiro.nome}</p>
+                          <p className="font-sans font-semibold text-on-cream">{barbeiro.nome}</p>
                           <EditarBarbeiroModal barbeiro={barbeiro} />
                           {modoAtual !== 'metas' && campanha && (
                             <span className={`text-xs font-sans font-semibold px-2 py-0.5 rounded-full
-                              ${qualificado ? 'bg-primary/10 text-primary' : 'bg-surface-2 text-text-muted'}`}>
+                              ${qualificado ? 'bg-primary/10 text-primary' : 'bg-cream-surface text-on-cream-muted'}`}>
                               🏅 {pts} pts {posicaoPts >= 0 && qualificado ? `· #${posicaoPts + 1}` : ''}
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <p className="text-text-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
+                          <p className="text-on-cream-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
                           <CopiarLinkBtn codigo={barbeiro.link_codigo} />
                         </div>
                       </div>
                       <div className="text-right shrink-0">
                         {modoAtual !== 'pontos' && (
-                          <p className="font-serif text-xl text-text">{formatBRL(barbeiro.comissao)}</p>
+                          <p className="font-serif text-xl text-on-cream">{formatBRL(barbeiro.comissao)}</p>
                         )}
                         {modoAtual === 'pontos' && (
-                          <p className="font-serif text-xl text-text">{pts} pts</p>
+                          <p className="font-serif text-xl text-on-cream">{pts} pts</p>
                         )}
                         {modoAtual !== 'pontos' && (
                           <LancamentoForm
@@ -598,6 +465,7 @@ export default async function DashboardPage() {
         </div>
 
       </main>
+      </div>
     </div>
   )
 }

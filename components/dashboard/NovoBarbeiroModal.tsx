@@ -68,7 +68,7 @@ export default function NovoBarbeiroModal({ tipo = 'barbeiro', onCriado }: Props
         onClick={() => setOpen(true)}
         className={`text-sm py-2 px-4 ${tipo === 'recepcionista' ? 'btn-ghost border border-border' : 'btn-primary'}`}
       >
-        + Nova {labelTipo}
+        + {labelTipoCap}
       </button>
     )
   }
@@ -93,7 +93,7 @@ export default function NovoBarbeiroModal({ tipo = 'barbeiro', onCriado }: Props
           </>
         ) : (
           <>
-            <h3 className="font-serif text-xl text-text mb-4">Nova {labelTipo}</h3>
+            <h3 className="font-serif text-xl text-text mb-4">+ {labelTipoCap}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="flex flex-col items-center gap-2">
                 <button

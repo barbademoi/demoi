@@ -2,6 +2,20 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+export async function marcarCelebracaoExibida(
+  barbeiro_id: string,
+  mes: number,
+  ano: number,
+  tier: string,
+) {
+  const supabase = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase as any)
+    .from('celebracoes')
+    .upsert({ barbeiro_id, mes, ano, tier }, { onConflict: 'barbeiro_id,mes,ano,tier' })
+}
 
 interface ServicoLancado { servico_id: string; quantidade: number }
 

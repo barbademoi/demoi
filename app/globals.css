@@ -60,6 +60,18 @@
     @apply card transition-all duration-200 hover:border-primary/30 hover:shadow-primary-glow;
   }
 
+  /* Light card — cream background, dark text */
+  .card-light {
+    background: #FDFAF6;
+    border: 1px solid #E8E2D9;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.22);
+    @apply rounded-2xl;
+  }
+
+  .card-light .bar-track {
+    background-color: #E8E2D9;
+  }
+
   /* Input base */
   .input {
     @apply w-full bg-surface-2 border border-border text-text placeholder:text-text-muted

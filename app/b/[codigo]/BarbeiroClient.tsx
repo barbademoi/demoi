@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso } from '@/lib/utils'
 import LancarDiaForm from './LancarDiaForm'
+import CelebracaoOverlay from '@/components/barbeiro/CelebracaoOverlay'
 import type {
   Barbeiro, MetaIndividual, Lancamento,
   CampanhaComDetalhes, ControleDiario, ModoPontos,
@@ -17,6 +18,8 @@ interface Props {
   barbeariaName: string
   mes: number
   ano: number
+  diaAtual: number
+  diasRestantes: number
   modo: ModoPontos
   // metas
   metaInd: MetaIndividual | null
@@ -29,6 +32,8 @@ interface Props {
   metaColetiva: number
   premioColetivo: string | null
   insights: { emoji: string; texto: string; destaque?: boolean }[]
+  mensagemIA: string | null
+  tiersJaCelebrados: string[]
   // pontos
   campanha: CampanhaComDetalhes | null
   controlesDiario: ControleDiario[]
@@ -37,26 +42,20 @@ interface Props {
   pontosMap: Record<string, number>
   controleHoje: Record<string, number>
   historico: { data: string; pontos: number; label: string }[]
-  // diário
-  acumDiarioAtual: number
-  acumDiarioAnterior: number
-  deltaDiario: number | null
-  diaHoje: number
-  nomeMesAnterior: string
 }
 
 export default function BarbeiroClient({
-  barbeiro, barbeariaName: _, mes, ano,
+  barbeiro, barbeariaName: _, mes, ano, diaAtual, diasRestantes,
   modo, metaInd, lancamento, progresso, ranking, posicaoRanking,
   faturamentoColetivo, progressoColetivo, metaColetiva, premioColetivo,
-  insights, campanha, controlesDiario, pontosTotal, rankingPontos, pontosMap,
-  controleHoje, historico,
-  acumDiarioAtual, acumDiarioAnterior, deltaDiario, diaHoje, nomeMesAnterior,
+  insights, mensagemIA, tiersJaCelebrados, campanha, controlesDiario,
+  pontosTotal, rankingPontos, pontosMap, controleHoje, historico,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
   const mostraPontos = modo === 'pontos' || modo === 'ambos'
   const mostraMetas = modo === 'metas' || modo === 'ambos'
   const [aba, setAba] = useState<'progresso' | 'lancar'>('progresso')
+  const [celebracaoFechada, setCelebracaoFechada] = useState(false)
 
   const posicaoPts = rankingPontos.findIndex(r => r.barbeiro_id === barbeiro.id)
   const minPontosEfetivo = campanha
@@ -75,8 +74,51 @@ export default function BarbeiroClient({
     : 0
   const temBonus = campanha && totalAssinaturas >= campanha.bonus_assin_qtd
 
+  // ── Celebração (2B) ────────────────────────────────────
+  const tierAtual = progresso?.tier_atual ?? null
+  const deveComemorar = (
+    !celebracaoFechada &&
+    tierAtual !== null &&
+    mostraMetas &&
+    !tiersJaCelebrados.includes(tierAtual)
+  )
+  const premioParaCelebrar = tierAtual
+    ? (metaInd?.[`${tierAtual}_premio` as 'bronze_premio' | 'prata_premio' | 'ouro_premio'] ?? null)
+    : null
+
+  // ── Contagem regressiva (2C) ─────────────────────────
+  const diasNoMes = new Date(ano, mes, 0).getDate()
+  const diasCorridos = diaAtual
+  const ritmoAtual = diasCorridos > 0 ? comissao / diasCorridos : 0
+
+  let tierId: 'bronze' | 'prata' | 'ouro' | null = null
+  let metaFoco = 0
+  if (metaInd) {
+    if (comissao < metaInd.bronze_comm) { tierId = 'bronze'; metaFoco = metaInd.bronze_comm }
+    else if (comissao < metaInd.prata_comm) { tierId = 'prata'; metaFoco = metaInd.prata_comm }
+    else if (comissao < metaInd.ouro_comm) { tierId = 'ouro'; metaFoco = metaInd.ouro_comm }
+  }
+  const valorNecessarioPorDia = diasRestantes > 0 && metaFoco > comissao
+    ? (metaFoco - comissao) / diasRestantes
+    : 0
+  const ritmoOk = valorNecessarioPorDia === 0 || ritmoAtual >= valorNecessarioPorDia
+  const mostrarContagem = mostraMetas && metaInd !== null && diasRestantes > 0 && diasNoMes > 0
+
   return (
     <>
+      {/* Celebração fullscreen */}
+      {deveComemorar && tierAtual && (
+        <CelebracaoOverlay
+          barbeiro_id={barbeiro.id}
+          nome={barbeiro.nome}
+          tier={tierAtual}
+          premio={premioParaCelebrar}
+          mes={mes}
+          ano={ano}
+          onClose={() => setCelebracaoFechada(true)}
+        />
+      )}
+
       {/* Tabs — aparece quando modo inclui pontos, independente de campanha */}
       {mostraPontos && (
         <div className="flex border-b border-border mb-0">
@@ -131,53 +173,67 @@ export default function BarbeiroClient({
             )}
           </div>
 
-          {/* Acumulado diário vs mesmo período */}
-          {acumDiarioAtual > 0 && (
-            <div className="card p-6 space-y-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-text-muted text-xs font-sans uppercase tracking-wide mb-1">Seu acumulado até hoje</p>
-                  <p className="font-serif text-4xl text-text">{formatBRL(acumDiarioAtual)}</p>
-                </div>
-                <p className="text-text-muted text-xs font-sans mt-1">dia {diaHoje} de {nomeMes(mes)}</p>
+          {/* Mensagem IA (2A) */}
+          {mensagemIA && mostraMetas && (
+            <div className="card-light px-5 py-4">
+              <p className="text-on-cream-muted text-xs font-sans uppercase tracking-wide mb-2">Mensagem do dia</p>
+              <p className="font-sans text-sm text-on-cream leading-relaxed">{mensagemIA}</p>
+            </div>
+          )}
+
+          {/* Contagem regressiva (2C) */}
+          {mostrarContagem && (
+            <div className="card-light p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-on-cream-muted text-xs font-sans uppercase tracking-wide">
+                  Faltam {diasRestantes} {diasRestantes === 1 ? 'dia' : 'dias'} para fechar
+                </p>
+                {tierId && (
+                  <span className={`text-xs font-sans font-semibold ${TIER_CONFIG[tierId].textClass}`}>
+                    Foco: {TIER_CONFIG[tierId].label}
+                  </span>
+                )}
               </div>
 
-              {acumDiarioAnterior > 0 && (
+              {tierId && valorNecessarioPorDia > 0 ? (
                 <>
-                  <div className="pt-3 border-t border-border">
-                    <p className="text-text-muted text-xs font-sans mb-0.5">Mesmo período em {nomeMesAnterior}</p>
-                    <p className="font-serif text-xl text-text-muted">{formatBRL(acumDiarioAnterior)}</p>
-                  </div>
-
-                  {deltaDiario !== null && (
-                    <div className={`flex items-center gap-2 px-4 py-3 rounded-xl
-                      ${deltaDiario >= 0 ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-400/10 border border-red-400/20'}`}>
-                      <span className={`text-lg ${deltaDiario >= 0 ? 'text-green-500' : 'text-red-400'}`}>
-                        {deltaDiario >= 0 ? '↑' : '↓'}
-                      </span>
-                      <p className={`font-sans text-sm font-semibold ${deltaDiario >= 0 ? 'text-green-500' : 'text-red-400'}`}>
-                        {deltaDiario >= 10
-                          ? `Você está ${deltaDiario}% acima — mês excelente! ✅`
-                          : deltaDiario >= 0
-                          ? 'Você está acima do mês passado — no caminho certo!'
-                          : deltaDiario >= -10
-                          ? `Você está ${Math.abs(deltaDiario)}% abaixo do mês passado — ainda dá tempo de virar!`
-                          : `Atenção — ${Math.abs(deltaDiario)}% abaixo do mês passado. Foca no restante do mês!`}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-on-cream-muted text-xs font-sans">Necessário/dia para {TIER_CONFIG[tierId].label}</p>
+                      <p className="font-serif text-2xl text-on-cream">{formatBRL(valorNecessarioPorDia)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-on-cream-muted text-xs font-sans">Seu ritmo atual</p>
+                      <p className={`font-serif text-2xl ${ritmoOk ? 'text-green-600' : 'text-amber-500'}`}>
+                        {formatBRL(ritmoAtual)}
                       </p>
                     </div>
-                  )}
+                  </div>
+                  <div className={`text-xs font-sans px-3 py-2 rounded-xl ${
+                    ritmoOk
+                      ? 'bg-green-500/10 text-green-700'
+                      : 'bg-amber-500/10 text-amber-700'
+                  }`}>
+                    {ritmoOk
+                      ? `✅ No ritmo certo para ${TIER_CONFIG[tierId].label}`
+                      : `⚠️ Precisa de ${formatBRL(valorNecessarioPorDia - ritmoAtual)}/dia a mais`}
+                  </div>
                 </>
+              ) : tierId === null ? (
+                <p className="text-green-700 text-sm font-sans font-medium">✅ Todas as metas atingidas!</p>
+              ) : (
+                <p className="text-on-cream-muted text-xs font-sans">Meta impossível neste mês — foque no próximo.</p>
               )}
             </div>
           )}
 
           {/* Seção de pontos */}
           {mostraPontos && campanha && (
-            <div className="card p-6 space-y-4">
+            <div className="card-light p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-serif text-lg text-text">Pontuação do mês</h3>
+                <h3 className="font-serif text-lg text-on-cream">Pontuação do mês</h3>
                 {posicaoPts >= 0 && qualificado && (
-                  <span className="text-text-muted text-sm font-sans">
+                  <span className="text-on-cream-muted text-sm font-sans">
                     #{posicaoPts + 1} no ranking
                   </span>
                 )}
@@ -185,17 +241,17 @@ export default function BarbeiroClient({
 
               {/* Total */}
               <div className="flex items-end gap-3">
-                <p className="font-serif text-5xl text-text">{pontosTotal}</p>
-                <p className="text-text-muted text-lg font-sans mb-1">pts</p>
+                <p className="font-serif text-5xl text-on-cream">{pontosTotal}</p>
+                <p className="text-on-cream-muted text-lg font-sans mb-1">pts</p>
               </div>
 
               {/* Barra até mínimo */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-text-muted text-xs font-sans">
+                  <span className="text-on-cream-muted text-xs font-sans">
                     {qualificado ? '✓ Qualificado para o ranking' : `Faltam ${minPontosEfetivo - pontosTotal} pts para qualificar`}
                   </span>
-                  <span className="text-text-muted text-xs font-sans">{minPontosEfetivo} pts</span>
+                  <span className="text-on-cream-muted text-xs font-sans">{minPontosEfetivo} pts</span>
                 </div>
                 <div className="bar-track h-2.5">
                   <div
@@ -211,14 +267,14 @@ export default function BarbeiroClient({
                   <span className="text-2xl">🏆</span>
                   <div>
                     <p className="text-primary text-sm font-sans font-semibold">Prêmio estimado</p>
-                    <p className="font-serif text-2xl text-text">{formatBRL(Number(premioAtual.valor))}</p>
+                    <p className="font-serif text-2xl text-on-cream">{formatBRL(Number(premioAtual.valor))}</p>
                   </div>
                 </div>
               )}
 
               {/* Alerta abaixo do mínimo */}
               {!qualificado && pontosTotal > 0 && (
-                <p className="text-text-muted text-xs font-sans text-center opacity-70">
+                <p className="text-on-cream-muted text-xs font-sans text-center opacity-70">
                   ⚡ Continue lançando seus serviços para entrar no ranking!
                 </p>
               )}
@@ -226,7 +282,7 @@ export default function BarbeiroClient({
               {/* Bônus assinaturas */}
               {campanha.bonus_assin_qtd > 0 && (
                 <div className={`rounded-xl px-4 py-3 text-xs font-sans
-                  ${temBonus ? 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400' : 'bg-surface-2 text-text-muted'}`}>
+                  ${temBonus ? 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400' : 'bg-cream-surface text-on-cream-muted'}`}>
                   {temBonus
                     ? `⭐ Bônus de assinaturas desbloqueado! +${formatBRL(Number(campanha.bonus_assin_valor))}`
                     : `${totalAssinaturas}/${campanha.bonus_assin_qtd} assinaturas para bônus de ${formatBRL(Number(campanha.bonus_assin_valor))}`
@@ -238,12 +294,12 @@ export default function BarbeiroClient({
 
           {/* Insights */}
           {insights.length > 0 && mostraMetas && (
-            <div className="card p-5 space-y-3">
-              <p className="text-text-muted text-xs font-sans uppercase tracking-wide">Insights do mês</p>
+            <div className="card-light p-5 space-y-3">
+              <p className="text-on-cream-muted text-xs font-sans uppercase tracking-wide">Insights do mês</p>
               {insights.map((ins, i) => (
-                <div key={i} className={`flex items-start gap-3 p-3 rounded-xl ${ins.destaque === true ? 'bg-primary/10 border border-primary/20' : 'bg-surface-2'}`}>
+                <div key={i} className={`flex items-start gap-3 p-3 rounded-xl ${ins.destaque === true ? 'bg-primary/10 border border-primary/20' : 'bg-cream-surface'}`}>
                   <span className="text-xl shrink-0">{ins.emoji}</span>
-                  <p className={`font-sans text-sm ${ins.destaque === true ? 'text-text font-medium' : 'text-text-muted'}`}>{ins.texto}</p>
+                  <p className={`font-sans text-sm ${ins.destaque === true ? 'text-on-cream font-medium' : 'text-on-cream-muted'}`}>{ins.texto}</p>
                 </div>
               ))}
             </div>
@@ -251,8 +307,8 @@ export default function BarbeiroClient({
 
           {/* Barras Bronze / Prata / Ouro */}
           {metaInd && progresso && mostraMetas && (
-            <div className="card p-6 space-y-5">
-              <h3 className="font-serif text-lg text-text">Suas metas</h3>
+            <div className="card-light p-6 space-y-5">
+              <h3 className="font-serif text-lg text-on-cream">Suas metas</h3>
               {(['bronze', 'prata', 'ouro'] as const).map((tier) => {
                 const metaVal = metaInd[`${tier}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm']
                 const premio  = metaInd[`${tier}_premio` as 'bronze_premio' | 'prata_premio' | 'ouro_premio']
@@ -262,9 +318,9 @@ export default function BarbeiroClient({
                     <div className="flex items-center justify-between mb-2">
                       <span className={`text-sm font-sans font-semibold ${TIER_CONFIG[tier].textClass}`}>
                         {TIER_CONFIG[tier].label}
-                        {premio && <span className="text-text-muted font-normal ml-2">· {premio}</span>}
+                        {premio && <span className="text-on-cream-muted font-normal ml-2">· {premio}</span>}
                       </span>
-                      <span className="text-text-muted text-xs font-sans">
+                      <span className="text-on-cream-muted text-xs font-sans">
                         {formatBRL(comissao)} / {formatBRL(metaVal)}
                       </span>
                     </div>
@@ -275,9 +331,9 @@ export default function BarbeiroClient({
                       />
                     </div>
                     <div className="flex justify-between mt-1">
-                      <span className="text-text-muted text-xs font-sans">{progresso[tier]}%</span>
+                      <span className="text-on-cream-muted text-xs font-sans">{progresso[tier]}%</span>
                       {comissao < metaVal && (
-                        <span className="text-text-muted text-xs font-sans">faltam {formatBRL(metaVal - comissao)}</span>
+                        <span className="text-on-cream-muted text-xs font-sans">faltam {formatBRL(metaVal - comissao)}</span>
                       )}
                     </div>
                   </div>
@@ -288,12 +344,12 @@ export default function BarbeiroClient({
 
           {/* Ranking pontos da equipe */}
           {mostraPontos && rankingPontos.length > 0 && (
-            <div className="card p-6">
+            <div className="card-light p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-serif text-lg text-text">Ranking de pontos</h3>
+                <h3 className="font-serif text-lg text-on-cream">Ranking de pontos</h3>
                 {posicaoPts >= 0 && (
-                  <span className="text-text-muted text-sm font-sans">
-                    Você em <span className="text-text font-semibold">#{posicaoPts + 1}</span>
+                  <span className="text-on-cream-muted text-sm font-sans">
+                    Você em <span className="text-on-cream font-semibold">#{posicaoPts + 1}</span>
                   </span>
                 )}
               </div>
@@ -305,15 +361,15 @@ export default function BarbeiroClient({
                   const qual = campanha ? r.pontos >= campanha.min_pontos : true
                   return (
                     <div key={r.barbeiro_id} className={`flex items-center gap-3 px-3 py-2 rounded-xl
-                      ${isMe ? 'bg-primary/10 border border-primary/20' : 'hover:bg-surface-2'}`}>
+                      ${isMe ? 'bg-primary/10 border border-primary/20' : 'hover:bg-cream-surface'}`}>
                       <span className={`font-sans text-sm w-5 text-center
-                        ${i === 0 ? 'metal-text-gold' : i === 1 ? 'metal-text-silver' : i === 2 ? 'metal-text-bronze' : 'text-text-muted'}`}>
+                        ${i === 0 ? 'metal-text-gold' : i === 1 ? 'metal-text-silver' : i === 2 ? 'metal-text-bronze' : 'text-on-cream-muted'}`}>
                         {i + 1}
                       </span>
-                      <span className={`font-sans text-sm flex-1 ${isMe ? 'text-text font-semibold' : qual ? 'text-text-muted' : 'text-text-muted opacity-50'}`}>
+                      <span className={`font-sans text-sm flex-1 ${isMe ? 'text-on-cream font-semibold' : qual ? 'text-on-cream-muted' : 'text-on-cream-muted opacity-50'}`}>
                         {nome} {isMe && '(você)'}
                       </span>
-                      <span className={`font-sans text-sm ${isMe ? 'text-text' : 'text-text-muted'}`}>
+                      <span className={`font-sans text-sm ${isMe ? 'text-on-cream' : 'text-on-cream-muted'}`}>
                         {r.pontos} pts
                       </span>
                     </div>
@@ -325,12 +381,12 @@ export default function BarbeiroClient({
 
           {/* Ranking comissão da equipe */}
           {mostraMetas && ranking.length > 0 && (
-            <div className="card p-6">
+            <div className="card-light p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-serif text-lg text-text">Ranking da equipe</h3>
+                <h3 className="font-serif text-lg text-on-cream">Ranking da equipe</h3>
                 {posicaoRanking > 0 && (
-                  <span className="text-text-muted text-sm font-sans">
-                    Você em <span className="text-text font-semibold">#{posicaoRanking}</span>
+                  <span className="text-on-cream-muted text-sm font-sans">
+                    Você em <span className="text-on-cream font-semibold">#{posicaoRanking}</span>
                   </span>
                 )}
               </div>
@@ -339,15 +395,15 @@ export default function BarbeiroClient({
                   const isMe = l.barbeiro_id === barbeiro.id
                   return (
                     <div key={l.barbeiro_id} className={`flex items-center gap-3 px-3 py-2 rounded-xl
-                      ${isMe ? 'bg-primary/10 border border-primary/20' : 'hover:bg-surface-2'}`}>
+                      ${isMe ? 'bg-primary/10 border border-primary/20' : 'hover:bg-cream-surface'}`}>
                       <span className={`font-sans text-sm w-5 text-center
-                        ${i === 0 ? 'metal-text-gold' : i === 1 ? 'metal-text-silver' : i === 2 ? 'metal-text-bronze' : 'text-text-muted'}`}>
+                        ${i === 0 ? 'metal-text-gold' : i === 1 ? 'metal-text-silver' : i === 2 ? 'metal-text-bronze' : 'text-on-cream-muted'}`}>
                         {i + 1}
                       </span>
-                      <span className={`font-sans text-sm flex-1 ${isMe ? 'text-text font-semibold' : 'text-text-muted'}`}>
+                      <span className={`font-sans text-sm flex-1 ${isMe ? 'text-on-cream font-semibold' : 'text-on-cream-muted'}`}>
                         {l.barbeiros?.nome ?? '—'} {isMe && '(você)'}
                       </span>
-                      <span className={`font-sans text-sm ${isMe ? 'text-text' : 'text-text-muted'}`}>
+                      <span className={`font-sans text-sm ${isMe ? 'text-on-cream' : 'text-on-cream-muted'}`}>
                         {formatBRL(l.comissao_acumulada)}
                       </span>
                     </div>
@@ -359,9 +415,9 @@ export default function BarbeiroClient({
 
           {/* Meta coletiva */}
           {metaColetiva > 0 && mostraMetas && (
-            <div className="card p-6">
-              <h3 className="font-serif text-lg text-text mb-1">Meta coletiva</h3>
-              {premioColetivo && <p className="text-text-muted text-sm font-sans mb-4">{premioColetivo}</p>}
+            <div className="card-light p-6">
+              <h3 className="font-serif text-lg text-on-cream mb-1">Meta coletiva</h3>
+              {premioColetivo && <p className="text-on-cream-muted text-sm font-sans mb-4">{premioColetivo}</p>}
               <div className="bar-track h-3">
                 <div
                   className="h-full rounded-full transition-all duration-700"
@@ -372,7 +428,7 @@ export default function BarbeiroClient({
                   }}
                 />
               </div>
-              <p className="text-text-muted text-xs font-sans mt-2 text-right">
+              <p className="text-on-cream-muted text-xs font-sans mt-2 text-right">
                 {formatBRL(faturamentoColetivo)} de {formatBRL(metaColetiva)}
               </p>
             </div>
@@ -392,10 +448,10 @@ export default function BarbeiroClient({
               minPontos={minPontosEfetivo}
             />
           ) : (
-            <div className="card p-10 text-center space-y-3">
+            <div className="card-light p-10 text-center space-y-3">
               <p className="text-4xl">⏳</p>
-              <p className="font-serif text-lg text-text">Campanha não configurada</p>
-              <p className="text-text-muted text-sm font-sans">
+              <p className="font-serif text-lg text-on-cream">Campanha não configurada</p>
+              <p className="text-on-cream-muted text-sm font-sans">
                 O dono da barbearia ainda não configurou a campanha deste mês.<br />
                 Aguarde e volte em breve!
               </p>
