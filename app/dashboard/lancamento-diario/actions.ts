@@ -84,27 +84,33 @@ export async function salvarLancamentosDiarios(
   if (errDiario) return { error: (errDiario as { message: string }).message }
 
   // ── 4. Atualiza acumulado: acum + (novo - anterior) ──────
-  // Só aplica o delta → preserva lançamentos manuais existentes
-  const lancRows = lancamentos.map(l => {
-    const prevDia = prevValorMap[l.barbeiro_id] ?? 0
-    const delta   = l.valor - prevDia
-    const novoAcum = Math.max(0, (accumMap[l.barbeiro_id] ?? 0) + delta)
-    return {
-      barbearia_id,
-      barbeiro_id:        l.barbeiro_id,
-      mes,
-      ano,
-      comissao_acumulada: novoAcum,
-      modo:               'direto',
-    }
-  })
+  // Só processa barbeiros com delta != 0 — preserva acumulado manual
+  // e evita redução indevida quando usuario deixa campo em branco
+  const lancRows = lancamentos
+    .map(l => {
+      const prevDia = prevValorMap[l.barbeiro_id] ?? 0
+      const delta   = l.valor - prevDia
+      if (delta === 0) return null
+      const novoAcum = Math.max(0, (accumMap[l.barbeiro_id] ?? 0) + delta)
+      return {
+        barbearia_id,
+        barbeiro_id:        l.barbeiro_id,
+        mes,
+        ano,
+        comissao_acumulada: novoAcum,
+        modo:               'direto',
+      }
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: errAcum } = await (supabase as any)
-    .from('lancamentos')
-    .upsert(lancRows, { onConflict: 'barbearia_id,barbeiro_id,mes,ano' })
+  if (lancRows.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: errAcum } = await (supabase as any)
+      .from('lancamentos')
+      .upsert(lancRows, { onConflict: 'barbearia_id,barbeiro_id,mes,ano' })
 
-  if (errAcum) return { error: (errAcum as { message: string }).message }
+    if (errAcum) return { error: (errAcum as { message: string }).message }
+  }
 
   // ── 5. Atualiza faturamento_acumulado da meta coletiva ────
   const fatGeralNovo = fatGeral >= 0 ? fatGeral : 0
