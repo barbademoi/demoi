@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: errUsuario } = await (supabase as any)
     .from('usuarios')
-    .insert({ id: userId, barbearia_id: barbeariaId, email })
+    .insert({ id: userId, barbearia_id: barbeariaId, email, senha_temporaria: true })
 
   if (errUsuario) {
     console.error('[webhook/hotmart] erro ao criar usuario:', errUsuario)

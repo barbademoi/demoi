@@ -13,6 +13,7 @@ import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetal
 
 type UsuarioComBarbearia = {
   barbearia_id: string
+  senha_temporaria: boolean
   barbearias: { id: string; nome: string; logo_url: string | null }
 }
 
@@ -31,12 +32,15 @@ export default async function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, barbearias(id, nome, logo_url)')
+    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url)')
     .eq('id', user.id)
     .single()
 
   const usuario = usuarioRaw as unknown as UsuarioComBarbearia | null
   if (!usuario) redirect('/login')
+
+  // Segunda camada: garante que usuários com senha temporária troquem antes de acessar
+  if (usuario.senha_temporaria) redirect('/redefinir-senha-obrigatoria')
 
   const barbearia = usuario.barbearias
   if (!barbearia) {
