@@ -22,6 +22,7 @@ export async function criarBarbeiro(formData: FormData) {
   if (!nome) return { error: 'Nome obrigatório.' }
 
   const foto_url = (formData.get('foto_url') as string) || null
+  const tipo = (formData.get('tipo') as string) === 'recepcionista' ? 'recepcionista' : 'barbeiro'
 
   let link_codigo = ''
   for (let i = 0; i < 5; i++) {
@@ -39,7 +40,7 @@ export async function criarBarbeiro(formData: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from('barbeiros')
-    .insert({ barbearia_id: usuario.barbearia_id, nome, link_codigo, foto_url })
+    .insert({ barbearia_id: usuario.barbearia_id, nome, link_codigo, foto_url, tipo })
 
   if (error) return { error: (error as { message: string }).message }
 

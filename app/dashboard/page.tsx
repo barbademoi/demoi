@@ -1,20 +1,19 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { logout } from '@/app/login/actions'
-import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/utils'
-import LancamentoForm from '@/components/dashboard/LancamentoForm'
+import { calcDiasUteis, calcProgresso } from '@/lib/utils'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
-import CopiarLinkBtn from '@/components/dashboard/CopiarLinkBtn'
-import EditarBarbeiroModal from '@/components/dashboard/EditarBarbeiroModal'
 import LogoUpload from '@/components/dashboard/LogoUpload'
 import FaturamentoEdit from '@/components/dashboard/FaturamentoEdit'
-import BrandLogo from '@/components/BrandLogo'
-import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
+import ModoMesSelector from '@/components/dashboard/ModoMesSelector'
+import CampanhaModal from '@/components/dashboard/CampanhaModal'
+import CampanhaToggle from '@/components/dashboard/CampanhaToggle'
+import DashboardShell from '@/components/dashboard/DashboardShell'
+import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario } from '@/types/database'
 
 type UsuarioComBarbearia = {
   barbearia_id: string
+  senha_temporaria: boolean
   barbearias: { id: string; nome: string; logo_url: string | null }
 }
 
@@ -33,19 +32,29 @@ export default async function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, barbearias(id, nome, logo_url)')
+    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url)')
     .eq('id', user.id)
     .single()
 
   const usuario = usuarioRaw as unknown as UsuarioComBarbearia | null
   if (!usuario) redirect('/login')
 
+  // Segunda camada: garante que usuários com senha temporária troquem antes de acessar
+  if (usuario.senha_temporaria) redirect('/redefinir-senha-obrigatoria')
+
   const barbearia = usuario.barbearias
+  if (!barbearia) {
+    console.error('[dashboard] barbearia não encontrada para usuario:', user.id)
+    redirect('/login')
+  }
   const hoje = new Date()
   const mes = hoje.getMonth() + 1
   const ano = hoje.getFullYear()
+  const diaAtual = hoje.getDate()
+  const diasNoMes = new Date(ano, mes, 0).getDate()
+  const diasRestantes = diasNoMes - diaAtual
+  const { diasUteisCorridos, diasUteisRestantes } = calcDiasUteis(ano, mes, diaAtual)
 
-  // Busca meta coletiva (sem nested — nested join do Supabase pode falhar silenciosamente)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
     .from('metas')
@@ -57,7 +66,6 @@ export default async function DashboardPage() {
 
   const meta = metaRaw as MetaSimples | null
 
-  // Busca metas individuais em query separada
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metasIndRaw } = meta ? await (supabase as any)
     .from('metas_individuais')
@@ -97,206 +105,101 @@ export default async function DashboardPage() {
     }))
     .sort((a, b) => b.comissao - a.comissao)
 
+  const rankingBarbeiros = ranking.filter(b => b.tipo !== 'recepcionista')
+  const rankingRecepcionistas = ranking.filter(b => b.tipo === 'recepcionista')
+
+  // ── Gamificação ──────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: modoRaw } = await (supabase as any)
+    .from('modo_mes').select('modo').eq('barbearia_id', barbearia.id).eq('mes', mes).eq('ano', ano).single()
+  const modoAtual: ModoPontos = (modoRaw?.modo as ModoPontos) ?? 'metas'
+
+  let campanha: CampanhaComDetalhes | null = null
+  let pontosMap: Record<string, number> = {}
+
+  if (modoAtual !== 'metas') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: campRaw } = await (supabase as any)
+      .from('campanha').select('*').eq('barbearia_id', barbearia.id).eq('mes', mes).eq('ano', ano).single()
+    if (campRaw) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: servicosRaw } = await (supabase as any)
+        .from('campanha_servicos').select('*').eq('campanha_id', campRaw.id)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: premiosRaw } = await (supabase as any)
+        .from('campanha_premios').select('*').eq('campanha_id', campRaw.id).order('posicao')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: controlesRaw } = await (supabase as any)
+        .from('controle_diario').select('barbeiro_id, servico_id, quantidade').eq('campanha_id', campRaw.id)
+      campanha = {
+        ...campRaw,
+        campanha_servicos: (servicosRaw ?? []) as CampanhaServico[],
+        campanha_premios:  (premiosRaw  ?? []) as CampanhaPremio[],
+      }
+      const servicos = campanha!.campanha_servicos
+      for (const cd of ((controlesRaw ?? []) as Pick<ControleDiario, 'barbeiro_id' | 'servico_id' | 'quantidade'>[])) {
+        const pts = servicos.find(s => s.id === cd.servico_id)?.pontos ?? 0
+        pontosMap[cd.barbeiro_id] = (pontosMap[cd.barbeiro_id] ?? 0) + cd.quantidade * pts
+      }
+    }
+  }
+
+  const rankingPontos = Object.entries(pontosMap)
+    .map(([id, pts]) => ({ id, pts }))
+    .sort((a, b) => b.pts - a.pts)
+
+  const rankingPontosBarb  = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo !== 'recepcionista')
+  const rankingPontosRecep = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo === 'recepcionista')
+
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-border bg-surface sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <LogoUpload logoUrl={barbearia.logo_url} nomeAbrev={barbearia.nome[0]} />
-            <div>
-              <BrandLogo size="md" />
-              <p className="text-text-muted text-xs font-sans">{barbearia.nome}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/cards" className="btn-ghost text-sm py-2 px-3 border border-border">
-              Cards PNG
-            </Link>
-            <form action={logout}>
-              <button type="submit" className="btn-ghost text-sm py-2 px-3">Sair</button>
-            </form>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
-
-        {/* Ações */}
-        <div className="flex gap-3 flex-wrap">
-          <NovoBarbeiroModal />
-          <MetasModal
-            barbeiros={barbeiros}
-            metasAtuais={metasIndividuais}
-            metaColetiva={meta?.meta_coletiva}
-            faturamentoAcumulado={meta?.faturamento_acumulado}
-            premioColetivo={meta?.premio_coletivo ?? undefined}
-            mes={mes}
-            ano={ano}
-          />
-        </div>
-
-        {/* Meta Coletiva */}
-        {meta ? (
-          <div className="card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="font-serif text-xl text-text">Meta Coletiva</h2>
-                <p className="text-text-muted text-sm font-sans mt-0.5">{nomeMes(mes)} {ano} · {meta.premio_coletivo}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-serif text-3xl text-text">{formatBRL(faturamentoExibido)}</p>
-                <p className="text-text-muted text-sm font-sans">de {formatBRL(meta.meta_coletiva)}</p>
-              </div>
-            </div>
-            <div className="bar-track h-5">
-              <div
-                className="bar-gold h-full rounded-full transition-all duration-700"
-                style={{ width: `${progressoColetivo}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between mt-2">
-              <FaturamentoEdit
-                metaId={meta.id}
-                faturamentoAtual={meta.faturamento_acumulado ?? 0}
-                metaColetiva={meta.meta_coletiva}
-                mes={mes}
-                ano={ano}
-              />
-              <p className="text-text-muted text-xs font-sans">
-                {progressoColetivo}% · faltam {formatBRL(Math.max(0, meta.meta_coletiva - faturamentoExibido))}
-              </p>
-            </div>
-            {progressoColetivo < 20 && meta.meta_coletiva > 0 && (
-              <p className="text-text-muted text-xs font-sans mt-3 text-center opacity-70">
-                💪 A jornada começa agora — cada atendimento conta para a meta da equipe!
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="card p-6 text-center">
-            <p className="text-text-muted font-sans text-sm">
-              Nenhuma meta configurada para {nomeMes(mes)} {ano}.{' '}
-              <span className="text-primary">Configure as metas →</span>
-            </p>
-          </div>
-        )}
-
-        {/* Barbeiros */}
-        <div>
-          <h2 className="font-serif text-xl text-text mb-4">
-            Ranking <span className="text-text-muted text-base font-sans">— {nomeMes(mes)} {ano}</span>
-          </h2>
-
-          {barbeiros.length === 0 ? (
-            <div className="card p-8 text-center">
-              <p className="text-text-muted font-sans text-sm">
-                Nenhum barbeiro cadastrado. Clique em &ldquo;+ Novo barbeiro&rdquo; para começar.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {ranking.map((barbeiro, idx) => {
-                const tier = barbeiro.metaInd
-                  ? calcTier(barbeiro.comissao, barbeiro.metaInd.bronze_comm, barbeiro.metaInd.prata_comm, barbeiro.metaInd.ouro_comm)
-                  : null
-                const progresso = barbeiro.metaInd ? {
-                  bronze: calcProgresso(barbeiro.comissao, barbeiro.metaInd.bronze_comm),
-                  prata:  calcProgresso(barbeiro.comissao, barbeiro.metaInd.prata_comm),
-                  ouro:   calcProgresso(barbeiro.comissao, barbeiro.metaInd.ouro_comm),
-                } : null
-
-                return (
-                  <div key={barbeiro.id} className="card p-5">
-                    <div className="flex items-center gap-3">
-                      <span className={`font-serif text-lg w-6 text-center shrink-0
-                        ${idx === 0 ? 'metal-text-gold' : idx === 1 ? 'metal-text-silver' : idx === 2 ? 'metal-text-bronze' : 'text-text-muted'}`}>
-                        {idx + 1}
-                      </span>
-
-                      <div className="w-10 h-10 rounded-full bg-surface-2 border border-border flex items-center justify-center font-serif text-lg text-text-muted shrink-0 overflow-hidden">
-                        {barbeiro.foto_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={barbeiro.foto_url} alt={barbeiro.nome} className="w-full h-full object-cover" />
-                        ) : barbeiro.nome[0]}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-sans font-semibold text-text">{barbeiro.nome}</p>
-                          <EditarBarbeiroModal barbeiro={barbeiro} />
-                          {tier && (
-                            <span className={`text-xs font-sans font-semibold ${TIER_CONFIG[tier].textClass}`}>
-                              ★ {TIER_CONFIG[tier].label}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <p className="text-text-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
-                          <CopiarLinkBtn codigo={barbeiro.link_codigo} />
-                        </div>
-                      </div>
-
-                      <div className="text-right shrink-0">
-                        <p className="font-serif text-xl text-text">{formatBRL(barbeiro.comissao)}</p>
-                        <LancamentoForm
-                          barbeiro={barbeiro}
-                          metaInd={barbeiro.metaInd ?? undefined}
-                          comissaoAtual={barbeiro.comissao}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Barras de progresso */}
-                    <div className="mt-4">
-                      {!barbeiro.metaInd ? (
-                        <p className="text-text-muted text-xs font-sans opacity-50">
-                          Sem metas configuradas — clique em &quot;Configurar metas&quot;
-                        </p>
-                      ) : (
-                        <div className="space-y-3">
-                          {(['bronze', 'prata', 'ouro'] as const).map((t) => {
-                            const commKey = `${t}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm'
-                            const premioKey = `${t}_premio` as 'bronze_premio' | 'prata_premio' | 'ouro_premio'
-                            const metaVal = barbeiro.metaInd![commKey]
-                            const premio = barbeiro.metaInd![premioKey]
-                            const semMeta = !metaVal || metaVal <= 0
-                            const pct = progresso ? progresso[t] : 0
-
-                            return (
-                              <div key={t}>
-                                <div className="flex items-center gap-3 mb-1">
-                                  <span className={`text-xs font-sans w-12 text-right shrink-0 ${semMeta ? 'text-text-muted opacity-30' : TIER_CONFIG[t].textClass}`}>
-                                    {TIER_CONFIG[t].label}
-                                  </span>
-                                  <div className="bar-track flex-1 h-2.5">
-                                    {!semMeta && (
-                                      <div
-                                        className={`${TIER_CONFIG[t].barClass} h-full rounded-full transition-all duration-700`}
-                                        style={{ width: pct > 0 ? `${pct}%` : '3px' }}
-                                      />
-                                    )}
-                                  </div>
-                                </div>
-                                {!semMeta && (
-                                  <div className="ml-14 flex items-center gap-2">
-                                    <span className="text-text-muted text-xs font-sans">{pct}%</span>
-                                    {premio && <span className="text-text-muted text-xs font-sans opacity-60">· 🏆 {premio}</span>}
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-      </main>
-    </div>
+    <DashboardShell
+      barbeariaNome={barbearia.nome}
+      mes={mes}
+      ano={ano}
+      meta={meta}
+      faturamentoExibido={faturamentoExibido}
+      progressoColetivo={progressoColetivo}
+      rankingBarbeiros={rankingBarbeiros}
+      rankingRecepcionistas={rankingRecepcionistas}
+      modoAtual={modoAtual}
+      campanha={campanha}
+      pontosMap={pontosMap}
+      rankingPontosBarb={rankingPontosBarb}
+      rankingPontosRecep={rankingPontosRecep}
+      diaAtual={diaAtual}
+      diasRestantes={diasRestantes}
+      diasUteisCorridos={diasUteisCorridos}
+      diasUteisRestantes={diasUteisRestantes}
+      logoUploadSlot={<LogoUpload logoUrl={barbearia.logo_url} nomeAbrev={barbearia.nome[0]} />}
+      faturamentoEditSlot={meta ? (
+        <FaturamentoEdit
+          metaId={meta.id}
+          faturamentoAtual={meta.faturamento_acumulado ?? 0}
+          metaColetiva={meta.meta_coletiva}
+          mes={mes}
+          ano={ano}
+        />
+      ) : null}
+      modoMesSlot={<ModoMesSelector modoAtual={modoAtual} mes={mes} ano={ano} />}
+      novoBarbeiroSlot={<NovoBarbeiroModal />}
+      novaRecepcionistaSlot={<NovoBarbeiroModal tipo="recepcionista" />}
+      metasSlot={modoAtual !== 'pontos' ? (
+        <MetasModal
+          barbeiros={barbeiros}
+          metasAtuais={metasIndividuais}
+          metaColetiva={meta?.meta_coletiva}
+          faturamentoAcumulado={meta?.faturamento_acumulado}
+          premioColetivo={meta?.premio_coletivo ?? undefined}
+          mes={mes}
+          ano={ano}
+        />
+      ) : null}
+      campanhaSlot={modoAtual !== 'metas' ? (
+        <CampanhaModal campanha={campanha} mes={mes} ano={ano} />
+      ) : null}
+      campanhaToggleSlot={modoAtual !== 'metas' && campanha ? (
+        <CampanhaToggle campanhaId={campanha.id} ativo={campanha.ativo} />
+      ) : null}
+    />
   )
 }

@@ -6,10 +6,11 @@ import { criarBarbeiro } from '@/app/dashboard/actions'
 import { uploadFoto } from '@/lib/uploadFoto'
 
 interface Props {
+  tipo?: 'barbeiro' | 'recepcionista'
   onCriado?: (linkCodigo: string, nome: string) => void
 }
 
-export default function NovoBarbeiroModal({ onCriado }: Props) {
+export default function NovoBarbeiroModal({ tipo = 'barbeiro', onCriado }: Props) {
   const [open, setOpen] = useState(false)
   const [nome, setNome] = useState('')
   const [linkGerado, setLinkGerado] = useState<string | null>(null)
@@ -17,6 +18,9 @@ export default function NovoBarbeiroModal({ onCriado }: Props) {
   const [isPending, startTransition] = useTransition()
   const [preview, setPreview] = useState<string | null>(null)
   const fotoRef = useRef<HTMLInputElement>(null)
+
+  const labelTipo = tipo === 'recepcionista' ? 'recepcionista' : 'barbeiro'
+  const labelTipoCap = tipo === 'recepcionista' ? 'Recepcionista' : 'Barbeiro'
 
   function handleFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -42,6 +46,7 @@ export default function NovoBarbeiroModal({ onCriado }: Props) {
 
         const fd = new FormData()
         fd.set('nome', nome)
+        fd.set('tipo', tipo)
         if (foto_url) fd.set('foto_url', foto_url)
 
         const res = await criarBarbeiro(fd)
@@ -52,15 +57,18 @@ export default function NovoBarbeiroModal({ onCriado }: Props) {
           onCriado?.(res.link_codigo, nome)
         }
       } catch (err) {
-        setErro(err instanceof Error ? err.message : 'Erro ao criar barbeiro.')
+        setErro(err instanceof Error ? err.message : `Erro ao criar ${labelTipo}.`)
       }
     })
   }
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="btn-primary text-sm py-2 px-4">
-        + Novo barbeiro
+      <button
+        onClick={() => setOpen(true)}
+        className={`text-sm py-2 px-4 ${tipo === 'recepcionista' ? 'btn-ghost border border-border' : 'btn-primary'}`}
+      >
+        + {labelTipoCap}
       </button>
     )
   }
@@ -70,8 +78,8 @@ export default function NovoBarbeiroModal({ onCriado }: Props) {
       <div className="card p-6 w-full max-w-sm animate-fade-in">
         {linkGerado ? (
           <>
-            <h3 className="font-serif text-xl text-text mb-2">Barbeiro criado!</h3>
-            <p className="text-text-muted text-sm font-sans mb-4">Envie esse link para {nome || 'o barbeiro'}:</p>
+            <h3 className="font-serif text-xl text-text mb-2">{labelTipoCap} criado!</h3>
+            <p className="text-text-muted text-sm font-sans mb-4">Envie esse link para {nome || `o ${labelTipo}`}:</p>
             <div className="bg-surface-2 border border-border rounded-xl px-4 py-3 font-sans text-sm text-primary break-all">
               {typeof window !== 'undefined' ? window.location.origin : ''}/b/{linkGerado}
             </div>
@@ -85,7 +93,7 @@ export default function NovoBarbeiroModal({ onCriado }: Props) {
           </>
         ) : (
           <>
-            <h3 className="font-serif text-xl text-text mb-4">Novo barbeiro</h3>
+            <h3 className="font-serif text-xl text-text mb-4">+ {labelTipoCap}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="flex flex-col items-center gap-2">
                 <button
@@ -110,7 +118,7 @@ export default function NovoBarbeiroModal({ onCriado }: Props) {
                 <label className="label">Nome</label>
                 <input
                   type="text" value={nome} onChange={e => setNome(e.target.value)}
-                  placeholder="Nome do barbeiro" required className="input"
+                  placeholder={`Nome da ${labelTipo}`} required className="input"
                 />
               </div>
               {erro && <p className="text-red-400 text-xs font-sans">{erro}</p>}

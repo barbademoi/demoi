@@ -25,6 +25,11 @@ const config: Config = {
         bronze: '#CD7F32',
         silver: '#A8A9AD',
         gold: '#FFD700',
+        cream: '#FDFAF6',
+        'cream-border': '#E8E2D9',
+        'cream-surface': '#F0EBE3',
+        'on-cream': '#12100E',
+        'on-cream-muted': '#6B6055',
       },
       fontFamily: {
         serif: ['var(--font-dm-serif)', 'Georgia', 'serif'],

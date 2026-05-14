@@ -18,7 +18,7 @@ const dmSans = DM_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'BarberMeta Card',
+  title: 'BarberMeta',
   description: 'Acompanhamento diário de metas para barbearias',
 }
 
