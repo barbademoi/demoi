@@ -34,13 +34,18 @@ export async function middleware(request: NextRequest) {
     },
   })
 
+  const { pathname } = request.nextUrl
+
   try {
     const { data: { session } } = await supabase.auth.getSession()
 
-    const isAuthRoute    = request.nextUrl.pathname === '/login'
-    const isBarbeiroRoute = request.nextUrl.pathname.startsWith('/b/')
-    const isApiRoute     = request.nextUrl.pathname.startsWith('/api/')
-    const isPublicRoute  = isAuthRoute || isBarbeiroRoute || isApiRoute
+    const isAuthRoute     = pathname === '/login'
+    const isBarbeiroRoute = pathname.startsWith('/b/')
+    const isApiRoute      = pathname.startsWith('/api/')
+    const isAuthCallback  = pathname.startsWith('/auth/')
+    const isPasswordRoute = pathname === '/esqueci-senha' || pathname === '/redefinir-senha'
+    const isPublicRoute   = isAuthRoute || isBarbeiroRoute || isApiRoute ||
+                            isAuthCallback || isPasswordRoute
 
     if (!session && !isPublicRoute) {
       return NextResponse.redirect(new URL('/login', request.url))
@@ -50,10 +55,12 @@ export async function middleware(request: NextRequest) {
     }
   } catch (err) {
     console.error('[middleware] erro ao verificar sessão:', err)
-    // Em caso de falha, redireciona para login apenas rotas protegidas
-    const isPublicRoute = request.nextUrl.pathname === '/login' ||
-                         request.nextUrl.pathname.startsWith('/b/') ||
-                         request.nextUrl.pathname.startsWith('/api/')
+    const isPublicRoute = pathname === '/login' ||
+                          pathname.startsWith('/b/') ||
+                          pathname.startsWith('/api/') ||
+                          pathname.startsWith('/auth/') ||
+                          pathname === '/esqueci-senha' ||
+                          pathname === '/redefinir-senha'
     if (!isPublicRoute) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
@@ -67,4 +74,3 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|icon\\.svg|.*\\.(?:png|svg|ico)$).*)',
   ],
 }
-
