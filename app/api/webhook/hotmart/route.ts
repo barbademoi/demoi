@@ -20,14 +20,22 @@ interface HotmartPayload {
 export async function POST(request: NextRequest) {
   // ── 1. Validar Hottok ─────────────────────────────────────────────────────
   const secret = process.env.HOTMART_WEBHOOK_SECRET
-  const hottok =
-    request.headers.get('x-hotmart-hottoken') ??
-    request.nextUrl.searchParams.get('hottok')
 
   if (!secret) {
     console.error('[webhook/hotmart] HOTMART_WEBHOOK_SECRET não configurado')
     return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 })
   }
+
+  // Lê corpo para extrair hottok do body (precisa clonar antes de usar em json())
+  const rawBody = await request.text()
+  let bodyJson: Record<string, unknown> = {}
+  try { bodyJson = JSON.parse(rawBody) } catch { /* ignorado */ }
+
+  const hottok =
+    request.headers.get('x-hotmart-hottok') ??          // oficial Hotmart
+    request.headers.get('x-hotmart-hottoken') ??        // fallback legado
+    request.nextUrl.searchParams.get('hottok') ??       // query string
+    (typeof bodyJson.hottok === 'string' ? bodyJson.hottok : undefined) // body antigo
 
   if (hottok !== secret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -36,7 +44,7 @@ export async function POST(request: NextRequest) {
   // ── 2. Parsear payload ────────────────────────────────────────────────────
   let body: HotmartPayload
   try {
-    body = await request.json()
+    body = JSON.parse(rawBody) as HotmartPayload
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
