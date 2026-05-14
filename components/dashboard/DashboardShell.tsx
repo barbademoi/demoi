@@ -75,11 +75,7 @@ export default function DashboardShell({
 
   return (
     <div className="min-h-screen flex">
-      <Sidebar
-        barbeariaNome={barbeariaNome}
-        showConfig={showConfig}
-        onConfigClick={() => setShowConfig(v => !v)}
-      />
+      <Sidebar barbeariaNome={barbeariaNome} />
 
       <div className="flex-1 min-w-0 lg:pl-64 pt-14 lg:pt-0">
         {/* Desktop header */}

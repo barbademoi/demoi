@@ -8,8 +8,6 @@ import BrandLogo from '@/components/BrandLogo'
 
 interface Props {
   barbeariaNome: string
-  showConfig?: boolean
-  onConfigClick?: () => void
 }
 
 const navItems = [
@@ -34,18 +32,21 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    href: '/configuracoes',
+    label: 'Configurações',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+      </svg>
+    ),
+  },
 ]
 
-export default function Sidebar({ barbeariaNome, showConfig = false, onConfigClick }: Props) {
+export default function Sidebar({ barbeariaNome }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
-
-  const configIcon = (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  )
 
   return (
     <>
@@ -105,7 +106,7 @@ export default function Sidebar({ barbeariaNome, showConfig = false, onConfigCli
         {/* Nav */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            const active = pathname === item.href && !showConfig
+            const active = pathname === item.href
             return (
               <Link
                 key={item.href}
@@ -125,22 +126,6 @@ export default function Sidebar({ barbeariaNome, showConfig = false, onConfigCli
             )
           })}
 
-          {/* Configurações button */}
-          {onConfigClick && (
-            <button
-              onClick={() => { onConfigClick(); setOpen(false) }}
-              className={`
-                w-full flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm
-                transition-colors text-left
-                ${showConfig
-                  ? 'bg-primary/15 text-primary font-semibold'
-                  : 'text-text-muted hover:text-text hover:bg-surface-2'}
-              `}
-            >
-              {configIcon}
-              Configurações
-            </button>
-          )}
         </nav>
 
         {/* Logout */}
