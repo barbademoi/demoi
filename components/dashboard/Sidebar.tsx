@@ -8,6 +8,8 @@ import BrandLogo from '@/components/BrandLogo'
 
 interface Props {
   barbeariaNome: string
+  onFerramentasClick?: () => void
+  showFerramentas?: boolean
 }
 
 const navItems = [
@@ -44,7 +46,7 @@ const navItems = [
   },
 ]
 
-export default function Sidebar({ barbeariaNome }: Props) {
+export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerramentas = false }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
@@ -106,7 +108,7 @@ export default function Sidebar({ barbeariaNome }: Props) {
         {/* Nav */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            const active = pathname === item.href
+            const active = pathname === item.href && !showFerramentas
             return (
               <Link
                 key={item.href}
@@ -126,6 +128,24 @@ export default function Sidebar({ barbeariaNome }: Props) {
             )
           })}
 
+          {/* Metas & Pontos button */}
+          {onFerramentasClick && (
+            <button
+              onClick={() => { onFerramentasClick(); setOpen(false) }}
+              className={`
+                w-full flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm
+                transition-colors text-left
+                ${showFerramentas
+                  ? 'bg-primary/15 text-primary font-semibold'
+                  : 'text-text-muted hover:text-text hover:bg-surface-2'}
+              `}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+              </svg>
+              Metas & Pontos
+            </button>
+          )}
         </nav>
 
         {/* Logout */}
