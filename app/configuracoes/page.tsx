@@ -11,24 +11,29 @@ export default async function ConfiguracoesPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select(`
-      barbearia_id,
-      barbearias (
-        nome, cidade, logo_url, cor_principal,
-        dias_trabalhados, horario_abertura, horario_fechamento,
-        modalidade, tem_assinatura
-      )
-    `)
+    .select('barbearia_id')
     .eq('id', user.id)
     .single()
 
   if (!usuarioRaw?.barbearia_id) redirect('/login')
 
-  const barbearia = usuarioRaw.barbearias as {
-    nome: string; cidade: string | null; logo_url: string | null; cor_principal: string | null
-    dias_trabalhados: { dia: string; ativo: boolean }[] | null
-    horario_abertura: string | null; horario_fechamento: string | null
-    modalidade: string | null; tem_assinatura: boolean | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: barbeariaRaw } = await (supabase as any)
+    .from('barbearias')
+    .select('nome, cidade, logo_url, cor_principal, dias_trabalhados, horario_abertura, horario_fechamento, modalidade, tem_assinatura')
+    .eq('id', usuarioRaw.barbearia_id)
+    .single()
+
+  const barbearia = {
+    nome: barbeariaRaw?.nome ?? '',
+    cidade: barbeariaRaw?.cidade ?? null,
+    logo_url: barbeariaRaw?.logo_url ?? null,
+    cor_principal: barbeariaRaw?.cor_principal ?? null,
+    dias_trabalhados: barbeariaRaw?.dias_trabalhados ?? null,
+    horario_abertura: barbeariaRaw?.horario_abertura ?? null,
+    horario_fechamento: barbeariaRaw?.horario_fechamento ?? null,
+    modalidade: barbeariaRaw?.modalidade ?? null,
+    tem_assinatura: barbeariaRaw?.tem_assinatura ?? null,
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
