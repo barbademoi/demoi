@@ -1,0 +1,142 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { gerarLinkCodigo } from '@/lib/utils'
+
+async function getBarbeariaId() {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase as any)
+    .from('usuarios').select('barbearia_id').eq('id', user.id).single()
+  return (data as { barbearia_id: string } | null)?.barbearia_id ?? null
+}
+
+export async function salvarIdentidadeConfig(formData: FormData) {
+  const supabase = createClient()
+  const barbeariaId = await getBarbeariaId()
+  if (!barbeariaId) return { error: 'Não autenticado.' }
+
+  const nome = (formData.get('nome') as string).trim().slice(0, 60)
+  const cidade = (formData.get('cidade') as string).trim()
+  const cor_principal = (formData.get('cor_principal') as string) || '#2563EB'
+  if (!nome || !cidade) return { error: 'Nome e cidade são obrigatórios.' }
+
+  const updates: Record<string, unknown> = { nome, cidade, cor_principal }
+
+  const logoFile = formData.get('logo') as File | null
+  if (logoFile && logoFile.size > 0) {
+    try {
+      const admin = createAdminClient()
+      const ext = logoFile.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+      const path = `logos/${barbeariaId}/logo.${ext}`
+      const bytes = await logoFile.arrayBuffer()
+      await admin.storage.from('fotos').upload(path, bytes, { upsert: true, contentType: logoFile.type })
+      const { data: { publicUrl } } = admin.storage.from('fotos').getPublicUrl(path)
+      updates.logo_url = publicUrl
+    } catch (err) {
+      console.error('[configuracoes] erro upload logo:', err)
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from('barbearias').update(updates).eq('id', barbeariaId)
+  if (error) return { error: 'Erro ao salvar.' }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/configuracoes')
+  return { ok: true }
+}
+
+export async function salvarOperacaoConfig(formData: FormData) {
+  const supabase = createClient()
+  const barbeariaId = await getBarbeariaId()
+  if (!barbeariaId) return { error: 'Não autenticado.' }
+
+  const DIAS = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo']
+  const dias_trabalhados = DIAS.map(dia => ({
+    dia,
+    ativo: formData.get(`dia_${dia}`) === 'on',
+  }))
+  const horario_abertura = formData.get('horario_abertura') as string || '09:00'
+  const horario_fechamento = formData.get('horario_fechamento') as string || '20:00'
+  const modalidade = formData.get('modalidade') as string
+  const tem_assinatura = formData.get('tem_assinatura') === 'true'
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('barbearias')
+    .update({ dias_trabalhados, horario_abertura, horario_fechamento, modalidade, tem_assinatura })
+    .eq('id', barbeariaId)
+
+  if (error) return { error: 'Erro ao salvar.' }
+  revalidatePath('/configuracoes')
+  return { ok: true }
+}
+
+export async function adicionarBarbeiroConfig(formData: FormData) {
+  const supabase = createClient()
+  const barbeariaId = await getBarbeariaId()
+  if (!barbeariaId) return { error: 'Não autenticado.' }
+
+  const nome = (formData.get('nome') as string).trim()
+  if (!nome) return { error: 'Nome obrigatório.' }
+  const foto_url = (formData.get('foto_url') as string) || null
+  const tipo = (formData.get('tipo') as string) === 'recepcionista' ? 'recepcionista' : 'barbeiro'
+
+  const admin = createAdminClient()
+  let link_codigo = ''
+  for (let i = 0; i < 5; i++) {
+    const candidato = gerarLinkCodigo()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: existe } = await (admin as any)
+      .from('barbeiros').select('id').eq('link_codigo', candidato).single()
+    if (!existe) { link_codigo = candidato; break }
+  }
+  if (!link_codigo) return { error: 'Tente novamente.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (admin as any)
+    .from('barbeiros')
+    .insert({ barbearia_id: barbeariaId, nome, link_codigo, foto_url, tipo })
+
+  if (error) return { error: 'Erro ao adicionar.' }
+  revalidatePath('/configuracoes')
+  return { ok: true }
+}
+
+export async function desativarBarbeiroConfig(id: string) {
+  const supabase = createClient()
+  const barbeariaId = await getBarbeariaId()
+  if (!barbeariaId) return { error: 'Não autenticado.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase as any)
+    .from('barbeiros')
+    .update({ ativo: false })
+    .eq('id', id)
+    .eq('barbearia_id', barbeariaId)
+
+  revalidatePath('/configuracoes')
+  return { ok: true }
+}
+
+export async function reativarBarbeiroConfig(id: string) {
+  const supabase = createClient()
+  const barbeariaId = await getBarbeariaId()
+  if (!barbeariaId) return { error: 'Não autenticado.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase as any)
+    .from('barbeiros')
+    .update({ ativo: true })
+    .eq('id', id)
+    .eq('barbearia_id', barbeariaId)
+
+  revalidatePath('/configuracoes')
+  return { ok: true }
+}
