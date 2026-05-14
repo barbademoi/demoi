@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 function gerarSenha(): string {
   const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   return Array.from({ length: 10 }, () =>
@@ -123,6 +121,7 @@ export async function POST(request: NextRequest) {
   // ── 7. Enviar email de boas-vindas via Resend ─────────────────────────────
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://barbermeta.vercel.app'
   const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev'
+  const resend = new Resend(process.env.RESEND_API_KEY)
 
   const { error: errEmail } = await resend.emails.send({
     from: `BarberMeta <${fromEmail}>`,
