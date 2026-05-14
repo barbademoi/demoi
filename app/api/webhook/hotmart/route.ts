@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barbearia, error: errBarbearia } = await (supabase as any)
     .from('barbearias')
-    .insert({ nome: `Barbearia ${primeiroNome}` })
+    .insert({ nome: `Barbearia ${primeiroNome}`, onboarding_completo: false })
     .select('id')
     .single()
 

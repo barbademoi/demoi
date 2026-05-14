@@ -6,8 +6,6 @@ export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // Sem as variáveis de ambiente o middleware não pode checar sessão —
-  // libera a requisição para o servidor tratar o auth.
   if (!supabaseUrl || !supabaseKey) {
     return NextResponse.next()
   }
@@ -39,19 +37,26 @@ export async function middleware(request: NextRequest) {
   try {
     const { data: { session } } = await supabase.auth.getSession()
 
-    const isAuthRoute     = pathname === '/login'
-    const isBarbeiroRoute = pathname.startsWith('/b/')
-    const isApiRoute      = pathname.startsWith('/api/')
-    const isAuthCallback  = pathname.startsWith('/auth/')
-    const isPasswordRoute = pathname === '/esqueci-senha' || pathname === '/redefinir-senha'
-    const isPublicRoute   = isAuthRoute || isBarbeiroRoute || isApiRoute ||
-                            isAuthCallback || isPasswordRoute
+    const isAuthRoute        = pathname === '/login'
+    const isBarbeiroRoute    = pathname.startsWith('/b/')
+    const isApiRoute         = pathname.startsWith('/api/')
+    const isAuthCallback     = pathname.startsWith('/auth/')
+    const isPasswordRoute    = pathname === '/esqueci-senha' || pathname === '/redefinir-senha'
+    const isOnboardingRoute  = pathname.startsWith('/onboarding')
+    const isPublicRoute      = isAuthRoute || isBarbeiroRoute || isApiRoute ||
+                               isAuthCallback || isPasswordRoute
 
     if (!session && !isPublicRoute) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
     if (session && isAuthRoute) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+
+    // Onboarding enforcement via cookie (sem query ao DB)
+    const onboardingRequired = request.cookies.get('onboarding_required')?.value === '1'
+    if (session && onboardingRequired && !isOnboardingRoute && !isPublicRoute) {
+      return NextResponse.redirect(new URL('/onboarding/passo-1', request.url))
     }
   } catch (err) {
     console.error('[middleware] erro ao verificar sessão:', err)
