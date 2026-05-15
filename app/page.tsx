@@ -5,6 +5,13 @@ import Solucao from '@/components/landing/Solucao'
 import Funcionalidades from '@/components/landing/Funcionalidades'
 import ProvasSocial from '@/components/landing/ProvasSocial'
 import Comparacao from '@/components/landing/Comparacao'
+import QuemSomos from '@/components/landing/QuemSomos'
+import Preco from '@/components/landing/Preco'
+import Garantia from '@/components/landing/Garantia'
+import FAQ from '@/components/landing/FAQ'
+import CTAFinal from '@/components/landing/CTAFinal'
+import Footer from '@/components/landing/Footer'
+import MobileStickyCTA from '@/components/landing/MobileStickyCTA'
 
 export const metadata = {
   title: 'BarberMeta — Metas claras. Equipe motivada. Sem cobrar.',
@@ -22,6 +29,13 @@ export default function LandingPage() {
       <Funcionalidades />
       <ProvasSocial />
       <Comparacao />
+      <QuemSomos />
+      <Preco />
+      <Garantia />
+      <FAQ />
+      <CTAFinal />
+      <Footer />
+      <MobileStickyCTA />
     </div>
   )
 }
