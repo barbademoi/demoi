@@ -10,31 +10,19 @@ const perguntas = [
   },
   {
     q: 'Meus barbeiros vão saber mexer?',
-    a: 'Sim. Quem usa WhatsApp consegue usar o BarberMeta. Cada barbeiro só precisa abrir um link e ver os próprios números. Simples.',
+    a: 'Sim. Quem usa WhatsApp consegue usar o BarberMeta. Cada barbeiro só precisa abrir um link e ver os próprios números.',
   },
   {
-    q: 'Funciona pra barbearia sozinha (1 só barbeiro)?',
-    a: 'Funciona, mas o sistema é desenhado pra equipe de 2 a 10 barbeiros. Se você é sozinho, talvez não aproveite o melhor — o ranking e a competição.',
+    q: 'Como cada barbeiro acessa o sistema?',
+    a: 'Cada barbeiro recebe um link único. Abre no celular, sem criar conta ou lembrar senha. É só abrir e ver.',
   },
   {
     q: 'Posso adicionar barbeiro depois?',
     a: 'Sim, quantos quiser, quando quiser. Sem custo extra.',
   },
   {
-    q: 'Funciona se eu pagar comissão por porcentagem?',
-    a: 'Sim. O sistema permite configurar o percentual de comissão de cada barbeiro individualmente.',
-  },
-  {
     q: 'A Hotmart cobra algum imposto extra?',
-    a: 'Não. O preço de R$ 47 é o valor final. Sem taxa de boleto, sem cobrança recorrente, sem surpresa no extrato.',
-  },
-  {
-    q: 'Posso pedir devolução depois de 7 dias?',
-    a: 'Pela Hotmart, sim — eles têm a política deles. Mas a nossa garantia oficial é dos 7 primeiros dias.',
-  },
-  {
-    q: 'Como cada barbeiro acessa o sistema?',
-    a: 'Cada barbeiro recebe um link único. Abre no celular, sem precisar criar conta ou lembrar senha. É só abrir e ver.',
+    a: 'Não. O preço de R$ 47 é o valor final. Sem taxa, sem cobrança recorrente, sem surpresa.',
   },
 ]
 
@@ -72,16 +60,16 @@ function Item({ q, a }: { q: string; a: string }) {
 
 export default function FAQ() {
   return (
-    <section className="bg-[#0F1F2D] py-24 px-4 sm:px-6">
+    <section className="bg-[#0F1F2D] py-16 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-3xl sm:text-4xl font-bold text-white text-center mb-12"
+          className="text-3xl font-bold text-white text-center mb-10"
         >
-          Perguntas que você deve estar fazendo:
+          Dúvidas frequentes
         </motion.h2>
 
         <motion.div

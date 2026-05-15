@@ -1,13 +1,9 @@
 import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
 import Dor from '@/components/landing/Dor'
-import Solucao from '@/components/landing/Solucao'
 import Funcionalidades from '@/components/landing/Funcionalidades'
 import ProvasSocial from '@/components/landing/ProvasSocial'
-import Comparacao from '@/components/landing/Comparacao'
-import QuemSomos from '@/components/landing/QuemSomos'
 import Preco from '@/components/landing/Preco'
-import Garantia from '@/components/landing/Garantia'
 import FAQ from '@/components/landing/FAQ'
 import CTAFinal from '@/components/landing/CTAFinal'
 import Footer from '@/components/landing/Footer'
@@ -25,13 +21,9 @@ export default function LandingPage() {
       <Navbar />
       <Hero />
       <Dor />
-      <Solucao />
       <Funcionalidades />
       <ProvasSocial />
-      <Comparacao />
-      <QuemSomos />
       <Preco />
-      <Garantia />
       <FAQ />
       <CTAFinal />
       <Footer />
