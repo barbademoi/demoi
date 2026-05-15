@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-function gerarSenha(): string {
-  const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  return Array.from({ length: 10 }, () =>
+function gerarSenhaInterna(): string {
+  const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*'
+  return Array.from({ length: 32 }, () =>
     chars[Math.floor(Math.random() * chars.length)]
   ).join('')
 }
@@ -12,7 +11,7 @@ function gerarSenha(): string {
 interface NormalizedPayload {
   event: string
   buyer: { name: string; email: string }
-  purchase: { status: string }
+  purchase: { status: string; transaction: string }
 }
 
 // Detecta a fonte do hottok e retorna valor + descrição para log
@@ -53,14 +52,20 @@ function normalizePayload(
     return {
       event,
       buyer:    { email: (f.email ?? '').toLowerCase().trim(), name },
-      purchase: { status: status === 'approved' ? 'APPROVED' : status.toUpperCase() },
+      purchase: {
+        status:      status === 'approved' ? 'APPROVED' : status.toUpperCase(),
+        transaction: (f.transaction ?? f.trk ?? '').trim(),
+      },
     }
   }
 
   // JSON aninhado (testes manuais / webhook v2 futura)
   const b = fields as {
     event?: string
-    data?: { buyer?: { name?: string; email?: string }; purchase?: { status?: string } }
+    data?: {
+      buyer?: { name?: string; email?: string }
+      purchase?: { status?: string; transaction?: string }
+    }
   }
   return {
     event:    b.event ?? '',
@@ -68,7 +73,10 @@ function normalizePayload(
       email: (b.data?.buyer?.email ?? '').toLowerCase().trim(),
       name:  (b.data?.buyer?.name  ?? '').trim(),
     },
-    purchase: { status: b.data?.purchase?.status ?? '' },
+    purchase: {
+      status:      b.data?.purchase?.status ?? '',
+      transaction: (b.data?.purchase?.transaction ?? '').trim(),
+    },
   }
 }
 
@@ -126,8 +134,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
 
-  const email = buyer.email
-  const nome  = buyer.name
+  const email           = buyer.email
+  const nome            = buyer.name
+  const hotmartTransaction = purchase.transaction
 
   // ── 5. Idempotência: checar se email já está cadastrado ───────────────────
   const supabase = createAdminClient()
@@ -162,7 +171,7 @@ export async function POST(request: NextRequest) {
   console.log('[webhook/hotmart] barbearia criada:', barbeariaId)
 
   // ── 7. Criar usuário Supabase Auth ────────────────────────────────────────
-  const senha = gerarSenha()
+  const senha = gerarSenhaInterna()
 
   const { data: authData, error: errAuth } = await supabase.auth.admin.createUser({
     email,
@@ -185,7 +194,13 @@ export async function POST(request: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: errUsuario } = await (supabase as any)
     .from('usuarios')
-    .insert({ id: userId, barbearia_id: barbeariaId, email, senha_temporaria: true })
+    .insert({
+      id: userId,
+      barbearia_id: barbeariaId,
+      email,
+      senha_definida: false,
+      hotmart_transaction: hotmartTransaction || null,
+    })
 
   if (errUsuario) {
     console.error('[webhook/hotmart] erro ao criar usuario:', errUsuario)
@@ -195,79 +210,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create usuario' }, { status: 500 })
   }
 
-  // ── 9. Enviar email de boas-vindas via Resend ─────────────────────────────
-  const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://barbermeta.vercel.app'
-  const fromEmail = process.env.RESEND_FROM_EMAIL   ?? 'onboarding@resend.dev'
-  const resend    = new Resend(process.env.RESEND_API_KEY)
-
-  const { error: errEmail } = await resend.emails.send({
-    from:    `BarberMeta <${fromEmail}>`,
-    to:      email,
-    subject: 'Bem-vindo ao BarberMeta! Acesse sua conta 🎉',
-    html: `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#0d0f14;font-family:'Segoe UI',sans-serif;color:#e8e0d0;">
-  <div style="max-width:520px;margin:40px auto;background:#141720;border-radius:16px;overflow:hidden;border:1px solid #2a2d38;">
-
-    <!-- Header -->
-    <div style="background:#141720;padding:36px 40px 28px;text-align:center;border-bottom:1px solid #2a2d38;">
-      <h1 style="margin:0;font-size:28px;color:#e8e0d0;font-weight:400;letter-spacing:-0.5px;">
-        Barber<span style="color:#c5a028;">Meta</span>
-      </h1>
-      <p style="margin:8px 0 0;color:#8b8fa8;font-size:13px;">Gestão de metas para barbearias</p>
-    </div>
-
-    <!-- Body -->
-    <div style="padding:36px 40px;">
-      <p style="margin:0 0 8px;color:#8b8fa8;font-size:13px;">Olá, ${primeiroNome}!</p>
-      <h2 style="margin:0 0 20px;font-size:20px;font-weight:400;color:#e8e0d0;">
-        Sua conta está pronta.
-      </h2>
-      <p style="margin:0 0 28px;color:#8b8fa8;font-size:14px;line-height:1.6;">
-        Use as credenciais abaixo para acessar o BarberMeta e começar a configurar sua barbearia.
-      </p>
-
-      <!-- Credenciais -->
-      <div style="background:#0d0f14;border-radius:12px;padding:20px 24px;margin-bottom:28px;border:1px solid #2a2d38;">
-        <div style="margin-bottom:16px;">
-          <p style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#8b8fa8;">Email</p>
-          <p style="margin:0;font-size:15px;color:#e8e0d0;">${email}</p>
-        </div>
-        <div>
-          <p style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#8b8fa8;">Senha temporária</p>
-          <p style="margin:0;font-size:18px;color:#c5a028;font-family:monospace;letter-spacing:2px;">${senha}</p>
-        </div>
-      </div>
-
-      <!-- CTA -->
-      <a href="${appUrl}/login" style="display:block;text-align:center;background:#c5a028;color:#0d0f14;text-decoration:none;padding:14px 24px;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:28px;">
-        Acessar o BarberMeta →
-      </a>
-
-      <p style="margin:0;font-size:12px;color:#8b8fa8;line-height:1.6;">
-        Após o primeiro acesso, recomendamos alterar a senha nas configurações da conta.<br>
-        Em caso de dúvidas, responda este email.
-      </p>
-    </div>
-
-    <!-- Footer -->
-    <div style="padding:20px 40px;border-top:1px solid #2a2d38;text-align:center;">
-      <p style="margin:0;font-size:11px;color:#4a4d5e;">
-        © ${new Date().getFullYear()} BarberMeta. Esta mensagem foi gerada automaticamente.
-      </p>
-    </div>
-  </div>
-</body>
-</html>
-    `.trim(),
-  })
-
-  if (errEmail) {
-    console.error('[webhook/hotmart] erro ao enviar email:', errEmail)
-  }
+  // ── 9. Conta criada — usuário vai definir a senha via /boas-vindas ─────────
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://barbermeta.vercel.app'
+  const boasVindasUrl = `${appUrl}/boas-vindas?t=${hotmartTransaction}&e=${encodeURIComponent(email)}`
 
   console.log('[webhook/hotmart] conta criada com sucesso:', email, '| barbearia:', barbeariaId)
+  console.log('[webhook/hotmart] link boas-vindas:', boasVindasUrl)
   return NextResponse.json({ ok: true })
 }
