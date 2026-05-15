@@ -5,7 +5,7 @@ export default function Footer() {
     <footer className="bg-[#060F18] border-t border-white/5 py-10 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto flex flex-col items-center gap-4 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-barbermeta.jpg" alt="BarberMeta" className="h-14 w-auto rounded-sm" />
+        <img src="/logo-barbermeta.png" alt="BarberMeta" className="h-14 w-auto rounded-sm" />
         <p className="text-[#A0AEC0] text-sm">
           © 2026 BarberMeta · Cássia / MG
         </p>

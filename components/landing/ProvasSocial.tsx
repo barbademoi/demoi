@@ -32,7 +32,7 @@ export default function ProvasSocial() {
             <div className="shrink-0 w-40 sm:w-52">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/prints/foto-pensativo.jpg"
+                src="/prints/foto-pensativo.png"
                 alt="Carlos Henrique — Demôi Barbearia"
                 className="w-full h-auto rounded-2xl shadow-xl"
               />

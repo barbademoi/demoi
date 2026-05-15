@@ -18,7 +18,7 @@ export default function Navbar() {
         <Link href="/" className="shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo-barbermeta.jpg"
+            src="/logo-barbermeta.png"
             alt="BarberMeta"
             className="h-10 w-auto rounded-sm"
           />

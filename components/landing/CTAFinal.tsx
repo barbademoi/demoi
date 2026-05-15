@@ -59,7 +59,7 @@ export default function CTAFinal() {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/prints/foto-apontando.jpg"
+              src="/prints/foto-apontando.png"
               alt="Carlos Henrique recomenda o BarberMeta"
               className="w-full h-auto rounded-2xl shadow-2xl"
             />

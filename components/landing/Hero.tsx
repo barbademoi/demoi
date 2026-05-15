@@ -76,7 +76,7 @@ export default function Hero() {
               <div aria-hidden className="absolute -inset-4 rounded-3xl blur-2xl opacity-15 bg-[#D4A85A]" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/prints/foto-celular.jpg"
+                src="/prints/foto-celular.png"
                 alt="Carlos Henrique — dono da Demôi Barbearia"
                 className="relative w-full h-auto rounded-2xl shadow-2xl"
               />
