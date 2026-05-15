@@ -3,6 +3,8 @@ import Hero from '@/components/landing/Hero'
 import Dor from '@/components/landing/Dor'
 import Solucao from '@/components/landing/Solucao'
 import Funcionalidades from '@/components/landing/Funcionalidades'
+import ProvasSocial from '@/components/landing/ProvasSocial'
+import Comparacao from '@/components/landing/Comparacao'
 
 export const metadata = {
   title: 'BarberMeta — Metas claras. Equipe motivada. Sem cobrar.',
@@ -18,6 +20,8 @@ export default function LandingPage() {
       <Dor />
       <Solucao />
       <Funcionalidades />
+      <ProvasSocial />
+      <Comparacao />
     </div>
   )
 }
