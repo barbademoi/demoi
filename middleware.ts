@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   try {
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user } } = await supabase.auth.getUser()
 
     const isAuthRoute        = pathname === '/login'
     const isBarbeiroRoute    = pathname.startsWith('/b/')
@@ -49,16 +49,16 @@ export async function middleware(request: NextRequest) {
                                isAuthCallback || isPasswordRoute || isLandingRoute ||
                                isBoasVindasRoute
 
-    if (!session && !isPublicRoute) {
+    if (!user && !isPublicRoute) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
-    if (session && isAuthRoute) {
+    if (user && isAuthRoute) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
     // Onboarding enforcement via cookie (sem query ao DB)
     const onboardingRequired = request.cookies.get('onboarding_required')?.value === '1'
-    if (session && onboardingRequired && !isOnboardingRoute && !isPublicRoute) {
+    if (user && onboardingRequired && !isOnboardingRoute && !isPublicRoute) {
       return NextResponse.redirect(new URL('/onboarding/passo-1', request.url))
     }
   } catch (err) {
