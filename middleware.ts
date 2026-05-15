@@ -45,9 +45,11 @@ export async function middleware(request: NextRequest) {
     const isOnboardingRoute  = pathname.startsWith('/onboarding')
     const isLandingRoute     = pathname === '/'
     const isBoasVindasRoute  = pathname === '/boas-vindas'
+    const isComprarRoute     = pathname === '/comprar'
+    const isAguardandoRoute  = pathname === '/aguardando'
     const isPublicRoute      = isAuthRoute || isBarbeiroRoute || isApiRoute ||
                                isAuthCallback || isPasswordRoute || isLandingRoute ||
-                               isBoasVindasRoute
+                               isBoasVindasRoute || isComprarRoute || isAguardandoRoute
 
     if (!user && !isPublicRoute) {
       return NextResponse.redirect(new URL('/login', request.url))
@@ -66,6 +68,8 @@ export async function middleware(request: NextRequest) {
     const isPublicRoute = pathname === '/' ||
                           pathname === '/login' ||
                           pathname === '/boas-vindas' ||
+                          pathname === '/comprar' ||
+                          pathname === '/aguardando' ||
                           pathname.startsWith('/b/') ||
                           pathname.startsWith('/api/') ||
                           pathname.startsWith('/auth/') ||

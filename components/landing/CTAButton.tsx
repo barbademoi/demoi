@@ -9,7 +9,7 @@ interface Props {
 }
 
 const PRECO = process.env.NEXT_PUBLIC_PRECO ?? '47'
-const CHECKOUT_URL = 'https://pay.hotmart.com/D105833676F?sck=HOTMART_PRODUCT_PAGE&off=9rjhgvlk&hotfeature=32'
+const CHECKOUT_URL = process.env.NEXT_PUBLIC_CHECKOUT_URL ?? '/comprar'
 
 export default function CTAButton({ size = 'lg', className = '', label }: Props) {
   const text = label ?? `Quero o BarberMeta — R$ ${PRECO}`
@@ -23,8 +23,8 @@ export default function CTAButton({ size = 'lg', className = '', label }: Props)
   return (
     <motion.a
       href={CHECKOUT_URL}
-      target="_blank"
-      rel="noopener noreferrer"
+      target={CHECKOUT_URL.startsWith('http') ? '_blank' : undefined}
+      rel={CHECKOUT_URL.startsWith('http') ? 'noopener noreferrer' : undefined}
       whileHover={{ scale: 1.03 }}
       whileTap={{ scale: 0.97 }}
       className={`
