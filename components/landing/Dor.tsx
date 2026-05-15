@@ -31,7 +31,7 @@ const dores = [
 
 export default function Dor() {
   return (
-    <section className="bg-[#0F1F2D] py-24 px-4 sm:px-6">
+    <section className="bg-[#0F1F2D] py-16 px-4 sm:px-6">
       <div className="max-w-5xl mx-auto">
 
         <motion.h2
@@ -39,7 +39,7 @@ export default function Dor() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-3xl sm:text-4xl font-bold text-white text-center mb-14"
+          className="text-3xl sm:text-4xl font-bold text-white text-center mb-10"
         >
           Você reconhece alguma dessas?
         </motion.h2>
@@ -68,7 +68,7 @@ export default function Dor() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.4 }}
-          className="mt-14 text-center text-xl sm:text-2xl font-semibold"
+          className="mt-10 text-center text-xl sm:text-2xl font-semibold"
         >
           <span className="text-white">Tudo isso se resolve com </span>
           <span className="text-[#D4A85A]">1 sistema simples.</span>

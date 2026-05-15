@@ -22,7 +22,7 @@ const incluso = [
 
 export default function Preco() {
   return (
-    <section className="bg-[#0F1F2D] py-24 px-4 sm:px-6">
+    <section className="bg-[#0F1F2D] py-16 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto">
 
         <motion.h2

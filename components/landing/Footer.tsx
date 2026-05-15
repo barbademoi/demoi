@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function Footer() {
   return (
     <footer className="bg-[#060F18] border-t border-white/5 py-10 px-4 sm:px-6">
@@ -12,6 +14,12 @@ export default function Footer() {
         <p className="text-[#A0AEC0] text-sm">
           suporte@barbermeta.com.br
         </p>
+        <Link
+          href="/login"
+          className="text-sm text-[#D4A85A] hover:text-white transition-colors"
+        >
+          Já é cliente? Acessar minha conta →
+        </Link>
         <div className="flex gap-4 text-xs text-[#A0AEC0]">
           <a href="/privacidade" className="hover:text-white transition-colors">Política de privacidade</a>
           <span>·</span>

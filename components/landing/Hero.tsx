@@ -77,8 +77,8 @@ export default function Hero() {
               <div aria-hidden className="absolute -inset-4 rounded-3xl blur-2xl opacity-20 bg-[#D4A85A]" />
               <div className="relative rounded-2xl border border-[#D4A85A]/40 overflow-hidden shadow-2xl">
                 <Image
-                  src="/prints/03-mobile-view.png"
-                  alt="Dashboard BarberMeta — meta coletiva e ranking"
+                  src="/prints/01-dashboard-ranking.jpg"
+                  alt="Ranking ao vivo dos barbeiros — BarberMeta"
                   width={360}
                   height={720}
                   className="w-full h-auto"

@@ -7,7 +7,7 @@ const PRECO = process.env.NEXT_PUBLIC_PRECO ?? '47'
 
 export default function CTAFinal() {
   return (
-    <section className="bg-[#0A1929] py-24 px-4 sm:px-6">
+    <section className="bg-[#0A1929] py-16 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto text-center">
 
         <motion.h2

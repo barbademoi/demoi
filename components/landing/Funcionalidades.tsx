@@ -15,7 +15,7 @@ const smallCards = [
   {
     emoji: '⚡',
     titulo: 'Lançamento em 2 minutos',
-    texto: 'Lança o faturamento do dia em 1 tela. Sem planilha.',
+    texto: 'Registra o faturamento do dia em 1 tela. Sem planilha, sem app complicado.',
   },
   {
     emoji: '🖼️',
@@ -23,27 +23,27 @@ const smallCards = [
     texto: 'Baixa o card de cada barbeiro e manda no grupo. Bonito, profissional.',
   },
   {
-    emoji: '📅',
-    titulo: 'Histórico mês a mês',
-    texto: 'Vê quem bateu meta em cada mês. Histórico completo de produtividade.',
+    emoji: '🏅',
+    titulo: 'Campanha de pontos',
+    texto: 'Configure quais serviços pontuam e quantos pontos. Assinatura, hidratação, produto vendido.',
   },
 ]
 
 export default function Funcionalidades() {
   return (
-    <section className="bg-[#0F1F2D] py-24 px-4 sm:px-6">
+    <section className="bg-[#0F1F2D] py-20 px-4 sm:px-6">
       <div className="max-w-5xl mx-auto">
 
         <motion.h2
           {...fadeIn()}
-          className="text-3xl sm:text-4xl font-bold text-white text-center mb-4"
+          className="text-3xl sm:text-4xl font-bold text-white text-center mb-3"
         >
           Tudo que você precisa,{' '}
           <span className="text-[#D4A85A]">nada que você não precisa.</span>
         </motion.h2>
         <motion.p
           {...fadeIn(0.1)}
-          className="text-center text-[#A0AEC0] text-lg mb-14"
+          className="text-center text-[#A0AEC0] text-lg mb-12"
         >
           Simples de usar. Funciona no celular.
         </motion.p>
@@ -65,7 +65,7 @@ export default function Funcionalidades() {
             </div>
             <div className="sm:w-1/2 flex items-start justify-center p-4 pt-0 sm:pt-4">
               <Image
-                src="/prints/01-dashboard-ranking.png"
+                src="/prints/01-dashboard-ranking.jpg"
                 alt="Ranking ao vivo dos barbeiros"
                 width={340}
                 height={600}
@@ -74,46 +74,46 @@ export default function Funcionalidades() {
             </div>
           </motion.div>
 
-          {/* card médio — metas B/P/O */}
+          {/* card — link individual do barbeiro */}
           <motion.div
             {...fadeIn(0.2)}
             className="rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col"
           >
             <div className="p-4 pb-0">
               <Image
-                src="/prints/02-card-barbeiro.png"
-                alt="Metas Bronze, Prata e Ouro"
+                src="/prints/03-barbeiro-individual.jpg"
+                alt="Página individual do barbeiro"
                 width={360}
                 height={640}
                 className="w-full h-auto rounded-xl"
               />
             </div>
             <div className="p-6 pt-4">
-              <h3 className="text-white font-bold text-lg mb-1">Metas Bronze / Prata / Ouro</h3>
+              <h3 className="text-white font-bold text-lg mb-1">Link individual por barbeiro</h3>
               <p className="text-[#A0AEC0] text-sm leading-relaxed">
-                3 metas pra cada barbeiro, cada uma com seu prêmio. Quem é Ouro fica orgulhoso. Quem é Bronze quer mais.
+                Cada barbeiro tem seu próprio link. Acessa pelo celular, vê comissão, ritmo e metas — sem senha.
               </p>
             </div>
           </motion.div>
 
-          {/* card médio — acesso mobile */}
+          {/* card — meta coletiva */}
           <motion.div
             {...fadeIn(0.25)}
             className="rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col"
           >
             <div className="p-4 pb-0">
               <Image
-                src="/prints/03-mobile-view.png"
-                alt="Acesso individual pelo celular"
+                src="/prints/05-meta-coletiva.jpg"
+                alt="Meta coletiva da barbearia"
                 width={360}
                 height={640}
                 className="w-full h-auto rounded-xl"
               />
             </div>
             <div className="p-6 pt-4">
-              <h3 className="text-white font-bold text-lg mb-1">Acesso individual pelo celular</h3>
+              <h3 className="text-white font-bold text-lg mb-1">Meta coletiva da equipe</h3>
               <p className="text-[#A0AEC0] text-sm leading-relaxed">
-                Cada barbeiro tem seu próprio link. Acessa pelo celular sem precisar de senha complicada.
+                Defina uma meta geral pra barbearia com premiação. Todo mundo puxa junto.
               </p>
             </div>
           </motion.div>
@@ -133,10 +133,10 @@ export default function Funcionalidades() {
 
         </div>
 
-        {/* CTA #2 */}
+        {/* CTA */}
         <motion.div
           {...fadeIn(0.5)}
-          className="mt-14 flex justify-center"
+          className="mt-12 flex justify-center"
         >
           <CTAButton />
         </motion.div>
