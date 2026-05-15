@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import { motion, type Variants } from 'framer-motion'
 import CTAButton from './CTAButton'
 
@@ -68,24 +67,23 @@ export default function Hero() {
             </motion.div>
           </div>
 
-          {/* ── mockup ── */}
+          {/* ── foto ── */}
           <motion.div
             custom={1} variants={fadeUp} initial="hidden" animate="show"
-            className="order-1 lg:order-2 flex justify-center"
+            className="order-1 lg:order-2 flex flex-col items-center gap-3"
           >
-            <div className="relative w-full max-w-[300px] sm:max-w-[360px]">
-              <div aria-hidden className="absolute -inset-4 rounded-3xl blur-2xl opacity-20 bg-[#D4A85A]" />
-              <div className="relative rounded-2xl border border-[#D4A85A]/40 overflow-hidden shadow-2xl">
-                <Image
-                  src="/prints/01-dashboard-ranking.jpg"
-                  alt="Ranking ao vivo dos barbeiros — BarberMeta"
-                  width={360}
-                  height={720}
-                  className="w-full h-auto"
-                  priority
-                />
-              </div>
+            <div className="relative w-full max-w-[280px] sm:max-w-[320px]">
+              <div aria-hidden className="absolute -inset-4 rounded-3xl blur-2xl opacity-15 bg-[#D4A85A]" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/prints/foto-celular.png"
+                alt="Carlos Henrique usando o BarberMeta no celular"
+                className="relative w-full h-auto rounded-2xl shadow-2xl"
+              />
             </div>
+            <p className="text-[#A0AEC0] text-xs text-center">
+              Funciona no celular, computador ou tablet — de onde você estiver
+            </p>
           </motion.div>
         </div>
 
