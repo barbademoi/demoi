@@ -12,7 +12,7 @@ const fadeIn = (delay = 0) => ({
 export default function ProvasSocial() {
   return (
     <section className="bg-[#0A1929] py-16 px-4 sm:px-6">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto">
 
         <motion.h2
           {...fadeIn()}
@@ -26,11 +26,20 @@ export default function ProvasSocial() {
           {...fadeIn(0.1)}
           className="rounded-2xl border border-white/8 bg-[#0F1F2D] p-8 sm:p-10"
         >
-          <div className="flex items-start gap-5">
-            <div className="shrink-0 w-12 h-12 rounded-full bg-[#D4A85A]/20 border border-[#D4A85A]/40 flex items-center justify-center text-xl">
-              ✂️
+          <div className="flex flex-col sm:flex-row gap-8 items-center sm:items-start">
+
+            {/* retrato */}
+            <div className="shrink-0 w-40 sm:w-52">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/prints/foto-pensativo.jpg"
+                alt="Carlos Henrique — Demôi Barbearia"
+                className="w-full h-auto rounded-2xl shadow-xl"
+              />
             </div>
-            <div>
+
+            {/* depoimento */}
+            <div className="flex-1">
               <p className="text-[#E2E8F0] text-base sm:text-lg leading-relaxed">
                 Sou Carlos Henrique, dono da{' '}
                 <strong className="text-white">Demôi Barbearia</strong> em Cássia&nbsp;/&nbsp;MG.
@@ -52,6 +61,7 @@ export default function ProvasSocial() {
                 {' '}· Demôi Barbearia · Cássia / MG
               </p>
             </div>
+
           </div>
         </motion.div>
 
