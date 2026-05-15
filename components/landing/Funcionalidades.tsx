@@ -70,6 +70,7 @@ export default function Funcionalidades() {
                 width={340}
                 height={600}
                 className="w-full h-auto rounded-xl object-contain"
+                unoptimized
               />
             </div>
           </motion.div>
@@ -86,6 +87,7 @@ export default function Funcionalidades() {
                 width={360}
                 height={640}
                 className="w-full h-auto rounded-xl"
+                unoptimized
               />
             </div>
             <div className="p-6 pt-4">
@@ -108,6 +110,7 @@ export default function Funcionalidades() {
                 width={360}
                 height={640}
                 className="w-full h-auto rounded-xl"
+                unoptimized
               />
             </div>
             <div className="p-6 pt-4">
