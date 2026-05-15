@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import { motion } from 'framer-motion'
 import CTAButton from './CTAButton'
 
@@ -64,13 +63,11 @@ export default function Funcionalidades() {
               </p>
             </div>
             <div className="sm:w-1/2 flex items-start justify-center p-4 pt-0 sm:pt-4">
-              <Image
-                src="/prints/01-dashboard-ranking.jpg"
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/prints/01-dashboard-ranking.png"
                 alt="Ranking ao vivo dos barbeiros"
-                width={340}
-                height={600}
-                className="w-full h-auto rounded-xl object-contain"
-                unoptimized
+                className="w-full h-auto rounded-xl"
               />
             </div>
           </motion.div>
@@ -81,13 +78,11 @@ export default function Funcionalidades() {
             className="rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col"
           >
             <div className="p-4 pb-0">
-              <Image
-                src="/prints/03-barbeiro-individual.jpg"
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/prints/03-barbeiro-individual.png"
                 alt="Página individual do barbeiro"
-                width={360}
-                height={640}
                 className="w-full h-auto rounded-xl"
-                unoptimized
               />
             </div>
             <div className="p-6 pt-4">
@@ -104,13 +99,11 @@ export default function Funcionalidades() {
             className="rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col"
           >
             <div className="p-4 pb-0">
-              <Image
-                src="/prints/05-meta-coletiva.jpg"
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/prints/05-meta-coletiva.png"
                 alt="Meta coletiva da barbearia"
-                width={360}
-                height={640}
                 className="w-full h-auto rounded-xl"
-                unoptimized
               />
             </div>
             <div className="p-6 pt-4">

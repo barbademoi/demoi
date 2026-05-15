@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import { motion, type Variants } from 'framer-motion'
 import CTAButton from './CTAButton'
 
@@ -76,14 +75,11 @@ export default function Hero() {
             <div className="relative w-full max-w-[300px] sm:max-w-[360px]">
               <div aria-hidden className="absolute -inset-4 rounded-3xl blur-2xl opacity-20 bg-[#D4A85A]" />
               <div className="relative rounded-2xl border border-[#D4A85A]/40 overflow-hidden shadow-2xl">
-                <Image
-                  src="/prints/01-dashboard-ranking.jpg"
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/prints/01-dashboard-ranking.png"
                   alt="Ranking ao vivo dos barbeiros — BarberMeta"
-                  width={360}
-                  height={720}
                   className="w-full h-auto"
-                  priority
-                  unoptimized
                 />
               </div>
             </div>
