@@ -12,9 +12,9 @@ const passos = [
   },
   {
     num: '2',
-    titulo: 'A equipe acessa pelo celular',
+    titulo: 'Cada barbeiro recebe um link próprio',
     texto:
-      'Cada barbeiro abre o link no celular e vê: o quanto já fez, o quanto falta pra cada meta, e onde está no ranking da equipe.',
+      'Sem app, sem senha. Cada barbeiro abre o link no celular e vê: comissão acumulada, quanto falta pra cada meta e onde está no ranking da equipe.',
   },
   {
     num: '3',

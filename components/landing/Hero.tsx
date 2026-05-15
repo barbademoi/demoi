@@ -5,18 +5,16 @@ import { motion, type Variants } from 'framer-motion'
 import CTAButton from './CTAButton'
 
 const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 28 },
+  hidden: { opacity: 0, y: 24 },
   show: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.55, delay: i * 0.12, ease: 'easeOut' },
+    opacity: 1, y: 0,
+    transition: { duration: 0.5, delay: i * 0.11, ease: 'easeOut' },
   }),
 }
 
 export default function Hero() {
   return (
     <section className="relative min-h-screen bg-[#0A1929] flex items-center pt-16">
-      {/* subtle grid overlay */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.03]"
@@ -27,8 +25,8 @@ export default function Hero() {
         }}
       />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20 w-full">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 w-full">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
           {/* ── texto ── */}
           <div className="order-2 lg:order-1 text-center lg:text-left">
@@ -43,16 +41,25 @@ export default function Hero() {
 
             <motion.p
               custom={1} variants={fadeUp} initial="hidden" animate="show"
-              className="mt-6 text-[#A0AEC0] text-lg sm:text-xl leading-relaxed"
+              className="mt-5 text-[#A0AEC0] text-lg leading-relaxed"
             >
-              Sistema feito por dono de barbearia que cansou de mandar meta
-              por texto no WhatsApp. Cada barbeiro vê o próprio ranking.
+              Cada barbeiro acompanha o próprio resultado pelo celular —
+              comissão acumulada, posição no ranking e quanto falta pra cada meta.
               Quem está atrás, acelera sozinho.
             </motion.p>
 
+            {/* destaque link individual */}
             <motion.div
               custom={2} variants={fadeUp} initial="hidden" animate="show"
-              className="mt-8 flex flex-col items-center lg:items-start gap-3"
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#D4A85A]/10 border border-[#D4A85A]/25 px-4 py-2.5 text-sm text-[#D4A85A]"
+            >
+              <span>🔗</span>
+              <span>Cada barbeiro tem seu link único — sem senha, sem app</span>
+            </motion.div>
+
+            <motion.div
+              custom={3} variants={fadeUp} initial="hidden" animate="show"
+              className="mt-7 flex flex-col items-center lg:items-start gap-3"
             >
               <CTAButton />
               <p className="text-sm text-[#A0AEC0]">
@@ -66,17 +73,13 @@ export default function Hero() {
             custom={1} variants={fadeUp} initial="hidden" animate="show"
             className="order-1 lg:order-2 flex justify-center"
           >
-            <div className="relative w-full max-w-[340px] sm:max-w-[400px]">
-              {/* glow */}
-              <div
-                aria-hidden
-                className="absolute -inset-4 rounded-3xl blur-2xl opacity-20 bg-[#D4A85A]"
-              />
+            <div className="relative w-full max-w-[300px] sm:max-w-[360px]">
+              <div aria-hidden className="absolute -inset-4 rounded-3xl blur-2xl opacity-20 bg-[#D4A85A]" />
               <div className="relative rounded-2xl border border-[#D4A85A]/40 overflow-hidden shadow-2xl">
                 <Image
                   src="/prints/03-mobile-view.png"
                   alt="Dashboard BarberMeta — meta coletiva e ranking"
-                  width={400}
+                  width={360}
                   height={720}
                   className="w-full h-auto"
                   priority
@@ -88,11 +91,11 @@ export default function Hero() {
 
         {/* ── trust strip ── */}
         <motion.div
-          custom={3} variants={fadeUp} initial="hidden" animate="show"
-          className="mt-16 pt-8 border-t border-white/5 flex items-center justify-center gap-3 text-[#A0AEC0] text-sm"
+          custom={4} variants={fadeUp} initial="hidden" animate="show"
+          className="mt-12 pt-8 border-t border-white/5 flex items-center justify-center gap-3 text-[#A0AEC0] text-sm"
         >
-          <span className="text-base">🏠</span>
-          <span>Usado pela <strong className="text-white">Demôi Barbearia</strong> · Cássia / MG</span>
+          <span>🏠</span>
+          <span>Usado pela <strong className="text-white">Demôi Barbearia</strong> · Cássia / MG · 7 barbeiros</span>
         </motion.div>
       </div>
     </section>
