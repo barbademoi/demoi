@@ -15,10 +15,14 @@ export default function Navbar() {
       className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0A1929]/80 backdrop-blur-md"
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-        <span className="font-bold text-xl tracking-tight shrink-0">
-          <span className="text-white">Barber</span>
-          <span className="text-[#D4A85A]">Meta</span>
-        </span>
+        <Link href="/" className="shrink-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-barbermeta.jpg"
+            alt="BarberMeta"
+            className="h-10 w-auto rounded-sm"
+          />
+        </Link>
 
         <div className="flex items-center gap-3">
           {/* desktop */}

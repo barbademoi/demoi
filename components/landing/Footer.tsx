@@ -4,10 +4,8 @@ export default function Footer() {
   return (
     <footer className="bg-[#060F18] border-t border-white/5 py-10 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto flex flex-col items-center gap-4 text-center">
-        <span className="font-bold text-xl">
-          <span className="text-white">Barber</span>
-          <span className="text-[#D4A85A]">Meta</span>
-        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-barbermeta.jpg" alt="BarberMeta" className="h-14 w-auto rounded-sm" />
         <p className="text-[#A0AEC0] text-sm">
           © 2026 BarberMeta · Cássia / MG
         </p>
