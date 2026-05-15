@@ -63,12 +63,13 @@ export default function Funcionalidades() {
                 Cada barbeiro vê onde está. Quem tá atrás, corre. Sem você precisar falar nada.
               </p>
             </div>
-            <div className="sm:w-1/2 relative min-h-[220px] overflow-hidden">
+            <div className="sm:w-1/2 flex items-start justify-center p-4 pt-0 sm:pt-4">
               <Image
                 src="/prints/01-dashboard-ranking.png"
                 alt="Ranking ao vivo dos barbeiros"
-                fill
-                className="object-cover object-top"
+                width={340}
+                height={600}
+                className="w-full h-auto rounded-xl object-contain"
               />
             </div>
           </motion.div>
@@ -78,15 +79,16 @@ export default function Funcionalidades() {
             {...fadeIn(0.2)}
             className="rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col"
           >
-            <div className="relative h-44 overflow-hidden">
+            <div className="p-4 pb-0">
               <Image
                 src="/prints/02-card-barbeiro.png"
                 alt="Metas Bronze, Prata e Ouro"
-                fill
-                className="object-cover object-top"
+                width={360}
+                height={640}
+                className="w-full h-auto rounded-xl"
               />
             </div>
-            <div className="p-6">
+            <div className="p-6 pt-4">
               <h3 className="text-white font-bold text-lg mb-1">Metas Bronze / Prata / Ouro</h3>
               <p className="text-[#A0AEC0] text-sm leading-relaxed">
                 3 metas pra cada barbeiro, cada uma com seu prêmio. Quem é Ouro fica orgulhoso. Quem é Bronze quer mais.
@@ -99,15 +101,16 @@ export default function Funcionalidades() {
             {...fadeIn(0.25)}
             className="rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col"
           >
-            <div className="relative h-44 overflow-hidden">
+            <div className="p-4 pb-0">
               <Image
                 src="/prints/03-mobile-view.png"
                 alt="Acesso individual pelo celular"
-                fill
-                className="object-cover object-top"
+                width={360}
+                height={640}
+                className="w-full h-auto rounded-xl"
               />
             </div>
-            <div className="p-6">
+            <div className="p-6 pt-4">
               <h3 className="text-white font-bold text-lg mb-1">Acesso individual pelo celular</h3>
               <p className="text-[#A0AEC0] text-sm leading-relaxed">
                 Cada barbeiro tem seu próprio link. Acessa pelo celular sem precisar de senha complicada.
