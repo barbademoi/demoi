@@ -12,13 +12,19 @@ type Treinamento = {
   duracao: string | null
 }
 
+type Stats = {
+  pendentes: number
+  aprovadas_hoje: number
+}
+
 interface Props {
   treinamentos: Treinamento[]
+  stats: Stats
 }
 
 const VAZIO: Omit<Treinamento, 'id'> = { ordem: 0, titulo: '', descricao: '', youtube_id: '', duracao: '' }
 
-export default function AdminTreinamentosClient({ treinamentos }: Props) {
+export default function AdminTreinamentosClient({ treinamentos, stats }: Props) {
   const [editando, setEditando] = useState<Treinamento | null>(null)
   const [adicionando, setAdicionando] = useState(false)
   const [novo, setNovo] = useState({ ...VAZIO })
@@ -61,6 +67,23 @@ export default function AdminTreinamentosClient({ treinamentos }: Props) {
             + Adicionar
           </button>
         </div>
+
+        {(stats.pendentes > 0 || stats.aprovadas_hoje > 0) && (
+          <div className="flex gap-4 mb-6 text-sm font-sans">
+            {stats.pendentes > 0 && (
+              <span className="flex items-center gap-1.5 text-yellow-400">
+                <span className="inline-block w-2 h-2 rounded-full bg-yellow-400" />
+                {stats.pendentes} compra{stats.pendentes !== 1 ? 's' : ''} pendente{stats.pendentes !== 1 ? 's' : ''}
+              </span>
+            )}
+            {stats.aprovadas_hoje > 0 && (
+              <span className="flex items-center gap-1.5 text-green-400">
+                <span className="inline-block w-2 h-2 rounded-full bg-green-400" />
+                {stats.aprovadas_hoje} aprovada{stats.aprovadas_hoje !== 1 ? 's' : ''} hoje
+              </span>
+            )}
+          </div>
+        )}
 
         {erro && (
           <p className="mb-4 text-red-400 text-sm font-sans text-center">{erro}</p>
