@@ -43,8 +43,9 @@ export async function middleware(request: NextRequest) {
     const isAuthCallback     = pathname.startsWith('/auth/')
     const isPasswordRoute    = pathname === '/esqueci-senha' || pathname === '/redefinir-senha'
     const isOnboardingRoute  = pathname.startsWith('/onboarding')
+    const isLandingRoute     = pathname === '/'
     const isPublicRoute      = isAuthRoute || isBarbeiroRoute || isApiRoute ||
-                               isAuthCallback || isPasswordRoute
+                               isAuthCallback || isPasswordRoute || isLandingRoute
 
     if (!session && !isPublicRoute) {
       return NextResponse.redirect(new URL('/login', request.url))
@@ -60,7 +61,8 @@ export async function middleware(request: NextRequest) {
     }
   } catch (err) {
     console.error('[middleware] erro ao verificar sessão:', err)
-    const isPublicRoute = pathname === '/login' ||
+    const isPublicRoute = pathname === '/' ||
+                          pathname === '/login' ||
                           pathname.startsWith('/b/') ||
                           pathname.startsWith('/api/') ||
                           pathname.startsWith('/auth/') ||
