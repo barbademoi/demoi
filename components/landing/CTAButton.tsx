@@ -9,7 +9,7 @@ interface Props {
 }
 
 const PRECO = process.env.NEXT_PUBLIC_PRECO ?? '47'
-const CHECKOUT_URL = process.env.NEXT_PUBLIC_HOTMART_CHECKOUT_URL ?? 'https://go.hotmart.com/D105833676F'
+const CHECKOUT_URL = process.env.NEXT_PUBLIC_HOTMART_CHECKOUT_URL ?? 'https://pay.hotmart.com/D105833676F?sck=HOTMART_PRODUCT_PAGE&off=9rjhgvlk&hotfeature=32'
 
 export default function CTAButton({ size = 'lg', className = '', label }: Props) {
   const text = label ?? `Quero o BarberMeta — R$ ${PRECO}`
