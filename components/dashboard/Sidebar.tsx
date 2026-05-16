@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/app/login/actions'
@@ -12,7 +12,14 @@ interface Props {
   showFerramentas?: boolean
 }
 
-const navItems = [
+type NavItem = {
+  href: string
+  label: string
+  icon: ReactNode
+  badge?: string
+}
+
+const navItems: NavItem[] = [
   {
     href: '/dashboard',
     label: 'Dashboard',
@@ -37,6 +44,7 @@ const navItems = [
   {
     href: '/treinamentos',
     label: 'Treinamentos',
+    badge: 'EM BREVE',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
         <circle cx="12" cy="12" r="10" />
@@ -133,7 +141,14 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
                 `}
               >
                 {item.icon}
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {item.badge && (
+                  <span
+                    className="text-[9px] font-semibold tracking-wider px-1.5 py-0.5 rounded border border-[#D4A85A]/40 text-[#D4A85A]/80"
+                  >
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             )
           })}
