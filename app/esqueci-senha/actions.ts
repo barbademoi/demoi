@@ -45,25 +45,39 @@ export async function verificarCodigo(email: string, codigo: string) {
     return { error: 'Email não informado. Volte e tente de novo.' }
   }
 
-  try {
-    const supabase = createClient()
-    const { error } = await supabase.auth.verifyOtp({
-      email: emailNormalizado,
-      token: codigoLimpo,
-      type: 'email',
-    })
+  const supabase = createClient()
 
-    if (error) {
-      console.warn('[esqueci-senha] verifyOtp falhou:', error.message)
-      if (/expired/i.test(error.message)) {
-        return { error: 'Código expirou. Clique em "Não recebi" para receber outro.' }
+  // Tenta type 'email' primeiro; se Supabase tratou o envio como magic link
+  // (template usa {{ .Token }} mas tabela interna marca como magiclink),
+  // o fallback resolve sem o usuário perceber.
+  const tentativas: Array<'email' | 'magiclink'> = ['email', 'magiclink']
+  let ultimoErro: string | null = null
+
+  for (const type of tentativas) {
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: emailNormalizado,
+        token: codigoLimpo,
+        type,
+      })
+
+      if (!error) {
+        // Sucesso — sai do server action via redirect
+        redirect('/redefinir-senha')
       }
-      return { error: 'Código incorreto. Verifique e tente de novo.' }
+
+      ultimoErro = error.message
+      console.warn('[esqueci-senha] verifyOtp type=%s falhou: %s', type, error.message)
+    } catch (err) {
+      // redirect() levanta exceção própria do Next que NÃO devemos engolir
+      if (err && typeof err === 'object' && 'digest' in err) throw err
+      console.error('[esqueci-senha] erro inesperado verifyOtp type=%s:', type, err)
+      ultimoErro = err instanceof Error ? err.message : String(err)
     }
-  } catch (err) {
-    console.error('[esqueci-senha] erro inesperado em verifyOtp:', err)
-    return { error: 'Não foi possível validar. Tente novamente.' }
   }
 
-  redirect('/redefinir-senha')
+  if (ultimoErro && /expired/i.test(ultimoErro) && !/invalid/i.test(ultimoErro)) {
+    return { error: 'Código expirou. Clique em "Não recebi" para receber outro.' }
+  }
+  return { error: 'Código incorreto. Verifique e tente de novo.' }
 }
