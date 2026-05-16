@@ -1,5 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Resend } from 'resend'
 import { createAdminClient } from '@/lib/supabase/admin'
+
+const APP_URL    = process.env.NEXT_PUBLIC_APP_URL  ?? 'https://www.barbermeta.com.br'
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL    ?? 'onboarding@resend.dev'
+
+async function enviarEmailConvite(email: string, nome: string, link: string) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[webhook/hotmart] RESEND_API_KEY ausente — pulando email')
+    return
+  }
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  const primeiroNome = nome.split(' ')[0] || 'tudo bem'
+
+  await resend.emails.send({
+    from:    `BarberMeta <${FROM_EMAIL}>`,
+    to:      email,
+    subject: 'Seu acesso ao BarberMeta — defina sua senha',
+    html: `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0d0f14;font-family:'Segoe UI',sans-serif;color:#e8e0d0;">
+  <div style="max-width:520px;margin:40px auto;background:#141720;border-radius:16px;overflow:hidden;border:1px solid #2a2d38;">
+    <div style="padding:36px 40px 28px;text-align:center;border-bottom:1px solid #2a2d38;">
+      <h1 style="margin:0;font-size:28px;color:#e8e0d0;font-weight:400;">
+        Barber<span style="color:#c5a028;">Meta</span>
+      </h1>
+      <p style="margin:8px 0 0;color:#8b8fa8;font-size:13px;">Gestão de metas para barbearias</p>
+    </div>
+    <div style="padding:36px 40px;">
+      <p style="margin:0 0 6px;color:#8b8fa8;font-size:13px;">Olá, ${primeiroNome}!</p>
+      <h2 style="margin:0 0 16px;font-size:20px;font-weight:400;color:#e8e0d0;">
+        Sua compra foi confirmada. 🎉
+      </h2>
+      <p style="margin:0 0 24px;color:#b6bccc;font-size:14px;line-height:1.6;">
+        Para acessar sua conta, clique no botão abaixo e defina uma senha:
+      </p>
+      <a href="${link}" style="display:block;text-align:center;background:#c5a028;color:#0d0f14;text-decoration:none;padding:14px 24px;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:24px;">
+        Definir senha e acessar →
+      </a>
+      <p style="margin:0 0 20px;color:#8b8fa8;font-size:12px;line-height:1.6;">
+        Se o botão não funcionar, copie e cole este link no navegador:<br>
+        <a href="${link}" style="color:#c5a028;word-break:break-all;">${link}</a>
+      </p>
+      <p style="margin:0;font-size:12px;color:#8b8fa8;line-height:1.6;">
+        Dúvidas? Responda este email ou escreva para
+        <a href="mailto:suporte@barbermeta.com.br" style="color:#c5a028;">suporte@barbermeta.com.br</a>
+      </p>
+    </div>
+    <div style="padding:16px 40px;border-top:1px solid #2a2d38;text-align:center;">
+      <p style="margin:0;font-size:11px;color:#4a4d5e;">
+        © ${new Date().getFullYear()} BarberMeta · Cássia / MG
+      </p>
+    </div>
+  </div>
+</body>
+</html>`.trim(),
+  })
+}
 
 function gerarSenhaInterna(): string {
   const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*'
@@ -210,11 +269,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create usuario' }, { status: 500 })
   }
 
-  // ── 9. Conta criada — usuário vai definir a senha via /boas-vindas ─────────
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://barbermeta.vercel.app'
-  const boasVindasUrl = `${appUrl}/boas-vindas?t=${hotmartTransaction}&e=${encodeURIComponent(email)}`
+  // ── 9. Conta criada — envia email de convite com link pro /boas-vindas ─────
+  const boasVindasUrl = `${APP_URL}/boas-vindas?t=${hotmartTransaction}&e=${encodeURIComponent(email)}`
+
+  try {
+    await enviarEmailConvite(email, nome, boasVindasUrl)
+    console.log('[webhook/hotmart] email enviado:', email)
+  } catch (err) {
+    console.error('[webhook/hotmart] erro ao enviar email:', err)
+    // Não falha o webhook — usuário já foi criado, pode pedir reenvio
+  }
 
   console.log('[webhook/hotmart] conta criada com sucesso:', email, '| barbearia:', barbeariaId)
-  console.log('[webhook/hotmart] link boas-vindas:', boasVindasUrl)
   return NextResponse.json({ ok: true })
 }
