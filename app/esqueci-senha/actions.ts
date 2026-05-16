@@ -38,8 +38,8 @@ export async function verificarCodigo(email: string, codigo: string) {
   const emailNormalizado = email.toLowerCase().trim()
   const codigoLimpo = codigo.replace(/\D/g, '')
 
-  if (codigoLimpo.length !== 6) {
-    return { error: 'Digite os 6 dígitos do código.' }
+  if (codigoLimpo.length !== 8) {
+    return { error: 'Digite os 8 dígitos do código.' }
   }
   if (!emailNormalizado) {
     return { error: 'Email não informado. Volte e tente de novo.' }
