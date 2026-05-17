@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { DM_Serif_Display, DM_Sans } from 'next/font/google'
 import './globals.css'
+import MetaPixel from '@/components/MetaPixel'
 
 const dmSerif = DM_Serif_Display({
   subsets: ['latin'],
@@ -36,6 +37,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${dmSerif.variable} ${dmSans.variable}`}>
       <body className="font-sans bg-background text-text antialiased min-h-screen">
+        <MetaPixel />
         {children}
       </body>
     </html>

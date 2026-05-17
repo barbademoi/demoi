@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { trackInitiateCheckout } from '@/lib/pixel'
 
 interface Props {
   size?: 'sm' | 'md' | 'lg'
@@ -20,11 +21,20 @@ export default function CTAButton({ size = 'lg', className = '', label }: Props)
     ? 'px-6 py-4 text-base'
     : 'px-4 py-3 text-sm'
 
+  function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    e.preventDefault()
+    trackInitiateCheckout(Number(PRECO) || 47)
+    setTimeout(() => {
+      window.open(CHECKOUT_URL, '_blank', 'noopener,noreferrer')
+    }, 200)
+  }
+
   return (
     <motion.a
       href={CHECKOUT_URL}
-      target={CHECKOUT_URL.startsWith('http') ? '_blank' : undefined}
-      rel={CHECKOUT_URL.startsWith('http') ? 'noopener noreferrer' : undefined}
+      onClick={handleClick}
+      target="_blank"
+      rel="noopener noreferrer"
       whileHover={{ scale: 1.03 }}
       whileTap={{ scale: 0.97 }}
       className={`

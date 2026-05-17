@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { solicitarResetSenha } from './actions'
+import { trackLead } from '@/lib/pixel'
 
 export default function EsqueciSenhaPage() {
   const [enviado, setEnviado] = useState(false)
@@ -19,6 +20,7 @@ export default function EsqueciSenhaPage() {
       if (result?.error) {
         setErro(result.error)
       } else {
+        trackLead()
         setEnviado(true)
       }
     })
