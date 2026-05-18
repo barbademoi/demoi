@@ -56,8 +56,20 @@ export default function Hero() {
               <span>Cada barbeiro tem seu link único — sem senha, sem app</span>
             </motion.div>
 
+            {/* destaque aulas inclusas */}
             <motion.div
               custom={3} variants={fadeUp} initial="hidden" animate="show"
+              className="mt-3 inline-flex items-start gap-2.5 rounded-xl bg-[#D4A85A]/15 border border-[#D4A85A]/40 px-4 py-3 text-sm text-left max-w-md"
+            >
+              <span className="text-base leading-none mt-0.5 shrink-0">🎥</span>
+              <span className="text-[#E6CB8A] leading-relaxed">
+                <span className="font-bold text-white">+6 aulas curtas comigo</span> ensinando 2 tipos
+                de metas e gamificação — exatamente o que faço aqui na minha barbearia.
+              </span>
+            </motion.div>
+
+            <motion.div
+              custom={4} variants={fadeUp} initial="hidden" animate="show"
               className="mt-7 flex flex-col items-center lg:items-start gap-3"
             >
               <CTAButton />
