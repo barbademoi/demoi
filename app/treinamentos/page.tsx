@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { SUPORTE, whatsappUrl } from '@/lib/suporte'
+import { extractYouTubeId } from '@/lib/youtube'
 
 export const metadata = {
   title: 'Treinamentos — BarberMeta',
@@ -55,10 +56,12 @@ export default async function TreinamentosPage() {
           </div>
         ) : (
           <div className="space-y-3 mb-10">
-            {treinamentos.map((t) => (
+            {treinamentos.map((t) => {
+              const videoId = extractYouTubeId(t.youtube_id)
+              return (
               <a
                 key={t.id}
-                href={`https://www.youtube.com/watch?v=${t.youtube_id}`}
+                href={`https://www.youtube.com/watch?v=${videoId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full card p-0 overflow-hidden hover:border-primary/40 transition-colors text-left group"
@@ -68,7 +71,7 @@ export default async function TreinamentosPage() {
                   <div className="relative shrink-0 w-32 sm:w-40">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`https://img.youtube.com/vi/${t.youtube_id}/mqdefault.jpg`}
+                      src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
                       alt={t.titulo}
                       className="w-full h-full object-cover"
                     />
@@ -112,7 +115,8 @@ export default async function TreinamentosPage() {
                   </div>
                 </div>
               </a>
-            ))}
+              )
+            })}
           </div>
         )}
 
