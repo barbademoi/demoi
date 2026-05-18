@@ -132,7 +132,6 @@ export async function lancarComissao(formData: FormData) {
 
   const barbeiro_id = formData.get('barbeiro_id') as string
   const comissao_acumulada = parseFloat(formData.get('comissao_acumulada') as string)
-  const modo = (formData.get('modo') as string) || 'direto'
   const hoje = new Date()
   const mes = hoje.getMonth() + 1
   const ano = hoje.getFullYear()
@@ -147,13 +146,7 @@ export async function lancarComissao(formData: FormData) {
     mes,
     ano,
     comissao_acumulada,
-    modo,
-    ...(modo === 'calculado' ? {
-      faturamento:     parseFloat(formData.get('faturamento') as string) || null,
-      perc_assinatura: parseFloat(formData.get('perc_assinatura') as string) || null,
-      perc_servico:    parseFloat(formData.get('perc_servico') as string) || null,
-      perc_produto:    parseFloat(formData.get('perc_produto') as string) || null,
-    } : {}),
+    modo: 'direto',
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
