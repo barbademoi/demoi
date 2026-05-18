@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Sidebar from './Sidebar'
 import DashboardMain from './DashboardMain'
 import AvisoSimplificacao from './AvisoSimplificacao'
+import BarbeariaWatermark from './BarbeariaWatermark'
 import { nomeMes } from '@/lib/utils'
 import type { ModoPontos, CampanhaComDetalhes, MetaIndividual } from '@/types/database'
 
@@ -62,6 +63,8 @@ interface Props {
   // Platform stats
   statsBarbearias: number
   statsBarbeiros: number
+  // Watermark
+  barbeariaLogoUrl: string | null
 }
 
 export default function DashboardShell({
@@ -75,11 +78,13 @@ export default function DashboardShell({
   modoMesSlot, novoBarbeiroSlot, novaRecepcionistaSlot,
   metasSlot, campanhaSlot, campanhaToggleSlot,
   statsBarbearias, statsBarbeiros,
+  barbeariaLogoUrl,
 }: Props) {
   const [showConfig, setShowConfig] = useState(false)
 
   return (
     <div className="min-h-screen flex">
+      <BarbeariaWatermark logoUrl={barbeariaLogoUrl} />
       <Sidebar
         barbeariaNome={barbeariaNome}
         showFerramentas={showConfig}
