@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { extractYouTubeId } from '@/lib/youtube'
 
 async function assertAdmin() {
   const supabase = createClient()
@@ -26,7 +27,7 @@ export async function salvarTreinamento(
   const ordem      = Number(formData.get('ordem'))
   const titulo     = (formData.get('titulo')     as string).trim()
   const descricao  = (formData.get('descricao')  as string).trim() || null
-  const youtubeId  = (formData.get('youtube_id') as string).trim()
+  const youtubeId  = extractYouTubeId(formData.get('youtube_id') as string)
   const duracao    = (formData.get('duracao')    as string).trim() || null
 
   if (!titulo || !youtubeId || !ordem) return { error: 'Preencha todos os campos obrigatórios.' }
