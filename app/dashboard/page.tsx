@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { calcDiasUteis, calcProgresso } from '@/lib/utils'
+import { getPlatformStats } from '@/lib/stats'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
 import LogoUpload from '@/components/dashboard/LogoUpload'
@@ -190,9 +191,13 @@ export default async function DashboardPage() {
   const rankingPontosBarb  = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo !== 'recepcionista')
   const rankingPontosRecep = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo === 'recepcionista')
 
+  const platformStats = await getPlatformStats()
+
   return (
     <DashboardShell
       barbeariaNome={barbearia.nome}
+      statsBarbearias={platformStats.barbearias}
+      statsBarbeiros={platformStats.barbeiros}
       mes={mes}
       ano={ano}
       meta={meta}
