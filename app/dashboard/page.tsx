@@ -77,6 +77,42 @@ export default async function DashboardPage() {
 
   const metasIndividuais = (metasIndRaw ?? []) as MetaIndividual[]
 
+  // Quando o mês atual ainda não tem metas configuradas, busca a meta mais
+  // recente da barbearia pra pré-preencher o form de "Configurar metas".
+  // Só leitura — nada é escrito até o dono clicar em Salvar (que cria registros
+  // novos para o mês atual via app/dashboard/metas/actions.ts).
+  let metasParaForm: MetaIndividual[] = metasIndividuais
+  let metaColetivaParaForm: number | undefined = meta?.meta_coletiva
+  let premioColetivoParaForm: string | undefined = meta?.premio_coletivo ?? undefined
+  let herdadoDeMesAnterior = false
+
+  if (!meta) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: metaAnteriorRaw } = await (supabase as any)
+      .from('metas')
+      .select('id, meta_coletiva, premio_coletivo')
+      .eq('barbearia_id', barbearia.id)
+      .order('ano', { ascending: false })
+      .order('mes', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const metaAnterior = metaAnteriorRaw as { id: string; meta_coletiva: number; premio_coletivo: string | null } | null
+
+    if (metaAnterior) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: metasAntRaw } = await (supabase as any)
+        .from('metas_individuais')
+        .select('*')
+        .eq('meta_id', metaAnterior.id)
+
+      metasParaForm = (metasAntRaw ?? []) as MetaIndividual[]
+      metaColetivaParaForm = metaAnterior.meta_coletiva
+      premioColetivoParaForm = metaAnterior.premio_coletivo ?? undefined
+      herdadoDeMesAnterior = true
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barbeirosRaw } = await (supabase as any)
     .from('barbeiros')
@@ -189,12 +225,13 @@ export default async function DashboardPage() {
       metasSlot={modoAtual !== 'pontos' ? (
         <MetasModal
           barbeiros={barbeiros}
-          metasAtuais={metasIndividuais}
-          metaColetiva={meta?.meta_coletiva}
+          metasAtuais={metasParaForm}
+          metaColetiva={metaColetivaParaForm}
           faturamentoAcumulado={meta?.faturamento_acumulado}
-          premioColetivo={meta?.premio_coletivo ?? undefined}
+          premioColetivo={premioColetivoParaForm}
           mes={mes}
           ano={ano}
+          herdadoDeMesAnterior={herdadoDeMesAnterior}
         />
       ) : null}
       campanhaSlot={modoAtual !== 'metas' ? (
