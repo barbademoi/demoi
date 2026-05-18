@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { solicitarCodigo, verificarCodigo } from './actions'
+import { trackLead } from '@/lib/pixel'
 
 type Etapa = 'email' | 'codigo'
 
@@ -27,6 +28,7 @@ export default function EsqueciSenhaPage() {
         setErro(result.error)
         return
       }
+      trackLead()
       setEmail(emailDigitado)
       setCodigo('')
       setEtapa('codigo')

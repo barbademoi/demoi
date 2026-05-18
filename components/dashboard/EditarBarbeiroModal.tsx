@@ -67,11 +67,11 @@ export default function EditarBarbeiroModal({ barbeiro }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="card p-6 w-full max-w-sm animate-fade-in">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+      <div className="card p-5 sm:p-6 w-full max-w-sm animate-fade-in">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-serif text-xl text-text">Editar barbeiro</h3>
-          <button onClick={() => setOpen(false)} className="text-text-muted hover:text-text text-xl">×</button>
+          <h3 className="font-serif text-lg sm:text-xl text-text">Editar barbeiro</h3>
+          <button onClick={() => setOpen(false)} className="text-text-muted hover:text-text text-2xl leading-none p-1" aria-label="Fechar">×</button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-col items-center gap-2">
@@ -93,13 +93,13 @@ export default function EditarBarbeiroModal({ barbeiro }: Props) {
             <label className="label">Nome</label>
             <input
               type="text" value={nome} onChange={e => setNome(e.target.value)}
-              required className="input"
+              required className="input w-full"
             />
           </div>
           {erro && <p className="text-red-400 text-xs font-sans">{erro}</p>}
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setOpen(false)} className="btn-ghost flex-1">Cancelar</button>
-            <button type="submit" disabled={isPending} className="btn-primary flex-1">
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => setOpen(false)} className="btn-ghost text-sm py-2.5">Cancelar</button>
+            <button type="submit" disabled={isPending} className="btn-primary text-sm py-2.5">
               {isPending ? 'Salvando…' : 'Salvar'}
             </button>
           </div>

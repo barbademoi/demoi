@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Sidebar from './Sidebar'
 import DashboardMain from './DashboardMain'
+import AvisoSimplificacao from './AvisoSimplificacao'
 import { nomeMes } from '@/lib/utils'
 import type { ModoPontos, CampanhaComDetalhes, MetaIndividual } from '@/types/database'
 
@@ -103,7 +104,9 @@ export default function DashboardShell({
             onBack={() => setShowConfig(false)}
           />
         ) : (
-          <DashboardMain
+          <>
+            <AvisoSimplificacao />
+            <DashboardMain
             meta={meta}
             faturamentoExibido={faturamentoExibido}
             progressoColetivo={progressoColetivo}
@@ -122,6 +125,7 @@ export default function DashboardShell({
             diasUteisRestantes={diasUteisRestantes}
             faturamentoEditSlot={faturamentoEditSlot}
           />
+          </>
         )}
       </div>
     </div>
