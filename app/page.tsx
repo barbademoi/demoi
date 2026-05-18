@@ -3,6 +3,7 @@ import Hero from '@/components/landing/Hero'
 import PlatformStats from '@/components/landing/PlatformStats'
 import Dor from '@/components/landing/Dor'
 import Funcionalidades from '@/components/landing/Funcionalidades'
+import Comparacao from '@/components/landing/Comparacao'
 import VideoAulas from '@/components/landing/VideoAulas'
 import ProvasSocial from '@/components/landing/ProvasSocial'
 import Preco from '@/components/landing/Preco'
@@ -31,6 +32,7 @@ export default async function LandingPage() {
       <PlatformStats barbearias={stats.barbearias} barbeiros={stats.barbeiros} />
       <Dor />
       <Funcionalidades />
+      <Comparacao />
       <VideoAulas />
       <ProvasSocial />
       <Preco />
