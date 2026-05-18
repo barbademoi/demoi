@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import CircularProgress from './CircularProgress'
-import LancamentoForm from './LancamentoForm'
+import LancamentoForm, { LancamentoFormTrigger, LancamentoFormBody } from './LancamentoForm'
 import CopiarLinkBtn from './CopiarLinkBtn'
 import EditarBarbeiroModal from './EditarBarbeiroModal'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/utils'
@@ -373,25 +373,55 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankin
   const posColors = ['metal-text-gold', 'metal-text-silver', 'metal-text-bronze']
   const posClass = posicao <= 3 ? posColors[posicao - 1] : 'text-on-cream-muted'
 
-  return (
-    <div className="card-light p-4 sm:p-5">
-      <div className="flex items-center gap-4">
-        {/* Position */}
-        <span className={`font-serif text-xl w-7 text-center shrink-0 ${posClass}`}>{posicao}</span>
+  const [lancarOpen, setLancarOpen] = useState(false)
+  const [lancarSucesso, setLancarSucesso] = useState(false)
+  const podeLancar = modoAtual !== 'pontos'
 
-        {/* Large photo */}
-        <div
-          className={`w-16 h-16 rounded-full shrink-0 border-2 overflow-hidden flex items-center justify-center bg-cream-surface font-serif text-2xl text-on-cream-muted ${tierBorderClass(tier)}`}
-          style={{ boxShadow: tierGlowClass(tier) }}
-        >
-          {barbeiro.foto_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={barbeiro.foto_url} alt={barbeiro.nome} className="w-full h-full object-cover" />
-          ) : barbeiro.nome[0]}
+  return (
+    <div className="card-light p-4 sm:p-5 relative">
+      {/* ✏️ no top-right só em mobile */}
+      <div className="sm:hidden absolute top-3 right-3 z-10">
+        <EditarBarbeiroModal barbeiro={barbeiro} />
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        {/* Linha 1 mobile: posição + foto + (nome+tier no mobile) | Desktop: só posição+foto */}
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <span className={`font-serif text-xl w-7 text-center shrink-0 ${posClass}`}>{posicao}</span>
+
+          <div
+            className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full shrink-0 border-2 overflow-hidden flex items-center justify-center bg-cream-surface font-serif text-xl sm:text-2xl text-on-cream-muted ${tierBorderClass(tier)}`}
+            style={{ boxShadow: tierGlowClass(tier) }}
+          >
+            {barbeiro.foto_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={barbeiro.foto_url} alt={barbeiro.nome} className="w-full h-full object-cover" />
+            ) : barbeiro.nome[0]}
+          </div>
+
+          {/* No mobile, nome + badges ficam aqui na mesma linha da foto. Desktop esconde. */}
+          <div className="sm:hidden flex-1 min-w-0 pr-8">
+            <p className="font-sans font-semibold text-on-cream text-base leading-tight break-words">
+              {barbeiro.nome}
+            </p>
+            <div className="flex items-center gap-1.5 flex-wrap mt-1">
+              {tier && (
+                <span className={`text-[11px] font-sans font-semibold ${TIER_CONFIG[tier].textClass}`}>
+                  ★ {TIER_CONFIG[tier].label}
+                </span>
+              )}
+              {modoAtual !== 'metas' && campanha && (
+                <span className={`text-[11px] font-sans font-semibold px-2 py-0.5 rounded-full
+                  ${qualificado ? 'bg-primary/10 text-primary' : 'bg-cream-surface text-on-cream-muted'}`}>
+                  🏅 {pts} pts{posicaoPts >= 0 && qualificado ? ` · #${posicaoPts + 1}` : ''}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Info */}
-        <div className="flex-1 min-w-0">
+        {/* Info (desktop): nome + badges + link + barras */}
+        <div className="hidden sm:block flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="font-sans font-semibold text-on-cream">{barbeiro.nome}</p>
             <EditarBarbeiroModal barbeiro={barbeiro} />
@@ -412,7 +442,6 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankin
             <CopiarLinkBtn codigo={barbeiro.link_codigo} />
           </div>
 
-          {/* Mini progress bars */}
           {progresso && modoAtual !== 'pontos' && (
             <div className="mt-2.5 space-y-1.5">
               {(['bronze', 'prata', 'ouro'] as const).map(t => {
@@ -438,23 +467,84 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankin
           )}
         </div>
 
-        {/* Right: value + form */}
-        <div className="text-right shrink-0">
+        {/* Mobile: link + barras + valor full width */}
+        <div className="sm:hidden space-y-2.5">
+          <div className="flex items-center gap-2">
+            <p className="text-on-cream-muted text-xs font-sans truncate">/b/{barbeiro.link_codigo}</p>
+            <CopiarLinkBtn codigo={barbeiro.link_codigo} />
+          </div>
+
+          {progresso && modoAtual !== 'pontos' && (
+            <div className="space-y-1.5">
+              {(['bronze', 'prata', 'ouro'] as const).map(t => {
+                const metaVal = barbeiro.metaInd![`${t}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm']
+                if (!metaVal || metaVal <= 0) return null
+                const pct = progresso[t]
+                return (
+                  <div key={t} className="flex items-center gap-2">
+                    <span className={`text-[11px] font-sans w-12 text-right shrink-0 ${TIER_CONFIG[t].textClass}`}>
+                      {TIER_CONFIG[t].label}
+                    </span>
+                    <div className="bar-track flex-1 h-2">
+                      <div
+                        className={`${TIER_CONFIG[t].barClass} h-full rounded-full transition-all duration-700`}
+                        style={{ width: pct > 0 ? `${pct}%` : '3px' }}
+                      />
+                    </div>
+                    <span className="text-on-cream-muted text-[11px] font-sans w-9 shrink-0 text-right">{pct}%</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-1">
+            {modoAtual !== 'pontos' ? (
+              <p className="font-serif text-lg text-on-cream">{formatBRL(barbeiro.comissao)}</p>
+            ) : (
+              <p className="font-serif text-lg text-on-cream">{pts} pts</p>
+            )}
+            {podeLancar && !lancarOpen && (
+              <LancamentoFormTrigger
+                comissaoAtual={barbeiro.comissao}
+                sucesso={lancarSucesso}
+                onClick={() => setLancarOpen(true)}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Desktop: valor + trigger à direita */}
+        <div className="hidden sm:block text-right shrink-0">
           {modoAtual !== 'pontos' && (
             <p className="font-serif text-xl text-on-cream">{formatBRL(barbeiro.comissao)}</p>
           )}
           {modoAtual === 'pontos' && (
             <p className="font-serif text-xl text-on-cream">{pts} pts</p>
           )}
-          {modoAtual !== 'pontos' && (
-            <LancamentoForm
-              barbeiro={barbeiro}
-              metaInd={barbeiro.metaInd ?? undefined}
+          {podeLancar && !lancarOpen && (
+            <LancamentoFormTrigger
               comissaoAtual={barbeiro.comissao}
+              sucesso={lancarSucesso}
+              onClick={() => setLancarOpen(true)}
             />
           )}
         </div>
       </div>
+
+      {/* Form expandido: full-width abaixo do card todo */}
+      {podeLancar && lancarOpen && (
+        <LancamentoFormBody
+          barbeiro={barbeiro}
+          metaInd={barbeiro.metaInd ?? undefined}
+          comissaoAtual={barbeiro.comissao}
+          onClose={() => setLancarOpen(false)}
+          onSuccess={() => {
+            setLancarSucesso(true)
+            setTimeout(() => setLancarSucesso(false), 3000)
+          }}
+        />
+      )}
     </div>
   )
 }
