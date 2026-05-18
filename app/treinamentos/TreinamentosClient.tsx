@@ -170,10 +170,11 @@ export default function TreinamentosClient({ treinamentos }: Props) {
             {/* YouTube iframe */}
             <div className="relative aspect-video bg-black">
               <iframe
-                src={`https://www.youtube.com/embed/${selected.youtube_id}?autoplay=1&rel=0`}
+                src={`https://www.youtube-nocookie.com/embed/${selected.youtube_id}?autoplay=1&rel=0`}
                 title={selected.titulo}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
                 className="absolute inset-0 w-full h-full"
               />
             </div>
