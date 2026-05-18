@@ -38,7 +38,7 @@ export default async function TreinamentosPage() {
     <main className="min-h-screen px-4 py-10">
       <div className="max-w-2xl mx-auto">
 
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="font-serif text-2xl text-text">Treinamentos</h1>
             <p className="text-text-muted text-sm font-sans mt-0.5">
@@ -46,6 +46,20 @@ export default async function TreinamentosPage() {
             </p>
           </div>
           <Link href="/dashboard" className="btn-ghost text-sm">← Dashboard</Link>
+        </div>
+
+        {/* Aviso mobile */}
+        <div className="mb-8 p-4 rounded-xl bg-primary/10 border border-primary/30 text-sm font-sans flex items-start gap-3">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-primary shrink-0 mt-0.5" aria-hidden>
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+            <line x1="12" y1="18" x2="12.01" y2="18" />
+          </svg>
+          <p className="flex-1 text-text leading-relaxed">
+            <span className="font-semibold">📱 Boa notícia:</span> todas as configurações
+            que você vê nas aulas podem ser feitas direto pelo celular. O BarberMeta
+            é 100% responsivo — basta abrir <span className="font-semibold">barbermeta.com.br</span> no
+            navegador do seu smartphone.
+          </p>
         </div>
 
         {treinamentos.length === 0 ? (
