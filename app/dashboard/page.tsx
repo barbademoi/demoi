@@ -198,6 +198,7 @@ export default async function DashboardPage() {
       barbeariaNome={barbearia.nome}
       statsBarbearias={platformStats.barbearias}
       statsBarbeiros={platformStats.barbeiros}
+      barbeariaLogoUrl={barbearia.logo_url}
       mes={mes}
       ano={ano}
       meta={meta}
