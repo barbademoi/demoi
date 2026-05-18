@@ -24,9 +24,10 @@ interface Props {
   premioColetivo?: string
   mes: number
   ano: number
+  herdadoDeMesAnterior?: boolean
 }
 
-export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, faturamentoAcumulado, premioColetivo, mes, ano }: Props) {
+export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, faturamentoAcumulado, premioColetivo, mes, ano, herdadoDeMesAnterior }: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [erro, setErro] = useState<string | null>(null)
@@ -109,6 +110,18 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
           </h3>
           <button onClick={() => setOpen(false)} className="text-text-muted hover:text-text text-xl">×</button>
         </div>
+
+        {herdadoDeMesAnterior && (
+          <div className="mb-6 p-4 rounded-xl bg-primary/10 border border-primary/30 text-sm font-sans flex items-start gap-3">
+            <span aria-hidden className="text-base leading-none mt-0.5">💡</span>
+            <p className="flex-1 text-text leading-relaxed">
+              <span className="font-semibold">Tudo já preenchido!</span> Carregamos as metas
+              do mês anterior pra você não precisar digitar tudo de novo. Ajuste o que
+              precisar e clique em <span className="font-semibold">"Salvar metas"</span> pra
+              confirmar pra <span className="capitalize font-semibold">{nomeMes(mes)} {ano}</span>.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Meta coletiva */}
