@@ -59,6 +59,9 @@ interface Props {
   metasSlot: React.ReactNode | null
   campanhaSlot: React.ReactNode | null
   campanhaToggleSlot: React.ReactNode | null
+  // Platform stats
+  statsBarbearias: number
+  statsBarbeiros: number
 }
 
 export default function DashboardShell({
@@ -71,6 +74,7 @@ export default function DashboardShell({
   logoUploadSlot, faturamentoEditSlot,
   modoMesSlot, novoBarbeiroSlot, novaRecepcionistaSlot,
   metasSlot, campanhaSlot, campanhaToggleSlot,
+  statsBarbearias, statsBarbeiros,
 }: Props) {
   const [showConfig, setShowConfig] = useState(false)
 
@@ -84,12 +88,34 @@ export default function DashboardShell({
 
       <div className="flex-1 min-w-0 lg:pl-64 pt-14 lg:pt-0">
         {/* Desktop header */}
-        <div className="hidden lg:flex items-center gap-3 px-6 py-4 border-b border-border">
-          {logoUploadSlot}
-          <div>
-            <p className="text-text font-sans font-semibold text-sm">{barbeariaNome}</p>
-            <p className="text-text-muted text-xs font-sans">{nomeMes(mes)} {ano}</p>
+        <div className="hidden lg:flex items-center justify-between gap-3 px-6 py-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            {logoUploadSlot}
+            <div>
+              <p className="text-text font-sans font-semibold text-sm">{barbeariaNome}</p>
+              <p className="text-text-muted text-xs font-sans">{nomeMes(mes)} {ano}</p>
+            </div>
           </div>
+          <div className="flex items-center gap-3 text-xs font-sans text-text-muted">
+            <span>
+              <span className="text-primary font-semibold tabular-nums">+{statsBarbearias}</span> barbearias
+            </span>
+            <span className="opacity-30">·</span>
+            <span>
+              <span className="text-primary font-semibold tabular-nums">+{statsBarbeiros}</span> barbeiros
+            </span>
+          </div>
+        </div>
+
+        {/* Mobile stats strip */}
+        <div className="lg:hidden flex items-center justify-center gap-3 px-4 py-2 border-b border-border text-[11px] font-sans text-text-muted">
+          <span>
+            <span className="text-primary font-semibold tabular-nums">+{statsBarbearias}</span> barbearias
+          </span>
+          <span className="opacity-30">·</span>
+          <span>
+            <span className="text-primary font-semibold tabular-nums">+{statsBarbeiros}</span> barbeiros
+          </span>
         </div>
 
         {showConfig ? (
