@@ -21,6 +21,22 @@ const perguntas = [
     a: 'Sim, quantos quiser, quando quiser. Sem custo extra.',
   },
   {
+    q: 'Funciona pra recepcionista também?',
+    a: 'Funciona. Você pode cadastrar barbeiros e recepcionistas, cada um com sua meta e seu link próprio.',
+  },
+  {
+    q: 'Posso usar pelo celular?',
+    a: 'Pode. O sistema todo é otimizado pra celular — você cadastra equipe, configura metas e lança comissão direto do smartphone. Não precisa de computador.',
+  },
+  {
+    q: 'E se eu não souber configurar? Tem alguém pra ajudar?',
+    a: 'Sim. Depois da compra você recebe acesso aos vídeos de treinamento e suporte direto no WhatsApp (35) 99824-8211. Em 30 minutos você está com tudo rodando.',
+  },
+  {
+    q: 'E se eu não gostar? Como funciona o reembolso?',
+    a: 'Você tem 7 dias após a compra pra pedir reembolso. Manda mensagem no WhatsApp do suporte e a Hotmart devolve o valor cheio, sem pergunta.',
+  },
+  {
     q: 'A Hotmart cobra algum imposto extra?',
     a: 'Não. O preço de R$ 47 é o valor final. Sem taxa, sem cobrança recorrente, sem surpresa.',
   },
