@@ -67,10 +67,15 @@ export async function salvarOperacaoConfig(formData: FormData) {
   const modalidade = formData.get('modalidade') as string
   const tem_assinatura = formData.get('tem_assinatura') === 'true'
 
+  const visibilidadeRaw = (formData.get('visibilidade_ranking') as string) || 'completo'
+  const visibilidade_ranking = (['completo', 'posicoes', 'proprio'].includes(visibilidadeRaw)
+    ? visibilidadeRaw
+    : 'completo')
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from('barbearias')
-    .update({ dias_trabalhados, horario_abertura, horario_fechamento, modalidade, tem_assinatura })
+    .update({ dias_trabalhados, horario_abertura, horario_fechamento, modalidade, tem_assinatura, visibilidade_ranking })
     .eq('id', barbeariaId)
 
   if (error) return { error: 'Erro ao salvar.' }
