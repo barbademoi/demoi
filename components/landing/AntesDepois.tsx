@@ -41,7 +41,7 @@ export default function AntesDepois() {
             <div className="rounded-2xl overflow-hidden border border-white/10 bg-black shadow-2xl">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/prints/IMG_6056.jpeg"
+                src="/prints/img_6056.png"
                 alt="Grupo do WhatsApp com mensagens manuais de controle diário dos barbeiros"
                 className="w-full h-auto"
                 loading="lazy"
@@ -63,7 +63,7 @@ export default function AntesDepois() {
             <div className="rounded-2xl overflow-hidden border border-white/10 bg-black shadow-2xl">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/prints/IMG_6057.jpeg"
+                src="/prints/img_6057.png"
                 alt="Tela do BarberMeta pra lançar serviços do dia com botões + e -"
                 className="w-full h-auto"
                 loading="lazy"
@@ -83,7 +83,7 @@ export default function AntesDepois() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/prints/IMG_6058.jpeg"
+            src="/prints/img_6058.png"
             alt="Dashboard do barbeiro mostrando ritmo necessário, pontuação do mês e insights"
             className="w-full h-auto"
             loading="lazy"
