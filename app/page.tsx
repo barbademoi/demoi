@@ -31,8 +31,8 @@ export default async function LandingPage() {
       <Navbar />
       <Hero />
       <PlatformStats barbearias={stats.barbearias} barbeiros={stats.barbeiros} />
-      <Dor />
       <AntesDepois />
+      <Dor />
       <Funcionalidades />
       <Comparacao />
       <VideoAulas />
