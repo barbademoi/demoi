@@ -27,6 +27,7 @@ export interface BarbeariaConfig {
   horario_fechamento: string | null
   modalidade: string | null
   tem_assinatura: boolean | null
+  visibilidade_ranking: 'completo' | 'posicoes' | 'proprio' | null
 }
 
 interface Props {

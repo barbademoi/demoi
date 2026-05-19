@@ -19,7 +19,28 @@ interface BarbeariaData {
   horario_fechamento: string | null
   modalidade: string | null
   tem_assinatura: boolean | null
+  visibilidade_ranking: 'completo' | 'posicoes' | 'proprio' | null
 }
+
+type VisibilidadeRanking = 'completo' | 'posicoes' | 'proprio'
+
+const VISIBILIDADE_OPCOES: { value: VisibilidadeRanking; titulo: string; descricao: string }[] = [
+  {
+    value: 'completo',
+    titulo: 'Ranking completo',
+    descricao: 'Barbeiro vê posição + valores de todos.',
+  },
+  {
+    value: 'posicoes',
+    titulo: 'Só posições',
+    descricao: 'Barbeiro vê 1º, 2º, 3º… mas não vê o valor dos colegas.',
+  },
+  {
+    value: 'proprio',
+    titulo: 'Só o próprio progresso',
+    descricao: 'Barbeiro vê só suas metas e progresso. Não vê ranking nem valores dos colegas.',
+  },
+]
 
 export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData }) {
   const diasSalvos = barbearia.dias_trabalhados
@@ -28,6 +49,9 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
   )
   const [modalidade, setModalidade] = useState(barbearia.modalidade ?? 'equipe')
   const [temAssinatura, setTemAssinatura] = useState(barbearia.tem_assinatura ?? false)
+  const [visibilidade, setVisibilidade] = useState<VisibilidadeRanking>(
+    barbearia.visibilidade_ranking ?? 'completo'
+  )
   const [sucesso, setSucesso] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -111,6 +135,30 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
                 {temAssinatura === val && <div className="w-2 h-2 rounded-full bg-primary" />}
               </div>
               <span className="text-sm font-sans text-text">{val ? 'Sim' : 'Não'}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="label">Visibilidade do ranking para os barbeiros</label>
+        <p className="text-text-muted text-xs font-sans mb-3 leading-relaxed">
+          Define o que cada barbeiro enxerga ao abrir o link individual dele.
+        </p>
+        <div className="space-y-2">
+          {VISIBILIDADE_OPCOES.map(op => (
+            <label key={op.value} className={['flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all',
+              visibilidade === op.value ? 'border-primary bg-primary/5' : 'border-border bg-surface-2 hover:border-primary/40'].join(' ')}>
+              <input type="radio" name="visibilidade_ranking" value={op.value} checked={visibilidade === op.value}
+                onChange={() => setVisibilidade(op.value)} className="hidden" />
+              <div className={['w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5',
+                visibilidade === op.value ? 'border-primary' : 'border-border'].join(' ')}>
+                {visibilidade === op.value && <div className="w-2 h-2 rounded-full bg-primary" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-sans font-semibold text-text leading-snug">{op.titulo}</p>
+                <p className="text-xs font-sans text-text-muted leading-relaxed mt-0.5">{op.descricao}</p>
+              </div>
             </label>
           ))}
         </div>

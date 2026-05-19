@@ -44,6 +44,7 @@ interface Props {
   pontosMap: Record<string, number>
   controleHoje: Record<string, number>
   historico: { data: string; pontos: number; label: string }[]
+  visibilidadeRanking: 'completo' | 'posicoes' | 'proprio'
 }
 
 export default function BarbeiroClient({
@@ -52,6 +53,7 @@ export default function BarbeiroClient({
   faturamentoColetivo, progressoColetivo, metaColetiva, premioColetivo,
   insights, mensagemIA, tiersJaCelebrados, campanha, controlesDiario,
   pontosTotal, rankingPontos, pontosMap, controleHoje, historico,
+  visibilidadeRanking,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
   const mostraPontos = modo === 'pontos' || modo === 'ambos'
@@ -345,7 +347,7 @@ export default function BarbeiroClient({
           )}
 
           {/* Ranking pontos da equipe */}
-          {mostraPontos && rankingPontos.length > 0 && (
+          {mostraPontos && rankingPontos.length > 0 && visibilidadeRanking !== 'proprio' && (
             <div className="card-light p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-serif text-lg text-on-cream">Ranking de pontos</h3>
@@ -371,9 +373,12 @@ export default function BarbeiroClient({
                       <span className={`font-sans text-sm flex-1 ${isMe ? 'text-on-cream font-semibold' : qual ? 'text-on-cream-muted' : 'text-on-cream-muted opacity-50'}`}>
                         {nome} {isMe && '(você)'}
                       </span>
-                      <span className={`font-sans text-sm ${isMe ? 'text-on-cream' : 'text-on-cream-muted'}`}>
-                        {r.pontos} pts
-                      </span>
+                      {/* Valor só aparece em modo 'completo' OU pra própria linha do barbeiro */}
+                      {(visibilidadeRanking === 'completo' || isMe) && (
+                        <span className={`font-sans text-sm ${isMe ? 'text-on-cream' : 'text-on-cream-muted'}`}>
+                          {r.pontos} pts
+                        </span>
+                      )}
                     </div>
                   )
                 })}
@@ -382,7 +387,7 @@ export default function BarbeiroClient({
           )}
 
           {/* Ranking comissão da equipe */}
-          {mostraMetas && ranking.length > 0 && (
+          {mostraMetas && ranking.length > 0 && visibilidadeRanking !== 'proprio' && (
             <div className="card-light p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-serif text-lg text-on-cream">Ranking da equipe</h3>
@@ -405,9 +410,12 @@ export default function BarbeiroClient({
                       <span className={`font-sans text-sm flex-1 ${isMe ? 'text-on-cream font-semibold' : 'text-on-cream-muted'}`}>
                         {l.barbeiros?.nome ?? '—'} {isMe && '(você)'}
                       </span>
-                      <span className={`font-sans text-sm ${isMe ? 'text-on-cream' : 'text-on-cream-muted'}`}>
-                        {formatBRL(l.comissao_acumulada)}
-                      </span>
+                      {/* Valor só aparece em modo 'completo' OU pra própria linha do barbeiro */}
+                      {(visibilidadeRanking === 'completo' || isMe) && (
+                        <span className={`font-sans text-sm ${isMe ? 'text-on-cream' : 'text-on-cream-muted'}`}>
+                          {formatBRL(l.comissao_acumulada)}
+                        </span>
+                      )}
                     </div>
                   )
                 })}
