@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { calcProgresso, calcTier, calcDiasUteis } from '@/lib/utils'
 import { gerarInsightsBarbeiro } from '@/lib/insights'
 import { obterMensagemDiaria } from '@/lib/ia-mensagem'
+import { buscarHistoricoMeses } from '@/lib/historicoMeses'
 import BrandLogo from '@/components/BrandLogo'
 import BarbeiroClient from './BarbeiroClient'
 import { computeHistorico } from './pontos-utils'
@@ -69,17 +70,12 @@ export default async function BarbeiroPage({ params }: Props) {
     .eq('barbeiro_id', barbeiro.id).eq('mes', mes).eq('ano', ano).single()
   const lancamento = lancamentoRaw as Lancamento | null
 
-  // Comissão mês anterior (só usado no modo autônomo, mas a query é barata)
+  // Histórico 4 meses (só pra autônomo); comissão mês anterior é derivada
+  let historicoMeses: { mes: number; ano: number; comissao: number }[] = []
   let comissaoMesAnterior = 0
   if (isAutonomo) {
-    const mesAnt = mes === 1 ? 12 : mes - 1
-    const anoAnt = mes === 1 ? ano - 1 : ano
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: lancAntRaw } = await (supabase as any)
-      .from('lancamentos').select('comissao_acumulada')
-      .eq('barbeiro_id', barbeiro.id).eq('mes', mesAnt).eq('ano', anoAnt)
-      .maybeSingle()
-    comissaoMesAnterior = (lancAntRaw?.comissao_acumulada as number | undefined) ?? 0
+    historicoMeses = await buscarHistoricoMeses(supabase, barbeiro.id, mes, ano, 4)
+    comissaoMesAnterior = historicoMeses[historicoMeses.length - 2]?.comissao ?? 0
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -258,6 +254,7 @@ export default async function BarbeiroPage({ params }: Props) {
           visibilidadeRanking={visibilidadeRanking}
           isAutonomo={isAutonomo}
           comissaoMesAnterior={comissaoMesAnterior}
+          historicoMeses={historicoMeses}
         />
       </main>
     </div>

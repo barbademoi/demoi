@@ -6,6 +6,7 @@ import LancamentoForm, { LancamentoFormTrigger, LancamentoFormBody } from './Lan
 import CopiarLinkBtn from './CopiarLinkBtn'
 import EditarBarbeiroModal from './EditarBarbeiroModal'
 import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
+import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/utils'
 import type { MetaIndividual, ModoPontos, CampanhaComDetalhes } from '@/types/database'
 
@@ -35,6 +36,7 @@ type MetaSimples = {
 interface Props {
   isAutonomo: boolean
   comissaoMesAnterior: number
+  historicoMeses: { mes: number; ano: number; comissao: number }[]
   meta: MetaSimples | null
   faturamentoExibido: number
   progressoColetivo: number
@@ -71,6 +73,7 @@ function tierGlowClass(tier: string | null) {
 export default function DashboardMain({
   isAutonomo,
   comissaoMesAnterior,
+  historicoMeses,
   meta,
   faturamentoExibido,
   progressoColetivo,
@@ -160,6 +163,7 @@ export default function DashboardMain({
           isAutonomo={isAutonomo}
           mes={mes}
           comissaoMesAnterior={comissaoMesAnterior}
+          historicoMeses={historicoMeses}
         />
       ) : null}
     </main>
@@ -574,9 +578,10 @@ interface BarbeiroViewProps {
   isAutonomo: boolean
   mes: number
   comissaoMesAnterior: number
+  historicoMeses: { mes: number; ano: number; comissao: number }[]
 }
 
-function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontosBarb, rankingPontosRecep, isAutonomo, mes, comissaoMesAnterior }: BarbeiroViewProps) {
+function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontosBarb, rankingPontosRecep, isAutonomo, mes, comissaoMesAnterior, historicoMeses }: BarbeiroViewProps) {
   const tier = barbeiro.metaInd
     ? calcTier(barbeiro.comissao, barbeiro.metaInd.bronze_comm, barbeiro.metaInd.prata_comm, barbeiro.metaInd.ouro_comm)
     : null
@@ -651,6 +656,11 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
           mesAtual={mes}
           variant="dark"
         />
+      )}
+
+      {/* Histórico 4 meses (só autônomo, modo metas) */}
+      {isAutonomo && modoAtual !== 'pontos' && historicoMeses.length > 0 && (
+        <HistoricoMeses historico={historicoMeses} variant="dark" />
       )}
 
       {/* Progress rings */}

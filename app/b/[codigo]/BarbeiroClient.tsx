@@ -5,6 +5,7 @@ import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso } from '@/lib/utils'
 import LancarDiaForm from './LancarDiaForm'
 import CelebracaoOverlay from '@/components/barbeiro/CelebracaoOverlay'
 import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
+import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
 import type {
   Barbeiro, MetaIndividual, Lancamento,
   CampanhaComDetalhes, ControleDiario, ModoPontos,
@@ -48,6 +49,7 @@ interface Props {
   visibilidadeRanking: 'completo' | 'posicoes' | 'proprio'
   isAutonomo: boolean
   comissaoMesAnterior: number
+  historicoMeses: { mes: number; ano: number; comissao: number }[]
 }
 
 export default function BarbeiroClient({
@@ -56,7 +58,7 @@ export default function BarbeiroClient({
   faturamentoColetivo, progressoColetivo, metaColetiva, premioColetivo,
   insights, mensagemIA, tiersJaCelebrados, campanha, controlesDiario,
   pontosTotal, rankingPontos, pontosMap, controleHoje, historico,
-  visibilidadeRanking, isAutonomo, comissaoMesAnterior,
+  visibilidadeRanking, isAutonomo, comissaoMesAnterior, historicoMeses,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
   const mostraPontos = modo === 'pontos' || modo === 'ambos'
@@ -196,6 +198,11 @@ export default function BarbeiroClient({
               mesAtual={mes}
               variant="light"
             />
+          )}
+
+          {/* Histórico 4 meses (só autônomo, modo metas) */}
+          {isAutonomo && mostraMetas && historicoMeses.length > 0 && (
+            <HistoricoMeses historico={historicoMeses} variant="light" />
           )}
 
           {/* Contagem regressiva (2C) */}

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { calcDiasUteis, calcProgresso } from '@/lib/utils'
 import { getPlatformStats } from '@/lib/stats'
+import { buscarHistoricoMeses } from '@/lib/historicoMeses'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
 import LogoUpload from '@/components/dashboard/LogoUpload'
@@ -194,20 +195,13 @@ export default async function DashboardPage() {
   const platformStats = await getPlatformStats()
   const isAutonomo = barbearia.modalidade === 'sozinho'
 
-  // ── Comparativo mês anterior (só pra autônomo) ──
+  // ── Histórico 4 meses (só pra autônomo). Comissão mês anterior é derivada. ──
+  let historicoMeses: { mes: number; ano: number; comissao: number }[] = []
   let comissaoMesAnterior = 0
   if (isAutonomo && rankingBarbeiros[0]) {
-    const mesAnt = mes === 1 ? 12 : mes - 1
-    const anoAnt = mes === 1 ? ano - 1 : ano
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: lancAntRaw } = await (supabase as any)
-      .from('lancamentos')
-      .select('comissao_acumulada')
-      .eq('barbeiro_id', rankingBarbeiros[0].id)
-      .eq('mes', mesAnt)
-      .eq('ano', anoAnt)
-      .maybeSingle()
-    comissaoMesAnterior = (lancAntRaw?.comissao_acumulada as number | undefined) ?? 0
+    historicoMeses = await buscarHistoricoMeses(supabase, rankingBarbeiros[0].id, mes, ano, 4)
+    // Último elemento é o mês atual; penúltimo é o mês anterior
+    comissaoMesAnterior = historicoMeses[historicoMeses.length - 2]?.comissao ?? 0
   }
 
   return (
@@ -215,6 +209,7 @@ export default async function DashboardPage() {
       barbeariaNome={barbearia.nome}
       isAutonomo={isAutonomo}
       comissaoMesAnterior={comissaoMesAnterior}
+      historicoMeses={historicoMeses}
       statsBarbearias={platformStats.barbearias}
       statsBarbeiros={platformStats.barbeiros}
       barbeariaLogoUrl={barbearia.logo_url}
