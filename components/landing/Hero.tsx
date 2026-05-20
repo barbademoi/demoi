@@ -58,7 +58,7 @@ export default function Hero() {
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-xl bg-white/5 border border-white/15 px-3.5 py-2 text-sm font-semibold text-white">
                   <span className="text-base">✂️</span>
-                  Funciona pra <span className="text-[#D4A85A]">autônomo</span>
+                  Funciona <span className="text-[#D4A85A]">sozinho</span>
                 </span>
               </div>
               <p className="mt-2 text-[#A0AEC0] text-xs sm:text-sm leading-relaxed text-center lg:text-left">
