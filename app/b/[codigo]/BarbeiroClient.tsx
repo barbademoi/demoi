@@ -237,7 +237,7 @@ export default function BarbeiroClient({
             <div className="card-light p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-serif text-lg text-on-cream">Pontuação do mês</h3>
-                {posicaoPts >= 0 && qualificado && (
+                {posicaoPts >= 0 && qualificado && !isAutonomo && (
                   <span className="text-on-cream-muted text-sm font-sans">
                     #{posicaoPts + 1} no ranking
                   </span>
@@ -254,7 +254,9 @@ export default function BarbeiroClient({
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-on-cream-muted text-xs font-sans">
-                    {qualificado ? '✓ Qualificado para o ranking' : `Faltam ${minPontosEfetivo - pontosTotal} pts para qualificar`}
+                    {qualificado
+                      ? (isAutonomo ? '✓ Pontuação mínima atingida' : '✓ Qualificado para o ranking')
+                      : `Faltam ${minPontosEfetivo - pontosTotal} pts ${isAutonomo ? 'para o prêmio' : 'para qualificar'}`}
                   </span>
                   <span className="text-on-cream-muted text-xs font-sans">{minPontosEfetivo} pts</span>
                 </div>
@@ -280,7 +282,7 @@ export default function BarbeiroClient({
               {/* Alerta abaixo do mínimo */}
               {!qualificado && pontosTotal > 0 && (
                 <p className="text-on-cream-muted text-xs font-sans text-center opacity-70">
-                  ⚡ Continue lançando seus serviços para entrar no ranking!
+                  ⚡ Continue lançando seus serviços para {isAutonomo ? 'atingir a meta' : 'entrar no ranking'}!
                 </p>
               )}
 

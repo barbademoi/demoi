@@ -154,6 +154,8 @@ export default function DashboardMain({
           pontosMap={pontosMap}
           rankingPontosBarb={rankingPontosBarb}
           rankingPontosRecep={rankingPontosRecep}
+          isAutonomo={isAutonomo}
+          mes={mes}
         />
       ) : null}
     </main>
@@ -565,9 +567,11 @@ interface BarbeiroViewProps {
   pontosMap: Record<string, number>
   rankingPontosBarb: { id: string; pts: number }[]
   rankingPontosRecep: { id: string; pts: number }[]
+  isAutonomo: boolean
+  mes: number
 }
 
-function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontosBarb, rankingPontosRecep }: BarbeiroViewProps) {
+function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontosBarb, rankingPontosRecep, isAutonomo, mes }: BarbeiroViewProps) {
   const tier = barbeiro.metaInd
     ? calcTier(barbeiro.comissao, barbeiro.metaInd.bronze_comm, barbeiro.metaInd.prata_comm, barbeiro.metaInd.ouro_comm)
     : null
@@ -595,7 +599,9 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className="text-text-muted text-xs font-sans">#{posicao} no ranking</p>
+            <p className="text-text-muted text-xs font-sans">
+              {isAutonomo ? `Minha meta de ${nomeMes(mes)}` : `#${posicao} no ranking`}
+            </p>
             <h2 className="font-serif text-2xl text-text mt-0.5">{barbeiro.nome}</h2>
             {modoAtual !== 'pontos' && (
               <p className="font-serif text-3xl mt-1 text-text">{formatBRL(barbeiro.comissao)}</p>
@@ -635,7 +641,9 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
       {/* Progress rings */}
       {barbeiro.metaInd && modoAtual !== 'pontos' && (
         <div className="card p-6">
-          <h3 className="font-serif text-lg text-text mb-5 text-center">Progresso nas metas</h3>
+          <h3 className="font-serif text-lg text-text mb-5 text-center">
+            {isAutonomo ? `Minha meta de ${nomeMes(mes)}` : 'Progresso nas metas'}
+          </h3>
           <div className="flex justify-center gap-6 flex-wrap">
             {(['bronze', 'prata', 'ouro'] as const).map(t => {
               const commKey = `${t}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm'
