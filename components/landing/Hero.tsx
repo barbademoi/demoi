@@ -47,9 +47,17 @@ export default function Hero() {
               Quem está atrás, acelera sozinho.
             </motion.p>
 
+            <motion.p
+              custom={2} variants={fadeUp} initial="hidden" animate="show"
+              className="mt-4 text-[#A0AEC0] text-sm sm:text-base leading-relaxed border-l-2 border-[#D4A85A]/40 pl-3"
+            >
+              Funciona para barbearias com equipe <span className="text-white">e</span> para barbeiros
+              que trabalham sozinhos. Você configura o modo na primeira vez que entrar.
+            </motion.p>
+
             {/* destaque link individual */}
             <motion.div
-              custom={2} variants={fadeUp} initial="hidden" animate="show"
+              custom={3} variants={fadeUp} initial="hidden" animate="show"
               className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#D4A85A]/10 border border-[#D4A85A]/25 px-4 py-2.5 text-sm text-[#D4A85A]"
             >
               <span>🔗</span>
@@ -58,7 +66,7 @@ export default function Hero() {
 
             {/* destaque aulas inclusas */}
             <motion.div
-              custom={3} variants={fadeUp} initial="hidden" animate="show"
+              custom={4} variants={fadeUp} initial="hidden" animate="show"
               className="mt-3 inline-flex items-start gap-2.5 rounded-xl bg-[#D4A85A]/15 border border-[#D4A85A]/40 px-4 py-3 text-sm text-left max-w-md"
             >
               <span className="text-base leading-none mt-0.5 shrink-0">🎥</span>
@@ -69,7 +77,7 @@ export default function Hero() {
             </motion.div>
 
             <motion.div
-              custom={4} variants={fadeUp} initial="hidden" animate="show"
+              custom={5} variants={fadeUp} initial="hidden" animate="show"
               className="mt-7 flex flex-col items-center lg:items-start gap-3"
             >
               <CTAButton />
@@ -101,7 +109,7 @@ export default function Hero() {
 
         {/* ── trust strip ── */}
         <motion.div
-          custom={4} variants={fadeUp} initial="hidden" animate="show"
+          custom={5} variants={fadeUp} initial="hidden" animate="show"
           className="mt-12 pt-8 border-t border-white/5 flex items-center justify-center gap-3 text-[#A0AEC0] text-sm"
         >
           <span>🏠</span>

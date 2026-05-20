@@ -21,6 +21,10 @@ const perguntas = [
     a: 'Sim, quantos quiser, quando quiser. Sem custo extra.',
   },
   {
+    q: 'Funciona para barbeiro autônomo, que trabalha sozinho?',
+    a: 'Sim. Na primeira vez que você entrar, o sistema pergunta se você tem equipe ou trabalha sozinho. Se for autônomo, o sistema se adapta — você vê suas próprias metas, seu histórico mês a mês e seu progresso sem ranking de equipe.',
+  },
+  {
     q: 'Funciona pra recepcionista também?',
     a: 'Funciona. Você pode cadastrar barbeiros e recepcionistas, cada um com sua meta e seu link próprio.',
   },
