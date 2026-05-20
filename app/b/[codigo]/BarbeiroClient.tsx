@@ -45,6 +45,7 @@ interface Props {
   controleHoje: Record<string, number>
   historico: { data: string; pontos: number; label: string }[]
   visibilidadeRanking: 'completo' | 'posicoes' | 'proprio'
+  isAutonomo: boolean
 }
 
 export default function BarbeiroClient({
@@ -53,7 +54,7 @@ export default function BarbeiroClient({
   faturamentoColetivo, progressoColetivo, metaColetiva, premioColetivo,
   insights, mensagemIA, tiersJaCelebrados, campanha, controlesDiario,
   pontosTotal, rankingPontos, pontosMap, controleHoje, historico,
-  visibilidadeRanking,
+  visibilidadeRanking, isAutonomo,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
   const mostraPontos = modo === 'pontos' || modo === 'ambos'
@@ -347,7 +348,7 @@ export default function BarbeiroClient({
           )}
 
           {/* Ranking pontos da equipe */}
-          {mostraPontos && rankingPontos.length > 0 && visibilidadeRanking !== 'proprio' && (
+          {mostraPontos && rankingPontos.length > 0 && visibilidadeRanking !== 'proprio' && !isAutonomo && (
             <div className="card-light p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-serif text-lg text-on-cream">Ranking de pontos</h3>
@@ -387,7 +388,7 @@ export default function BarbeiroClient({
           )}
 
           {/* Ranking comissão da equipe */}
-          {mostraMetas && ranking.length > 0 && visibilidadeRanking !== 'proprio' && (
+          {mostraMetas && ranking.length > 0 && visibilidadeRanking !== 'proprio' && !isAutonomo && (
             <div className="card-light p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-serif text-lg text-on-cream">Ranking da equipe</h3>
@@ -423,8 +424,8 @@ export default function BarbeiroClient({
             </div>
           )}
 
-          {/* Meta coletiva */}
-          {metaColetiva > 0 && mostraMetas && (
+          {/* Meta coletiva (oculta em modo autônomo) */}
+          {metaColetiva > 0 && mostraMetas && !isAutonomo && (
             <div className="card-light p-6">
               <h3 className="font-serif text-lg text-on-cream mb-1">Meta coletiva</h3>
               {premioColetivo && <p className="text-on-cream-muted text-sm font-sans mb-4">{premioColetivo}</p>}

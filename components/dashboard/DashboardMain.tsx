@@ -32,6 +32,7 @@ type MetaSimples = {
 }
 
 interface Props {
+  isAutonomo: boolean
   meta: MetaSimples | null
   faturamentoExibido: number
   progressoColetivo: number
@@ -66,6 +67,7 @@ function tierGlowClass(tier: string | null) {
 }
 
 export default function DashboardMain({
+  isAutonomo,
   meta,
   faturamentoExibido,
   progressoColetivo,
@@ -84,9 +86,11 @@ export default function DashboardMain({
   diasUteisRestantes,
   faturamentoEditSlot,
 }: Props) {
-  const [filtro, setFiltro] = useState<'todos' | string>('todos')
-
   const todos = [...rankingBarbeiros, ...rankingRecepcionistas]
+  // Em modo autônomo, força filtro no único barbeiro (não mostra pills nem ranking)
+  const autonomoBarbeiro = isAutonomo ? rankingBarbeiros[0] ?? null : null
+  const [filtro, setFiltro] = useState<'todos' | string>(autonomoBarbeiro ? autonomoBarbeiro.id : 'todos')
+
   const barbeiroSel = filtro !== 'todos' ? todos.find(b => b.id === filtro) ?? null : null
 
   const pillBase = 'px-3 py-1.5 rounded-full text-xs font-sans font-semibold transition-all border'
@@ -96,24 +100,26 @@ export default function DashboardMain({
   return (
     <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
-      {/* Filter pills */}
-      <div className="flex gap-2 flex-wrap">
-        <button
-          onClick={() => setFiltro('todos')}
-          className={`${pillBase} ${filtro === 'todos' ? pillActive : pillInactive}`}
-        >
-          Todos
-        </button>
-        {todos.map(b => (
+      {/* Filter pills (escondidos no modo autônomo) */}
+      {!isAutonomo && (
+        <div className="flex gap-2 flex-wrap">
           <button
-            key={b.id}
-            onClick={() => setFiltro(b.id)}
-            className={`${pillBase} ${filtro === b.id ? pillActive : pillInactive}`}
+            onClick={() => setFiltro('todos')}
+            className={`${pillBase} ${filtro === 'todos' ? pillActive : pillInactive}`}
           >
-            {b.nome.split(' ')[0]}
+            Todos
           </button>
-        ))}
-      </div>
+          {todos.map(b => (
+            <button
+              key={b.id}
+              onClick={() => setFiltro(b.id)}
+              className={`${pillBase} ${filtro === b.id ? pillActive : pillInactive}`}
+            >
+              {b.nome.split(' ')[0]}
+            </button>
+          ))}
+        </div>
+      )}
 
       {filtro === 'todos' ? (
         <TodosView

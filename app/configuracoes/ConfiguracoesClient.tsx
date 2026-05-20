@@ -8,14 +8,7 @@ import OperacaoTab from './OperacaoTab'
 import EquipeTab from './EquipeTab'
 import ContaTab from './ContaTab'
 
-const TABS = [
-  { id: 'identidade', label: 'Identidade' },
-  { id: 'operacao',   label: 'Operação' },
-  { id: 'equipe',     label: 'Equipe' },
-  { id: 'conta',      label: 'Conta' },
-] as const
-
-type TabId = typeof TABS[number]['id']
+type TabId = 'identidade' | 'operacao' | 'equipe' | 'conta'
 
 export interface BarbeariaConfig {
   nome: string
@@ -38,6 +31,14 @@ interface Props {
 
 export default function ConfiguracoesClient({ barbearia, barbeiros, email }: Props) {
   const [tab, setTab] = useState<TabId>('identidade')
+  const isAutonomo = barbearia.modalidade === 'sozinho'
+
+  const TABS: { id: TabId; label: string }[] = [
+    { id: 'identidade', label: 'Identidade' },
+    { id: 'operacao',   label: 'Operação' },
+    { id: 'equipe',     label: isAutonomo ? 'Perfil' : 'Equipe' },
+    { id: 'conta',      label: 'Conta' },
+  ]
 
   return (
     <main className="min-h-screen px-4 py-10">
@@ -68,7 +69,7 @@ export default function ConfiguracoesClient({ barbearia, barbeiros, email }: Pro
         <div className="card p-6">
           {tab === 'identidade' && <IdentidadeTab barbearia={barbearia} />}
           {tab === 'operacao'   && <OperacaoTab barbearia={barbearia} />}
-          {tab === 'equipe'     && <EquipeTab barbeiros={barbeiros} />}
+          {tab === 'equipe'     && <EquipeTab barbeiros={barbeiros} isAutonomo={isAutonomo} />}
           {tab === 'conta'      && <ContaTab email={email} />}
         </div>
       </div>

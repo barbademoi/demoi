@@ -33,6 +33,7 @@ type BarbeiroRow = {
 interface Props {
   // Barbearia
   barbeariaNome: string
+  isAutonomo: boolean
   mes: number
   ano: number
   // DashboardMain data
@@ -68,7 +69,7 @@ interface Props {
 }
 
 export default function DashboardShell({
-  barbeariaNome, mes, ano,
+  barbeariaNome, isAutonomo, mes, ano,
   meta, faturamentoExibido, progressoColetivo,
   rankingBarbeiros, rankingRecepcionistas,
   modoAtual, campanha, pontosMap,
@@ -138,6 +139,7 @@ export default function DashboardShell({
           <>
             <AvisoSimplificacao />
             <DashboardMain
+            isAutonomo={isAutonomo}
             meta={meta}
             faturamentoExibido={faturamentoExibido}
             progressoColetivo={progressoColetivo}
