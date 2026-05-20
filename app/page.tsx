@@ -8,6 +8,7 @@ import Funcionalidades from '@/components/landing/Funcionalidades'
 import Comparacao from '@/components/landing/Comparacao'
 import VideoAulas from '@/components/landing/VideoAulas'
 import ProvasSocial from '@/components/landing/ProvasSocial'
+import Comunidade from '@/components/landing/Comunidade'
 import Preco from '@/components/landing/Preco'
 import FAQ from '@/components/landing/FAQ'
 import CTAFinal from '@/components/landing/CTAFinal'
@@ -39,6 +40,7 @@ export default async function LandingPage() {
       <Comparacao />
       <VideoAulas />
       <ProvasSocial />
+      <Comunidade />
       <Preco />
       <FAQ />
       <CTAFinal />
