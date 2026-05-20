@@ -8,6 +8,8 @@ interface Props {
   mesAtual: number
   // Variante: 'dark' (Dashboard, fundo escuro) ou 'light' (/b/[codigo], card claro)
   variant?: 'dark' | 'light'
+  // 'individual' (barbeiro) ou 'coletivo' (barbearia inteira) — muda os labels
+  escopo?: 'individual' | 'coletivo'
 }
 
 export default function ComparativoMesAnterior({
@@ -15,6 +17,7 @@ export default function ComparativoMesAnterior({
   comissaoMesAnterior,
   mesAtual,
   variant = 'dark',
+  escopo = 'individual',
 }: Props) {
   // Sem dado do mês anterior → não renderiza (primeiro mês na plataforma)
   if (comissaoMesAnterior <= 0) return null
@@ -50,7 +53,11 @@ export default function ComparativoMesAnterior({
 
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <p className={labelCls}>Em {nomeMes(mesAnterior)} você fez</p>
+          <p className={labelCls}>
+            {escopo === 'coletivo'
+              ? `Em ${nomeMes(mesAnterior)} a barbearia faturou`
+              : `Em ${nomeMes(mesAnterior)} você fez`}
+          </p>
           <p className={valueCls}>{formatBRL(comissaoMesAnterior)}</p>
         </div>
         <div className={`w-px h-12 border-r ${dividerCls}`} />

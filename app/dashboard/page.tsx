@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { calcDiasUteis, calcProgresso } from '@/lib/utils'
 import { getPlatformStats } from '@/lib/stats'
-import { buscarHistoricoMesesPorBarbeiros, type HistoricoMes } from '@/lib/historicoMeses'
+import { buscarHistoricoMesesPorBarbeiros, buscarHistoricoBarbearia, type HistoricoMes } from '@/lib/historicoMeses'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
 import LogoUpload from '@/components/dashboard/LogoUpload'
@@ -203,13 +203,19 @@ export default async function DashboardPage() {
   // No autônomo, alimenta os cards de Comparativo/Histórico/Ticket no hero.
   // Em equipe, alimenta os mesmos cards quando o dono filtra um barbeiro específico.
   const idsParaHistorico = ranking.map(r => r.id)
-  const historicoPorBarbeiro = await buscarHistoricoMesesPorBarbeiros(supabase, idsParaHistorico, mes, ano, 4)
+  const [historicoPorBarbeiro, historicoBarbearia] = await Promise.all([
+    buscarHistoricoMesesPorBarbeiros(supabase, idsParaHistorico, mes, ano, 4),
+    // Histórico coletivo da barbearia (faturamento total + atendimentos somados) —
+    // alimenta os 3 cards na visão "Todos" do dashboard quando equipe.
+    buscarHistoricoBarbearia(supabase, barbearia.id, mes, ano, 4),
+  ])
 
   // Compat com a UI atual do autônomo: deriva o array do único barbeiro
   const historicoMeses: HistoricoMes[] = isAutonomo && rankingBarbeiros[0]
     ? (historicoPorBarbeiro[rankingBarbeiros[0].id] ?? [])
     : []
   const comissaoMesAnterior = historicoMeses[historicoMeses.length - 2]?.comissao ?? 0
+  const faturamentoMesAnterior = historicoBarbearia[historicoBarbearia.length - 2]?.comissao ?? 0
 
   return (
     <DashboardShell
@@ -218,6 +224,8 @@ export default async function DashboardPage() {
       comissaoMesAnterior={comissaoMesAnterior}
       historicoMeses={historicoMeses}
       historicoPorBarbeiro={historicoPorBarbeiro}
+      historicoBarbearia={historicoBarbearia}
+      faturamentoMesAnterior={faturamentoMesAnterior}
       statsBarbearias={platformStats.barbearias}
       statsBarbeiros={platformStats.barbeiros}
       barbeariaLogoUrl={barbearia.logo_url}

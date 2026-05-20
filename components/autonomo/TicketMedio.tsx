@@ -12,6 +12,7 @@ interface HistoricoEntry {
 interface Props {
   historico: HistoricoEntry[]
   variant?: 'dark' | 'light'
+  escopo?: 'individual' | 'coletivo'
 }
 
 function ticket(entry: HistoricoEntry): number | null {
@@ -19,13 +20,14 @@ function ticket(entry: HistoricoEntry): number | null {
   return entry.comissao / entry.atendimentos
 }
 
-export default function TicketMedio({ historico, variant = 'dark' }: Props) {
+export default function TicketMedio({ historico, variant = 'dark', escopo = 'individual' }: Props) {
   // Esconde se nenhum mês tem atendimentos (dono nunca preencheu o campo)
   if (!historico.some(h => h.atendimentos > 0)) return null
 
   const atual = historico[historico.length - 1]
   const ticketAtual = ticket(atual)
   const isDark = variant === 'dark'
+  const isColetivo = escopo === 'coletivo'
 
   const cardCls = isDark ? 'card p-5 space-y-4' : 'card-light p-5 space-y-4'
   const titleCls = isDark ? 'text-text-muted text-xs font-sans uppercase tracking-wide' : 'text-on-cream-muted text-xs font-sans uppercase tracking-wide'
@@ -37,7 +39,7 @@ export default function TicketMedio({ historico, variant = 'dark' }: Props) {
 
   return (
     <div className={cardCls}>
-      <p className={titleCls}>Ticket médio</p>
+      <p className={titleCls}>{isColetivo ? 'Ticket médio da barbearia' : 'Ticket médio'}</p>
 
       {/* Hero — ticket do mês atual */}
       <div className="text-center space-y-1">
@@ -45,14 +47,17 @@ export default function TicketMedio({ historico, variant = 'dark' }: Props) {
           <>
             <p className={bigValueCls}>{formatBRL(ticketAtual)}</p>
             <p className={subValueCls}>
-              {atual.atendimentos} {atual.atendimentos === 1 ? 'atendimento' : 'atendimentos'} em {nomeMes(atual.mes)}
+              {atual.atendimentos} {atual.atendimentos === 1 ? 'atendimento' : 'atendimentos'}
+              {isColetivo ? ' da equipe' : ''} em {nomeMes(atual.mes)}
             </p>
           </>
         ) : (
           <>
             <p className={bigValueCls}>—</p>
             <p className={subValueCls}>
-              Preencha &ldquo;Atendimentos no mês&rdquo; ao lançar a comissão pra ver seu ticket médio.
+              {isColetivo
+                ? 'Preencha "Atendimentos no mês" de cada barbeiro pra ver o ticket médio da barbearia.'
+                : 'Preencha "Atendimentos no mês" ao lançar a comissão pra ver seu ticket médio.'}
             </p>
           </>
         )}

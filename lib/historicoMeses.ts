@@ -53,6 +53,60 @@ export async function buscarHistoricoMeses(
 }
 
 /**
+ * Busca histórico agregado da barbearia inteira (soma de todos os barbeiros).
+ *
+ * Lógica:
+ * - Pra cada mês: comissao = SUM(lancamentos.comissao_acumulada) de todos os
+ *   barbeiros. Se metas.faturamento_acumulado existe e é > 0, usa esse valor
+ *   (que pode ser editado manualmente pelo dono via FaturamentoEdit).
+ * - atendimentos = SUM(lancamentos.numero_atendimentos) de todos os barbeiros.
+ *
+ * Usado no dashboard pra exibir comparativo/histórico/ticket médio da
+ * barbearia inteira (visão "Todos" no modo equipe).
+ */
+export async function buscarHistoricoBarbearia(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  barbeariaId: string,
+  mesAtual: number,
+  anoAtual: number,
+  quantidade = 4,
+): Promise<HistoricoMes[]> {
+  const periodos = calcularPeriodos(mesAtual, anoAtual, quantidade)
+
+  // Em paralelo: pra cada mês, busca SUM(lancamentos) e meta.faturamento_acumulado
+  const queries = periodos.flatMap(p => [
+    supabase
+      .from('lancamentos')
+      .select('comissao_acumulada, numero_atendimentos')
+      .eq('barbearia_id', barbeariaId)
+      .eq('mes', p.mes)
+      .eq('ano', p.ano),
+    supabase
+      .from('metas')
+      .select('faturamento_acumulado')
+      .eq('barbearia_id', barbeariaId)
+      .eq('mes', p.mes)
+      .eq('ano', p.ano)
+      .maybeSingle(),
+  ])
+
+  const results = await Promise.all(queries)
+
+  return periodos.map((p, i) => {
+    const lancRows = (results[i * 2]?.data ?? []) as { comissao_acumulada: number; numero_atendimentos: number }[]
+    const metaData = results[i * 2 + 1]?.data as { faturamento_acumulado: number } | null
+
+    const somaComissoes = lancRows.reduce((s, r) => s + (Number(r.comissao_acumulada) || 0), 0)
+    const fatManual = Number(metaData?.faturamento_acumulado) || 0
+    const comissao = fatManual > 0 ? fatManual : somaComissoes
+    const atendimentos = lancRows.reduce((s, r) => s + (Number(r.numero_atendimentos) || 0), 0)
+
+    return { mes: p.mes, ano: p.ano, comissao, atendimentos }
+  })
+}
+
+/**
  * Busca histórico em batch pra múltiplos barbeiros — usado no dashboard
  * pra exibir comparativo/histórico/ticket médio quando o dono filtra
  * por um barbeiro específico (qualquer modalidade).

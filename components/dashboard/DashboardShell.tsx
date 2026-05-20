@@ -37,6 +37,8 @@ interface Props {
   comissaoMesAnterior: number
   historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[]
   historicoPorBarbeiro: Record<string, { mes: number; ano: number; comissao: number; atendimentos: number }[]>
+  historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number }[]
+  faturamentoMesAnterior: number
   mes: number
   ano: number
   // DashboardMain data
@@ -72,7 +74,8 @@ interface Props {
 }
 
 export default function DashboardShell({
-  barbeariaNome, isAutonomo, comissaoMesAnterior, historicoMeses, historicoPorBarbeiro, mes, ano,
+  barbeariaNome, isAutonomo, comissaoMesAnterior, historicoMeses, historicoPorBarbeiro,
+  historicoBarbearia, faturamentoMesAnterior, mes, ano,
   meta, faturamentoExibido, progressoColetivo,
   rankingBarbeiros, rankingRecepcionistas,
   modoAtual, campanha, pontosMap,
@@ -146,6 +149,8 @@ export default function DashboardShell({
             comissaoMesAnterior={comissaoMesAnterior}
             historicoMeses={historicoMeses}
             historicoPorBarbeiro={historicoPorBarbeiro}
+            historicoBarbearia={historicoBarbearia}
+            faturamentoMesAnterior={faturamentoMesAnterior}
             meta={meta}
             faturamentoExibido={faturamentoExibido}
             progressoColetivo={progressoColetivo}
