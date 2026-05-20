@@ -139,11 +139,15 @@ export default async function DashboardPage() {
   const progressoColetivo = meta ? calcProgresso(faturamentoExibido, meta.meta_coletiva) : 0
 
   const ranking = [...barbeiros]
-    .map(b => ({
-      ...b,
-      comissao: lancamentos.find(l => l.barbeiro_id === b.id)?.comissao_acumulada ?? 0,
-      metaInd: metasIndividuais.find(m => m.barbeiro_id === b.id) ?? null,
-    }))
+    .map(b => {
+      const lanc = lancamentos.find(l => l.barbeiro_id === b.id)
+      return {
+        ...b,
+        comissao: lanc?.comissao_acumulada ?? 0,
+        atendimentosMes: (lanc as Lancamento & { numero_atendimentos?: number } | undefined)?.numero_atendimentos ?? 0,
+        metaInd: metasIndividuais.find(m => m.barbeiro_id === b.id) ?? null,
+      }
+    })
     .sort((a, b) => b.comissao - a.comissao)
 
   const rankingBarbeiros = ranking.filter(b => b.tipo !== 'recepcionista')
@@ -196,7 +200,7 @@ export default async function DashboardPage() {
   const isAutonomo = barbearia.modalidade === 'sozinho'
 
   // ── Histórico 4 meses (só pra autônomo). Comissão mês anterior é derivada. ──
-  let historicoMeses: { mes: number; ano: number; comissao: number }[] = []
+  let historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[] = []
   let comissaoMesAnterior = 0
   if (isAutonomo && rankingBarbeiros[0]) {
     historicoMeses = await buscarHistoricoMeses(supabase, rankingBarbeiros[0].id, mes, ano, 4)

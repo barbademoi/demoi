@@ -71,7 +71,7 @@ export default async function BarbeiroPage({ params }: Props) {
   const lancamento = lancamentoRaw as Lancamento | null
 
   // Histórico 4 meses (só pra autônomo); comissão mês anterior é derivada
-  let historicoMeses: { mes: number; ano: number; comissao: number }[] = []
+  let historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[] = []
   let comissaoMesAnterior = 0
   if (isAutonomo) {
     historicoMeses = await buscarHistoricoMeses(supabase, barbeiro.id, mes, ano, 4)

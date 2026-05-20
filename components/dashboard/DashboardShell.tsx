@@ -35,7 +35,7 @@ interface Props {
   barbeariaNome: string
   isAutonomo: boolean
   comissaoMesAnterior: number
-  historicoMeses: { mes: number; ano: number; comissao: number }[]
+  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[]
   mes: number
   ano: number
   // DashboardMain data

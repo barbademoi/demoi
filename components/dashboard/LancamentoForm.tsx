@@ -9,6 +9,9 @@ interface SharedProps {
   barbeiro: Barbeiro
   metaInd?: MetaIndividual
   comissaoAtual: number
+  // Quando true, o form mostra também o campo "Atendimentos no mês" (usado pra ticket médio)
+  isAutonomo?: boolean
+  atendimentosAtuais?: number
 }
 
 // ── Trigger (botão lápis) ─────────────────────────────────────
@@ -47,7 +50,7 @@ interface BodyProps extends SharedProps {
   onSuccess?: () => void
 }
 
-export function LancamentoFormBody({ barbeiro, metaInd, comissaoAtual, onClose, onSuccess }: BodyProps) {
+export function LancamentoFormBody({ barbeiro, metaInd, comissaoAtual, isAutonomo, atendimentosAtuais, onClose, onSuccess }: BodyProps) {
   const [isPending, startTransition] = useTransition()
   const [erro, setErro] = useState<string | null>(null)
 
@@ -97,6 +100,25 @@ export function LancamentoFormBody({ barbeiro, metaInd, comissaoAtual, onClose, 
         )}
       </div>
 
+      {/* Atendimentos do mês — só no modo autônomo (alimenta o ticket médio) */}
+      {isAutonomo && (
+        <div>
+          <label className="label">Atendimentos no mês</label>
+          <input
+            name="numero_atendimentos"
+            type="number"
+            step="1"
+            min="0"
+            defaultValue={atendimentosAtuais && atendimentosAtuais > 0 ? atendimentosAtuais : ''}
+            placeholder="0"
+            className="input w-full"
+          />
+          <p className="block text-text-muted text-[11px] sm:text-xs font-sans mt-1.5 leading-snug">
+            Quantos cortes/atendimentos você fez no mês. Usado pra calcular seu ticket médio.
+          </p>
+        </div>
+      )}
+
       {erro && <p className="text-red-400 text-xs font-sans">{erro}</p>}
 
       <div className="grid grid-cols-2 gap-2">
@@ -113,7 +135,7 @@ export function LancamentoFormBody({ barbeiro, metaInd, comissaoAtual, onClose, 
 
 // ── Wrapper (back-compat: bundles trigger + body with internal state) ─
 
-export default function LancamentoForm({ barbeiro, metaInd, comissaoAtual }: SharedProps) {
+export default function LancamentoForm({ barbeiro, metaInd, comissaoAtual, isAutonomo, atendimentosAtuais }: SharedProps) {
   const [open, setOpen] = useState(false)
   const [sucesso, setSucesso] = useState(false)
 
@@ -132,6 +154,8 @@ export default function LancamentoForm({ barbeiro, metaInd, comissaoAtual }: Sha
       barbeiro={barbeiro}
       metaInd={metaInd}
       comissaoAtual={comissaoAtual}
+      isAutonomo={isAutonomo}
+      atendimentosAtuais={atendimentosAtuais}
       onClose={() => setOpen(false)}
       onSuccess={() => {
         setSucesso(true)

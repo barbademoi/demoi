@@ -6,6 +6,7 @@ import LancarDiaForm from './LancarDiaForm'
 import CelebracaoOverlay from '@/components/barbeiro/CelebracaoOverlay'
 import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
 import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
+import TicketMedio from '@/components/autonomo/TicketMedio'
 import type {
   Barbeiro, MetaIndividual, Lancamento,
   CampanhaComDetalhes, ControleDiario, ModoPontos,
@@ -49,7 +50,7 @@ interface Props {
   visibilidadeRanking: 'completo' | 'posicoes' | 'proprio'
   isAutonomo: boolean
   comissaoMesAnterior: number
-  historicoMeses: { mes: number; ano: number; comissao: number }[]
+  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[]
 }
 
 export default function BarbeiroClient({
@@ -203,6 +204,11 @@ export default function BarbeiroClient({
           {/* Histórico 4 meses (só autônomo, modo metas) */}
           {isAutonomo && mostraMetas && historicoMeses.length > 0 && (
             <HistoricoMeses historico={historicoMeses} variant="light" />
+          )}
+
+          {/* Ticket médio (só autônomo, modo metas) */}
+          {isAutonomo && mostraMetas && historicoMeses.length > 0 && (
+            <TicketMedio historico={historicoMeses} variant="light" />
           )}
 
           {/* Contagem regressiva (2C) */}

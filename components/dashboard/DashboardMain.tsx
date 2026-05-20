@@ -7,6 +7,7 @@ import CopiarLinkBtn from './CopiarLinkBtn'
 import EditarBarbeiroModal from './EditarBarbeiroModal'
 import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
 import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
+import TicketMedio from '@/components/autonomo/TicketMedio'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/utils'
 import type { MetaIndividual, ModoPontos, CampanhaComDetalhes } from '@/types/database'
 
@@ -36,7 +37,7 @@ type MetaSimples = {
 interface Props {
   isAutonomo: boolean
   comissaoMesAnterior: number
-  historicoMeses: { mes: number; ano: number; comissao: number }[]
+  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[]
   meta: MetaSimples | null
   faturamentoExibido: number
   progressoColetivo: number
@@ -578,7 +579,7 @@ interface BarbeiroViewProps {
   isAutonomo: boolean
   mes: number
   comissaoMesAnterior: number
-  historicoMeses: { mes: number; ano: number; comissao: number }[]
+  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[]
 }
 
 function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontosBarb, rankingPontosRecep, isAutonomo, mes, comissaoMesAnterior, historicoMeses }: BarbeiroViewProps) {
@@ -637,6 +638,8 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
                   barbeiro={barbeiro}
                   metaInd={barbeiro.metaInd ?? undefined}
                   comissaoAtual={barbeiro.comissao}
+                  isAutonomo={isAutonomo}
+                  atendimentosAtuais={(barbeiro.atendimentosMes as number | undefined) ?? 0}
                 />
               )}
             </div>
@@ -661,6 +664,11 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
       {/* Histórico 4 meses (só autônomo, modo metas) */}
       {isAutonomo && modoAtual !== 'pontos' && historicoMeses.length > 0 && (
         <HistoricoMeses historico={historicoMeses} variant="dark" />
+      )}
+
+      {/* Ticket médio (só autônomo, modo metas) */}
+      {isAutonomo && modoAtual !== 'pontos' && historicoMeses.length > 0 && (
+        <TicketMedio historico={historicoMeses} variant="dark" />
       )}
 
       {/* Progress rings */}

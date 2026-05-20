@@ -4,6 +4,13 @@
  * Usado pelas features de comparativo e histórico do modo autônomo.
  */
 
+export type HistoricoMes = {
+  mes: number
+  ano: number
+  comissao: number
+  atendimentos: number
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function buscarHistoricoMeses(
   supabase: any, // SupabaseClient — tipagem fraca pra evitar friction com `as any` que o resto do código usa
@@ -11,7 +18,7 @@ export async function buscarHistoricoMeses(
   mesAtual: number,
   anoAtual: number,
   quantidade = 4,
-): Promise<{ mes: number; ano: number; comissao: number }[]> {
+): Promise<HistoricoMes[]> {
   const periodos: { mes: number; ano: number }[] = []
   for (let i = quantidade - 1; i >= 0; i--) {
     let m = mesAtual - i
@@ -23,7 +30,7 @@ export async function buscarHistoricoMeses(
   const queries = periodos.map(p =>
     supabase
       .from('lancamentos')
-      .select('comissao_acumulada')
+      .select('comissao_acumulada, numero_atendimentos')
       .eq('barbeiro_id', barbeiroId)
       .eq('mes', p.mes)
       .eq('ano', p.ano)
@@ -36,5 +43,6 @@ export async function buscarHistoricoMeses(
     mes: p.mes,
     ano: p.ano,
     comissao: (results[i]?.data?.comissao_acumulada as number | undefined) ?? 0,
+    atendimentos: (results[i]?.data?.numero_atendimentos as number | undefined) ?? 0,
   }))
 }
