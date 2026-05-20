@@ -69,6 +69,19 @@ export default async function BarbeiroPage({ params }: Props) {
     .eq('barbeiro_id', barbeiro.id).eq('mes', mes).eq('ano', ano).single()
   const lancamento = lancamentoRaw as Lancamento | null
 
+  // Comissão mês anterior (só usado no modo autônomo, mas a query é barata)
+  let comissaoMesAnterior = 0
+  if (isAutonomo) {
+    const mesAnt = mes === 1 ? 12 : mes - 1
+    const anoAnt = mes === 1 ? ano - 1 : ano
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: lancAntRaw } = await (supabase as any)
+      .from('lancamentos').select('comissao_acumulada')
+      .eq('barbeiro_id', barbeiro.id).eq('mes', mesAnt).eq('ano', anoAnt)
+      .maybeSingle()
+    comissaoMesAnterior = (lancAntRaw?.comissao_acumulada as number | undefined) ?? 0
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: rankingRaw } = await (supabase as any)
     .from('lancamentos').select('barbeiro_id, comissao_acumulada, barbeiros(nome)')
@@ -244,6 +257,7 @@ export default async function BarbeiroPage({ params }: Props) {
           historico={historico}
           visibilidadeRanking={visibilidadeRanking}
           isAutonomo={isAutonomo}
+          comissaoMesAnterior={comissaoMesAnterior}
         />
       </main>
     </div>

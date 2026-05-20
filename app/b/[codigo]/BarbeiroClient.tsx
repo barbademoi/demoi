@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso } from '@/lib/utils'
 import LancarDiaForm from './LancarDiaForm'
 import CelebracaoOverlay from '@/components/barbeiro/CelebracaoOverlay'
+import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
 import type {
   Barbeiro, MetaIndividual, Lancamento,
   CampanhaComDetalhes, ControleDiario, ModoPontos,
@@ -46,6 +47,7 @@ interface Props {
   historico: { data: string; pontos: number; label: string }[]
   visibilidadeRanking: 'completo' | 'posicoes' | 'proprio'
   isAutonomo: boolean
+  comissaoMesAnterior: number
 }
 
 export default function BarbeiroClient({
@@ -54,7 +56,7 @@ export default function BarbeiroClient({
   faturamentoColetivo, progressoColetivo, metaColetiva, premioColetivo,
   insights, mensagemIA, tiersJaCelebrados, campanha, controlesDiario,
   pontosTotal, rankingPontos, pontosMap, controleHoje, historico,
-  visibilidadeRanking, isAutonomo,
+  visibilidadeRanking, isAutonomo, comissaoMesAnterior,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
   const mostraPontos = modo === 'pontos' || modo === 'ambos'
@@ -184,6 +186,16 @@ export default function BarbeiroClient({
               <p className="text-on-cream-muted text-xs font-sans uppercase tracking-wide mb-2">Mensagem do dia</p>
               <p className="font-sans text-sm text-on-cream leading-relaxed">{mensagemIA}</p>
             </div>
+          )}
+
+          {/* Comparativo mês anterior (só autônomo, modo metas) */}
+          {isAutonomo && mostraMetas && (
+            <ComparativoMesAnterior
+              comissaoAtual={comissao}
+              comissaoMesAnterior={comissaoMesAnterior}
+              mesAtual={mes}
+              variant="light"
+            />
           )}
 
           {/* Contagem regressiva (2C) */}

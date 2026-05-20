@@ -5,6 +5,7 @@ import CircularProgress from './CircularProgress'
 import LancamentoForm, { LancamentoFormTrigger, LancamentoFormBody } from './LancamentoForm'
 import CopiarLinkBtn from './CopiarLinkBtn'
 import EditarBarbeiroModal from './EditarBarbeiroModal'
+import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/utils'
 import type { MetaIndividual, ModoPontos, CampanhaComDetalhes } from '@/types/database'
 
@@ -33,6 +34,7 @@ type MetaSimples = {
 
 interface Props {
   isAutonomo: boolean
+  comissaoMesAnterior: number
   meta: MetaSimples | null
   faturamentoExibido: number
   progressoColetivo: number
@@ -68,6 +70,7 @@ function tierGlowClass(tier: string | null) {
 
 export default function DashboardMain({
   isAutonomo,
+  comissaoMesAnterior,
   meta,
   faturamentoExibido,
   progressoColetivo,
@@ -156,6 +159,7 @@ export default function DashboardMain({
           rankingPontosRecep={rankingPontosRecep}
           isAutonomo={isAutonomo}
           mes={mes}
+          comissaoMesAnterior={comissaoMesAnterior}
         />
       ) : null}
     </main>
@@ -569,9 +573,10 @@ interface BarbeiroViewProps {
   rankingPontosRecep: { id: string; pts: number }[]
   isAutonomo: boolean
   mes: number
+  comissaoMesAnterior: number
 }
 
-function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontosBarb, rankingPontosRecep, isAutonomo, mes }: BarbeiroViewProps) {
+function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontosBarb, rankingPontosRecep, isAutonomo, mes, comissaoMesAnterior }: BarbeiroViewProps) {
   const tier = barbeiro.metaInd
     ? calcTier(barbeiro.comissao, barbeiro.metaInd.bronze_comm, barbeiro.metaInd.prata_comm, barbeiro.metaInd.ouro_comm)
     : null
@@ -637,6 +642,16 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
           </div>
         </div>
       </div>
+
+      {/* Comparativo mês anterior (só autônomo, modo metas) */}
+      {isAutonomo && modoAtual !== 'pontos' && (
+        <ComparativoMesAnterior
+          comissaoAtual={barbeiro.comissao}
+          comissaoMesAnterior={comissaoMesAnterior}
+          mesAtual={mes}
+          variant="dark"
+        />
+      )}
 
       {/* Progress rings */}
       {barbeiro.metaInd && modoAtual !== 'pontos' && (

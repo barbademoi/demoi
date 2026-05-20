@@ -194,10 +194,27 @@ export default async function DashboardPage() {
   const platformStats = await getPlatformStats()
   const isAutonomo = barbearia.modalidade === 'sozinho'
 
+  // ── Comparativo mês anterior (só pra autônomo) ──
+  let comissaoMesAnterior = 0
+  if (isAutonomo && rankingBarbeiros[0]) {
+    const mesAnt = mes === 1 ? 12 : mes - 1
+    const anoAnt = mes === 1 ? ano - 1 : ano
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: lancAntRaw } = await (supabase as any)
+      .from('lancamentos')
+      .select('comissao_acumulada')
+      .eq('barbeiro_id', rankingBarbeiros[0].id)
+      .eq('mes', mesAnt)
+      .eq('ano', anoAnt)
+      .maybeSingle()
+    comissaoMesAnterior = (lancAntRaw?.comissao_acumulada as number | undefined) ?? 0
+  }
+
   return (
     <DashboardShell
       barbeariaNome={barbearia.nome}
       isAutonomo={isAutonomo}
+      comissaoMesAnterior={comissaoMesAnterior}
       statsBarbearias={platformStats.barbearias}
       statsBarbeiros={platformStats.barbeiros}
       barbeariaLogoUrl={barbearia.logo_url}
