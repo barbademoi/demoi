@@ -4,6 +4,9 @@ import { useState } from 'react'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso } from '@/lib/utils'
 import LancarDiaForm from './LancarDiaForm'
 import CelebracaoOverlay from '@/components/barbeiro/CelebracaoOverlay'
+import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
+import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
+import TicketMedio from '@/components/autonomo/TicketMedio'
 import type {
   Barbeiro, MetaIndividual, Lancamento,
   CampanhaComDetalhes, ControleDiario, ModoPontos,
@@ -45,6 +48,9 @@ interface Props {
   controleHoje: Record<string, number>
   historico: { data: string; pontos: number; label: string }[]
   visibilidadeRanking: 'completo' | 'posicoes' | 'proprio'
+  isAutonomo: boolean
+  comissaoMesAnterior: number
+  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[]
 }
 
 export default function BarbeiroClient({
@@ -53,7 +59,7 @@ export default function BarbeiroClient({
   faturamentoColetivo, progressoColetivo, metaColetiva, premioColetivo,
   insights, mensagemIA, tiersJaCelebrados, campanha, controlesDiario,
   pontosTotal, rankingPontos, pontosMap, controleHoje, historico,
-  visibilidadeRanking,
+  visibilidadeRanking, isAutonomo, comissaoMesAnterior, historicoMeses,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
   const mostraPontos = modo === 'pontos' || modo === 'ambos'
@@ -185,6 +191,26 @@ export default function BarbeiroClient({
             </div>
           )}
 
+          {/* Comparativo mês anterior (só autônomo, modo metas) */}
+          {isAutonomo && mostraMetas && (
+            <ComparativoMesAnterior
+              comissaoAtual={comissao}
+              comissaoMesAnterior={comissaoMesAnterior}
+              mesAtual={mes}
+              variant="light"
+            />
+          )}
+
+          {/* Histórico 4 meses (só autônomo, modo metas) */}
+          {isAutonomo && mostraMetas && historicoMeses.length > 0 && (
+            <HistoricoMeses historico={historicoMeses} variant="light" />
+          )}
+
+          {/* Ticket médio (só autônomo, modo metas) */}
+          {isAutonomo && mostraMetas && historicoMeses.length > 0 && (
+            <TicketMedio historico={historicoMeses} variant="light" />
+          )}
+
           {/* Contagem regressiva (2C) */}
           {mostrarContagem && (
             <div className="card-light p-5 space-y-3">
@@ -236,7 +262,7 @@ export default function BarbeiroClient({
             <div className="card-light p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-serif text-lg text-on-cream">Pontuação do mês</h3>
-                {posicaoPts >= 0 && qualificado && (
+                {posicaoPts >= 0 && qualificado && !isAutonomo && (
                   <span className="text-on-cream-muted text-sm font-sans">
                     #{posicaoPts + 1} no ranking
                   </span>
@@ -253,7 +279,9 @@ export default function BarbeiroClient({
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-on-cream-muted text-xs font-sans">
-                    {qualificado ? '✓ Qualificado para o ranking' : `Faltam ${minPontosEfetivo - pontosTotal} pts para qualificar`}
+                    {qualificado
+                      ? (isAutonomo ? '✓ Pontuação mínima atingida' : '✓ Qualificado para o ranking')
+                      : `Faltam ${minPontosEfetivo - pontosTotal} pts ${isAutonomo ? 'para o prêmio' : 'para qualificar'}`}
                   </span>
                   <span className="text-on-cream-muted text-xs font-sans">{minPontosEfetivo} pts</span>
                 </div>
@@ -279,7 +307,7 @@ export default function BarbeiroClient({
               {/* Alerta abaixo do mínimo */}
               {!qualificado && pontosTotal > 0 && (
                 <p className="text-on-cream-muted text-xs font-sans text-center opacity-70">
-                  ⚡ Continue lançando seus serviços para entrar no ranking!
+                  ⚡ Continue lançando seus serviços para {isAutonomo ? 'atingir a meta' : 'entrar no ranking'}!
                 </p>
               )}
 
@@ -347,7 +375,7 @@ export default function BarbeiroClient({
           )}
 
           {/* Ranking pontos da equipe */}
-          {mostraPontos && rankingPontos.length > 0 && visibilidadeRanking !== 'proprio' && (
+          {mostraPontos && rankingPontos.length > 0 && visibilidadeRanking !== 'proprio' && !isAutonomo && (
             <div className="card-light p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-serif text-lg text-on-cream">Ranking de pontos</h3>
@@ -387,7 +415,7 @@ export default function BarbeiroClient({
           )}
 
           {/* Ranking comissão da equipe */}
-          {mostraMetas && ranking.length > 0 && visibilidadeRanking !== 'proprio' && (
+          {mostraMetas && ranking.length > 0 && visibilidadeRanking !== 'proprio' && !isAutonomo && (
             <div className="card-light p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-serif text-lg text-on-cream">Ranking da equipe</h3>
@@ -423,8 +451,8 @@ export default function BarbeiroClient({
             </div>
           )}
 
-          {/* Meta coletiva */}
-          {metaColetiva > 0 && mostraMetas && (
+          {/* Meta coletiva (oculta em modo autônomo) */}
+          {metaColetiva > 0 && mostraMetas && !isAutonomo && (
             <div className="card-light p-6">
               <h3 className="font-serif text-lg text-on-cream mb-1">Meta coletiva</h3>
               {premioColetivo && <p className="text-on-cream-muted text-sm font-sans mb-4">{premioColetivo}</p>}

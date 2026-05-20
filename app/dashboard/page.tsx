@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { calcDiasUteis, calcProgresso } from '@/lib/utils'
 import { getPlatformStats } from '@/lib/stats'
+import { buscarHistoricoMeses } from '@/lib/historicoMeses'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
 import LogoUpload from '@/components/dashboard/LogoUpload'
@@ -15,7 +16,7 @@ import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetal
 type UsuarioComBarbearia = {
   barbearia_id: string
   senha_temporaria: boolean
-  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean }
+  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null }
 }
 
 type MetaSimples = {
@@ -33,7 +34,7 @@ export default async function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo)')
+    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade)')
     .eq('id', user.id)
     .single()
 
@@ -138,11 +139,15 @@ export default async function DashboardPage() {
   const progressoColetivo = meta ? calcProgresso(faturamentoExibido, meta.meta_coletiva) : 0
 
   const ranking = [...barbeiros]
-    .map(b => ({
-      ...b,
-      comissao: lancamentos.find(l => l.barbeiro_id === b.id)?.comissao_acumulada ?? 0,
-      metaInd: metasIndividuais.find(m => m.barbeiro_id === b.id) ?? null,
-    }))
+    .map(b => {
+      const lanc = lancamentos.find(l => l.barbeiro_id === b.id)
+      return {
+        ...b,
+        comissao: lanc?.comissao_acumulada ?? 0,
+        atendimentosMes: (lanc as Lancamento & { numero_atendimentos?: number } | undefined)?.numero_atendimentos ?? 0,
+        metaInd: metasIndividuais.find(m => m.barbeiro_id === b.id) ?? null,
+      }
+    })
     .sort((a, b) => b.comissao - a.comissao)
 
   const rankingBarbeiros = ranking.filter(b => b.tipo !== 'recepcionista')
@@ -192,10 +197,23 @@ export default async function DashboardPage() {
   const rankingPontosRecep = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo === 'recepcionista')
 
   const platformStats = await getPlatformStats()
+  const isAutonomo = barbearia.modalidade === 'sozinho'
+
+  // ── Histórico 4 meses (só pra autônomo). Comissão mês anterior é derivada. ──
+  let historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[] = []
+  let comissaoMesAnterior = 0
+  if (isAutonomo && rankingBarbeiros[0]) {
+    historicoMeses = await buscarHistoricoMeses(supabase, rankingBarbeiros[0].id, mes, ano, 4)
+    // Último elemento é o mês atual; penúltimo é o mês anterior
+    comissaoMesAnterior = historicoMeses[historicoMeses.length - 2]?.comissao ?? 0
+  }
 
   return (
     <DashboardShell
       barbeariaNome={barbearia.nome}
+      isAutonomo={isAutonomo}
+      comissaoMesAnterior={comissaoMesAnterior}
+      historicoMeses={historicoMeses}
       statsBarbearias={platformStats.barbearias}
       statsBarbeiros={platformStats.barbeiros}
       barbeariaLogoUrl={barbearia.logo_url}

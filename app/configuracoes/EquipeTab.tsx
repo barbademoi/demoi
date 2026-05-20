@@ -8,9 +8,10 @@ import type { Barbeiro } from '@/types/database'
 
 interface Props {
   barbeiros: Barbeiro[]
+  isAutonomo?: boolean
 }
 
-export default function EquipeTab({ barbeiros: inicial }: Props) {
+export default function EquipeTab({ barbeiros: inicial, isAutonomo = false }: Props) {
   const [lista, setLista] = useState(inicial)
   const [novoNome, setNovoNome] = useState('')
   const [novoTipo, setNovoTipo] = useState<'barbeiro' | 'recepcionista'>('barbeiro')
@@ -109,8 +110,8 @@ export default function EquipeTab({ barbeiros: inicial }: Props) {
         )}
       </div>
 
-      {/* Form adicionar */}
-      {mostrarForm ? (
+      {/* Form adicionar (oculto em modo autônomo — barbeiro único) */}
+      {isAutonomo ? null : mostrarForm ? (
         <form onSubmit={handleAdicionar} className="p-4 rounded-xl border border-border bg-surface-2 space-y-4">
           <p className="text-sm font-semibold font-sans text-text">Novo membro</p>
           <div className="flex items-center gap-3">

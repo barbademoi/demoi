@@ -5,6 +5,9 @@ import CircularProgress from './CircularProgress'
 import LancamentoForm, { LancamentoFormTrigger, LancamentoFormBody } from './LancamentoForm'
 import CopiarLinkBtn from './CopiarLinkBtn'
 import EditarBarbeiroModal from './EditarBarbeiroModal'
+import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
+import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
+import TicketMedio from '@/components/autonomo/TicketMedio'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/utils'
 import type { MetaIndividual, ModoPontos, CampanhaComDetalhes } from '@/types/database'
 
@@ -32,6 +35,9 @@ type MetaSimples = {
 }
 
 interface Props {
+  isAutonomo: boolean
+  comissaoMesAnterior: number
+  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[]
   meta: MetaSimples | null
   faturamentoExibido: number
   progressoColetivo: number
@@ -66,6 +72,9 @@ function tierGlowClass(tier: string | null) {
 }
 
 export default function DashboardMain({
+  isAutonomo,
+  comissaoMesAnterior,
+  historicoMeses,
   meta,
   faturamentoExibido,
   progressoColetivo,
@@ -84,9 +93,11 @@ export default function DashboardMain({
   diasUteisRestantes,
   faturamentoEditSlot,
 }: Props) {
-  const [filtro, setFiltro] = useState<'todos' | string>('todos')
-
   const todos = [...rankingBarbeiros, ...rankingRecepcionistas]
+  // Em modo autônomo, força filtro no único barbeiro (não mostra pills nem ranking)
+  const autonomoBarbeiro = isAutonomo ? rankingBarbeiros[0] ?? null : null
+  const [filtro, setFiltro] = useState<'todos' | string>(autonomoBarbeiro ? autonomoBarbeiro.id : 'todos')
+
   const barbeiroSel = filtro !== 'todos' ? todos.find(b => b.id === filtro) ?? null : null
 
   const pillBase = 'px-3 py-1.5 rounded-full text-xs font-sans font-semibold transition-all border'
@@ -96,24 +107,26 @@ export default function DashboardMain({
   return (
     <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
-      {/* Filter pills */}
-      <div className="flex gap-2 flex-wrap">
-        <button
-          onClick={() => setFiltro('todos')}
-          className={`${pillBase} ${filtro === 'todos' ? pillActive : pillInactive}`}
-        >
-          Todos
-        </button>
-        {todos.map(b => (
+      {/* Filter pills (escondidos no modo autônomo) */}
+      {!isAutonomo && (
+        <div className="flex gap-2 flex-wrap">
           <button
-            key={b.id}
-            onClick={() => setFiltro(b.id)}
-            className={`${pillBase} ${filtro === b.id ? pillActive : pillInactive}`}
+            onClick={() => setFiltro('todos')}
+            className={`${pillBase} ${filtro === 'todos' ? pillActive : pillInactive}`}
           >
-            {b.nome.split(' ')[0]}
+            Todos
           </button>
-        ))}
-      </div>
+          {todos.map(b => (
+            <button
+              key={b.id}
+              onClick={() => setFiltro(b.id)}
+              className={`${pillBase} ${filtro === b.id ? pillActive : pillInactive}`}
+            >
+              {b.nome.split(' ')[0]}
+            </button>
+          ))}
+        </div>
+      )}
 
       {filtro === 'todos' ? (
         <TodosView
@@ -148,6 +161,10 @@ export default function DashboardMain({
           pontosMap={pontosMap}
           rankingPontosBarb={rankingPontosBarb}
           rankingPontosRecep={rankingPontosRecep}
+          isAutonomo={isAutonomo}
+          mes={mes}
+          comissaoMesAnterior={comissaoMesAnterior}
+          historicoMeses={historicoMeses}
         />
       ) : null}
     </main>
@@ -559,9 +576,13 @@ interface BarbeiroViewProps {
   pontosMap: Record<string, number>
   rankingPontosBarb: { id: string; pts: number }[]
   rankingPontosRecep: { id: string; pts: number }[]
+  isAutonomo: boolean
+  mes: number
+  comissaoMesAnterior: number
+  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[]
 }
 
-function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontosBarb, rankingPontosRecep }: BarbeiroViewProps) {
+function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontosBarb, rankingPontosRecep, isAutonomo, mes, comissaoMesAnterior, historicoMeses }: BarbeiroViewProps) {
   const tier = barbeiro.metaInd
     ? calcTier(barbeiro.comissao, barbeiro.metaInd.bronze_comm, barbeiro.metaInd.prata_comm, barbeiro.metaInd.ouro_comm)
     : null
@@ -589,7 +610,9 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className="text-text-muted text-xs font-sans">#{posicao} no ranking</p>
+            <p className="text-text-muted text-xs font-sans">
+              {isAutonomo ? `Minha meta de ${nomeMes(mes)}` : `#${posicao} no ranking`}
+            </p>
             <h2 className="font-serif text-2xl text-text mt-0.5">{barbeiro.nome}</h2>
             {modoAtual !== 'pontos' && (
               <p className="font-serif text-3xl mt-1 text-text">{formatBRL(barbeiro.comissao)}</p>
@@ -615,6 +638,8 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
                   barbeiro={barbeiro}
                   metaInd={barbeiro.metaInd ?? undefined}
                   comissaoAtual={barbeiro.comissao}
+                  isAutonomo={isAutonomo}
+                  atendimentosAtuais={(barbeiro.atendimentosMes as number | undefined) ?? 0}
                 />
               )}
             </div>
@@ -626,10 +651,32 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
         </div>
       </div>
 
+      {/* Comparativo mês anterior (só autônomo, modo metas) */}
+      {isAutonomo && modoAtual !== 'pontos' && (
+        <ComparativoMesAnterior
+          comissaoAtual={barbeiro.comissao}
+          comissaoMesAnterior={comissaoMesAnterior}
+          mesAtual={mes}
+          variant="dark"
+        />
+      )}
+
+      {/* Histórico 4 meses (só autônomo, modo metas) */}
+      {isAutonomo && modoAtual !== 'pontos' && historicoMeses.length > 0 && (
+        <HistoricoMeses historico={historicoMeses} variant="dark" />
+      )}
+
+      {/* Ticket médio (só autônomo, modo metas) */}
+      {isAutonomo && modoAtual !== 'pontos' && historicoMeses.length > 0 && (
+        <TicketMedio historico={historicoMeses} variant="dark" />
+      )}
+
       {/* Progress rings */}
       {barbeiro.metaInd && modoAtual !== 'pontos' && (
         <div className="card p-6">
-          <h3 className="font-serif text-lg text-text mb-5 text-center">Progresso nas metas</h3>
+          <h3 className="font-serif text-lg text-text mb-5 text-center">
+            {isAutonomo ? `Minha meta de ${nomeMes(mes)}` : 'Progresso nas metas'}
+          </h3>
           <div className="flex justify-center gap-6 flex-wrap">
             {(['bronze', 'prata', 'ouro'] as const).map(t => {
               const commKey = `${t}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm'

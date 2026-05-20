@@ -140,7 +140,12 @@ export async function lancarComissao(formData: FormData) {
     return { error: 'Valor inválido.' }
   }
 
-  const payload = {
+  // Campo opcional — só enviado pelo modo autônomo. Quando ausente, preserva valor existente.
+  const atendimentosRaw = formData.get('numero_atendimentos') as string | null
+  const atendimentosInformados = atendimentosRaw !== null && atendimentosRaw !== ''
+  const numero_atendimentos = atendimentosInformados ? Math.max(0, parseInt(atendimentosRaw) || 0) : null
+
+  const payload: Record<string, unknown> = {
     barbearia_id: usuario.barbearia_id,
     barbeiro_id,
     mes,
@@ -148,6 +153,7 @@ export async function lancarComissao(formData: FormData) {
     comissao_acumulada,
     modo: 'direto',
   }
+  if (numero_atendimentos !== null) payload.numero_atendimentos = numero_atendimentos
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)

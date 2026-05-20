@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { calcProgresso, calcTier, calcDiasUteis } from '@/lib/utils'
 import { gerarInsightsBarbeiro } from '@/lib/insights'
 import { obterMensagemDiaria } from '@/lib/ia-mensagem'
+import { buscarHistoricoMeses } from '@/lib/historicoMeses'
 import BrandLogo from '@/components/BrandLogo'
 import BarbeiroClient from './BarbeiroClient'
 import { computeHistorico } from './pontos-utils'
@@ -29,16 +30,18 @@ export default async function BarbeiroPage({ params }: Props) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barbeariaRaw } = await (supabase as any)
-    .from('barbearias').select('nome, cor_principal, visibilidade_ranking')
+    .from('barbearias').select('nome, cor_principal, visibilidade_ranking, modalidade')
     .eq('id', barbeiro.barbearia_id).single()
   const barbearia = barbeariaRaw as {
     nome: string
     cor_principal: string
     visibilidade_ranking: 'completo' | 'posicoes' | 'proprio' | null
+    modalidade: string | null
   } | null
 
   const visibilidadeRanking: 'completo' | 'posicoes' | 'proprio' =
     barbearia?.visibilidade_ranking ?? 'completo'
+  const isAutonomo = barbearia?.modalidade === 'sozinho'
 
   const hoje = new Date()
   const mes = hoje.getMonth() + 1
@@ -66,6 +69,14 @@ export default async function BarbeiroPage({ params }: Props) {
     .from('lancamentos').select('*')
     .eq('barbeiro_id', barbeiro.id).eq('mes', mes).eq('ano', ano).single()
   const lancamento = lancamentoRaw as Lancamento | null
+
+  // Histórico 4 meses (só pra autônomo); comissão mês anterior é derivada
+  let historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[] = []
+  let comissaoMesAnterior = 0
+  if (isAutonomo) {
+    historicoMeses = await buscarHistoricoMeses(supabase, barbeiro.id, mes, ano, 4)
+    comissaoMesAnterior = historicoMeses[historicoMeses.length - 2]?.comissao ?? 0
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: rankingRaw } = await (supabase as any)
@@ -241,6 +252,9 @@ export default async function BarbeiroPage({ params }: Props) {
           controleHoje={controleHoje}
           historico={historico}
           visibilidadeRanking={visibilidadeRanking}
+          isAutonomo={isAutonomo}
+          comissaoMesAnterior={comissaoMesAnterior}
+          historicoMeses={historicoMeses}
         />
       </main>
     </div>
