@@ -47,13 +47,24 @@ export default function Hero() {
               Quem está atrás, acelera sozinho.
             </motion.p>
 
-            <motion.p
+            <motion.div
               custom={2} variants={fadeUp} initial="hidden" animate="show"
-              className="mt-4 text-[#A0AEC0] text-sm sm:text-base leading-relaxed border-l-2 border-[#D4A85A]/40 pl-3"
+              className="mt-6"
             >
-              Funciona para barbearias com equipe <span className="text-white">e</span> para barbeiros
-              que trabalham sozinhos. Você configura o modo na primeira vez que entrar.
-            </motion.p>
+              <div className="flex flex-wrap gap-2.5 justify-center lg:justify-start">
+                <span className="inline-flex items-center gap-2 rounded-xl bg-white/5 border border-white/15 px-3.5 py-2 text-sm font-semibold text-white">
+                  <span className="text-base">👥</span>
+                  Funciona com <span className="text-[#D4A85A]">equipe</span>
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-xl bg-white/5 border border-white/15 px-3.5 py-2 text-sm font-semibold text-white">
+                  <span className="text-base">✂️</span>
+                  Funciona pra <span className="text-[#D4A85A]">autônomo</span>
+                </span>
+              </div>
+              <p className="mt-2 text-[#A0AEC0] text-xs sm:text-sm leading-relaxed text-center lg:text-left">
+                Você escolhe o modo na primeira vez que entrar — o sistema se adapta ao seu caso.
+              </p>
+            </motion.div>
 
             {/* destaque link individual */}
             <motion.div
