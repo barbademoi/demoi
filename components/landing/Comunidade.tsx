@@ -65,7 +65,7 @@ export default function Comunidade() {
               </div>
             </div>
 
-            <ul className="space-y-3.5 mb-7 max-w-md mx-auto sm:mx-0">
+            <ul className="space-y-3.5 max-w-md mx-auto sm:mx-0">
               {beneficios.map(item => (
                 <li key={item} className="flex items-start gap-3">
                   <span className="text-[#25D366] text-lg leading-none mt-0.5 shrink-0 font-bold">✓</span>
@@ -74,17 +74,9 @@ export default function Comunidade() {
               ))}
             </ul>
 
-            <div className="flex justify-center sm:justify-start">
-              <a
-                href="https://chat.whatsapp.com/JtKyqTixgox7pSAuyNqjxp"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-[#25D366] hover:bg-[#1FB855] transition-colors text-white font-bold text-base shadow-lg shadow-[#25D366]/25"
-              >
-                Entrar na comunidade
-                <span className="text-lg leading-none">→</span>
-              </a>
-            </div>
+            <p className="mt-6 text-[#A0AEC0] text-xs sm:text-sm font-sans text-center sm:text-left italic">
+              O link de entrada aparece dentro do sistema, depois da compra.
+            </p>
           </div>
         </motion.div>
 
