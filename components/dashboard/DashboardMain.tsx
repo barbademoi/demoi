@@ -39,6 +39,8 @@ interface Props {
   comissaoMesAnterior: number
   historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[]
   historicoPorBarbeiro: Record<string, { mes: number; ano: number; comissao: number; atendimentos: number }[]>
+  historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number }[]
+  faturamentoMesAnterior: number
   meta: MetaSimples | null
   faturamentoExibido: number
   progressoColetivo: number
@@ -77,6 +79,8 @@ export default function DashboardMain({
   comissaoMesAnterior,
   historicoMeses,
   historicoPorBarbeiro,
+  historicoBarbearia,
+  faturamentoMesAnterior,
   meta,
   faturamentoExibido,
   progressoColetivo,
@@ -149,6 +153,8 @@ export default function DashboardMain({
           diasUteisCorridos={diasUteisCorridos}
           diasUteisRestantes={diasUteisRestantes}
           faturamentoEditSlot={faturamentoEditSlot}
+          historicoBarbearia={historicoBarbearia}
+          faturamentoMesAnterior={faturamentoMesAnterior}
         />
       ) : barbeiroSel ? (
         <BarbeiroView
@@ -201,6 +207,8 @@ interface TodosProps {
   diasUteisCorridos: number
   diasUteisRestantes: number
   faturamentoEditSlot: React.ReactNode
+  historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number }[]
+  faturamentoMesAnterior: number
 }
 
 function TodosView({
@@ -221,6 +229,8 @@ function TodosView({
   diasUteisCorridos,
   diasUteisRestantes,
   faturamentoEditSlot,
+  historicoBarbearia,
+  faturamentoMesAnterior,
 }: TodosProps) {
   const falta = meta ? meta.meta_coletiva - faturamentoExibido : 0
   // Usa dias úteis (Seg–Sáb, sem feriados) para ritmo mais preciso
@@ -314,6 +324,23 @@ function TodosView({
             <span className="text-primary">Configure as metas →</span>
           </p>
         </div>
+      )}
+
+      {/* Métricas da barbearia inteira (qualquer modalidade, modo metas) */}
+      {modoAtual !== 'pontos' && (
+        <ComparativoMesAnterior
+          comissaoAtual={faturamentoExibido}
+          comissaoMesAnterior={faturamentoMesAnterior}
+          mesAtual={mes}
+          variant="dark"
+          escopo="coletivo"
+        />
+      )}
+      {modoAtual !== 'pontos' && historicoBarbearia.length > 0 && (
+        <HistoricoMeses historico={historicoBarbearia} variant="dark" escopo="coletivo" />
+      )}
+      {modoAtual !== 'pontos' && historicoBarbearia.length > 0 && (
+        <TicketMedio historico={historicoBarbearia} variant="dark" escopo="coletivo" />
       )}
 
       {/* Barbeiros ranking */}

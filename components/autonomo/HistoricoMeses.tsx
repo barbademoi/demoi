@@ -11,9 +11,10 @@ interface HistoricoEntry {
 interface Props {
   historico: HistoricoEntry[]
   variant?: 'dark' | 'light'
+  escopo?: 'individual' | 'coletivo'
 }
 
-export default function HistoricoMeses({ historico, variant = 'dark' }: Props) {
+export default function HistoricoMeses({ historico, variant = 'dark', escopo = 'individual' }: Props) {
   // Esconde se nenhum dos meses tem valor (cliente novíssimo)
   const algumValor = historico.some(h => h.comissao > 0)
   if (!algumValor) return null
@@ -37,7 +38,9 @@ export default function HistoricoMeses({ historico, variant = 'dark' }: Props) {
   return (
     <div className={cardCls}>
       <div className="flex items-center justify-between">
-        <p className={titleCls}>Histórico — últimos {historico.length} meses</p>
+        <p className={titleCls}>
+          {escopo === 'coletivo' ? 'Histórico da barbearia' : 'Histórico'} — últimos {historico.length} meses
+        </p>
         {historico[bestIdx].comissao > 0 && (
           <span className={`text-[11px] font-sans font-semibold ${isDark ? 'metal-text-gold' : 'metal-text-gold'}`}>
             ★ Melhor: {nomeMes(historico[bestIdx].mes)}
