@@ -84,7 +84,7 @@ export async function buscarHistoricoBarbearia(
       .eq('ano', p.ano),
     supabase
       .from('metas')
-      .select('faturamento_acumulado')
+      .select('faturamento_acumulado, numero_atendimentos')
       .eq('barbearia_id', barbeariaId)
       .eq('mes', p.mes)
       .eq('ano', p.ano)
@@ -95,12 +95,16 @@ export async function buscarHistoricoBarbearia(
 
   return periodos.map((p, i) => {
     const lancRows = (results[i * 2]?.data ?? []) as { comissao_acumulada: number; numero_atendimentos: number }[]
-    const metaData = results[i * 2 + 1]?.data as { faturamento_acumulado: number } | null
+    const metaData = results[i * 2 + 1]?.data as { faturamento_acumulado: number; numero_atendimentos: number } | null
 
     const somaComissoes = lancRows.reduce((s, r) => s + (Number(r.comissao_acumulada) || 0), 0)
     const fatManual = Number(metaData?.faturamento_acumulado) || 0
     const comissao = fatManual > 0 ? fatManual : somaComissoes
-    const atendimentos = lancRows.reduce((s, r) => s + (Number(r.numero_atendimentos) || 0), 0)
+
+    const somaAtendBarbeiros = lancRows.reduce((s, r) => s + (Number(r.numero_atendimentos) || 0), 0)
+    const atendManual = Number(metaData?.numero_atendimentos) || 0
+    // Mesmo critério do faturamento: prefere o valor da meta quando preenchido
+    const atendimentos = atendManual > 0 ? atendManual : somaAtendBarbeiros
 
     return { mes: p.mes, ano: p.ano, comissao, atendimentos }
   })

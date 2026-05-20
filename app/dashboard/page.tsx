@@ -24,6 +24,7 @@ type MetaSimples = {
   meta_coletiva: number
   premio_coletivo: string | null
   faturamento_acumulado: number
+  numero_atendimentos: number
 }
 
 export default async function DashboardPage() {
@@ -63,7 +64,7 @@ export default async function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
     .from('metas')
-    .select('id, meta_coletiva, premio_coletivo, faturamento_acumulado')
+    .select('id, meta_coletiva, premio_coletivo, faturamento_acumulado, numero_atendimentos')
     .eq('barbearia_id', barbearia.id)
     .eq('mes', mes)
     .eq('ano', ano)
@@ -250,6 +251,7 @@ export default async function DashboardPage() {
         <FaturamentoEdit
           metaId={meta.id}
           faturamentoAtual={meta.faturamento_acumulado ?? 0}
+          atendimentosAtuais={meta.numero_atendimentos ?? 0}
           metaColetiva={meta.meta_coletiva}
           mes={mes}
           ano={ano}
