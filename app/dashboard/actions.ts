@@ -105,10 +105,18 @@ export async function atualizarFaturamento(formData: FormData) {
   const meta_id = formData.get('meta_id') as string
   const faturamento_acumulado = parseFloat(formData.get('faturamento_acumulado') as string) || 0
 
+  // Campo opcional. Quando ausente, preserva valor existente.
+  const atendimentosRaw = formData.get('numero_atendimentos') as string | null
+  const atendimentosInformados = atendimentosRaw !== null && atendimentosRaw !== ''
+  const numero_atendimentos = atendimentosInformados ? Math.max(0, parseInt(atendimentosRaw) || 0) : null
+
+  const payload: Record<string, unknown> = { faturamento_acumulado }
+  if (numero_atendimentos !== null) payload.numero_atendimentos = numero_atendimentos
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from('metas')
-    .update({ faturamento_acumulado })
+    .update(payload)
     .eq('id', meta_id)
 
   if (error) return { error: (error as { message: string }).message }
