@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { calcDiasUteis, calcProgresso } from '@/lib/utils'
 import { getPlatformStats } from '@/lib/stats'
-import { buscarHistoricoMeses } from '@/lib/historicoMeses'
+import { buscarHistoricoMesesPorBarbeiros, type HistoricoMes } from '@/lib/historicoMeses'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
 import LogoUpload from '@/components/dashboard/LogoUpload'
@@ -199,14 +199,17 @@ export default async function DashboardPage() {
   const platformStats = await getPlatformStats()
   const isAutonomo = barbearia.modalidade === 'sozinho'
 
-  // ── Histórico 4 meses (só pra autônomo). Comissão mês anterior é derivada. ──
-  let historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[] = []
-  let comissaoMesAnterior = 0
-  if (isAutonomo && rankingBarbeiros[0]) {
-    historicoMeses = await buscarHistoricoMeses(supabase, rankingBarbeiros[0].id, mes, ano, 4)
-    // Último elemento é o mês atual; penúltimo é o mês anterior
-    comissaoMesAnterior = historicoMeses[historicoMeses.length - 2]?.comissao ?? 0
-  }
+  // ── Histórico 4 meses pra todos os barbeiros (qualquer modalidade) ──
+  // No autônomo, alimenta os cards de Comparativo/Histórico/Ticket no hero.
+  // Em equipe, alimenta os mesmos cards quando o dono filtra um barbeiro específico.
+  const idsParaHistorico = ranking.map(r => r.id)
+  const historicoPorBarbeiro = await buscarHistoricoMesesPorBarbeiros(supabase, idsParaHistorico, mes, ano, 4)
+
+  // Compat com a UI atual do autônomo: deriva o array do único barbeiro
+  const historicoMeses: HistoricoMes[] = isAutonomo && rankingBarbeiros[0]
+    ? (historicoPorBarbeiro[rankingBarbeiros[0].id] ?? [])
+    : []
+  const comissaoMesAnterior = historicoMeses[historicoMeses.length - 2]?.comissao ?? 0
 
   return (
     <DashboardShell
@@ -214,6 +217,7 @@ export default async function DashboardPage() {
       isAutonomo={isAutonomo}
       comissaoMesAnterior={comissaoMesAnterior}
       historicoMeses={historicoMeses}
+      historicoPorBarbeiro={historicoPorBarbeiro}
       statsBarbearias={platformStats.barbearias}
       statsBarbeiros={platformStats.barbeiros}
       barbeariaLogoUrl={barbearia.logo_url}

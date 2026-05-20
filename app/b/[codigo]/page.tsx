@@ -70,13 +70,10 @@ export default async function BarbeiroPage({ params }: Props) {
     .eq('barbeiro_id', barbeiro.id).eq('mes', mes).eq('ano', ano).single()
   const lancamento = lancamentoRaw as Lancamento | null
 
-  // Histórico 4 meses (só pra autônomo); comissão mês anterior é derivada
-  let historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[] = []
-  let comissaoMesAnterior = 0
-  if (isAutonomo) {
-    historicoMeses = await buscarHistoricoMeses(supabase, barbeiro.id, mes, ano, 4)
-    comissaoMesAnterior = historicoMeses[historicoMeses.length - 2]?.comissao ?? 0
-  }
+  // Histórico 4 meses pra qualquer modalidade — alimenta Comparativo,
+  // HistoricoMeses e TicketMedio. Comissão mês anterior derivada do array.
+  const historicoMeses = await buscarHistoricoMeses(supabase, barbeiro.id, mes, ano, 4)
+  const comissaoMesAnterior = historicoMeses[historicoMeses.length - 2]?.comissao ?? 0
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: rankingRaw } = await (supabase as any)
