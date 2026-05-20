@@ -5,6 +5,7 @@ import CircularProgress from './CircularProgress'
 import LancamentoForm, { LancamentoFormTrigger, LancamentoFormBody } from './LancamentoForm'
 import CopiarLinkBtn from './CopiarLinkBtn'
 import EditarBarbeiroModal from './EditarBarbeiroModal'
+import ComunidadeCard from './ComunidadeCard'
 import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
 import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
 import TicketMedio from '@/components/autonomo/TicketMedio'
@@ -183,6 +184,8 @@ export default function DashboardMain({
           }
         />
       ) : null}
+
+      <ComunidadeCard />
     </main>
   )
 }
