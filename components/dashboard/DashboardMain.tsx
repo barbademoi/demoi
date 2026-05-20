@@ -38,6 +38,7 @@ interface Props {
   isAutonomo: boolean
   comissaoMesAnterior: number
   historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[]
+  historicoPorBarbeiro: Record<string, { mes: number; ano: number; comissao: number; atendimentos: number }[]>
   meta: MetaSimples | null
   faturamentoExibido: number
   progressoColetivo: number
@@ -75,6 +76,7 @@ export default function DashboardMain({
   isAutonomo,
   comissaoMesAnterior,
   historicoMeses,
+  historicoPorBarbeiro,
   meta,
   faturamentoExibido,
   progressoColetivo,
@@ -163,8 +165,16 @@ export default function DashboardMain({
           rankingPontosRecep={rankingPontosRecep}
           isAutonomo={isAutonomo}
           mes={mes}
-          comissaoMesAnterior={comissaoMesAnterior}
-          historicoMeses={historicoMeses}
+          comissaoMesAnterior={
+            isAutonomo
+              ? comissaoMesAnterior
+              : (historicoPorBarbeiro[barbeiroSel.id]?.[historicoPorBarbeiro[barbeiroSel.id].length - 2]?.comissao ?? 0)
+          }
+          historicoMeses={
+            isAutonomo
+              ? historicoMeses
+              : (historicoPorBarbeiro[barbeiroSel.id] ?? [])
+          }
         />
       ) : null}
     </main>
@@ -555,6 +565,7 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankin
           barbeiro={barbeiro}
           metaInd={barbeiro.metaInd ?? undefined}
           comissaoAtual={barbeiro.comissao}
+          atendimentosAtuais={(barbeiro.atendimentosMes as number | undefined) ?? 0}
           onClose={() => setLancarOpen(false)}
           onSuccess={() => {
             setLancarSucesso(true)
@@ -651,8 +662,8 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
         </div>
       </div>
 
-      {/* Comparativo mês anterior (só autônomo, modo metas) */}
-      {isAutonomo && modoAtual !== 'pontos' && (
+      {/* Comparativo mês anterior (qualquer modalidade, modo metas) */}
+      {modoAtual !== 'pontos' && (
         <ComparativoMesAnterior
           comissaoAtual={barbeiro.comissao}
           comissaoMesAnterior={comissaoMesAnterior}
@@ -661,13 +672,13 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
         />
       )}
 
-      {/* Histórico 4 meses (só autônomo, modo metas) */}
-      {isAutonomo && modoAtual !== 'pontos' && historicoMeses.length > 0 && (
+      {/* Histórico 4 meses (qualquer modalidade, modo metas) */}
+      {modoAtual !== 'pontos' && historicoMeses.length > 0 && (
         <HistoricoMeses historico={historicoMeses} variant="dark" />
       )}
 
-      {/* Ticket médio (só autônomo, modo metas) */}
-      {isAutonomo && modoAtual !== 'pontos' && historicoMeses.length > 0 && (
+      {/* Ticket médio (qualquer modalidade, modo metas) */}
+      {modoAtual !== 'pontos' && historicoMeses.length > 0 && (
         <TicketMedio historico={historicoMeses} variant="dark" />
       )}
 

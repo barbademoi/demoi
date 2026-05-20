@@ -100,24 +100,22 @@ export function LancamentoFormBody({ barbeiro, metaInd, comissaoAtual, isAutonom
         )}
       </div>
 
-      {/* Atendimentos do mês — só no modo autônomo (alimenta o ticket médio) */}
-      {isAutonomo && (
-        <div>
-          <label className="label">Atendimentos no mês</label>
-          <input
-            name="numero_atendimentos"
-            type="number"
-            step="1"
-            min="0"
-            defaultValue={atendimentosAtuais && atendimentosAtuais > 0 ? atendimentosAtuais : ''}
-            placeholder="0"
-            className="input w-full"
-          />
-          <p className="block text-text-muted text-[11px] sm:text-xs font-sans mt-1.5 leading-snug">
-            Quantos cortes/atendimentos você fez no mês. Usado pra calcular seu ticket médio.
-          </p>
-        </div>
-      )}
+      {/* Atendimentos do mês — opcional, alimenta o ticket médio do barbeiro */}
+      <div>
+        <label className="label">Atendimentos no mês <span className="text-text-muted text-[10px] font-normal">(opcional)</span></label>
+        <input
+          name="numero_atendimentos"
+          type="number"
+          step="1"
+          min="0"
+          defaultValue={atendimentosAtuais && atendimentosAtuais > 0 ? atendimentosAtuais : ''}
+          placeholder="0"
+          className="input w-full"
+        />
+        <p className="block text-text-muted text-[11px] sm:text-xs font-sans mt-1.5 leading-snug">
+          Quantos cortes/atendimentos {isAutonomo ? 'você fez' : 'esse barbeiro fez'} no mês. Usado pra calcular o ticket médio.
+        </p>
+      </div>
 
       {erro && <p className="text-red-400 text-xs font-sans">{erro}</p>}
 

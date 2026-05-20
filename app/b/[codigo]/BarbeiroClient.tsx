@@ -191,8 +191,8 @@ export default function BarbeiroClient({
             </div>
           )}
 
-          {/* Comparativo mês anterior (só autônomo, modo metas) */}
-          {isAutonomo && mostraMetas && (
+          {/* Comparativo mês anterior (qualquer modalidade, modo metas) */}
+          {mostraMetas && (
             <ComparativoMesAnterior
               comissaoAtual={comissao}
               comissaoMesAnterior={comissaoMesAnterior}
@@ -201,13 +201,13 @@ export default function BarbeiroClient({
             />
           )}
 
-          {/* Histórico 4 meses (só autônomo, modo metas) */}
-          {isAutonomo && mostraMetas && historicoMeses.length > 0 && (
+          {/* Histórico 4 meses (qualquer modalidade, modo metas) */}
+          {mostraMetas && historicoMeses.length > 0 && (
             <HistoricoMeses historico={historicoMeses} variant="light" />
           )}
 
-          {/* Ticket médio (só autônomo, modo metas) */}
-          {isAutonomo && mostraMetas && historicoMeses.length > 0 && (
+          {/* Ticket médio (qualquer modalidade, modo metas) */}
+          {mostraMetas && historicoMeses.length > 0 && (
             <TicketMedio historico={historicoMeses} variant="light" />
           )}
 
