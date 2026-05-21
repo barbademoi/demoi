@@ -6,12 +6,14 @@ import { createClient } from '@/lib/supabase/server'
 interface LancamentoItem {
   barbeiro_id: string
   valor: number
+  atendimentos?: number
 }
 
 export async function salvarLancamentosDiarios(
   lancamentos: LancamentoItem[],
   data: string,         // 'YYYY-MM-DD'
   fatGeral: number,
+  atendGeral = 0,
 ) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -35,43 +37,57 @@ export async function salvarLancamentosDiarios(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: prevDiasRaw } = await (supabase as any)
     .from('lancamentos_diarios')
-    .select('barbeiro_id, valor, faturamento_geral')
+    .select('barbeiro_id, valor, faturamento_geral, numero_atendimentos, atendimentos_geral')
     .eq('barbearia_id', barbearia_id)
     .in('barbeiro_id', barbeirosIds)
     .eq('data', data)
 
   const prevValorMap: Record<string, number> = {}
+  const prevAtendMap: Record<string, number> = {}
   let prevFatGeral = 0
-  for (const r of (prevDiasRaw ?? []) as { barbeiro_id: string; valor: number; faturamento_geral: number }[]) {
+  let prevAtendGeral = 0
+  for (const r of (prevDiasRaw ?? []) as {
+    barbeiro_id: string
+    valor: number
+    faturamento_geral: number
+    numero_atendimentos: number
+    atendimentos_geral: number
+  }[]) {
     prevValorMap[r.barbeiro_id] = Number(r.valor)
+    prevAtendMap[r.barbeiro_id] = Number(r.numero_atendimentos) || 0
     prevFatGeral = Math.max(prevFatGeral, Number(r.faturamento_geral))
+    prevAtendGeral = Math.max(prevAtendGeral, Number(r.atendimentos_geral) || 0)
   }
 
   // ── 2. Acumulado mensal atual ─────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: prevAcumRaw } = await (supabase as any)
     .from('lancamentos')
-    .select('barbeiro_id, comissao_acumulada')
+    .select('barbeiro_id, comissao_acumulada, numero_atendimentos')
     .eq('barbearia_id', barbearia_id)
     .in('barbeiro_id', barbeirosIds)
     .eq('mes', mes)
     .eq('ano', ano)
 
-  const accumMap: Record<string, number> = {}
-  for (const r of (prevAcumRaw ?? []) as { barbeiro_id: string; comissao_acumulada: number }[]) {
-    accumMap[r.barbeiro_id] = Number(r.comissao_acumulada)
+  const accumValorMap: Record<string, number> = {}
+  const accumAtendMap: Record<string, number> = {}
+  for (const r of (prevAcumRaw ?? []) as { barbeiro_id: string; comissao_acumulada: number; numero_atendimentos: number }[]) {
+    accumValorMap[r.barbeiro_id] = Number(r.comissao_acumulada) || 0
+    accumAtendMap[r.barbeiro_id] = Number(r.numero_atendimentos) || 0
   }
 
   // ── 3. Salva lançamentos diários ──────────────────────────
   const rows = lancamentos
-    .filter(l => l.valor >= 0)
+    .filter(l => l.valor >= 0 || (l.atendimentos ?? 0) >= 0)
     .map(l => ({
       barbearia_id,
-      barbeiro_id:       l.barbeiro_id,
+      barbeiro_id:         l.barbeiro_id,
       data,
-      valor:             l.valor,
-      faturamento_geral: fatGeral >= 0 ? fatGeral : 0,
-      atualizado_em:     agora,
+      valor:               l.valor,
+      faturamento_geral:   fatGeral >= 0 ? fatGeral : 0,
+      numero_atendimentos: Math.max(0, l.atendimentos ?? 0),
+      atendimentos_geral:  Math.max(0, atendGeral),
+      atualizado_em:       agora,
     }))
 
   if (rows.length === 0) return { ok: true }
@@ -83,22 +99,27 @@ export async function salvarLancamentosDiarios(
 
   if (errDiario) return { error: (errDiario as { message: string }).message }
 
-  // ── 4. Atualiza acumulado: acum + (novo - anterior) ──────
-  // Só processa barbeiros com delta != 0 — preserva acumulado manual
-  // e evita redução indevida quando usuario deixa campo em branco
+  // ── 4. Atualiza acumulado por barbeiro: acum + (novo - anterior) ──
+  // Soma deltas de comissão E de atendimentos. Só processa quem tem
+  // algum delta != 0 (preserva ajustes manuais e evita escrita à toa).
   const lancRows = lancamentos
     .map(l => {
-      const prevDia = prevValorMap[l.barbeiro_id] ?? 0
-      const delta   = l.valor - prevDia
-      if (delta === 0) return null
-      const novoAcum = Math.max(0, (accumMap[l.barbeiro_id] ?? 0) + delta)
+      const prevDiaValor = prevValorMap[l.barbeiro_id] ?? 0
+      const prevDiaAtend = prevAtendMap[l.barbeiro_id] ?? 0
+      const novoAtend = Math.max(0, l.atendimentos ?? 0)
+      const deltaValor = l.valor - prevDiaValor
+      const deltaAtend = novoAtend - prevDiaAtend
+      if (deltaValor === 0 && deltaAtend === 0) return null
+      const novoAcumValor = Math.max(0, (accumValorMap[l.barbeiro_id] ?? 0) + deltaValor)
+      const novoAcumAtend = Math.max(0, (accumAtendMap[l.barbeiro_id] ?? 0) + deltaAtend)
       return {
         barbearia_id,
-        barbeiro_id:        l.barbeiro_id,
+        barbeiro_id:         l.barbeiro_id,
         mes,
         ano,
-        comissao_acumulada: novoAcum,
-        modo:               'direto',
+        comissao_acumulada:  novoAcumValor,
+        numero_atendimentos: novoAcumAtend,
+        modo:                'direto',
       }
     })
     .filter((r): r is NonNullable<typeof r> => r !== null)
@@ -112,31 +133,35 @@ export async function salvarLancamentosDiarios(
     if (errAcum) return { error: (errAcum as { message: string }).message }
   }
 
-  // ── 5. Atualiza faturamento_acumulado da meta coletiva ────
+  // ── 5. Atualiza faturamento + atendimentos da meta coletiva ────
   const fatGeralNovo = fatGeral >= 0 ? fatGeral : 0
+  const atendGeralNovo = Math.max(0, atendGeral)
   const fatGeralDelta = fatGeralNovo - prevFatGeral
+  const atendGeralDelta = atendGeralNovo - prevAtendGeral
 
-  if (fatGeralDelta !== 0) {
+  if (fatGeralDelta !== 0 || atendGeralDelta !== 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: metaRaw } = await (supabase as any)
       .from('metas')
-      .select('id, faturamento_acumulado')
+      .select('id, faturamento_acumulado, numero_atendimentos')
       .eq('barbearia_id', barbearia_id)
       .eq('mes', mes)
       .eq('ano', ano)
-      .single() as { data: { id: string; faturamento_acumulado: number } | null }
+      .single() as { data: { id: string; faturamento_acumulado: number; numero_atendimentos: number } | null }
 
     if (metaRaw) {
       const novoFat = Math.max(0, Number(metaRaw.faturamento_acumulado) + fatGeralDelta)
+      const novoAtend = Math.max(0, Number(metaRaw.numero_atendimentos) + atendGeralDelta)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any)
         .from('metas')
-        .update({ faturamento_acumulado: novoFat })
+        .update({ faturamento_acumulado: novoFat, numero_atendimentos: novoAtend })
         .eq('id', metaRaw.id)
     }
   }
 
   revalidatePath('/dashboard')
+  revalidatePath('/dashboard/lancamento-diario')
   return { ok: true }
 }
 

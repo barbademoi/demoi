@@ -11,6 +11,8 @@ interface LancamentoDia {
   data: string
   valor: number
   faturamento_geral: number
+  numero_atendimentos: number
+  atendimentos_geral: number
 }
 
 interface Props {
@@ -218,18 +220,34 @@ export default function LancamentoDiarioClient({
   const [saldoOpen, setSaldoOpen] = useState(false)
   const [dataSel, setDataSel] = useState<string>(todayIso())
   const [valores, setValores] = useState<Record<string, string>>({})
+  const [atendBarb, setAtendBarb] = useState<Record<string, string>>({})
   const [fatGeral, setFatGeral] = useState<string>('')
+  const [atendGeral, setAtendGeral] = useState<string>('')
   const [erro, setErro] = useState<string | null>(null)
   const [sucesso, setSucesso] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   // Agrupa lançamentos por data
   const porData = useMemo(() => {
-    const agg: Record<string, { valoresPorBarbeiro: Record<string, number>; faturamentoGeral: number; totalDia: number }> = {}
+    const agg: Record<string, {
+      valoresPorBarbeiro: Record<string, number>
+      atendPorBarbeiro: Record<string, number>
+      faturamentoGeral: number
+      atendimentosGeral: number
+      totalDia: number
+    }> = {}
     for (const r of lancamentosDiarios) {
-      const cur = agg[r.data] ?? { valoresPorBarbeiro: {}, faturamentoGeral: 0, totalDia: 0 }
+      const cur = agg[r.data] ?? {
+        valoresPorBarbeiro: {},
+        atendPorBarbeiro: {},
+        faturamentoGeral: 0,
+        atendimentosGeral: 0,
+        totalDia: 0,
+      }
       cur.valoresPorBarbeiro[r.barbeiro_id] = Number(r.valor) || 0
+      cur.atendPorBarbeiro[r.barbeiro_id] = Number(r.numero_atendimentos) || 0
       cur.faturamentoGeral = Math.max(cur.faturamentoGeral, Number(r.faturamento_geral) || 0)
+      cur.atendimentosGeral = Math.max(cur.atendimentosGeral, Number(r.atendimentos_geral) || 0)
       agg[r.data] = cur
     }
     for (const data of Object.keys(agg)) {
@@ -254,14 +272,22 @@ export default function LancamentoDiarioClient({
     const ja = porData[novaData]
     if (ja) {
       const v: Record<string, string> = {}
+      const a: Record<string, string> = {}
       for (const [bid, val] of Object.entries(ja.valoresPorBarbeiro)) {
         v[bid] = (val as number) > 0 ? String(val) : ''
       }
+      for (const [bid, qtd] of Object.entries(ja.atendPorBarbeiro)) {
+        a[bid] = (qtd as number) > 0 ? String(qtd) : ''
+      }
       setValores(v)
+      setAtendBarb(a)
       setFatGeral(ja.faturamentoGeral > 0 ? String(ja.faturamentoGeral) : '')
+      setAtendGeral(ja.atendimentosGeral > 0 ? String(ja.atendimentosGeral) : '')
     } else {
       setValores({})
+      setAtendBarb({})
       setFatGeral('')
+      setAtendGeral('')
     }
   }
 
@@ -270,11 +296,17 @@ export default function LancamentoDiarioClient({
     const ja = porData[dataSel]
     if (ja) {
       const v: Record<string, string> = {}
+      const a: Record<string, string> = {}
       for (const [bid, val] of Object.entries(ja.valoresPorBarbeiro)) {
         v[bid] = (val as number) > 0 ? String(val) : ''
       }
+      for (const [bid, qtd] of Object.entries(ja.atendPorBarbeiro)) {
+        a[bid] = (qtd as number) > 0 ? String(qtd) : ''
+      }
       setValores(v)
+      setAtendBarb(a)
       setFatGeral(ja.faturamentoGeral > 0 ? String(ja.faturamentoGeral) : '')
+      setAtendGeral(ja.atendimentosGeral > 0 ? String(ja.atendimentosGeral) : '')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -288,11 +320,13 @@ export default function LancamentoDiarioClient({
     const lancamentos = barbeiros.map(b => ({
       barbeiro_id: b.id,
       valor: parseFloat(valores[b.id] || '0') || 0,
+      atendimentos: parseInt(atendBarb[b.id] || '0') || 0,
     }))
     const fatGeralNum = parseFloat(fatGeral || '0') || 0
+    const atendGeralNum = parseInt(atendGeral || '0') || 0
 
     startTransition(async () => {
-      const res = await salvarLancamentosDiarios(lancamentos, dataSel, fatGeralNum)
+      const res = await salvarLancamentosDiarios(lancamentos, dataSel, fatGeralNum, atendGeralNum)
       if (res?.error) { setErro(res.error); return }
       setSucesso(true)
       setTimeout(() => setSucesso(false), 2200)
@@ -384,36 +418,58 @@ export default function LancamentoDiarioClient({
           />
         </div>
 
-        {/* Faturamento total da casa */}
-        <div className="bg-surface-2 border border-border rounded-xl px-4 py-4 space-y-2">
-          <label className="text-text text-xs font-sans font-semibold uppercase tracking-wide">
-            Faturamento total da barbearia
-          </label>
-          <div className="flex items-center gap-2">
-            <span className="text-text-muted text-sm font-sans shrink-0">R$</span>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0,00"
-              value={fatGeral}
-              onChange={e => setFatGeral(e.target.value)}
-              className="input flex-1 py-2 text-lg font-serif"
-            />
+        {/* Total da casa */}
+        <div className="bg-surface-2 border border-border rounded-xl p-4 space-y-3">
+          <p className="text-text text-xs font-sans font-semibold uppercase tracking-wide">
+            Total da barbearia (caixa)
+          </p>
+          <div className="grid grid-cols-[1fr_auto] gap-3">
+            <div>
+              <label className="text-text-muted text-[11px] font-sans">Faturamento hoje</label>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-text-muted text-sm font-sans shrink-0">R$</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={fatGeral}
+                  onChange={e => setFatGeral(e.target.value)}
+                  className="input flex-1 py-2 text-base font-serif"
+                />
+              </div>
+            </div>
+            <div className="w-24">
+              <label className="text-text-muted text-[11px] font-sans">Atendimentos</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                placeholder="0"
+                value={atendGeral}
+                onChange={e => setAtendGeral(e.target.value)}
+                className="input w-full py-2 text-base font-serif mt-1 text-center"
+              />
+            </div>
           </div>
         </div>
 
         {/* Por barbeiro */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-text-muted text-xs font-sans uppercase tracking-wide">Comissões individuais</p>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-text-muted text-xs font-sans uppercase tracking-wide">
+              Comissão por barbeiro
+            </p>
             <p className="text-text-muted text-xs font-sans">
               Soma: <span className="text-text font-semibold">{formatBRL(somaDiaAtual)}</span>
             </p>
           </div>
+          <p className="text-text-muted text-[11px] font-sans mb-2.5 leading-snug">
+            Aqui é o valor que <span className="text-text font-semibold">cada barbeiro recebeu</span> (comissão dele), não o faturamento. O faturamento da casa fica no campo acima.
+          </p>
           <div className="space-y-2">
             {barbeiros.map(b => (
-              <div key={b.id} className="flex items-center gap-3 bg-surface-2 rounded-xl px-3 py-2.5">
+              <div key={b.id} className="flex items-center gap-2 sm:gap-3 bg-surface-2 rounded-xl px-3 py-2.5">
                 <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center font-serif text-sm text-text-muted shrink-0 overflow-hidden">
                   {b.foto_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -421,8 +477,8 @@ export default function LancamentoDiarioClient({
                   ) : b.nome[0]}
                 </div>
                 <p className="font-sans text-sm text-text flex-1 min-w-0 truncate">{b.nome}</p>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-text-muted text-sm font-sans">R$</span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-text-muted text-xs font-sans">R$</span>
                   <input
                     type="number"
                     min="0"
@@ -430,9 +486,20 @@ export default function LancamentoDiarioClient({
                     placeholder="0"
                     value={valores[b.id] ?? ''}
                     onChange={e => setValores(v => ({ ...v, [b.id]: e.target.value }))}
-                    className="input w-28 py-1.5 text-sm text-right"
+                    className="input w-20 sm:w-24 py-1.5 text-sm text-right"
+                    title="Comissão recebida"
                   />
                 </div>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="atend."
+                  value={atendBarb[b.id] ?? ''}
+                  onChange={e => setAtendBarb(v => ({ ...v, [b.id]: e.target.value }))}
+                  className="input w-16 py-1.5 text-sm text-center shrink-0"
+                  title="Atendimentos do dia"
+                />
               </div>
             ))}
             {barbeiros.length === 0 && (
@@ -487,6 +554,9 @@ export default function LancamentoDiarioClient({
                     </p>
                     <p className="text-text-muted text-xs font-sans mt-0.5">
                       Faturamento: {formatBRL(info.faturamentoGeral)} · Comissões: {formatBRL(info.totalDia)}
+                      {info.atendimentosGeral > 0 && (
+                        <> · <span className="text-text">{info.atendimentosGeral}</span> atend.</>
+                      )}
                     </p>
                   </div>
                   <span className="text-primary text-xs font-sans shrink-0">editar</span>

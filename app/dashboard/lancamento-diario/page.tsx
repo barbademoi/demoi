@@ -46,13 +46,16 @@ export default async function LancamentoDiarioPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: ldRaw } = await (supabase as any)
     .from('lancamentos_diarios')
-    .select('barbeiro_id, data, valor, faturamento_geral')
+    .select('barbeiro_id, data, valor, faturamento_geral, numero_atendimentos, atendimentos_geral')
     .eq('barbearia_id', barbearia.id)
     .gte('data', primeiroDia)
     .lte('data', ultimoDia)
     .order('data', { ascending: false })
 
-  const lancamentosDiarios = (ldRaw ?? []) as { barbeiro_id: string; data: string; valor: number; faturamento_geral: number }[]
+  const lancamentosDiarios = (ldRaw ?? []) as {
+    barbeiro_id: string; data: string; valor: number; faturamento_geral: number
+    numero_atendimentos: number; atendimentos_geral: number
+  }[]
 
   // Acumulado do mês (lido das mesmas tabelas que o /dashboard usa)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
