@@ -58,7 +58,7 @@ export default async function LancamentoDiarioPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
     .from('metas')
-    .select('faturamento_acumulado')
+    .select('faturamento_acumulado, numero_atendimentos')
     .eq('barbearia_id', barbearia.id)
     .eq('mes', mes)
     .eq('ano', ano)
@@ -66,18 +66,27 @@ export default async function LancamentoDiarioPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: lancMensaisRaw } = await (supabase as any)
     .from('lancamentos')
-    .select('comissao_acumulada')
+    .select('barbeiro_id, comissao_acumulada, numero_atendimentos')
     .eq('barbearia_id', barbearia.id)
     .eq('mes', mes)
     .eq('ano', ano)
 
-  const totalComissoesMes = (lancMensaisRaw ?? []).reduce(
-    (s: number, l: { comissao_acumulada: number }) => s + Number(l.comissao_acumulada || 0),
-    0,
-  )
+  const lancPorBarbeiro = (lancMensaisRaw ?? []) as { barbeiro_id: string; comissao_acumulada: number; numero_atendimentos: number }[]
+  const saldoPorBarbeiro: Record<string, { comissao: number; atendimentos: number }> = {}
+  for (const l of lancPorBarbeiro) {
+    saldoPorBarbeiro[l.barbeiro_id] = {
+      comissao: Number(l.comissao_acumulada) || 0,
+      atendimentos: Number(l.numero_atendimentos) || 0,
+    }
+  }
+
+  const totalComissoesMes = lancPorBarbeiro.reduce((s, l) => s + (Number(l.comissao_acumulada) || 0), 0)
   const faturamentoMes = Number(metaRaw?.faturamento_acumulado) > 0
     ? Number(metaRaw.faturamento_acumulado)
     : totalComissoesMes
+  const atendimentosCasaAtual = Number(metaRaw?.numero_atendimentos) || 0
+  const faturamentoCasaAtual = Number(metaRaw?.faturamento_acumulado) || 0
+  const mesTemSaldo = totalComissoesMes > 0 || faturamentoCasaAtual > 0
 
   return (
     <div className="min-h-screen flex">
@@ -96,6 +105,10 @@ export default async function LancamentoDiarioPage() {
             lancamentosDiarios={lancamentosDiarios}
             faturamentoMes={faturamentoMes}
             totalComissoesMes={totalComissoesMes}
+            saldoPorBarbeiro={saldoPorBarbeiro}
+            faturamentoCasaAtual={faturamentoCasaAtual}
+            atendimentosCasaAtual={atendimentosCasaAtual}
+            mesTemSaldo={mesTemSaldo}
             mes={mes}
             ano={ano}
           />
