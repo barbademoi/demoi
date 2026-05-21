@@ -29,8 +29,8 @@ const perguntas = [
     a: 'Funciona. Você pode cadastrar barbeiros e recepcionistas, cada um com sua meta e seu link próprio.',
   },
   {
-    q: 'Posso usar pelo celular?',
-    a: 'Pode. O sistema todo é otimizado pra celular — você cadastra equipe, configura metas e lança comissão direto do smartphone. Não precisa de computador.',
+    q: 'Funciona no celular, computador ou tablet?',
+    a: 'Funciona em qualquer um. O sistema é otimizado pra celular — você cadastra equipe, configura metas e lança comissão direto do smartphone. Mas se preferir, abre no computador ou tablet sem perder nada. Não precisa instalar nada.',
   },
   {
     q: 'E se eu não souber configurar? Tem alguém pra ajudar?',

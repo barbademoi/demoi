@@ -44,7 +44,7 @@ export default function Funcionalidades() {
           {...fadeIn(0.1)}
           className="text-center text-[#A0AEC0] text-lg mb-12"
         >
-          Simples de usar. Funciona no celular.
+          Simples de usar.
         </motion.p>
 
         {/* ── bento grid ── */}
