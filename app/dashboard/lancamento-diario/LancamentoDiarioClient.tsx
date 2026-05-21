@@ -26,6 +26,10 @@ interface Props {
   mesTemSaldo: boolean
   mes: number
   ano: number
+  cicloInicioIso: string
+  cicloFimIso: string
+  cicloLabel: string
+  diaFechamento: number
 }
 
 function pad2(n: number) { return String(n).padStart(2, '0') }
@@ -216,9 +220,16 @@ export default function LancamentoDiarioClient({
   mesTemSaldo,
   mes,
   ano,
+  cicloInicioIso,
+  cicloFimIso,
+  cicloLabel,
+  diaFechamento,
 }: Props) {
   const [saldoOpen, setSaldoOpen] = useState(false)
-  const [dataSel, setDataSel] = useState<string>(todayIso())
+  // Se hoje cai DENTRO do ciclo atual, default = hoje. Senão (ciclo já fechou), default = último dia do ciclo.
+  const hojeStr = todayIso()
+  const dataPadrao = hojeStr >= cicloInicioIso && hojeStr <= cicloFimIso ? hojeStr : cicloFimIso
+  const [dataSel, setDataSel] = useState<string>(dataPadrao)
   const [valores, setValores] = useState<Record<string, string>>({})
   const [atendBarb, setAtendBarb] = useState<Record<string, string>>({})
   const [fatGeral, setFatGeral] = useState<string>('')
@@ -334,23 +345,22 @@ export default function LancamentoDiarioClient({
   }
 
   const ehHoje = dataSel === todayIso()
-  const diasDoMes = new Date(ano, mes, 0).getDate()
 
   return (
     <div className="space-y-6">
 
-      {/* Banner pra mês sem saldo (compra no meio do mês) */}
+      {/* Banner pra mês sem saldo (compra no meio do mês/ciclo) */}
       {!mesTemSaldo && (
         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 sm:p-5">
           <div className="flex items-start gap-3">
             <span className="text-2xl shrink-0 mt-0.5">💡</span>
             <div className="flex-1 min-w-0">
               <p className="text-text font-sans font-semibold text-sm sm:text-base mb-1">
-                Começando no meio do mês?
+                Começando no meio do {diaFechamento === 1 ? 'mês' : 'ciclo'}?
               </p>
               <p className="text-text-muted text-xs sm:text-sm font-sans leading-relaxed mb-3">
                 Se você já vendeu antes de entrar no BarberMeta, defina o saldo
-                acumulado do mês. Depois disso, é só lançar o dia normalmente —
+                acumulado do {diaFechamento === 1 ? 'mês' : 'ciclo'}. Depois disso, é só lançar o dia normalmente —
                 a soma continua do ponto que você definir.
               </p>
               <button
@@ -364,15 +374,26 @@ export default function LancamentoDiarioClient({
         </div>
       )}
 
-      {/* Acumulado do mês */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="card p-4">
-          <p className="text-text-muted text-[10px] sm:text-xs font-sans uppercase tracking-wide">Faturamento do mês</p>
-          <p className="font-serif text-xl sm:text-2xl text-text mt-1">{formatBRL(faturamentoMes)}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-text-muted text-[10px] sm:text-xs font-sans uppercase tracking-wide">Comissões do mês</p>
-          <p className="font-serif text-xl sm:text-2xl text-text mt-1">{formatBRL(totalComissoesMes)}</p>
+      {/* Acumulado do ciclo */}
+      <div className="space-y-2">
+        {diaFechamento !== 1 && (
+          <p className="text-text-muted text-[11px] font-sans">
+            Período: <span className="text-text font-semibold">{cicloLabel}</span>
+          </p>
+        )}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="card p-4">
+            <p className="text-text-muted text-[10px] sm:text-xs font-sans uppercase tracking-wide">
+              Faturamento do {diaFechamento === 1 ? 'mês' : 'ciclo'}
+            </p>
+            <p className="font-serif text-xl sm:text-2xl text-text mt-1">{formatBRL(faturamentoMes)}</p>
+          </div>
+          <div className="card p-4">
+            <p className="text-text-muted text-[10px] sm:text-xs font-sans uppercase tracking-wide">
+              Comissões do {diaFechamento === 1 ? 'mês' : 'ciclo'}
+            </p>
+            <p className="font-serif text-xl sm:text-2xl text-text mt-1">{formatBRL(totalComissoesMes)}</p>
+          </div>
         </div>
       </div>
 
@@ -382,7 +403,7 @@ export default function LancamentoDiarioClient({
           onClick={() => setSaldoOpen(true)}
           className="text-text-muted text-xs font-sans hover:text-text transition-colors underline w-full text-center sm:text-left"
         >
-          Ajustar saldo do mês
+          Ajustar saldo do {diaFechamento === 1 ? 'mês' : 'ciclo'}
         </button>
       )}
 
@@ -411,8 +432,8 @@ export default function LancamentoDiarioClient({
           <input
             type="date"
             value={dataSel}
-            min={`${ano}-${pad2(mes)}-01`}
-            max={`${ano}-${pad2(mes)}-${pad2(diasDoMes)}`}
+            min={cicloInicioIso}
+            max={cicloFimIso}
             onChange={e => selecionarData(e.target.value)}
             className="input py-2 text-sm"
           />

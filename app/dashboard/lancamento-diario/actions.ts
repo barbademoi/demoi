@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { cicloDeData } from '@/lib/ciclo'
 
 interface LancamentoItem {
   barbeiro_id: string
@@ -29,9 +30,19 @@ export async function salvarLancamentosDiarios(
   const agora = new Date().toISOString()
   const barbeirosIds = lancamentos.map(l => l.barbeiro_id)
 
-  const [anoStr, mesStr] = data.split('-')
-  const mes = parseInt(mesStr)
-  const ano = parseInt(anoStr)
+  // Busca dia_fechamento da barbearia pra derivar o ciclo correto da data
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: barbeariaRaw } = await (supabase as any)
+    .from('barbearias').select('dia_fechamento').eq('id', barbearia_id).single() as
+    { data: { dia_fechamento: number | null } | null }
+  const diaFechamento = barbeariaRaw?.dia_fechamento ?? 1
+
+  // (mes, ano) das tabelas mensais (lancamentos, metas) = início do ciclo que contém a data
+  const [anoStr, mesStr, diaStr] = data.split('-')
+  const dataObj = new Date(parseInt(anoStr), parseInt(mesStr) - 1, parseInt(diaStr))
+  const ciclo = cicloDeData(dataObj, diaFechamento)
+  const mes = ciclo.mesRef
+  const ano = ciclo.anoRef
 
   // ── 1. Valores anteriores do dia (antes do upsert) ────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
