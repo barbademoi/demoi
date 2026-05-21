@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import CircularProgress from './CircularProgress'
-import LancamentoForm, { LancamentoFormTrigger, LancamentoFormBody } from './LancamentoForm'
 import CopiarLinkBtn from './CopiarLinkBtn'
 import EditarBarbeiroModal from './EditarBarbeiroModal'
 import ComunidadeCard from './ComunidadeCard'
@@ -430,10 +429,6 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankin
   const posColors = ['metal-text-gold', 'metal-text-silver', 'metal-text-bronze']
   const posClass = posicao <= 3 ? posColors[posicao - 1] : 'text-on-cream-muted'
 
-  const [lancarOpen, setLancarOpen] = useState(false)
-  const [lancarSucesso, setLancarSucesso] = useState(false)
-  const podeLancar = modoAtual !== 'pontos'
-
   return (
     <div className="card-light p-4 sm:p-5 relative">
       {/* ✏️ no top-right só em mobile */}
@@ -561,17 +556,10 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankin
             ) : (
               <p className="font-serif text-lg text-on-cream">{pts} pts</p>
             )}
-            {podeLancar && !lancarOpen && (
-              <LancamentoFormTrigger
-                comissaoAtual={barbeiro.comissao}
-                sucesso={lancarSucesso}
-                onClick={() => setLancarOpen(true)}
-              />
-            )}
           </div>
         </div>
 
-        {/* Desktop: valor + trigger à direita */}
+        {/* Desktop: valor à direita */}
         <div className="hidden sm:block text-right shrink-0">
           {modoAtual !== 'pontos' && (
             <p className="font-serif text-xl text-on-cream">{formatBRL(barbeiro.comissao)}</p>
@@ -579,30 +567,8 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankin
           {modoAtual === 'pontos' && (
             <p className="font-serif text-xl text-on-cream">{pts} pts</p>
           )}
-          {podeLancar && !lancarOpen && (
-            <LancamentoFormTrigger
-              comissaoAtual={barbeiro.comissao}
-              sucesso={lancarSucesso}
-              onClick={() => setLancarOpen(true)}
-            />
-          )}
         </div>
       </div>
-
-      {/* Form expandido: full-width abaixo do card todo */}
-      {podeLancar && lancarOpen && (
-        <LancamentoFormBody
-          barbeiro={barbeiro}
-          metaInd={barbeiro.metaInd ?? undefined}
-          comissaoAtual={barbeiro.comissao}
-          atendimentosAtuais={(barbeiro.atendimentosMes as number | undefined) ?? 0}
-          onClose={() => setLancarOpen(false)}
-          onSuccess={() => {
-            setLancarSucesso(true)
-            setTimeout(() => setLancarSucesso(false), 3000)
-          }}
-        />
-      )}
     </div>
   )
 }
@@ -674,15 +640,6 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
                 </span>
               )}
               <EditarBarbeiroModal barbeiro={barbeiro} />
-              {modoAtual !== 'pontos' && (
-                <LancamentoForm
-                  barbeiro={barbeiro}
-                  metaInd={barbeiro.metaInd ?? undefined}
-                  comissaoAtual={barbeiro.comissao}
-                  isAutonomo={isAutonomo}
-                  atendimentosAtuais={(barbeiro.atendimentosMes as number | undefined) ?? 0}
-                />
-              )}
             </div>
             <div className="flex items-center gap-2 mt-1">
               <p className="text-text-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>

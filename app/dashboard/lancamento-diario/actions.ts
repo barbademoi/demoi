@@ -139,3 +139,87 @@ export async function salvarLancamentosDiarios(
   revalidatePath('/dashboard')
   return { ok: true }
 }
+
+interface SaldoBarbeiroItem {
+  barbeiro_id: string
+  comissao_acumulada: number
+  numero_atendimentos: number
+}
+
+/**
+ * Define o saldo do mês — usado quando a barbearia compra o sistema
+ * no meio do mês e quer começar do "estado atual" sem precisar lançar
+ * cada dia retroativamente. Também serve como ajuste manual.
+ *
+ * Sobrescreve em `lancamentos` (acumulado mensal) e `metas`
+ * (faturamento + atendimentos coletivos). NÃO mexe em lancamentos_diarios.
+ *
+ * Depois desse ajuste, os lançamentos diários continuam funcionando
+ * normalmente (somando deltas em cima do saldo).
+ */
+export async function definirSaldoMes(
+  itens: SaldoBarbeiroItem[],
+  faturamentoCasa: number,
+  atendimentosCasa: number,
+  mes: number,
+  ano: number,
+) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: usuario } = await (supabase as any)
+    .from('usuarios').select('barbearia_id').eq('id', user.id).single() as
+    { data: { barbearia_id: string } | null }
+  if (!usuario) return { error: 'Barbearia não encontrada.' }
+
+  const { barbearia_id } = usuario
+
+  // 1. Upsert lancamentos (por barbeiro)
+  const rowsLanc = itens
+    .filter(it => it.comissao_acumulada >= 0 || it.numero_atendimentos >= 0)
+    .map(it => ({
+      barbearia_id,
+      barbeiro_id: it.barbeiro_id,
+      mes,
+      ano,
+      comissao_acumulada: Math.max(0, it.comissao_acumulada),
+      numero_atendimentos: Math.max(0, it.numero_atendimentos),
+      modo: 'direto',
+    }))
+
+  if (rowsLanc.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: errLanc } = await (supabase as any)
+      .from('lancamentos')
+      .upsert(rowsLanc, { onConflict: 'barbearia_id,barbeiro_id,mes,ano' })
+    if (errLanc) return { error: (errLanc as { message: string }).message }
+  }
+
+  // 2. Upsert metas (faturamento + atendimentos da casa) — só atualiza se já existe
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: metaRaw } = await (supabase as any)
+    .from('metas')
+    .select('id')
+    .eq('barbearia_id', barbearia_id)
+    .eq('mes', mes)
+    .eq('ano', ano)
+    .maybeSingle() as { data: { id: string } | null }
+
+  if (metaRaw && (faturamentoCasa >= 0 || atendimentosCasa >= 0)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: errMeta } = await (supabase as any)
+      .from('metas')
+      .update({
+        faturamento_acumulado: Math.max(0, faturamentoCasa),
+        numero_atendimentos: Math.max(0, atendimentosCasa),
+      })
+      .eq('id', metaRaw.id)
+    if (errMeta) return { error: (errMeta as { message: string }).message }
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/lancamento-diario')
+  return { ok: true }
+}
