@@ -20,6 +20,7 @@ interface BarbeariaData {
   modalidade: string | null
   tem_assinatura: boolean | null
   visibilidade_ranking: 'completo' | 'posicoes' | 'proprio' | null
+  dia_fechamento: number | null
 }
 
 type VisibilidadeRanking = 'completo' | 'posicoes' | 'proprio'
@@ -52,6 +53,7 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
   const [visibilidade, setVisibilidade] = useState<VisibilidadeRanking>(
     barbearia.visibilidade_ranking ?? 'completo'
   )
+  const [diaFechamento, setDiaFechamento] = useState<string>(String(barbearia.dia_fechamento ?? 1))
   const [sucesso, setSucesso] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -102,6 +104,30 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
           <input id="horario_fechamento" name="horario_fechamento" type="time"
             defaultValue={barbearia.horario_fechamento?.slice(0, 5) ?? '20:00'} className="input" />
         </div>
+      </div>
+
+      <div>
+        <label htmlFor="dia_fechamento" className="label">Dia de fechamento do mês</label>
+        <div className="flex items-center gap-3">
+          <input
+            id="dia_fechamento"
+            name="dia_fechamento"
+            type="number"
+            min="1"
+            max="28"
+            value={diaFechamento}
+            onChange={e => setDiaFechamento(e.target.value)}
+            className="input w-24"
+          />
+          <p className="text-text-muted text-xs font-sans leading-relaxed flex-1">
+            {diaFechamento === '1'
+              ? 'Mês calendário (dia 1 ao fim do mês).'
+              : `Ciclo do dia ${diaFechamento} de um mês ao dia ${Math.max(1, (parseInt(diaFechamento) || 1) - 1)} do mês seguinte.`}
+          </p>
+        </div>
+        <p className="text-text-muted text-[11px] font-sans mt-2 leading-relaxed">
+          Aceita de 1 a 28. <span className="text-amber-500">⚠️ Não mude no meio do mês</span> — pode deslocar dados já lançados.
+        </p>
       </div>
 
       <div>
