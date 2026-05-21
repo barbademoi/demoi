@@ -35,32 +35,42 @@ function todayIso(): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
 }
 
-interface ModalProps {
+interface SaldoSecaoProps {
   barbeiros: BarbeiroLite[]
   saldoPorBarbeiro: Record<string, { comissao: number; atendimentos: number }>
   faturamentoCasaAtual: number
   atendimentosCasaAtual: number
   mes: number
   ano: number
-  onClose: () => void
+  // Quando true, abre por padrão (cliente sem saldo do mês ainda)
+  abrirPorPadrao: boolean
 }
 
-function AjustarSaldoMesModal({
-  barbeiros, saldoPorBarbeiro, faturamentoCasaAtual, atendimentosCasaAtual, mes, ano, onClose,
-}: ModalProps) {
+/**
+ * Seção colapsável com o "saldo acumulado do mês" — usado quando o dono
+ * compra o sistema no meio do mês e quer informar quanto cada barbeiro
+ * já fez ATÉ HOJE. Sobrescreve os totais em `lancamentos` e `metas`.
+ * Os lançamentos do dia continuam somando deltas em cima do saldo.
+ */
+function AjustarSaldoMesSecao({
+  barbeiros, saldoPorBarbeiro, faturamentoCasaAtual, atendimentosCasaAtual, mes, ano, abrirPorPadrao,
+}: SaldoSecaoProps) {
+  const [aberta, setAberta] = useState(abrirPorPadrao)
   const [comissoes, setComissoes] = useState<Record<string, string>>(() =>
-    Object.fromEntries(barbeiros.map(b => [b.id, String(saldoPorBarbeiro[b.id]?.comissao ?? '')])),
+    Object.fromEntries(barbeiros.map(b => [b.id, saldoPorBarbeiro[b.id]?.comissao ? String(saldoPorBarbeiro[b.id].comissao) : ''])),
   )
   const [atendimentos, setAtendimentos] = useState<Record<string, string>>(() =>
-    Object.fromEntries(barbeiros.map(b => [b.id, String(saldoPorBarbeiro[b.id]?.atendimentos ?? '')])),
+    Object.fromEntries(barbeiros.map(b => [b.id, saldoPorBarbeiro[b.id]?.atendimentos ? String(saldoPorBarbeiro[b.id].atendimentos) : ''])),
   )
   const [fatCasa, setFatCasa] = useState<string>(faturamentoCasaAtual > 0 ? String(faturamentoCasaAtual) : '')
   const [atendCasa, setAtendCasa] = useState<string>(atendimentosCasaAtual > 0 ? String(atendimentosCasaAtual) : '')
   const [erro, setErro] = useState<string | null>(null)
+  const [sucesso, setSucesso] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   function salvar() {
     setErro(null)
+    setSucesso(false)
     const itens = barbeiros.map(b => ({
       barbeiro_id: b.id,
       comissao_acumulada: parseFloat(comissoes[b.id] || '0') || 0,
@@ -72,39 +82,45 @@ function AjustarSaldoMesModal({
     startTransition(async () => {
       const res = await definirSaldoMes(itens, fatCasaNum, atendCasaNum, mes, ano)
       if (res?.error) { setErro(res.error); return }
-      onClose()
+      setSucesso(true)
+      setTimeout(() => setSucesso(false), 2500)
     })
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-surface border border-border rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl">
-
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0">
-          <div>
-            <h2 className="font-serif text-xl text-text">Ajustar saldo do mês</h2>
-            <p className="text-text-muted text-xs font-sans mt-0.5">
-              Sobrescreve os totais. Os lançamentos do dia continuam somando depois.
-            </p>
-          </div>
-          <button onClick={onClose} className="text-text-muted hover:text-text p-2 rounded-lg hover:bg-surface-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
+    <div id="saldo-acumulado" className="rounded-2xl border border-primary/20 bg-primary/5 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setAberta(v => !v)}
+        className="w-full flex items-center gap-3 px-5 py-4 hover:bg-primary/10 transition-colors text-left"
+      >
+        <span className="text-xl shrink-0">📊</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-text font-sans font-semibold text-sm">
+            Saldo acumulado {abrirPorPadrao ? '(comece por aqui)' : 'do mês'}
+          </p>
+          <p className="text-text-muted text-xs font-sans mt-0.5 leading-relaxed">
+            Lance quanto cada barbeiro já fez de comissão e atendimentos no mês até hoje.
+            A partir daí, os lançamentos do dia somam em cima.
+          </p>
         </div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          className={`w-4 h-4 text-text-muted shrink-0 transition-transform ${aberta ? 'rotate-180' : ''}`}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
 
-        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
+      {aberta && (
+        <div className="px-5 pb-5 pt-1 space-y-4 border-t border-primary/15">
 
-          {/* Faturamento total da casa */}
+          {/* Total da casa */}
           <div className="bg-surface-2 border border-border rounded-xl p-4 space-y-3">
             <p className="text-text text-xs font-sans font-semibold uppercase tracking-wide">
-              Total da barbearia
+              Total acumulado da barbearia
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-[1fr_auto] gap-3">
               <div>
-                <label className="text-text-muted text-xs font-sans">Faturamento</label>
+                <label className="text-text-muted text-[11px] font-sans">Faturamento acumulado</label>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className="text-text-muted text-sm font-sans shrink-0">R$</span>
                   <input
@@ -114,12 +130,12 @@ function AjustarSaldoMesModal({
                     placeholder="0,00"
                     value={fatCasa}
                     onChange={e => setFatCasa(e.target.value)}
-                    className="input flex-1 py-1.5 text-sm"
+                    className="input flex-1 py-2 text-base font-serif"
                   />
                 </div>
               </div>
-              <div>
-                <label className="text-text-muted text-xs font-sans">Atendimentos</label>
+              <div className="w-24">
+                <label className="text-text-muted text-[11px] font-sans">Atendimentos</label>
                 <input
                   type="number"
                   min="0"
@@ -127,7 +143,7 @@ function AjustarSaldoMesModal({
                   placeholder="0"
                   value={atendCasa}
                   onChange={e => setAtendCasa(e.target.value)}
-                  className="input w-full py-1.5 text-sm mt-1"
+                  className="input w-full py-2 text-base font-serif mt-1 text-center"
                 />
               </div>
             </div>
@@ -135,8 +151,13 @@ function AjustarSaldoMesModal({
 
           {/* Por barbeiro */}
           <div>
-            <p className="text-text-muted text-xs font-sans uppercase tracking-wide mb-2">Por barbeiro</p>
-            <div className="space-y-2.5">
+            <p className="text-text-muted text-xs font-sans uppercase tracking-wide mb-1">
+              Comissão acumulada por barbeiro
+            </p>
+            <p className="text-text-muted text-[11px] font-sans mb-2.5 leading-snug">
+              Quanto <span className="text-text font-semibold">cada barbeiro já recebeu de comissão</span> e quantos atendimentos fez até hoje.
+            </p>
+            <div className="space-y-2">
               {barbeiros.map(b => (
                 <div key={b.id} className="bg-surface-2 rounded-xl p-3 space-y-2">
                   <div className="flex items-center gap-2.5">
@@ -148,9 +169,9 @@ function AjustarSaldoMesModal({
                     </div>
                     <p className="font-sans text-sm text-text flex-1 min-w-0 truncate">{b.nome}</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-[1fr_auto] gap-2">
                     <div>
-                      <label className="text-text-muted text-[11px] font-sans">Comissão acumulada</label>
+                      <label className="text-text-muted text-[11px] font-sans">Comissão acumulada até hoje</label>
                       <div className="flex items-center gap-1 mt-0.5">
                         <span className="text-text-muted text-xs font-sans shrink-0">R$</span>
                         <input
@@ -160,12 +181,12 @@ function AjustarSaldoMesModal({
                           placeholder="0"
                           value={comissoes[b.id] ?? ''}
                           onChange={e => setComissoes(v => ({ ...v, [b.id]: e.target.value }))}
-                          className="input flex-1 py-1 text-sm"
+                          className="input flex-1 py-1.5 text-sm"
                         />
                       </div>
                     </div>
-                    <div>
-                      <label className="text-text-muted text-[11px] font-sans">Atendimentos</label>
+                    <div className="w-20">
+                      <label className="text-text-muted text-[11px] font-sans">Atend.</label>
                       <input
                         type="number"
                         min="0"
@@ -173,7 +194,7 @@ function AjustarSaldoMesModal({
                         placeholder="0"
                         value={atendimentos[b.id] ?? ''}
                         onChange={e => setAtendimentos(v => ({ ...v, [b.id]: e.target.value }))}
-                        className="input w-full py-1 text-sm mt-0.5"
+                        className="input w-full py-1.5 text-sm text-center mt-0.5"
                       />
                     </div>
                   </div>
@@ -183,15 +204,16 @@ function AjustarSaldoMesModal({
           </div>
 
           {erro && <p className="text-red-400 text-sm font-sans">{erro}</p>}
-        </div>
 
-        <div className="px-6 py-4 border-t border-border shrink-0 flex gap-3">
-          <button onClick={onClose} className="btn-ghost flex-1 text-sm py-2.5">Cancelar</button>
-          <button onClick={salvar} disabled={isPending} className="btn-primary flex-1 text-sm py-2.5">
-            {isPending ? 'Salvando…' : 'Salvar saldo'}
+          <button
+            onClick={salvar}
+            disabled={isPending}
+            className="btn-primary w-full py-2.5 text-sm"
+          >
+            {sucesso ? '✓ Saldo salvo!' : isPending ? 'Salvando…' : 'Salvar saldo acumulado'}
           </button>
         </div>
-      </div>
+      )}
     </div>
   )
 }
@@ -217,7 +239,6 @@ export default function LancamentoDiarioClient({
   mes,
   ano,
 }: Props) {
-  const [saldoOpen, setSaldoOpen] = useState(false)
   const [dataSel, setDataSel] = useState<string>(todayIso())
   const [valores, setValores] = useState<Record<string, string>>({})
   const [atendBarb, setAtendBarb] = useState<Record<string, string>>({})
@@ -340,30 +361,6 @@ export default function LancamentoDiarioClient({
     <div className="space-y-6">
 
       {/* Banner pra mês sem saldo (compra no meio do mês) */}
-      {!mesTemSaldo && (
-        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 sm:p-5">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl shrink-0 mt-0.5">💡</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-text font-sans font-semibold text-sm sm:text-base mb-1">
-                Começando no meio do mês?
-              </p>
-              <p className="text-text-muted text-xs sm:text-sm font-sans leading-relaxed mb-3">
-                Se você já vendeu antes de entrar no BarberMeta, defina o saldo
-                acumulado do mês. Depois disso, é só lançar o dia normalmente —
-                a soma continua do ponto que você definir.
-              </p>
-              <button
-                onClick={() => setSaldoOpen(true)}
-                className="btn-primary text-sm py-2 px-4"
-              >
-                Definir saldo acumulado →
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Acumulado do mês */}
       <div className="grid grid-cols-2 gap-3">
         <div className="card p-4">
@@ -376,27 +373,16 @@ export default function LancamentoDiarioClient({
         </div>
       </div>
 
-      {/* Link discreto pra reabrir o ajuste do saldo */}
-      {mesTemSaldo && (
-        <button
-          onClick={() => setSaldoOpen(true)}
-          className="text-text-muted text-xs font-sans hover:text-text transition-colors underline w-full text-center sm:text-left"
-        >
-          Ajustar saldo do mês
-        </button>
-      )}
-
-      {saldoOpen && (
-        <AjustarSaldoMesModal
-          barbeiros={barbeiros}
-          saldoPorBarbeiro={saldoPorBarbeiro}
-          faturamentoCasaAtual={faturamentoCasaAtual}
-          atendimentosCasaAtual={atendimentosCasaAtual}
-          mes={mes}
-          ano={ano}
-          onClose={() => setSaldoOpen(false)}
-        />
-      )}
+      {/* Saldo acumulado (seção inline colapsável) — aberta automaticamente se o mês ainda não tem nada lançado */}
+      <AjustarSaldoMesSecao
+        barbeiros={barbeiros}
+        saldoPorBarbeiro={saldoPorBarbeiro}
+        faturamentoCasaAtual={faturamentoCasaAtual}
+        atendimentosCasaAtual={atendimentosCasaAtual}
+        mes={mes}
+        ano={ano}
+        abrirPorPadrao={!mesTemSaldo}
+      />
 
       {/* Form do dia */}
       <div className="card p-5 sm:p-6 space-y-5">
