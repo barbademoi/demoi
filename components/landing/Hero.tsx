@@ -112,9 +112,6 @@ export default function Hero() {
                 className="relative w-full h-auto rounded-2xl shadow-2xl"
               />
             </div>
-            <p className="text-[#A0AEC0] text-xs text-center">
-              Funciona no celular, computador ou tablet — de onde você estiver
-            </p>
           </motion.div>
         </div>
 
