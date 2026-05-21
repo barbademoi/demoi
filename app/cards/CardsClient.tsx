@@ -28,9 +28,11 @@ interface Props {
   ano: number
   tipo: 'inicio' | 'resultado'
   deltaMap: Record<string, number | null>
+  cicloLabel: string
+  diaFechamento: number
 }
 
-export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe, faturamentoAcumulado, barbeariaName, mes, ano, tipo, deltaMap }: Props) {
+export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe, faturamentoAcumulado, barbeariaName, mes, ano, tipo, deltaMap, cicloLabel, diaFechamento }: Props) {
   const canvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map())
   const rankingCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [baixando, setBaixando] = useState(false)
@@ -116,7 +118,7 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
                 className={`px-3 py-2 rounded-xl text-xs font-sans font-semibold transition-all
                   ${tipoAtual === 'inicio' ? 'bg-primary text-white' : 'bg-surface-2 text-text-muted'}`}
               >
-                Início do mês
+                Início do {diaFechamento === 1 ? 'mês' : 'ciclo'}
               </button>
               <button
                 onClick={() => setTipoAtual('resultado')}
@@ -167,6 +169,7 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
               barbeariaName={barbeariaName}
               mes={mesAtual}
               ano={anoAtual}
+              cicloLabel={cicloLabel}
               onCanvas={(canvas) => { rankingCanvasRef.current = canvas }}
             />
             <button
@@ -205,6 +208,7 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
                       faturamentoAcumulado={faturamentoAcumulado}
                       mes={mesAtual}
                       ano={anoAtual}
+                      cicloLabel={cicloLabel}
                       delta={deltaMap[barbeiro.id] ?? null}
                       onCanvas={(canvas) => registrarCanvas(canvas, barbeiro.id)}
                     />

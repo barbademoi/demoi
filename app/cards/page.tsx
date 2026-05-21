@@ -1,17 +1,16 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import CardsClient from './CardsClient'
+import { cicloDeData } from '@/lib/ciclo'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
-type UsuarioComBarbearia = { barbearia_id: string; barbearias: { id: string; nome: string } }
+type UsuarioComBarbearia = { barbearia_id: string; barbearias: { id: string; nome: string; dia_fechamento: number | null } }
 type MetaComIndividuais = {
   id: string
   meta_coletiva: number
   premio_coletivo: string | null
   metas_individuais: MetaIndividual[]
 }
-
-function pad2(n: number) { return String(n).padStart(2, '0') }
 
 export default async function CardsPage({
   searchParams,
@@ -25,7 +24,7 @@ export default async function CardsPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, barbearias(id, nome)')
+    .select('barbearia_id, barbearias(id, nome, dia_fechamento)')
     .eq('id', user.id)
     .single()
 
@@ -33,10 +32,19 @@ export default async function CardsPage({
   if (!usuario) redirect('/login')
 
   const barbearia = usuario.barbearias
+  const diaFechamento = barbearia.dia_fechamento ?? 1
   const hoje = new Date()
-  const mes = parseInt(searchParams.mes ?? String(hoje.getMonth() + 1))
-  const ano = parseInt(searchParams.ano ?? String(hoje.getFullYear()))
+  // (mes, ano) representam o INÍCIO do ciclo (consistente com indexação das tabelas)
+  const mes = parseInt(searchParams.mes ?? '0') || cicloDeData(hoje, diaFechamento).mesRef
+  const ano = parseInt(searchParams.ano ?? '0') || cicloDeData(hoje, diaFechamento).anoRef
   const tipo = (searchParams.tipo ?? 'resultado') as 'inicio' | 'resultado'
+
+  // Ciclo atual (do mes/ano vindos do searchParam ou do hoje)
+  const ciclo = cicloDeData(new Date(ano, mes - 1, diaFechamento), diaFechamento)
+  // Ciclo anterior (pra comparar deltas)
+  const dataInicioCicloAnterior = new Date(ciclo.inicio)
+  dataInicioCicloAnterior.setMonth(dataInicioCicloAnterior.getMonth() - 1)
+  const cicloAnterior = cicloDeData(dataInicioCicloAnterior, diaFechamento)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
@@ -71,34 +79,38 @@ export default async function CardsPage({
   const faturamentoAcumulado = (meta as unknown as { faturamento_acumulado?: number })?.faturamento_acumulado ?? 0
 
   // ── Lançamentos diários — delta por barbeiro ─────────────
-  const isCurrentMonth = mes === hoje.getMonth() + 1 && ano === hoje.getFullYear()
-  const diaRef = isCurrentMonth ? hoje.getDate() : new Date(ano, mes, 0).getDate()
+  // Compara somatório do ciclo atual (até hoje, se for o ciclo corrente) com o mesmo
+  // "ponto" do ciclo anterior (mesmos N primeiros dias úteis pra comparação justa).
+  const cicloEhCorrente = hoje >= ciclo.inicio && hoje <= ciclo.fim
+  const ldFinalIso = cicloEhCorrente
+    ? `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`
+    : ciclo.fimIso
 
-  const primeiroAtual = `${ano}-${pad2(mes)}-01`
-  const dataFinal = `${ano}-${pad2(mes)}-${pad2(diaRef)}`
-
-  const mesAntMes = mes === 1 ? 12 : mes - 1
-  const mesAntAno = mes === 1 ? ano - 1 : ano
-  const ultimoDiaMesAnt = new Date(mesAntAno, mesAntMes, 0).getDate()
-  const diaAnt = Math.min(diaRef, ultimoDiaMesAnt)
-  const primeiroAnterior = `${mesAntAno}-${pad2(mesAntMes)}-01`
-  const mesmoDiaAnterior = `${mesAntAno}-${pad2(mesAntMes)}-${pad2(diaAnt)}`
+  // No ciclo anterior, compara até o mesmo número de dias do início (alinhamento justo)
+  const diasJaCorridos = Math.max(
+    1,
+    Math.floor((new Date(ldFinalIso).getTime() - ciclo.inicio.getTime()) / 86400000) + 1,
+  )
+  const dataFimAnterior = new Date(cicloAnterior.inicio)
+  dataFimAnterior.setDate(dataFimAnterior.getDate() + diasJaCorridos - 1)
+  const cicloAntFimIsoComparavel = dataFimAnterior > cicloAnterior.fim ? cicloAnterior.fimIso :
+    `${dataFimAnterior.getFullYear()}-${String(dataFimAnterior.getMonth() + 1).padStart(2, '0')}-${String(dataFimAnterior.getDate()).padStart(2, '0')}`
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: ldAtualRaw } = await (supabase as any)
     .from('lancamentos_diarios')
     .select('barbeiro_id, valor')
     .eq('barbearia_id', barbearia.id)
-    .gte('data', primeiroAtual)
-    .lte('data', dataFinal)
+    .gte('data', ciclo.inicioIso)
+    .lte('data', ldFinalIso)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: ldAnteriorRaw } = await (supabase as any)
     .from('lancamentos_diarios')
     .select('barbeiro_id, valor')
     .eq('barbearia_id', barbearia.id)
-    .gte('data', primeiroAnterior)
-    .lte('data', mesmoDiaAnterior)
+    .gte('data', cicloAnterior.inicioIso)
+    .lte('data', cicloAntFimIsoComparavel)
 
   const ldAtualMap: Record<string, number> = {}
   for (const r of (ldAtualRaw ?? []) as { barbeiro_id: string; valor: number }[]) {
@@ -128,6 +140,8 @@ export default async function CardsPage({
       ano={ano}
       tipo={tipo}
       deltaMap={deltaMap}
+      cicloLabel={ciclo.label}
+      diaFechamento={diaFechamento}
     />
   )
 }

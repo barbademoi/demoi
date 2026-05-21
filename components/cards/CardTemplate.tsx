@@ -16,6 +16,7 @@ interface Props {
   faturamentoAcumulado: number
   mes: number
   ano: number
+  cicloLabel?: string
   delta?: number | null
   onCanvas?: (canvas: HTMLCanvasElement, nome: string) => void
 }
@@ -80,7 +81,7 @@ function drawMetallicBar(
 }
 
 export default function CardTemplate({
-  tipo, barbeiro, metaInd, lancamento, metaColetiva, premioColetivo, totalEquipe, faturamentoAcumulado, mes, ano, delta, onCanvas
+  tipo, barbeiro, metaInd, lancamento, metaColetiva, premioColetivo, totalEquipe, faturamentoAcumulado, mes, ano, cicloLabel, delta, onCanvas
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -134,11 +135,12 @@ export default function CardTemplate({
     ctx.fillStyle = metaGrad
     ctx.fillText('Meta', metaX, 120)
 
-    // Mes/Ano
+    // Mes/Ano ou ciclo personalizado
     ctx.font = `400 30px ${FONT_SANS}`
     ctx.fillStyle = '#8B8FA8'
     ctx.textAlign = 'left'
-    ctx.fillText(`${nomeMes(mes).charAt(0).toUpperCase() + nomeMes(mes).slice(1)} ${ano}`, 80, 164)
+    const tituloPeriodo = cicloLabel ?? `${nomeMes(mes).charAt(0).toUpperCase() + nomeMes(mes).slice(1)} ${ano}`
+    ctx.fillText(tituloPeriodo, 80, 164)
 
     // Tipo badge
     const badgeText = tipo === 'inicio' ? 'METAS DO MÊS' : 'RESULTADO FINAL'
@@ -340,7 +342,7 @@ export default function CardTemplate({
 
     onCanvas?.(canvas, barbeiro.nome)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [barbeiro.id, tipo, lancamento?.comissao_acumulada, mes, ano, delta])
+  }, [barbeiro.id, tipo, lancamento?.comissao_acumulada, mes, ano, delta, cicloLabel])
 
   return (
     <canvas
