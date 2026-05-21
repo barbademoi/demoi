@@ -6,7 +6,6 @@ import { buscarHistoricoMesesPorBarbeiros, buscarHistoricoBarbearia, type Histor
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
 import LogoUpload from '@/components/dashboard/LogoUpload'
-import FaturamentoEdit from '@/components/dashboard/FaturamentoEdit'
 import ModoMesSelector from '@/components/dashboard/ModoMesSelector'
 import CampanhaModal from '@/components/dashboard/CampanhaModal'
 import CampanhaToggle from '@/components/dashboard/CampanhaToggle'
@@ -247,16 +246,7 @@ export default async function DashboardPage() {
       diasUteisCorridos={diasUteisCorridos}
       diasUteisRestantes={diasUteisRestantes}
       logoUploadSlot={<LogoUpload logoUrl={barbearia.logo_url} nomeAbrev={barbearia.nome[0]} />}
-      faturamentoEditSlot={meta ? (
-        <FaturamentoEdit
-          metaId={meta.id}
-          faturamentoAtual={meta.faturamento_acumulado ?? 0}
-          atendimentosAtuais={meta.numero_atendimentos ?? 0}
-          metaColetiva={meta.meta_coletiva}
-          mes={mes}
-          ano={ano}
-        />
-      ) : null}
+      faturamentoEditSlot={null}
       modoMesSlot={<ModoMesSelector modoAtual={modoAtual} mes={mes} ano={ano} />}
       novoBarbeiroSlot={<NovoBarbeiroModal />}
       novaRecepcionistaSlot={<NovoBarbeiroModal tipo="recepcionista" />}
