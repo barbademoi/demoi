@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { calcDiasUteis, calcProgresso } from '@/lib/utils'
+import { calcProgresso } from '@/lib/utils'
 import { getPlatformStats } from '@/lib/stats'
 import { buscarHistoricoMesesPorBarbeiros, buscarHistoricoBarbearia, type HistoricoMes } from '@/lib/historicoMeses'
+import { cicloAtual, calcDiasUteisCiclo } from '@/lib/ciclo'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
 import LogoUpload from '@/components/dashboard/LogoUpload'
@@ -15,7 +16,7 @@ import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetal
 type UsuarioComBarbearia = {
   barbearia_id: string
   senha_temporaria: boolean
-  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null }
+  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null; dia_fechamento: number | null }
 }
 
 type MetaSimples = {
@@ -34,7 +35,7 @@ export default async function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade)')
+    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade, dia_fechamento)')
     .eq('id', user.id)
     .single()
 
@@ -53,12 +54,14 @@ export default async function DashboardPage() {
     redirect('/login')
   }
   const hoje = new Date()
-  const mes = hoje.getMonth() + 1
-  const ano = hoje.getFullYear()
+  const diaFechamento = barbearia.dia_fechamento ?? 1
+  const ciclo = cicloAtual(diaFechamento, hoje)
+  // Índices (mes, ano) das tabelas seguem o INÍCIO do ciclo
+  const mes = ciclo.mesRef
+  const ano = ciclo.anoRef
   const diaAtual = hoje.getDate()
-  const diasNoMes = new Date(ano, mes, 0).getDate()
-  const diasRestantes = diasNoMes - diaAtual
-  const { diasUteisCorridos, diasUteisRestantes } = calcDiasUteis(ano, mes, diaAtual)
+  const { diasUteisCorridos, diasUteisRestantes, diasRestantesCiclo } = calcDiasUteisCiclo(ciclo.inicio, ciclo.fim, hoje)
+  const diasRestantes = diasRestantesCiclo
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
@@ -199,15 +202,15 @@ export default async function DashboardPage() {
   const platformStats = await getPlatformStats()
   const isAutonomo = barbearia.modalidade === 'sozinho'
 
-  // ── Histórico 4 meses pra todos os barbeiros (qualquer modalidade) ──
+  // ── Histórico 4 ciclos pra todos os barbeiros (qualquer modalidade) ──
   // No autônomo, alimenta os cards de Comparativo/Histórico/Ticket no hero.
   // Em equipe, alimenta os mesmos cards quando o dono filtra um barbeiro específico.
   const idsParaHistorico = ranking.map(r => r.id)
   const [historicoPorBarbeiro, historicoBarbearia] = await Promise.all([
-    buscarHistoricoMesesPorBarbeiros(supabase, idsParaHistorico, mes, ano, 4),
+    buscarHistoricoMesesPorBarbeiros(supabase, idsParaHistorico, mes, ano, 4, diaFechamento),
     // Histórico coletivo da barbearia (faturamento total + atendimentos somados) —
     // alimenta os 3 cards na visão "Todos" do dashboard quando equipe.
-    buscarHistoricoBarbearia(supabase, barbearia.id, mes, ano, 4),
+    buscarHistoricoBarbearia(supabase, barbearia.id, mes, ano, 4, diaFechamento),
   ])
 
   // Compat com a UI atual do autônomo: deriva o array do único barbeiro
@@ -221,6 +224,7 @@ export default async function DashboardPage() {
     <DashboardShell
       barbeariaNome={barbearia.nome}
       isAutonomo={isAutonomo}
+      cicloLabel={ciclo.label}
       comissaoMesAnterior={comissaoMesAnterior}
       historicoMeses={historicoMeses}
       historicoPorBarbeiro={historicoPorBarbeiro}

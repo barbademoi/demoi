@@ -34,10 +34,11 @@ interface Props {
   // Barbearia
   barbeariaNome: string
   isAutonomo: boolean
+  cicloLabel: string
   comissaoMesAnterior: number
-  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[]
-  historicoPorBarbeiro: Record<string, { mes: number; ano: number; comissao: number; atendimentos: number }[]>
-  historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number }[]
+  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
+  historicoPorBarbeiro: Record<string, { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]>
+  historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
   faturamentoMesAnterior: number
   mes: number
   ano: number
@@ -74,7 +75,7 @@ interface Props {
 }
 
 export default function DashboardShell({
-  barbeariaNome, isAutonomo, comissaoMesAnterior, historicoMeses, historicoPorBarbeiro,
+  barbeariaNome, isAutonomo, cicloLabel, comissaoMesAnterior, historicoMeses, historicoPorBarbeiro,
   historicoBarbearia, faturamentoMesAnterior, mes, ano,
   meta, faturamentoExibido, progressoColetivo,
   rankingBarbeiros, rankingRecepcionistas,
@@ -105,7 +106,7 @@ export default function DashboardShell({
             {logoUploadSlot}
             <div>
               <p className="text-text font-sans font-semibold text-sm">{barbeariaNome}</p>
-              <p className="text-text-muted text-xs font-sans">{nomeMes(mes)} {ano}</p>
+              <p className="text-text-muted text-xs font-sans">{cicloLabel}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 text-xs font-sans text-text-muted">
@@ -146,6 +147,7 @@ export default function DashboardShell({
             <AvisoSimplificacao />
             <DashboardMain
             isAutonomo={isAutonomo}
+            cicloLabel={cicloLabel}
             comissaoMesAnterior={comissaoMesAnterior}
             historicoMeses={historicoMeses}
             historicoPorBarbeiro={historicoPorBarbeiro}

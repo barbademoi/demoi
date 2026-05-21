@@ -50,7 +50,7 @@ interface Props {
   visibilidadeRanking: 'completo' | 'posicoes' | 'proprio'
   isAutonomo: boolean
   comissaoMesAnterior: number
-  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[]
+  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
 }
 
 export default function BarbeiroClient({

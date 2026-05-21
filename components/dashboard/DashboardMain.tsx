@@ -34,12 +34,15 @@ type MetaSimples = {
   faturamento_acumulado: number
 }
 
+type HistoricoItem = { mes: number; ano: number; comissao: number; atendimentos: number; label: string }
+
 interface Props {
   isAutonomo: boolean
+  cicloLabel: string
   comissaoMesAnterior: number
-  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[]
-  historicoPorBarbeiro: Record<string, { mes: number; ano: number; comissao: number; atendimentos: number }[]>
-  historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number }[]
+  historicoMeses: HistoricoItem[]
+  historicoPorBarbeiro: Record<string, HistoricoItem[]>
+  historicoBarbearia: HistoricoItem[]
   faturamentoMesAnterior: number
   meta: MetaSimples | null
   faturamentoExibido: number
@@ -76,6 +79,7 @@ function tierGlowClass(tier: string | null) {
 
 export default function DashboardMain({
   isAutonomo,
+  cicloLabel,
   comissaoMesAnterior,
   historicoMeses,
   historicoPorBarbeiro,
@@ -136,6 +140,7 @@ export default function DashboardMain({
 
       {filtro === 'todos' ? (
         <TodosView
+          cicloLabel={cicloLabel}
           meta={meta}
           faturamentoExibido={faturamentoExibido}
           progressoColetivo={progressoColetivo}
@@ -170,6 +175,7 @@ export default function DashboardMain({
           rankingPontosBarb={rankingPontosBarb}
           rankingPontosRecep={rankingPontosRecep}
           isAutonomo={isAutonomo}
+          cicloLabel={cicloLabel}
           mes={mes}
           comissaoMesAnterior={
             isAutonomo
@@ -192,6 +198,7 @@ export default function DashboardMain({
 // ── Todos view ───────────────────────────────────────────────────────────────
 
 interface TodosProps {
+  cicloLabel: string
   meta: MetaSimples | null
   faturamentoExibido: number
   progressoColetivo: number
@@ -209,11 +216,12 @@ interface TodosProps {
   diasUteisCorridos: number
   diasUteisRestantes: number
   faturamentoEditSlot: React.ReactNode
-  historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number }[]
+  historicoBarbearia: HistoricoItem[]
   faturamentoMesAnterior: number
 }
 
 function TodosView({
+  cicloLabel,
   meta,
   faturamentoExibido,
   progressoColetivo,
@@ -248,7 +256,7 @@ function TodosView({
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="font-serif text-xl text-text">Meta Coletiva</h2>
-              <p className="text-text-muted text-sm font-sans mt-0.5">{nomeMes(mes)} {ano}</p>
+              <p className="text-text-muted text-sm font-sans mt-0.5">{cicloLabel}</p>
             </div>
             {meta.premio_coletivo && (
               <p className="text-text-muted text-xs font-sans border border-border rounded-xl px-3 py-1.5">
@@ -331,7 +339,7 @@ function TodosView({
       ) : (
         <div className="card p-6 text-center">
           <p className="text-text-muted font-sans text-sm">
-            Nenhuma meta configurada para {nomeMes(mes)} {ano}.{' '}
+            Nenhuma meta configurada para {cicloLabel}.{' '}
             <span className="text-primary">Configure as metas →</span>
           </p>
         </div>
@@ -345,6 +353,8 @@ function TodosView({
           mesAtual={mes}
           variant="dark"
           escopo="coletivo"
+          labelPeriodoAnterior={historicoBarbearia[historicoBarbearia.length - 2]?.label}
+          labelPeriodoAtual={`Esse ${cicloLabel.includes('—') ? 'ciclo' : 'mês'} até agora`}
         />
       )}
       {modoAtual !== 'pontos' && historicoBarbearia.length > 0 && (
@@ -358,7 +368,7 @@ function TodosView({
       {rankingBarbeiros.length > 0 && (
         <section>
           <h2 className="font-serif text-xl text-text mb-4">
-            Barbeiros <span className="text-text-muted text-base font-sans">— {nomeMes(mes)} {ano}</span>
+            Barbeiros <span className="text-text-muted text-base font-sans">— {cicloLabel}</span>
           </h2>
           <div className="space-y-3">
             {rankingBarbeiros.map((barbeiro, idx) => (
@@ -593,12 +603,13 @@ interface BarbeiroViewProps {
   rankingPontosBarb: { id: string; pts: number }[]
   rankingPontosRecep: { id: string; pts: number }[]
   isAutonomo: boolean
+  cicloLabel: string
   mes: number
   comissaoMesAnterior: number
-  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[]
+  historicoMeses: HistoricoItem[]
 }
 
-function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontosBarb, rankingPontosRecep, isAutonomo, mes, comissaoMesAnterior, historicoMeses }: BarbeiroViewProps) {
+function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontosBarb, rankingPontosRecep, isAutonomo, cicloLabel, mes, comissaoMesAnterior, historicoMeses }: BarbeiroViewProps) {
   const tier = barbeiro.metaInd
     ? calcTier(barbeiro.comissao, barbeiro.metaInd.bronze_comm, barbeiro.metaInd.prata_comm, barbeiro.metaInd.ouro_comm)
     : null
@@ -627,7 +638,7 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
 
           <div className="flex-1 min-w-0">
             <p className="text-text-muted text-xs font-sans">
-              {isAutonomo ? `Minha meta de ${nomeMes(mes)}` : `#${posicao} no ranking`}
+              {isAutonomo ? `Minha meta de ${cicloLabel}` : `#${posicao} no ranking`}
             </p>
             <h2 className="font-serif text-2xl text-text mt-0.5">{barbeiro.nome}</h2>
             {modoAtual !== 'pontos' && (
@@ -665,6 +676,8 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
           comissaoMesAnterior={comissaoMesAnterior}
           mesAtual={mes}
           variant="dark"
+          labelPeriodoAnterior={historicoMeses[historicoMeses.length - 2]?.label}
+          labelPeriodoAtual={`Esse ${cicloLabel.includes('—') ? 'ciclo' : 'mês'} até agora`}
         />
       )}
 
@@ -682,7 +695,7 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
       {barbeiro.metaInd && modoAtual !== 'pontos' && (
         <div className="card p-6">
           <h3 className="font-serif text-lg text-text mb-5 text-center">
-            {isAutonomo ? `Minha meta de ${nomeMes(mes)}` : 'Progresso nas metas'}
+            {isAutonomo ? `Minha meta de ${cicloLabel}` : 'Progresso nas metas'}
           </h3>
           <div className="flex justify-center gap-6 flex-wrap">
             {(['bronze', 'prata', 'ouro'] as const).map(t => {
