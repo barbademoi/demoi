@@ -5,6 +5,7 @@ import CircularProgress from './CircularProgress'
 import CopiarLinkBtn from './CopiarLinkBtn'
 import EditarBarbeiroModal from './EditarBarbeiroModal'
 import ComunidadeCard from './ComunidadeCard'
+import LancamentosBarbeiroModal from './LancamentosBarbeiroModal'
 import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
 import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
 import TicketMedio from '@/components/autonomo/TicketMedio'
@@ -446,6 +447,9 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, pontos
   const posColors = ['metal-text-gold', 'metal-text-silver', 'metal-text-bronze']
   const posClass = posicao <= 3 ? posColors[posicao - 1] : 'text-on-cream-muted'
 
+  const [lancamentosOpen, setLancamentosOpen] = useState(false)
+  const podeVerLancamentos = modoAtual !== 'metas' && campanha !== null
+
   return (
     <div className="card-light p-4 sm:p-5 relative">
       {/* ✏️ no top-right só em mobile */}
@@ -528,9 +532,17 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, pontos
               )
             )}
           </div>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <p className="text-on-cream-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
             <CopiarLinkBtn codigo={barbeiro.link_codigo} />
+            {podeVerLancamentos && (
+              <button
+                onClick={() => setLancamentosOpen(true)}
+                className="text-on-cream-muted hover:text-primary text-xs font-sans transition-colors underline"
+              >
+                Ver lançamentos
+              </button>
+            )}
           </div>
 
           {progresso && modoAtual !== 'pontos' && (
@@ -560,9 +572,17 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, pontos
 
         {/* Mobile: link + barras + valor full width */}
         <div className="sm:hidden space-y-2.5">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <p className="text-on-cream-muted text-xs font-sans truncate">/b/{barbeiro.link_codigo}</p>
             <CopiarLinkBtn codigo={barbeiro.link_codigo} />
+            {podeVerLancamentos && (
+              <button
+                onClick={() => setLancamentosOpen(true)}
+                className="text-on-cream-muted hover:text-primary text-xs font-sans transition-colors underline"
+              >
+                Ver lançamentos
+              </button>
+            )}
           </div>
 
           {progresso && modoAtual !== 'pontos' && (
@@ -608,6 +628,14 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, pontos
           )}
         </div>
       </div>
+
+      {lancamentosOpen && (
+        <LancamentosBarbeiroModal
+          barbeiroId={barbeiro.id}
+          barbeiroNome={barbeiro.nome}
+          onClose={() => setLancamentosOpen(false)}
+        />
+      )}
     </div>
   )
 }
