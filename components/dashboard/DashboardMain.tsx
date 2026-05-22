@@ -49,6 +49,7 @@ interface Props {
   modoAtual: ModoPontos
   campanha: CampanhaComDetalhes | null
   pontosMap: Record<string, number>
+  pontosHojePorBarbeiro: Record<string, number>
   rankingPontosBarb: { id: string; pts: number }[]
   rankingPontosRecep: { id: string; pts: number }[]
   mes: number
@@ -89,6 +90,7 @@ export default function DashboardMain({
   modoAtual,
   campanha,
   pontosMap,
+  pontosHojePorBarbeiro,
   rankingPontosBarb,
   rankingPontosRecep,
   mes,
@@ -144,6 +146,7 @@ export default function DashboardMain({
           modoAtual={modoAtual}
           campanha={campanha}
           pontosMap={pontosMap}
+          pontosHojePorBarbeiro={pontosHojePorBarbeiro}
           rankingPontosBarb={rankingPontosBarb}
           rankingPontosRecep={rankingPontosRecep}
           mes={mes}
@@ -200,6 +203,7 @@ interface TodosProps {
   modoAtual: ModoPontos
   campanha: CampanhaComDetalhes | null
   pontosMap: Record<string, number>
+  pontosHojePorBarbeiro: Record<string, number>
   rankingPontosBarb: { id: string; pts: number }[]
   rankingPontosRecep: { id: string; pts: number }[]
   mes: number
@@ -222,6 +226,7 @@ function TodosView({
   modoAtual,
   campanha,
   pontosMap,
+  pontosHojePorBarbeiro,
   rankingPontosBarb,
   rankingPontosRecep,
   mes,
@@ -369,6 +374,7 @@ function TodosView({
                 modoAtual={modoAtual}
                 campanha={campanha}
                 pontosMap={pontosMap}
+                pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
                 rankingPontos={rankingPontosBarb}
               />
             ))}
@@ -389,6 +395,7 @@ function TodosView({
                 modoAtual={modoAtual}
                 campanha={campanha}
                 pontosMap={pontosMap}
+                pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
                 rankingPontos={rankingPontosRecep}
                 isRecep
               />
@@ -416,11 +423,12 @@ interface RankingCardProps {
   modoAtual: ModoPontos
   campanha: CampanhaComDetalhes | null
   pontosMap: Record<string, number>
+  pontosHojeBarbeiro: number
   rankingPontos: { id: string; pts: number }[]
   isRecep?: boolean
 }
 
-function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontos, isRecep }: RankingCardProps) {
+function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, pontosHojeBarbeiro, rankingPontos, isRecep }: RankingCardProps) {
   const tier = barbeiro.metaInd
     ? calcTier(barbeiro.comissao, barbeiro.metaInd.bronze_comm, barbeiro.metaInd.prata_comm, barbeiro.metaInd.ouro_comm)
     : null
@@ -477,6 +485,17 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankin
                   🏅 {pts} pts{posicaoPts >= 0 && qualificado ? ` · #${posicaoPts + 1}` : ''}
                 </span>
               )}
+              {modoAtual !== 'metas' && campanha && (
+                pontosHojeBarbeiro > 0 ? (
+                  <span className="text-[11px] font-sans font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600">
+                    ✅ Lançou hoje · {pontosHojeBarbeiro} pts
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-sans font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">
+                    ⏳ Sem lançamento hoje
+                  </span>
+                )
+              )}
             </div>
           </div>
         </div>
@@ -496,6 +515,17 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankin
                 ${qualificado ? 'bg-primary/10 text-primary' : 'bg-cream-surface text-on-cream-muted'}`}>
                 🏅 {pts} pts{posicaoPts >= 0 && qualificado ? ` · #${posicaoPts + 1}` : ''}
               </span>
+            )}
+            {modoAtual !== 'metas' && campanha && (
+              pontosHojeBarbeiro > 0 ? (
+                <span className="text-xs font-sans font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600">
+                  ✅ Lançou hoje · {pontosHojeBarbeiro} pts
+                </span>
+              ) : (
+                <span className="text-xs font-sans font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">
+                  ⏳ Sem lançamento hoje
+                </span>
+              )
             )}
           </div>
           <div className="flex items-center gap-2 mt-0.5">

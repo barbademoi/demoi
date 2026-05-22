@@ -160,7 +160,8 @@ export default async function DashboardPage() {
   const modoAtual: ModoPontos = (modoRaw?.modo as ModoPontos) ?? 'metas'
 
   let campanha: CampanhaComDetalhes | null = null
-  let pontosMap: Record<string, number> = {}
+  const pontosMap: Record<string, number> = {}
+  const pontosHojePorBarbeiro: Record<string, number> = {}
 
   if (modoAtual !== 'metas') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -175,16 +176,20 @@ export default async function DashboardPage() {
         .from('campanha_premios').select('*').eq('campanha_id', campRaw.id).order('posicao')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: controlesRaw } = await (supabase as any)
-        .from('controle_diario').select('barbeiro_id, servico_id, quantidade').eq('campanha_id', campRaw.id)
+        .from('controle_diario').select('barbeiro_id, servico_id, quantidade, data').eq('campanha_id', campRaw.id)
       campanha = {
         ...campRaw,
         campanha_servicos: (servicosRaw ?? []) as CampanhaServico[],
         campanha_premios:  (premiosRaw  ?? []) as CampanhaPremio[],
       }
       const servicos = campanha!.campanha_servicos
-      for (const cd of ((controlesRaw ?? []) as Pick<ControleDiario, 'barbeiro_id' | 'servico_id' | 'quantidade'>[])) {
+      const dataHojeStr = `${ano}-${String(mes).padStart(2, '0')}-${String(diaAtual).padStart(2, '0')}`
+      for (const cd of ((controlesRaw ?? []) as Pick<ControleDiario, 'barbeiro_id' | 'servico_id' | 'quantidade' | 'data'>[])) {
         const pts = servicos.find(s => s.id === cd.servico_id)?.pontos ?? 0
         pontosMap[cd.barbeiro_id] = (pontosMap[cd.barbeiro_id] ?? 0) + cd.quantidade * pts
+        if (cd.data === dataHojeStr) {
+          pontosHojePorBarbeiro[cd.barbeiro_id] = (pontosHojePorBarbeiro[cd.barbeiro_id] ?? 0) + cd.quantidade * pts
+        }
       }
     }
   }
@@ -239,6 +244,7 @@ export default async function DashboardPage() {
       modoAtual={modoAtual}
       campanha={campanha}
       pontosMap={pontosMap}
+      pontosHojePorBarbeiro={pontosHojePorBarbeiro}
       rankingPontosBarb={rankingPontosBarb}
       rankingPontosRecep={rankingPontosRecep}
       diaAtual={diaAtual}
