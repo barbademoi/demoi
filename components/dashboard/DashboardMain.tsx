@@ -5,6 +5,7 @@ import CircularProgress from './CircularProgress'
 import CopiarLinkBtn from './CopiarLinkBtn'
 import EditarBarbeiroModal from './EditarBarbeiroModal'
 import ComunidadeCard from './ComunidadeCard'
+import LancamentosBarbeiroModal from './LancamentosBarbeiroModal'
 import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
 import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
 import TicketMedio from '@/components/autonomo/TicketMedio'
@@ -49,6 +50,7 @@ interface Props {
   modoAtual: ModoPontos
   campanha: CampanhaComDetalhes | null
   pontosMap: Record<string, number>
+  pontosHojePorBarbeiro: Record<string, number>
   rankingPontosBarb: { id: string; pts: number }[]
   rankingPontosRecep: { id: string; pts: number }[]
   mes: number
@@ -89,6 +91,7 @@ export default function DashboardMain({
   modoAtual,
   campanha,
   pontosMap,
+  pontosHojePorBarbeiro,
   rankingPontosBarb,
   rankingPontosRecep,
   mes,
@@ -144,6 +147,7 @@ export default function DashboardMain({
           modoAtual={modoAtual}
           campanha={campanha}
           pontosMap={pontosMap}
+          pontosHojePorBarbeiro={pontosHojePorBarbeiro}
           rankingPontosBarb={rankingPontosBarb}
           rankingPontosRecep={rankingPontosRecep}
           mes={mes}
@@ -200,6 +204,7 @@ interface TodosProps {
   modoAtual: ModoPontos
   campanha: CampanhaComDetalhes | null
   pontosMap: Record<string, number>
+  pontosHojePorBarbeiro: Record<string, number>
   rankingPontosBarb: { id: string; pts: number }[]
   rankingPontosRecep: { id: string; pts: number }[]
   mes: number
@@ -222,6 +227,7 @@ function TodosView({
   modoAtual,
   campanha,
   pontosMap,
+  pontosHojePorBarbeiro,
   rankingPontosBarb,
   rankingPontosRecep,
   mes,
@@ -369,6 +375,7 @@ function TodosView({
                 modoAtual={modoAtual}
                 campanha={campanha}
                 pontosMap={pontosMap}
+                pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
                 rankingPontos={rankingPontosBarb}
               />
             ))}
@@ -389,6 +396,7 @@ function TodosView({
                 modoAtual={modoAtual}
                 campanha={campanha}
                 pontosMap={pontosMap}
+                pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
                 rankingPontos={rankingPontosRecep}
                 isRecep
               />
@@ -416,11 +424,12 @@ interface RankingCardProps {
   modoAtual: ModoPontos
   campanha: CampanhaComDetalhes | null
   pontosMap: Record<string, number>
+  pontosHojeBarbeiro: number
   rankingPontos: { id: string; pts: number }[]
   isRecep?: boolean
 }
 
-function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontos, isRecep }: RankingCardProps) {
+function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, pontosHojeBarbeiro, rankingPontos, isRecep }: RankingCardProps) {
   const tier = barbeiro.metaInd
     ? calcTier(barbeiro.comissao, barbeiro.metaInd.bronze_comm, barbeiro.metaInd.prata_comm, barbeiro.metaInd.ouro_comm)
     : null
@@ -437,6 +446,9 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankin
 
   const posColors = ['metal-text-gold', 'metal-text-silver', 'metal-text-bronze']
   const posClass = posicao <= 3 ? posColors[posicao - 1] : 'text-on-cream-muted'
+
+  const [lancamentosOpen, setLancamentosOpen] = useState(false)
+  const podeVerLancamentos = modoAtual !== 'metas' && campanha !== null
 
   return (
     <div className="card-light p-4 sm:p-5 relative">
@@ -477,6 +489,17 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankin
                   🏅 {pts} pts{posicaoPts >= 0 && qualificado ? ` · #${posicaoPts + 1}` : ''}
                 </span>
               )}
+              {modoAtual !== 'metas' && campanha && (
+                pontosHojeBarbeiro > 0 ? (
+                  <span className="text-[11px] font-sans font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600">
+                    ✅ Lançou hoje · {pontosHojeBarbeiro} pts
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-sans font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">
+                    ⏳ Sem lançamento hoje
+                  </span>
+                )
+              )}
             </div>
           </div>
         </div>
@@ -497,10 +520,29 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankin
                 🏅 {pts} pts{posicaoPts >= 0 && qualificado ? ` · #${posicaoPts + 1}` : ''}
               </span>
             )}
+            {modoAtual !== 'metas' && campanha && (
+              pontosHojeBarbeiro > 0 ? (
+                <span className="text-xs font-sans font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600">
+                  ✅ Lançou hoje · {pontosHojeBarbeiro} pts
+                </span>
+              ) : (
+                <span className="text-xs font-sans font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">
+                  ⏳ Sem lançamento hoje
+                </span>
+              )
+            )}
           </div>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <p className="text-on-cream-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
             <CopiarLinkBtn codigo={barbeiro.link_codigo} />
+            {podeVerLancamentos && (
+              <button
+                onClick={() => setLancamentosOpen(true)}
+                className="text-on-cream-muted hover:text-primary text-xs font-sans transition-colors underline"
+              >
+                Ver lançamentos
+              </button>
+            )}
           </div>
 
           {progresso && modoAtual !== 'pontos' && (
@@ -530,9 +572,17 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankin
 
         {/* Mobile: link + barras + valor full width */}
         <div className="sm:hidden space-y-2.5">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <p className="text-on-cream-muted text-xs font-sans truncate">/b/{barbeiro.link_codigo}</p>
             <CopiarLinkBtn codigo={barbeiro.link_codigo} />
+            {podeVerLancamentos && (
+              <button
+                onClick={() => setLancamentosOpen(true)}
+                className="text-on-cream-muted hover:text-primary text-xs font-sans transition-colors underline"
+              >
+                Ver lançamentos
+              </button>
+            )}
           </div>
 
           {progresso && modoAtual !== 'pontos' && (
@@ -578,6 +628,14 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankin
           )}
         </div>
       </div>
+
+      {lancamentosOpen && (
+        <LancamentosBarbeiroModal
+          barbeiroId={barbeiro.id}
+          barbeiroNome={barbeiro.nome}
+          onClose={() => setLancamentosOpen(false)}
+        />
+      )}
     </div>
   )
 }

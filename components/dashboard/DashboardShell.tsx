@@ -50,6 +50,7 @@ interface Props {
   modoAtual: ModoPontos
   campanha: CampanhaComDetalhes | null
   pontosMap: Record<string, number>
+  pontosHojePorBarbeiro: Record<string, number>
   rankingPontosBarb: { id: string; pts: number }[]
   rankingPontosRecep: { id: string; pts: number }[]
   diaAtual: number
@@ -78,7 +79,7 @@ export default function DashboardShell({
   historicoBarbearia, faturamentoMesAnterior, mes, ano,
   meta, faturamentoExibido, progressoColetivo,
   rankingBarbeiros, rankingRecepcionistas,
-  modoAtual, campanha, pontosMap,
+  modoAtual, campanha, pontosMap, pontosHojePorBarbeiro,
   rankingPontosBarb, rankingPontosRecep,
   diaAtual, diasRestantes, diasUteisCorridos, diasUteisRestantes,
   logoUploadSlot, faturamentoEditSlot,
@@ -159,6 +160,7 @@ export default function DashboardShell({
             modoAtual={modoAtual}
             campanha={campanha}
             pontosMap={pontosMap}
+            pontosHojePorBarbeiro={pontosHojePorBarbeiro}
             rankingPontosBarb={rankingPontosBarb}
             rankingPontosRecep={rankingPontosRecep}
             mes={mes}
