@@ -298,6 +298,8 @@ export interface ControleDiario {
   servico_id: string
   quantidade: number
   lancado_por: 'dono' | 'barbeiro'
+  editado_por: 'dono' | 'barbeiro' | null
+  editado_em: string | null
   created_at: string
 }
 
