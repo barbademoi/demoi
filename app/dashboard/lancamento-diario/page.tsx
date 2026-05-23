@@ -39,25 +39,22 @@ export default async function LancamentoDiarioPage() {
     .order('nome')
   const barbeiros = (barbeirosRaw ?? []) as Pick<Barbeiro, 'id' | 'nome' | 'foto_url' | 'tipo' | 'ativo'>[]
 
-  // Lançamentos diários do mês atual (todos os dias, todos os barbeiros)
+  // Comandas diárias do mês atual (todos os dias, todos os barbeiros)
   const primeiroDia = `${ano}-${pad2(mes)}-01`
   const ultimoDia = `${ano}-${pad2(mes)}-${pad2(new Date(ano, mes, 0).getDate())}`
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: ldRaw } = await (supabase as any)
     .from('lancamentos_diarios')
-    .select('barbeiro_id, data, valor, faturamento_geral, numero_atendimentos, atendimentos_geral')
+    .select('barbeiro_id, data, numero_atendimentos')
     .eq('barbearia_id', barbearia.id)
     .gte('data', primeiroDia)
     .lte('data', ultimoDia)
     .order('data', { ascending: false })
 
-  const lancamentosDiarios = (ldRaw ?? []) as {
-    barbeiro_id: string; data: string; valor: number; faturamento_geral: number
-    numero_atendimentos: number; atendimentos_geral: number
-  }[]
+  const comandasDiarias = (ldRaw ?? []) as { barbeiro_id: string; data: string; numero_atendimentos: number }[]
 
-  // Acumulado do mês (lido das mesmas tabelas que o /dashboard usa)
+  // Acumulado do mês
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
     .from('metas')
@@ -75,21 +72,18 @@ export default async function LancamentoDiarioPage() {
     .eq('ano', ano)
 
   const lancPorBarbeiro = (lancMensaisRaw ?? []) as { barbeiro_id: string; comissao_acumulada: number; numero_atendimentos: number }[]
-  const saldoPorBarbeiro: Record<string, { comissao: number; atendimentos: number }> = {}
+  const acumuladoPorBarbeiro: Record<string, { comissao: number; atendimentos: number }> = {}
   for (const l of lancPorBarbeiro) {
-    saldoPorBarbeiro[l.barbeiro_id] = {
+    acumuladoPorBarbeiro[l.barbeiro_id] = {
       comissao: Number(l.comissao_acumulada) || 0,
       atendimentos: Number(l.numero_atendimentos) || 0,
     }
   }
 
   const totalComissoesMes = lancPorBarbeiro.reduce((s, l) => s + (Number(l.comissao_acumulada) || 0), 0)
-  const faturamentoMes = Number(metaRaw?.faturamento_acumulado) > 0
-    ? Number(metaRaw.faturamento_acumulado)
-    : totalComissoesMes
-  const atendimentosCasaAtual = Number(metaRaw?.numero_atendimentos) || 0
+  const totalAtendimentosMes = lancPorBarbeiro.reduce((s, l) => s + (Number(l.numero_atendimentos) || 0), 0)
   const faturamentoCasaAtual = Number(metaRaw?.faturamento_acumulado) || 0
-  const mesTemSaldo = totalComissoesMes > 0 || faturamentoCasaAtual > 0
+  const faturamentoMes = faturamentoCasaAtual > 0 ? faturamentoCasaAtual : totalComissoesMes
 
   return (
     <div className="min-h-screen flex">
@@ -99,19 +93,18 @@ export default async function LancamentoDiarioPage() {
           <header>
             <h1 className="font-serif text-2xl sm:text-3xl text-text">Lançamento diário</h1>
             <p className="text-text-muted text-sm font-sans mt-1">
-              {nomeMes(mes)} {ano} — lance dia por dia, a soma do mês atualiza sozinha.
+              {nomeMes(mes)} {ano}
             </p>
           </header>
 
           <LancamentoDiarioClient
             barbeiros={barbeiros}
-            lancamentosDiarios={lancamentosDiarios}
+            comandasDiarias={comandasDiarias}
+            acumuladoPorBarbeiro={acumuladoPorBarbeiro}
+            faturamentoCasaAtual={faturamentoCasaAtual}
             faturamentoMes={faturamentoMes}
             totalComissoesMes={totalComissoesMes}
-            saldoPorBarbeiro={saldoPorBarbeiro}
-            faturamentoCasaAtual={faturamentoCasaAtual}
-            atendimentosCasaAtual={atendimentosCasaAtual}
-            mesTemSaldo={mesTemSaldo}
+            totalAtendimentosMes={totalAtendimentosMes}
             mes={mes}
             ano={ano}
           />

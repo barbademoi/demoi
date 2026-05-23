@@ -3,17 +3,26 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
-interface LancamentoItem {
+interface ComandaItem {
   barbeiro_id: string
-  valor: number
-  atendimentos?: number
+  comandas: number
 }
 
-export async function salvarLancamentosDiarios(
-  lancamentos: LancamentoItem[],
+/**
+ * Lança as COMANDAS (atendimentos) de um dia, por barbeiro.
+ *
+ * NÃO mexe em valores (R$) — comissão e faturamento só são editados no
+ * acumulado (definirAcumuladoMes), pra evitar erro de matemática entre
+ * delta diário e ajuste manual.
+ *
+ * As comandas SOMAM nos atendimentos do mês:
+ *   - lancamentos.numero_atendimentos (por barbeiro)
+ *   - metas.numero_atendimentos (total da casa = soma de todos)
+ * via delta (novo valor do dia − valor anterior do dia).
+ */
+export async function salvarComandasDia(
+  comandas: ComandaItem[],
   data: string,         // 'YYYY-MM-DD'
-  fatGeral: number,
-  atendGeral = 0,
 ) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -27,98 +36,76 @@ export async function salvarLancamentosDiarios(
 
   const { barbearia_id } = usuario
   const agora = new Date().toISOString()
-  const barbeirosIds = lancamentos.map(l => l.barbeiro_id)
+  const barbeirosIds = comandas.map(l => l.barbeiro_id)
 
   const [anoStr, mesStr] = data.split('-')
   const mes = parseInt(mesStr)
   const ano = parseInt(anoStr)
 
-  // ── 1. Valores anteriores do dia (antes do upsert) ────────
+  // ── 1. Comandas anteriores do dia (pra calcular delta) ────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: prevDiasRaw } = await (supabase as any)
     .from('lancamentos_diarios')
-    .select('barbeiro_id, valor, faturamento_geral, numero_atendimentos, atendimentos_geral')
+    .select('barbeiro_id, numero_atendimentos')
     .eq('barbearia_id', barbearia_id)
     .in('barbeiro_id', barbeirosIds)
     .eq('data', data)
 
-  const prevValorMap: Record<string, number> = {}
-  const prevAtendMap: Record<string, number> = {}
-  let prevFatGeral = 0
-  let prevAtendGeral = 0
-  for (const r of (prevDiasRaw ?? []) as {
-    barbeiro_id: string
-    valor: number
-    faturamento_geral: number
-    numero_atendimentos: number
-    atendimentos_geral: number
-  }[]) {
-    prevValorMap[r.barbeiro_id] = Number(r.valor)
-    prevAtendMap[r.barbeiro_id] = Number(r.numero_atendimentos) || 0
-    prevFatGeral = Math.max(prevFatGeral, Number(r.faturamento_geral))
-    prevAtendGeral = Math.max(prevAtendGeral, Number(r.atendimentos_geral) || 0)
+  const prevComandasMap: Record<string, number> = {}
+  for (const r of (prevDiasRaw ?? []) as { barbeiro_id: string; numero_atendimentos: number }[]) {
+    prevComandasMap[r.barbeiro_id] = Number(r.numero_atendimentos) || 0
   }
 
-  // ── 2. Acumulado mensal atual ─────────────────────────────
+  // ── 2. Atendimentos acumulados atuais (por barbeiro) ──────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: prevAcumRaw } = await (supabase as any)
     .from('lancamentos')
-    .select('barbeiro_id, comissao_acumulada, numero_atendimentos')
+    .select('barbeiro_id, numero_atendimentos')
     .eq('barbearia_id', barbearia_id)
     .in('barbeiro_id', barbeirosIds)
     .eq('mes', mes)
     .eq('ano', ano)
 
-  const accumValorMap: Record<string, number> = {}
   const accumAtendMap: Record<string, number> = {}
-  for (const r of (prevAcumRaw ?? []) as { barbeiro_id: string; comissao_acumulada: number; numero_atendimentos: number }[]) {
-    accumValorMap[r.barbeiro_id] = Number(r.comissao_acumulada) || 0
+  for (const r of (prevAcumRaw ?? []) as { barbeiro_id: string; numero_atendimentos: number }[]) {
     accumAtendMap[r.barbeiro_id] = Number(r.numero_atendimentos) || 0
   }
 
-  // ── 3. Salva lançamentos diários ──────────────────────────
-  const rows = lancamentos
-    .filter(l => l.valor >= 0 || (l.atendimentos ?? 0) >= 0)
-    .map(l => ({
-      barbearia_id,
-      barbeiro_id:         l.barbeiro_id,
-      data,
-      valor:               l.valor,
-      faturamento_geral:   fatGeral >= 0 ? fatGeral : 0,
-      numero_atendimentos: Math.max(0, l.atendimentos ?? 0),
-      atendimentos_geral:  Math.max(0, atendGeral),
-      atualizado_em:       agora,
-    }))
+  // ── 3. Salva comandas do dia (lancamentos_diarios) ────────
+  const rowsDia = comandas.map(l => ({
+    barbearia_id,
+    barbeiro_id:         l.barbeiro_id,
+    data,
+    numero_atendimentos: Math.max(0, l.comandas),
+    atualizado_em:       agora,
+  }))
 
-  if (rows.length === 0) return { ok: true }
+  if (rowsDia.length === 0) return { ok: true }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: errDiario } = await (supabase as any)
     .from('lancamentos_diarios')
-    .upsert(rows, { onConflict: 'barbeiro_id,data' })
+    .upsert(rowsDia, { onConflict: 'barbeiro_id,data' })
 
   if (errDiario) return { error: (errDiario as { message: string }).message }
 
-  // ── 4. Atualiza acumulado por barbeiro: acum + (novo - anterior) ──
-  // Soma deltas de comissão E de atendimentos. Só processa quem tem
-  // algum delta != 0 (preserva ajustes manuais e evita escrita à toa).
-  const lancRows = lancamentos
+  // ── 4. Atualiza atendimentos acumulados por barbeiro (delta) ──
+  // Preserva comissao_acumulada existente (não envia esse campo no upsert).
+  let somaDeltas = 0
+  const lancRows = comandas
     .map(l => {
-      const prevDiaValor = prevValorMap[l.barbeiro_id] ?? 0
-      const prevDiaAtend = prevAtendMap[l.barbeiro_id] ?? 0
-      const novoAtend = Math.max(0, l.atendimentos ?? 0)
-      const deltaValor = l.valor - prevDiaValor
-      const deltaAtend = novoAtend - prevDiaAtend
-      if (deltaValor === 0 && deltaAtend === 0) return null
-      const novoAcumValor = Math.max(0, (accumValorMap[l.barbeiro_id] ?? 0) + deltaValor)
-      const novoAcumAtend = Math.max(0, (accumAtendMap[l.barbeiro_id] ?? 0) + deltaAtend)
+      const prevDia = prevComandasMap[l.barbeiro_id] ?? 0
+      const novo = Math.max(0, l.comandas)
+      const delta = novo - prevDia
+      if (delta === 0) return null
+      somaDeltas += delta
+      const novoAcum = Math.max(0, (accumAtendMap[l.barbeiro_id] ?? 0) + delta)
       return {
         barbearia_id,
         barbeiro_id:         l.barbeiro_id,
         mes,
         ano,
-        comissao_acumulada:  novoAcumValor,
-        numero_atendimentos: novoAcumAtend,
+        numero_atendimentos: novoAcum,
         modo:                'direto',
       }
     })
@@ -129,33 +116,26 @@ export async function salvarLancamentosDiarios(
     const { error: errAcum } = await (supabase as any)
       .from('lancamentos')
       .upsert(lancRows, { onConflict: 'barbearia_id,barbeiro_id,mes,ano' })
-
     if (errAcum) return { error: (errAcum as { message: string }).message }
   }
 
-  // ── 5. Atualiza faturamento + atendimentos da meta coletiva ────
-  const fatGeralNovo = fatGeral >= 0 ? fatGeral : 0
-  const atendGeralNovo = Math.max(0, atendGeral)
-  const fatGeralDelta = fatGeralNovo - prevFatGeral
-  const atendGeralDelta = atendGeralNovo - prevAtendGeral
-
-  if (fatGeralDelta !== 0 || atendGeralDelta !== 0) {
+  // ── 5. Atualiza atendimentos totais da casa (metas) ───────
+  if (somaDeltas !== 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: metaRaw } = await (supabase as any)
       .from('metas')
-      .select('id, faturamento_acumulado, numero_atendimentos')
+      .select('id, numero_atendimentos')
       .eq('barbearia_id', barbearia_id)
       .eq('mes', mes)
       .eq('ano', ano)
-      .single() as { data: { id: string; faturamento_acumulado: number; numero_atendimentos: number } | null }
+      .maybeSingle() as { data: { id: string; numero_atendimentos: number } | null }
 
     if (metaRaw) {
-      const novoFat = Math.max(0, Number(metaRaw.faturamento_acumulado) + fatGeralDelta)
-      const novoAtend = Math.max(0, Number(metaRaw.numero_atendimentos) + atendGeralDelta)
+      const novoAtend = Math.max(0, Number(metaRaw.numero_atendimentos) + somaDeltas)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any)
         .from('metas')
-        .update({ faturamento_acumulado: novoFat, numero_atendimentos: novoAtend })
+        .update({ numero_atendimentos: novoAtend })
         .eq('id', metaRaw.id)
     }
   }
@@ -165,27 +145,24 @@ export async function salvarLancamentosDiarios(
   return { ok: true }
 }
 
-interface SaldoBarbeiroItem {
+interface AcumuladoItem {
   barbeiro_id: string
   comissao_acumulada: number
-  numero_atendimentos: number
 }
 
 /**
- * Define o saldo do mês — usado quando a barbearia compra o sistema
- * no meio do mês e quer começar do "estado atual" sem precisar lançar
- * cada dia retroativamente. Também serve como ajuste manual.
+ * Define/edita o ACUMULADO do mês (tela principal):
+ *   - comissão acumulada por barbeiro (R$)
+ *   - faturamento acumulado da casa (R$)
  *
- * Sobrescreve em `lancamentos` (acumulado mensal) e `metas`
- * (faturamento + atendimentos coletivos). NÃO mexe em lancamentos_diarios.
- *
- * Depois desse ajuste, os lançamentos diários continuam funcionando
- * normalmente (somando deltas em cima do saldo).
+ * Sobrescreve direto (não soma). NÃO mexe em atendimentos — esses vêm
+ * só da soma das comandas diárias (salvarComandasDia). Por isso o upsert
+ * de lancamentos envia apenas comissao_acumulada, preservando o
+ * numero_atendimentos existente.
  */
-export async function definirSaldoMes(
-  itens: SaldoBarbeiroItem[],
+export async function definirAcumuladoMes(
+  itens: AcumuladoItem[],
   faturamentoCasa: number,
-  atendimentosCasa: number,
   mes: number,
   ano: number,
 ) {
@@ -201,18 +178,15 @@ export async function definirSaldoMes(
 
   const { barbearia_id } = usuario
 
-  // 1. Upsert lancamentos (por barbeiro)
-  const rowsLanc = itens
-    .filter(it => it.comissao_acumulada >= 0 || it.numero_atendimentos >= 0)
-    .map(it => ({
-      barbearia_id,
-      barbeiro_id: it.barbeiro_id,
-      mes,
-      ano,
-      comissao_acumulada: Math.max(0, it.comissao_acumulada),
-      numero_atendimentos: Math.max(0, it.numero_atendimentos),
-      modo: 'direto',
-    }))
+  // 1. Upsert comissão acumulada por barbeiro (preserva numero_atendimentos)
+  const rowsLanc = itens.map(it => ({
+    barbearia_id,
+    barbeiro_id: it.barbeiro_id,
+    mes,
+    ano,
+    comissao_acumulada: Math.max(0, it.comissao_acumulada),
+    modo: 'direto',
+  }))
 
   if (rowsLanc.length > 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -222,26 +196,25 @@ export async function definirSaldoMes(
     if (errLanc) return { error: (errLanc as { message: string }).message }
   }
 
-  // 2. Upsert metas (faturamento + atendimentos da casa) — só atualiza se já existe
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: metaRaw } = await (supabase as any)
-    .from('metas')
-    .select('id')
-    .eq('barbearia_id', barbearia_id)
-    .eq('mes', mes)
-    .eq('ano', ano)
-    .maybeSingle() as { data: { id: string } | null }
-
-  if (metaRaw && (faturamentoCasa >= 0 || atendimentosCasa >= 0)) {
+  // 2. Faturamento da casa (metas) — só atualiza se a meta já existe
+  if (faturamentoCasa >= 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: errMeta } = await (supabase as any)
+    const { data: metaRaw } = await (supabase as any)
       .from('metas')
-      .update({
-        faturamento_acumulado: Math.max(0, faturamentoCasa),
-        numero_atendimentos: Math.max(0, atendimentosCasa),
-      })
-      .eq('id', metaRaw.id)
-    if (errMeta) return { error: (errMeta as { message: string }).message }
+      .select('id')
+      .eq('barbearia_id', barbearia_id)
+      .eq('mes', mes)
+      .eq('ano', ano)
+      .maybeSingle() as { data: { id: string } | null }
+
+    if (metaRaw) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: errMeta } = await (supabase as any)
+        .from('metas')
+        .update({ faturamento_acumulado: Math.max(0, faturamentoCasa) })
+        .eq('id', metaRaw.id)
+      if (errMeta) return { error: (errMeta as { message: string }).message }
+    }
   }
 
   revalidatePath('/dashboard')
