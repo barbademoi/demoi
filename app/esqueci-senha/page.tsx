@@ -86,7 +86,7 @@ export default function EsqueciSenhaPage() {
           {etapa === 'email' ? (
             <form onSubmit={handleEnviarEmail} className="space-y-5">
               <p className="text-text-muted text-sm font-sans leading-relaxed">
-                Digite seu email cadastrado. Enviaremos um código de 8 dígitos para você.
+                Digite seu email cadastrado. Enviaremos um código de verificação para você.
               </p>
 
               <div>
@@ -124,7 +124,7 @@ export default function EsqueciSenhaPage() {
               </div>
 
               <div>
-                <label htmlFor="codigo" className="label">Código de 8 dígitos</label>
+                <label htmlFor="codigo" className="label">Código recebido por email</label>
                 <input
                   id="codigo"
                   name="codigo"
@@ -136,8 +136,8 @@ export default function EsqueciSenhaPage() {
                   maxLength={8}
                   value={codigo}
                   onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                  placeholder="••••••••"
-                  className="input text-center tracking-[0.4em] text-lg font-mono"
+                  placeholder="Código do email"
+                  className="input text-center tracking-[0.3em] text-lg font-mono"
                   autoFocus
                 />
               </div>
@@ -151,7 +151,7 @@ export default function EsqueciSenhaPage() {
 
               <button
                 type="submit"
-                disabled={isPending || codigo.length !== 8}
+                disabled={isPending || (codigo.length !== 6 && codigo.length !== 8)}
                 className="btn-primary w-full mt-2"
               >
                 {isPending ? 'Validando…' : 'Confirmar'}

@@ -38,8 +38,10 @@ export async function verificarCodigo(email: string, codigo: string) {
   const emailNormalizado = email.toLowerCase().trim()
   const codigoLimpo = codigo.replace(/\D/g, '')
 
-  if (codigoLimpo.length !== 8) {
-    return { error: 'Digite os 8 dígitos do código.' }
+  // Supabase pode gerar OTP de 6 OU 8 dígitos dependendo da config do projeto.
+  // Aceita ambos e deixa o verifyOtp validar de fato — o check aqui é só UX.
+  if (codigoLimpo.length !== 6 && codigoLimpo.length !== 8) {
+    return { error: 'Digite o código que você recebeu por email.' }
   }
   if (!emailNormalizado) {
     return { error: 'Email não informado. Volte e tente de novo.' }
