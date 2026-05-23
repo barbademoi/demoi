@@ -154,10 +154,11 @@ interface AcumuladoItem {
 /**
  * Define/edita o ACUMULADO do mês (tela principal):
  *   - comissão acumulada por barbeiro (R$)
- *   - atendimentos acumulados por barbeiro (sobrescreve — útil pra quem
- *     entrou no meio do mês e precisa lançar o total de uma vez)
+ *   - atendimentos acumulados por barbeiro (lancamentos — ticket individual)
  *   - faturamento acumulado da casa (R$)
- *   - atendimentos totais da casa (metas) = soma dos atendimentos por barbeiro
+ *   - atendimentos totais da casa (metas — ticket coletivo). É um campo
+ *     próprio, editado direto pelo dono (não é a soma dos barbeiros), pra
+ *     barbearias que só lançam o total da casa sem detalhar por barbeiro.
  *
  * Sobrescreve direto (não soma). Os campos de atendimento são
  * pré-preenchidos na UI com o valor atual, então re-salvar sem mexer
@@ -167,6 +168,7 @@ interface AcumuladoItem {
 export async function definirAcumuladoMes(
   itens: AcumuladoItem[],
   faturamentoCasa: number,
+  atendimentosCasa: number,
   mes: number,
   ano: number,
 ) {
@@ -202,8 +204,7 @@ export async function definirAcumuladoMes(
   }
 
   // 2. Faturamento + atendimentos da casa (metas) — só atualiza se a meta já existe.
-  //    Atendimentos da casa = soma dos atendimentos por barbeiro (consistência).
-  const atendimentosCasa = itens.reduce((s, it) => s + Math.max(0, it.numero_atendimentos), 0)
+  //    Atendimentos da casa = campo coletivo editado direto pelo dono.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
     .from('metas')
@@ -219,7 +220,7 @@ export async function definirAcumuladoMes(
       .from('metas')
       .update({
         faturamento_acumulado: Math.max(0, faturamentoCasa),
-        numero_atendimentos: atendimentosCasa,
+        numero_atendimentos: Math.max(0, atendimentosCasa),
       })
       .eq('id', metaRaw.id)
     if (errMeta) return { error: (errMeta as { message: string }).message }
