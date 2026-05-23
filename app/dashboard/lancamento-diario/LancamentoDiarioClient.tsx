@@ -17,6 +17,7 @@ interface Props {
   comandasDiarias: ComandaDia[]
   acumuladoPorBarbeiro: Record<string, { comissao: number; atendimentos: number }>
   faturamentoCasaAtual: number
+  atendimentosCasaAtual: number
   faturamentoMes: number
   totalComissoesMes: number
   totalAtendimentosMes: number
@@ -45,6 +46,7 @@ export default function LancamentoDiarioClient({
   comandasDiarias,
   acumuladoPorBarbeiro,
   faturamentoCasaAtual,
+  atendimentosCasaAtual,
   faturamentoMes,
   totalComissoesMes,
   totalAtendimentosMes,
@@ -59,15 +61,17 @@ export default function LancamentoDiarioClient({
     Object.fromEntries(barbeiros.map(b => [b.id, acumuladoPorBarbeiro[b.id]?.atendimentos ? String(acumuladoPorBarbeiro[b.id].atendimentos) : ''])),
   )
   const [fatCasa, setFatCasa] = useState<string>(faturamentoCasaAtual > 0 ? String(faturamentoCasaAtual) : '')
+  const [atendCasa, setAtendCasa] = useState<string>(atendimentosCasaAtual > 0 ? String(atendimentosCasaAtual) : '')
 
   // Quando o servidor atualiza os atendimentos (ex: dono lançou comandas do dia),
-  // re-sincroniza o campo do acumulado pra não sobrescrever com valor velho ao salvar.
+  // re-sincroniza os campos do acumulado pra não sobrescrever com valor velho ao salvar.
   // Dep serializada = só dispara quando o valor PERSISTIDO muda, não a cada digitação.
-  const atendServidorKey = barbeiros.map(b => `${b.id}:${acumuladoPorBarbeiro[b.id]?.atendimentos ?? 0}`).join(',')
+  const atendServidorKey = `${atendimentosCasaAtual}|` + barbeiros.map(b => `${b.id}:${acumuladoPorBarbeiro[b.id]?.atendimentos ?? 0}`).join(',')
   useEffect(() => {
     setAtendAcum(Object.fromEntries(
       barbeiros.map(b => [b.id, acumuladoPorBarbeiro[b.id]?.atendimentos ? String(acumuladoPorBarbeiro[b.id].atendimentos) : '']),
     ))
+    setAtendCasa(atendimentosCasaAtual > 0 ? String(atendimentosCasaAtual) : '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [atendServidorKey])
 
@@ -142,8 +146,9 @@ export default function LancamentoDiarioClient({
       numero_atendimentos: parseInt(atendAcum[b.id] || '0', 10) || 0,
     }))
     const fatNum = parseFloat(fatCasa || '0') || 0
+    const atendCasaNum = parseInt(atendCasa || '0', 10) || 0
     startSaveAcum(async () => {
-      const res = await definirAcumuladoMes(itens, fatNum, mes, ano)
+      const res = await definirAcumuladoMes(itens, fatNum, atendCasaNum, mes, ano)
       if (res?.error) { setErroAcum(res.error); return }
       setSucessoAcum(true)
       setTimeout(() => setSucessoAcum(false), 2200)
@@ -196,23 +201,43 @@ export default function LancamentoDiarioClient({
           </p>
         </div>
 
-        {/* Faturamento total da casa */}
-        <div className="bg-surface-2 border border-border rounded-xl px-4 py-4 space-y-2">
+        {/* Total da casa: faturamento + atendimentos */}
+        <div className="bg-surface-2 border border-border rounded-xl px-4 py-4 space-y-3">
           <label className="text-text text-xs font-sans font-semibold uppercase tracking-wide">
-            Faturamento total da barbearia
+            Total da barbearia
           </label>
-          <div className="flex items-center gap-2">
-            <span className="text-text-muted text-sm font-sans shrink-0">R$</span>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0,00"
-              value={fatCasa}
-              onChange={e => setFatCasa(e.target.value)}
-              className="input flex-1 py-2 text-lg font-serif"
-            />
+          <div className="grid grid-cols-[1fr_auto] gap-3">
+            <div>
+              <p className="text-text-muted text-[11px] font-sans mb-1">Faturamento</p>
+              <div className="flex items-center gap-2">
+                <span className="text-text-muted text-sm font-sans shrink-0">R$</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={fatCasa}
+                  onChange={e => setFatCasa(e.target.value)}
+                  className="input flex-1 py-2 text-lg font-serif"
+                />
+              </div>
+            </div>
+            <div className="w-28">
+              <p className="text-text-muted text-[11px] font-sans mb-1">Atendimentos</p>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                placeholder="0"
+                value={atendCasa}
+                onChange={e => setAtendCasa(e.target.value)}
+                className="input w-full py-2 text-lg font-serif text-center"
+              />
+            </div>
           </div>
+          <p className="text-text-muted text-[11px] font-sans leading-snug">
+            Total de comandas/atendimentos do mês na barbearia — usado no ticket médio da casa.
+          </p>
         </div>
 
         {/* Comissão + atendimentos por barbeiro */}

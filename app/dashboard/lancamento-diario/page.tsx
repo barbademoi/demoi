@@ -83,7 +83,10 @@ export default async function LancamentoDiarioPage() {
   const totalComissoesMes = lancPorBarbeiro.reduce((s, l) => s + (Number(l.comissao_acumulada) || 0), 0)
   const totalAtendimentosMes = lancPorBarbeiro.reduce((s, l) => s + (Number(l.numero_atendimentos) || 0), 0)
   const faturamentoCasaAtual = Number(metaRaw?.faturamento_acumulado) || 0
+  const atendimentosCasaAtual = Number(metaRaw?.numero_atendimentos) || 0
   const faturamentoMes = faturamentoCasaAtual > 0 ? faturamentoCasaAtual : totalComissoesMes
+  // Total de atendimentos exibido: prefere o coletivo da casa; senão a soma por barbeiro
+  const atendimentosMesExibido = atendimentosCasaAtual > 0 ? atendimentosCasaAtual : totalAtendimentosMes
 
   return (
     <div className="min-h-screen flex">
@@ -102,9 +105,10 @@ export default async function LancamentoDiarioPage() {
             comandasDiarias={comandasDiarias}
             acumuladoPorBarbeiro={acumuladoPorBarbeiro}
             faturamentoCasaAtual={faturamentoCasaAtual}
+            atendimentosCasaAtual={atendimentosCasaAtual}
             faturamentoMes={faturamentoMes}
             totalComissoesMes={totalComissoesMes}
-            totalAtendimentosMes={totalAtendimentosMes}
+            totalAtendimentosMes={atendimentosMesExibido}
             mes={mes}
             ano={ano}
           />
