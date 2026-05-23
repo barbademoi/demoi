@@ -148,17 +148,21 @@ export async function salvarComandasDia(
 interface AcumuladoItem {
   barbeiro_id: string
   comissao_acumulada: number
+  numero_atendimentos: number
 }
 
 /**
  * Define/edita o ACUMULADO do mês (tela principal):
  *   - comissão acumulada por barbeiro (R$)
+ *   - atendimentos acumulados por barbeiro (sobrescreve — útil pra quem
+ *     entrou no meio do mês e precisa lançar o total de uma vez)
  *   - faturamento acumulado da casa (R$)
+ *   - atendimentos totais da casa (metas) = soma dos atendimentos por barbeiro
  *
- * Sobrescreve direto (não soma). NÃO mexe em atendimentos — esses vêm
- * só da soma das comandas diárias (salvarComandasDia). Por isso o upsert
- * de lancamentos envia apenas comissao_acumulada, preservando o
- * numero_atendimentos existente.
+ * Sobrescreve direto (não soma). Os campos de atendimento são
+ * pré-preenchidos na UI com o valor atual, então re-salvar sem mexer
+ * não altera nada. As comandas do dia (salvarComandasDia) continuam
+ * somando em cima depois.
  */
 export async function definirAcumuladoMes(
   itens: AcumuladoItem[],
@@ -178,13 +182,14 @@ export async function definirAcumuladoMes(
 
   const { barbearia_id } = usuario
 
-  // 1. Upsert comissão acumulada por barbeiro (preserva numero_atendimentos)
+  // 1. Upsert comissão + atendimentos acumulados por barbeiro
   const rowsLanc = itens.map(it => ({
     barbearia_id,
     barbeiro_id: it.barbeiro_id,
     mes,
     ano,
     comissao_acumulada: Math.max(0, it.comissao_acumulada),
+    numero_atendimentos: Math.max(0, it.numero_atendimentos),
     modo: 'direto',
   }))
 
@@ -196,25 +201,28 @@ export async function definirAcumuladoMes(
     if (errLanc) return { error: (errLanc as { message: string }).message }
   }
 
-  // 2. Faturamento da casa (metas) — só atualiza se a meta já existe
-  if (faturamentoCasa >= 0) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: metaRaw } = await (supabase as any)
-      .from('metas')
-      .select('id')
-      .eq('barbearia_id', barbearia_id)
-      .eq('mes', mes)
-      .eq('ano', ano)
-      .maybeSingle() as { data: { id: string } | null }
+  // 2. Faturamento + atendimentos da casa (metas) — só atualiza se a meta já existe.
+  //    Atendimentos da casa = soma dos atendimentos por barbeiro (consistência).
+  const atendimentosCasa = itens.reduce((s, it) => s + Math.max(0, it.numero_atendimentos), 0)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: metaRaw } = await (supabase as any)
+    .from('metas')
+    .select('id')
+    .eq('barbearia_id', barbearia_id)
+    .eq('mes', mes)
+    .eq('ano', ano)
+    .maybeSingle() as { data: { id: string } | null }
 
-    if (metaRaw) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: errMeta } = await (supabase as any)
-        .from('metas')
-        .update({ faturamento_acumulado: Math.max(0, faturamentoCasa) })
-        .eq('id', metaRaw.id)
-      if (errMeta) return { error: (errMeta as { message: string }).message }
-    }
+  if (metaRaw) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: errMeta } = await (supabase as any)
+      .from('metas')
+      .update({
+        faturamento_acumulado: Math.max(0, faturamentoCasa),
+        numero_atendimentos: atendimentosCasa,
+      })
+      .eq('id', metaRaw.id)
+    if (errMeta) return { error: (errMeta as { message: string }).message }
   }
 
   revalidatePath('/dashboard')

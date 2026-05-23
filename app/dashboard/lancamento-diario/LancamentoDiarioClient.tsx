@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import { formatBRL } from '@/lib/utils'
 import { salvarComandasDia, definirAcumuladoMes } from './actions'
 
@@ -55,7 +55,22 @@ export default function LancamentoDiarioClient({
   const [comissoes, setComissoes] = useState<Record<string, string>>(() =>
     Object.fromEntries(barbeiros.map(b => [b.id, acumuladoPorBarbeiro[b.id]?.comissao ? String(acumuladoPorBarbeiro[b.id].comissao) : ''])),
   )
+  const [atendAcum, setAtendAcum] = useState<Record<string, string>>(() =>
+    Object.fromEntries(barbeiros.map(b => [b.id, acumuladoPorBarbeiro[b.id]?.atendimentos ? String(acumuladoPorBarbeiro[b.id].atendimentos) : ''])),
+  )
   const [fatCasa, setFatCasa] = useState<string>(faturamentoCasaAtual > 0 ? String(faturamentoCasaAtual) : '')
+
+  // Quando o servidor atualiza os atendimentos (ex: dono lançou comandas do dia),
+  // re-sincroniza o campo do acumulado pra não sobrescrever com valor velho ao salvar.
+  // Dep serializada = só dispara quando o valor PERSISTIDO muda, não a cada digitação.
+  const atendServidorKey = barbeiros.map(b => `${b.id}:${acumuladoPorBarbeiro[b.id]?.atendimentos ?? 0}`).join(',')
+  useEffect(() => {
+    setAtendAcum(Object.fromEntries(
+      barbeiros.map(b => [b.id, acumuladoPorBarbeiro[b.id]?.atendimentos ? String(acumuladoPorBarbeiro[b.id].atendimentos) : '']),
+    ))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atendServidorKey])
+
   const [erroAcum, setErroAcum] = useState<string | null>(null)
   const [sucessoAcum, setSucessoAcum] = useState(false)
   const [savingAcum, startSaveAcum] = useTransition()
@@ -124,6 +139,7 @@ export default function LancamentoDiarioClient({
     const itens = barbeiros.map(b => ({
       barbeiro_id: b.id,
       comissao_acumulada: parseFloat(comissoes[b.id] || '0') || 0,
+      numero_atendimentos: parseInt(atendAcum[b.id] || '0', 10) || 0,
     }))
     const fatNum = parseFloat(fatCasa || '0') || 0
     startSaveAcum(async () => {
@@ -199,42 +215,56 @@ export default function LancamentoDiarioClient({
           </div>
         </div>
 
-        {/* Comissão por barbeiro */}
+        {/* Comissão + atendimentos por barbeiro */}
         <div>
-          <p className="text-text-muted text-xs font-sans uppercase tracking-wide mb-1">Comissão acumulada por barbeiro</p>
+          <p className="text-text-muted text-xs font-sans uppercase tracking-wide mb-1">Por barbeiro</p>
           <p className="text-text-muted text-[11px] font-sans mb-2.5 leading-snug">
-            Valor que <span className="text-text font-semibold">cada barbeiro já recebeu de comissão</span> no mês.
+            Comissão que <span className="text-text font-semibold">cada um já recebeu</span> e total de atendimentos no mês.
+            Quem entrou no meio do mês: lance o total de atendimentos aqui — depois use &ldquo;Comandas do dia&rdquo;.
           </p>
           <div className="space-y-2">
-            {barbeiros.map(b => {
-              const atend = acumuladoPorBarbeiro[b.id]?.atendimentos ?? 0
-              return (
-                <div key={b.id} className="flex items-center gap-3 bg-surface-2 rounded-xl px-3 py-2.5">
+            {barbeiros.map(b => (
+              <div key={b.id} className="bg-surface-2 rounded-xl px-3 py-2.5 space-y-2">
+                <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center font-serif text-sm text-text-muted shrink-0 overflow-hidden">
                     {b.foto_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={b.foto_url} alt={b.nome} className="w-full h-full object-cover" />
                     ) : b.nome[0]}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-sans text-sm text-text truncate">{b.nome}</p>
-                    <p className="text-text-muted text-[11px] font-sans">{atend} {atend === 1 ? 'atendimento' : 'atendimentos'} no mês</p>
+                  <p className="font-sans text-sm text-text flex-1 min-w-0 truncate">{b.nome}</p>
+                </div>
+                <div className="grid grid-cols-[1fr_auto] gap-2">
+                  <div>
+                    <label className="text-text-muted text-[11px] font-sans">Comissão acumulada</label>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <span className="text-text-muted text-xs font-sans shrink-0">R$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0"
+                        value={comissoes[b.id] ?? ''}
+                        onChange={e => setComissoes(v => ({ ...v, [b.id]: e.target.value }))}
+                        className="input flex-1 py-1.5 text-sm"
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="text-text-muted text-sm font-sans">R$</span>
+                  <div className="w-24">
+                    <label className="text-text-muted text-[11px] font-sans">Atendimentos</label>
                     <input
                       type="number"
                       min="0"
-                      step="0.01"
+                      step="1"
                       placeholder="0"
-                      value={comissoes[b.id] ?? ''}
-                      onChange={e => setComissoes(v => ({ ...v, [b.id]: e.target.value }))}
-                      className="input w-28 py-1.5 text-sm text-right"
+                      value={atendAcum[b.id] ?? ''}
+                      onChange={e => setAtendAcum(v => ({ ...v, [b.id]: e.target.value }))}
+                      className="input w-full py-1.5 text-sm text-center mt-0.5"
                     />
                   </div>
                 </div>
-              )
-            })}
+              </div>
+            ))}
             {barbeiros.length === 0 && (
               <p className="text-text-muted text-xs font-sans py-2">
                 Cadastre um barbeiro em Configurações primeiro.
