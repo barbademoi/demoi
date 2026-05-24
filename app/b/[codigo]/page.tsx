@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { calcProgresso, calcTier, calcDiasUteis } from '@/lib/utils'
+import { calcProgresso, calcTier } from '@/lib/utils'
+import { cicloAtual, calcDiasUteisCiclo } from '@/lib/ciclo'
 import { gerarInsightsBarbeiro } from '@/lib/insights'
 import { obterMensagemDiaria } from '@/lib/ia-mensagem'
 import { buscarHistoricoMeses } from '@/lib/historicoMeses'
@@ -30,22 +31,25 @@ export default async function BarbeiroPage({ params }: Props) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barbeariaRaw } = await (supabase as any)
-    .from('barbearias').select('nome, cor_principal, visibilidade_ranking, modalidade')
+    .from('barbearias').select('nome, cor_principal, visibilidade_ranking, modalidade, dia_fechamento')
     .eq('id', barbeiro.barbearia_id).single()
   const barbearia = barbeariaRaw as {
     nome: string
     cor_principal: string
     visibilidade_ranking: 'completo' | 'posicoes' | 'proprio' | null
     modalidade: string | null
+    dia_fechamento: number | null
   } | null
 
   const visibilidadeRanking: 'completo' | 'posicoes' | 'proprio' =
     barbearia?.visibilidade_ranking ?? 'completo'
   const isAutonomo = barbearia?.modalidade === 'sozinho'
+  const diaFechamento = barbearia?.dia_fechamento ?? 1
 
   const hoje = new Date()
-  const mes = hoje.getMonth() + 1
-  const ano = hoje.getFullYear()
+  const ciclo = cicloAtual(diaFechamento, hoje)
+  const mes = ciclo.mesRef
+  const ano = ciclo.anoRef
   const diaAtual = hoje.getDate()
 
   // ── Metas ─────────────────────────────────────────────
@@ -72,7 +76,7 @@ export default async function BarbeiroPage({ params }: Props) {
 
   // Histórico 4 meses pra qualquer modalidade — alimenta Comparativo,
   // HistoricoMeses e TicketMedio. Comissão mês anterior derivada do array.
-  const historicoMeses = await buscarHistoricoMeses(supabase, barbeiro.id, mes, ano, 4)
+  const historicoMeses = await buscarHistoricoMeses(supabase, barbeiro.id, mes, ano, 4, diaFechamento)
   const comissaoMesAnterior = historicoMeses[historicoMeses.length - 2]?.comissao ?? 0
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -181,10 +185,9 @@ export default async function BarbeiroPage({ params }: Props) {
     : []
 
   // ── Mensagem IA ────────────────────────────────────────
-  const diasNoMes = new Date(ano, mes, 0).getDate()
-  const diasCorridos = diaAtual
-  const diasRestantes = diasNoMes - diaAtual
-  const { diasUteisCorridos, diasUteisRestantes } = calcDiasUteis(ano, mes, diaAtual)
+  const { diasUteisCorridos, diasUteisRestantes, diasTotaisCiclo, diasRestantesCiclo } = calcDiasUteisCiclo(ciclo.inicio, ciclo.fim, hoje)
+  const diasCorridos = diasTotaisCiclo - diasRestantesCiclo
+  const diasRestantes = diasRestantesCiclo
 
   const mensagemIA = await obterMensagemDiaria({
     barbeiro_id: barbeiro.id,
@@ -252,6 +255,8 @@ export default async function BarbeiroPage({ params }: Props) {
           isAutonomo={isAutonomo}
           comissaoMesAnterior={comissaoMesAnterior}
           historicoMeses={historicoMeses}
+          cicloLabel={ciclo.label}
+          diaFechamento={diaFechamento}
         />
       </main>
     </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso } from '@/lib/utils'
+import { formatBRL, TIER_CONFIG, calcProgresso } from '@/lib/utils'
 import LancarDiaForm from './LancarDiaForm'
 import CelebracaoOverlay from '@/components/barbeiro/CelebracaoOverlay'
 import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
@@ -50,7 +50,9 @@ interface Props {
   visibilidadeRanking: 'completo' | 'posicoes' | 'proprio'
   isAutonomo: boolean
   comissaoMesAnterior: number
-  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[]
+  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
+  cicloLabel: string
+  diaFechamento: number
 }
 
 export default function BarbeiroClient({
@@ -60,6 +62,7 @@ export default function BarbeiroClient({
   insights, mensagemIA, tiersJaCelebrados, campanha, controlesDiario,
   pontosTotal, rankingPontos, pontosMap, controleHoje, historico,
   visibilidadeRanking, isAutonomo, comissaoMesAnterior, historicoMeses,
+  cicloLabel, diaFechamento,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
   const mostraPontos = modo === 'pontos' || modo === 'ambos'
@@ -162,7 +165,7 @@ export default function BarbeiroClient({
               ) : barbeiro.nome[0]}
             </div>
             <h2 className="font-serif text-3xl text-text">{barbeiro.nome}</h2>
-            <p className="text-text-muted text-sm font-sans mt-1 capitalize">{nomeMes(mes)} {ano}</p>
+            <p className="text-text-muted text-sm font-sans mt-1">{cicloLabel}</p>
 
             {mostraMetas && (
               <div className="mt-6">
@@ -198,6 +201,8 @@ export default function BarbeiroClient({
               comissaoMesAnterior={comissaoMesAnterior}
               mesAtual={mes}
               variant="light"
+              labelPeriodoAnterior={historicoMeses[historicoMeses.length - 2]?.label}
+              labelPeriodoAtual={`Esse ${diaFechamento === 1 ? 'mês' : 'ciclo'} até agora`}
             />
           )}
 

@@ -5,7 +5,6 @@ import Sidebar from './Sidebar'
 import DashboardMain from './DashboardMain'
 import AvisoSimplificacao from './AvisoSimplificacao'
 import BarbeariaWatermark from './BarbeariaWatermark'
-import { nomeMes } from '@/lib/utils'
 import type { ModoPontos, CampanhaComDetalhes, MetaIndividual } from '@/types/database'
 
 type MetaSimples = {
@@ -33,11 +32,12 @@ type BarbeiroRow = {
 interface Props {
   // Barbearia
   barbeariaNome: string
+  cicloLabel: string
   isAutonomo: boolean
   comissaoMesAnterior: number
-  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number }[]
-  historicoPorBarbeiro: Record<string, { mes: number; ano: number; comissao: number; atendimentos: number }[]>
-  historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number }[]
+  historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
+  historicoPorBarbeiro: Record<string, { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]>
+  historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
   faturamentoMesAnterior: number
   mes: number
   ano: number
@@ -75,7 +75,7 @@ interface Props {
 }
 
 export default function DashboardShell({
-  barbeariaNome, isAutonomo, comissaoMesAnterior, historicoMeses, historicoPorBarbeiro,
+  barbeariaNome, cicloLabel, isAutonomo, comissaoMesAnterior, historicoMeses, historicoPorBarbeiro,
   historicoBarbearia, faturamentoMesAnterior, mes, ano,
   meta, faturamentoExibido, progressoColetivo,
   rankingBarbeiros, rankingRecepcionistas,
@@ -106,7 +106,7 @@ export default function DashboardShell({
             {logoUploadSlot}
             <div>
               <p className="text-text font-sans font-semibold text-sm">{barbeariaNome}</p>
-              <p className="text-text-muted text-xs font-sans">{nomeMes(mes)} {ano}</p>
+              <p className="text-text-muted text-xs font-sans">{cicloLabel}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 text-xs font-sans text-text-muted">
@@ -147,6 +147,7 @@ export default function DashboardShell({
             <AvisoSimplificacao />
             <DashboardMain
             isAutonomo={isAutonomo}
+            cicloLabel={cicloLabel}
             comissaoMesAnterior={comissaoMesAnterior}
             historicoMeses={historicoMeses}
             historicoPorBarbeiro={historicoPorBarbeiro}

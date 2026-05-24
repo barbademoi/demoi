@@ -1,11 +1,13 @@
 'use client'
 
-import { formatBRL, nomeMes } from '@/lib/utils'
+import { formatBRL } from '@/lib/utils'
 
 interface HistoricoEntry {
   mes: number
   ano: number
   comissao: number
+  atendimentos?: number
+  label: string
 }
 
 interface Props {
@@ -43,7 +45,7 @@ export default function HistoricoMeses({ historico, variant = 'dark', escopo = '
         </p>
         {historico[bestIdx].comissao > 0 && (
           <span className={`text-[11px] font-sans font-semibold ${isDark ? 'metal-text-gold' : 'metal-text-gold'}`}>
-            ★ Melhor: {nomeMes(historico[bestIdx].mes)}
+            ★ Melhor: {historico[bestIdx].label}
           </span>
         )}
       </div>
@@ -64,7 +66,7 @@ export default function HistoricoMeses({ historico, variant = 'dark', escopo = '
                 />
               </div>
               <span className={`${labelCls} truncate w-full text-center capitalize`}>
-                {nomeMes(h.mes).slice(0, 3)}
+                {h.label}
               </span>
             </div>
           )

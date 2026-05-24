@@ -28,9 +28,11 @@ interface Props {
   ano: number
   tipo: 'inicio' | 'resultado'
   deltaMap: Record<string, number | null>
+  cicloLabel: string
+  diaFechamento: number
 }
 
-export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe, faturamentoAcumulado, barbeariaName, mes, ano, tipo, deltaMap }: Props) {
+export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe, faturamentoAcumulado, barbeariaName, mes, ano, tipo, deltaMap, cicloLabel, diaFechamento }: Props) {
   const canvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map())
   const rankingCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [baixando, setBaixando] = useState(false)
@@ -167,6 +169,7 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
               barbeariaName={barbeariaName}
               mes={mesAtual}
               ano={anoAtual}
+              cicloLabel={mesAtual === mes && anoAtual === ano ? cicloLabel : undefined}
               onCanvas={(canvas) => { rankingCanvasRef.current = canvas }}
             />
             <button
@@ -205,6 +208,7 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
                       faturamentoAcumulado={faturamentoAcumulado}
                       mes={mesAtual}
                       ano={anoAtual}
+                      cicloLabel={mesAtual === mes && anoAtual === ano ? cicloLabel : undefined}
                       delta={deltaMap[barbeiro.id] ?? null}
                       onCanvas={(canvas) => registrarCanvas(canvas, barbeiro.id)}
                     />

@@ -9,6 +9,8 @@ export type HistoricoMes = {
   ano: number
   comissao: number
   atendimentos: number
+  /** Label pra exibir na UI. "Mai" pra dia=1, "05 mai" pra ciclo personalizado. */
+  label: string
 }
 
 function calcularPeriodos(mesAtual: number, anoAtual: number, quantidade: number) {
@@ -22,6 +24,15 @@ function calcularPeriodos(mesAtual: number, anoAtual: number, quantidade: number
   return periodos
 }
 
+const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+
+function labelPeriodo(mesInicio: number, anoInicio: number, diaFechamento: number): string {
+  if (diaFechamento === 1) {
+    return MESES_CURTOS[mesInicio - 1]
+  }
+  return `${String(diaFechamento).padStart(2, '0')} ${MESES_CURTOS[mesInicio - 1]}`
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function buscarHistoricoMeses(
   supabase: any, // SupabaseClient — tipagem fraca pra evitar friction com `as any` que o resto do código usa
@@ -29,6 +40,7 @@ export async function buscarHistoricoMeses(
   mesAtual: number,
   anoAtual: number,
   quantidade = 4,
+  diaFechamento = 1,
 ): Promise<HistoricoMes[]> {
   const periodos = calcularPeriodos(mesAtual, anoAtual, quantidade)
 
@@ -49,6 +61,7 @@ export async function buscarHistoricoMeses(
     ano: p.ano,
     comissao: (results[i]?.data?.comissao_acumulada as number | undefined) ?? 0,
     atendimentos: (results[i]?.data?.numero_atendimentos as number | undefined) ?? 0,
+    label: labelPeriodo(p.mes, p.ano, diaFechamento),
   }))
 }
 
@@ -71,6 +84,7 @@ export async function buscarHistoricoBarbearia(
   mesAtual: number,
   anoAtual: number,
   quantidade = 4,
+  diaFechamento = 1,
 ): Promise<HistoricoMes[]> {
   const periodos = calcularPeriodos(mesAtual, anoAtual, quantidade)
 
@@ -106,7 +120,13 @@ export async function buscarHistoricoBarbearia(
     // Mesmo critério do faturamento: prefere o valor da meta quando preenchido
     const atendimentos = atendManual > 0 ? atendManual : somaAtendBarbeiros
 
-    return { mes: p.mes, ano: p.ano, comissao, atendimentos }
+    return {
+      mes: p.mes,
+      ano: p.ano,
+      comissao,
+      atendimentos,
+      label: labelPeriodo(p.mes, p.ano, diaFechamento),
+    }
   })
 }
 
@@ -126,6 +146,7 @@ export async function buscarHistoricoMesesPorBarbeiros(
   mesAtual: number,
   anoAtual: number,
   quantidade = 4,
+  diaFechamento = 1,
 ): Promise<Record<string, HistoricoMes[]>> {
   if (barbeiroIds.length === 0) return {}
 
@@ -144,7 +165,13 @@ export async function buscarHistoricoMesesPorBarbeiros(
 
   const out: Record<string, HistoricoMes[]> = {}
   for (const id of barbeiroIds) {
-    out[id] = periodos.map(p => ({ mes: p.mes, ano: p.ano, comissao: 0, atendimentos: 0 }))
+    out[id] = periodos.map(p => ({
+      mes: p.mes,
+      ano: p.ano,
+      comissao: 0,
+      atendimentos: 0,
+      label: labelPeriodo(p.mes, p.ano, diaFechamento),
+    }))
   }
 
   results.forEach((res, periodoIdx) => {

@@ -23,6 +23,9 @@ interface Props {
   totalAtendimentosMes: number
   mes: number
   ano: number
+  cicloInicioIso: string
+  cicloFimIso: string
+  diaFechamento: number
 }
 
 function pad2(n: number) { return String(n).padStart(2, '0') }
@@ -52,6 +55,9 @@ export default function LancamentoDiarioClient({
   totalAtendimentosMes,
   mes,
   ano,
+  cicloInicioIso,
+  cicloFimIso,
+  diaFechamento,
 }: Props) {
   // ── Estado: ACUMULADO (principal) ───────────────────────
   const [comissoes, setComissoes] = useState<Record<string, string>>(() =>
@@ -80,7 +86,10 @@ export default function LancamentoDiarioClient({
   const [savingAcum, startSaveAcum] = useTransition()
 
   // ── Estado: COMANDAS DO DIA (secundário) ────────────────
-  const [dataSel, setDataSel] = useState<string>(todayIso())
+  // Se hoje cai dentro do ciclo atual, default = hoje; senão = último dia do ciclo.
+  const hojeStr = todayIso()
+  const dataPadrao = hojeStr >= cicloInicioIso && hojeStr <= cicloFimIso ? hojeStr : cicloFimIso
+  const [dataSel, setDataSel] = useState<string>(dataPadrao)
   const [comandas, setComandas] = useState<Record<string, string>>({})
   const [erroDia, setErroDia] = useState<string | null>(null)
   const [sucessoDia, setSucessoDia] = useState(false)
@@ -171,7 +180,6 @@ export default function LancamentoDiarioClient({
   }
 
   const ehHoje = dataSel === todayIso()
-  const diasNoMes = new Date(ano, mes, 0).getDate()
 
   return (
     <div className="space-y-6">
@@ -195,7 +203,7 @@ export default function LancamentoDiarioClient({
       {/* ── SEÇÃO PRINCIPAL: Acumulado do mês ───────────────── */}
       <div className="card p-5 sm:p-6 space-y-5">
         <div>
-          <h2 className="font-serif text-lg text-text">Acumulado do mês</h2>
+          <h2 className="font-serif text-lg text-text">Acumulado do {diaFechamento === 1 ? 'mês' : 'ciclo'}</h2>
           <p className="text-text-muted text-xs font-sans mt-0.5 leading-relaxed">
             O número oficial do mês. Edite aqui o faturamento da casa e a comissão de cada barbeiro.
           </p>
@@ -301,7 +309,7 @@ export default function LancamentoDiarioClient({
         {erroAcum && <p className="text-red-400 text-sm font-sans">{erroAcum}</p>}
 
         <button onClick={salvarAcumulado} disabled={savingAcum} className="btn-primary w-full py-3 text-sm">
-          {sucessoAcum ? '✓ Salvo!' : savingAcum ? 'Salvando…' : 'Salvar acumulado do mês'}
+          {sucessoAcum ? '✓ Salvo!' : savingAcum ? 'Salvando…' : `Salvar acumulado do ${diaFechamento === 1 ? 'mês' : 'ciclo'}`}
         </button>
       </div>
 
@@ -317,8 +325,8 @@ export default function LancamentoDiarioClient({
           <input
             type="date"
             value={dataSel}
-            min={`${ano}-${pad2(mes)}-01`}
-            max={`${ano}-${pad2(mes)}-${pad2(diasNoMes)}`}
+            min={cicloInicioIso}
+            max={cicloFimIso}
             onChange={e => selecionarData(e.target.value)}
             className="input py-2 text-sm"
           />
