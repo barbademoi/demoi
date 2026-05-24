@@ -1,12 +1,13 @@
 'use client'
 
-import { formatBRL, nomeMes } from '@/lib/utils'
+import { formatBRL } from '@/lib/utils'
 
 interface HistoricoEntry {
   mes: number
   ano: number
   comissao: number
   atendimentos: number
+  label: string
 }
 
 interface Props {
@@ -48,7 +49,7 @@ export default function TicketMedio({ historico, variant = 'dark', escopo = 'ind
             <p className={bigValueCls}>{formatBRL(ticketAtual)}</p>
             <p className={subValueCls}>
               {atual.atendimentos} {atual.atendimentos === 1 ? 'atendimento' : 'atendimentos'}
-              {isColetivo ? ' da equipe' : ''} em {nomeMes(atual.mes)}
+              {isColetivo ? ' da equipe' : ''} em {atual.label}
             </p>
           </>
         ) : (
@@ -75,7 +76,7 @@ export default function TicketMedio({ historico, variant = 'dark', escopo = 'ind
                   <p className={`${monthValueCls} truncate`}>
                     {t !== null ? formatBRL(t).replace('R$ ', '') : '—'}
                   </p>
-                  <p className={`${labelCls} capitalize truncate`}>{nomeMes(h.mes).slice(0, 3)}</p>
+                  <p className={`${labelCls} capitalize truncate`}>{h.label}</p>
                 </div>
               )
             })}

@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import CardsClient from './CardsClient'
+import { cicloDeData } from '@/lib/ciclo'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
-type UsuarioComBarbearia = { barbearia_id: string; barbearias: { id: string; nome: string } }
+type UsuarioComBarbearia = { barbearia_id: string; barbearias: { id: string; nome: string; dia_fechamento: number | null } }
 type MetaComIndividuais = {
   id: string
   meta_coletiva: number
@@ -11,7 +12,6 @@ type MetaComIndividuais = {
   metas_individuais: MetaIndividual[]
 }
 
-function pad2(n: number) { return String(n).padStart(2, '0') }
 
 export default async function CardsPage({
   searchParams,
@@ -25,7 +25,7 @@ export default async function CardsPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, barbearias(id, nome)')
+    .select('barbearia_id, barbearias(id, nome, dia_fechamento)')
     .eq('id', user.id)
     .single()
 
@@ -33,9 +33,16 @@ export default async function CardsPage({
   if (!usuario) redirect('/login')
 
   const barbearia = usuario.barbearias
+  const diaFechamento = barbearia.dia_fechamento ?? 1
   const hoje = new Date()
-  const mes = parseInt(searchParams.mes ?? String(hoje.getMonth() + 1))
-  const ano = parseInt(searchParams.ano ?? String(hoje.getFullYear()))
+  // (mes, ano) = início do ciclo (do searchParam ou do hoje)
+  const mesParam = searchParams.mes ? parseInt(searchParams.mes) : 0
+  const anoParam = searchParams.ano ? parseInt(searchParams.ano) : 0
+  const cicloHoje = cicloDeData(hoje, diaFechamento)
+  const mes = mesParam || cicloHoje.mesRef
+  const ano = anoParam || cicloHoje.anoRef
+  // Ciclo selecionado (a partir do mes/ano de início)
+  const ciclo = cicloDeData(new Date(ano, mes - 1, diaFechamento), diaFechamento)
   const tipo = (searchParams.tipo ?? 'resultado') as 'inicio' | 'resultado'
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -70,35 +77,27 @@ export default async function CardsPage({
   const totalEquipe = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
   const faturamentoAcumulado = (meta as unknown as { faturamento_acumulado?: number })?.faturamento_acumulado ?? 0
 
-  // ── Lançamentos diários — delta por barbeiro ─────────────
-  const isCurrentMonth = mes === hoje.getMonth() + 1 && ano === hoje.getFullYear()
-  const diaRef = isCurrentMonth ? hoje.getDate() : new Date(ano, mes, 0).getDate()
-
-  const primeiroAtual = `${ano}-${pad2(mes)}-01`
-  const dataFinal = `${ano}-${pad2(mes)}-${pad2(diaRef)}`
-
-  const mesAntMes = mes === 1 ? 12 : mes - 1
-  const mesAntAno = mes === 1 ? ano - 1 : ano
-  const ultimoDiaMesAnt = new Date(mesAntAno, mesAntMes, 0).getDate()
-  const diaAnt = Math.min(diaRef, ultimoDiaMesAnt)
-  const primeiroAnterior = `${mesAntAno}-${pad2(mesAntMes)}-01`
-  const mesmoDiaAnterior = `${mesAntAno}-${pad2(mesAntMes)}-${pad2(diaAnt)}`
+  // ── Lançamentos diários — delta por barbeiro (dentro do ciclo) ──
+  // Ciclo anterior pra comparar (mesmo dia de fechamento, mês antes)
+  const inicioCicloAnt = new Date(ciclo.inicio)
+  inicioCicloAnt.setMonth(inicioCicloAnt.getMonth() - 1)
+  const cicloAnt = cicloDeData(inicioCicloAnt, diaFechamento)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: ldAtualRaw } = await (supabase as any)
     .from('lancamentos_diarios')
     .select('barbeiro_id, valor')
     .eq('barbearia_id', barbearia.id)
-    .gte('data', primeiroAtual)
-    .lte('data', dataFinal)
+    .gte('data', ciclo.inicioIso)
+    .lte('data', ciclo.fimIso)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: ldAnteriorRaw } = await (supabase as any)
     .from('lancamentos_diarios')
     .select('barbeiro_id, valor')
     .eq('barbearia_id', barbearia.id)
-    .gte('data', primeiroAnterior)
-    .lte('data', mesmoDiaAnterior)
+    .gte('data', cicloAnt.inicioIso)
+    .lte('data', cicloAnt.fimIso)
 
   const ldAtualMap: Record<string, number> = {}
   for (const r of (ldAtualRaw ?? []) as { barbeiro_id: string; valor: number }[]) {
@@ -128,6 +127,8 @@ export default async function CardsPage({
       ano={ano}
       tipo={tipo}
       deltaMap={deltaMap}
+      cicloLabel={ciclo.label}
+      diaFechamento={diaFechamento}
     />
   )
 }

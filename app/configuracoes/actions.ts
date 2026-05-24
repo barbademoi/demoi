@@ -72,10 +72,16 @@ export async function salvarOperacaoConfig(formData: FormData) {
     ? visibilidadeRaw
     : 'completo')
 
+  const diaFechRaw = parseInt((formData.get('dia_fechamento') as string) || '1', 10)
+  const dia_fechamento = Math.min(28, Math.max(1, isNaN(diaFechRaw) ? 1 : diaFechRaw))
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from('barbearias')
-    .update({ dias_trabalhados, horario_abertura, horario_fechamento, modalidade, tem_assinatura, visibilidade_ranking })
+    .update({
+      dias_trabalhados, horario_abertura, horario_fechamento, modalidade, tem_assinatura,
+      visibilidade_ranking, dia_fechamento,
+    })
     .eq('id', barbeariaId)
 
   if (error) return { error: 'Erro ao salvar.' }

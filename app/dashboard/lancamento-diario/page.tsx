@@ -1,13 +1,11 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { nomeMes } from '@/lib/utils'
+import { cicloAtual } from '@/lib/ciclo'
 import LancamentoDiarioClient from './LancamentoDiarioClient'
 import Sidebar from '@/components/dashboard/Sidebar'
 import type { Barbeiro } from '@/types/database'
 
-type UsuarioRow = { barbearia_id: string; barbearias: { id: string; nome: string } }
-
-function pad2(n: number) { return String(n).padStart(2, '0') }
+type UsuarioRow = { barbearia_id: string; barbearias: { id: string; nome: string; dia_fechamento: number | null } }
 
 export default async function LancamentoDiarioPage() {
   const supabase = createClient()
@@ -17,7 +15,7 @@ export default async function LancamentoDiarioPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, barbearias(id, nome)')
+    .select('barbearia_id, barbearias(id, nome, dia_fechamento)')
     .eq('id', user.id)
     .single()
   const usuario = usuarioRaw as unknown as UsuarioRow | null
@@ -26,8 +24,10 @@ export default async function LancamentoDiarioPage() {
   const barbearia = usuario.barbearias
 
   const hoje = new Date()
-  const mes = hoje.getMonth() + 1
-  const ano = hoje.getFullYear()
+  const diaFechamento = barbearia.dia_fechamento ?? 1
+  const ciclo = cicloAtual(diaFechamento, hoje)
+  const mes = ciclo.mesRef
+  const ano = ciclo.anoRef
 
   // Barbeiros ativos
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,17 +39,14 @@ export default async function LancamentoDiarioPage() {
     .order('nome')
   const barbeiros = (barbeirosRaw ?? []) as Pick<Barbeiro, 'id' | 'nome' | 'foto_url' | 'tipo' | 'ativo'>[]
 
-  // Comandas diárias do mês atual (todos os dias, todos os barbeiros)
-  const primeiroDia = `${ano}-${pad2(mes)}-01`
-  const ultimoDia = `${ano}-${pad2(mes)}-${pad2(new Date(ano, mes, 0).getDate())}`
-
+  // Comandas diárias do CICLO atual (todos os dias, todos os barbeiros)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: ldRaw } = await (supabase as any)
     .from('lancamentos_diarios')
     .select('barbeiro_id, data, numero_atendimentos')
     .eq('barbearia_id', barbearia.id)
-    .gte('data', primeiroDia)
-    .lte('data', ultimoDia)
+    .gte('data', ciclo.inicioIso)
+    .lte('data', ciclo.fimIso)
     .order('data', { ascending: false })
 
   const comandasDiarias = (ldRaw ?? []) as { barbeiro_id: string; data: string; numero_atendimentos: number }[]
@@ -96,7 +93,7 @@ export default async function LancamentoDiarioPage() {
           <header>
             <h1 className="font-serif text-2xl sm:text-3xl text-text">Lançamento diário</h1>
             <p className="text-text-muted text-sm font-sans mt-1">
-              {nomeMes(mes)} {ano}
+              {ciclo.label}
             </p>
           </header>
 
@@ -111,6 +108,9 @@ export default async function LancamentoDiarioPage() {
             totalAtendimentosMes={atendimentosMesExibido}
             mes={mes}
             ano={ano}
+            cicloInicioIso={ciclo.inicioIso}
+            cicloFimIso={ciclo.fimIso}
+            diaFechamento={diaFechamento}
           />
         </main>
       </div>

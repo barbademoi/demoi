@@ -10,6 +10,11 @@ interface Props {
   variant?: 'dark' | 'light'
   // 'individual' (barbeiro) ou 'coletivo' (barbearia inteira) — muda os labels
   escopo?: 'individual' | 'coletivo'
+  // Opcional: label do período anterior. Default usa nomeMes(mesAnterior) (mês calendário).
+  // Pra ciclos personalizados, passar algo como "05 abr".
+  labelPeriodoAnterior?: string
+  // Opcional: label do período atual ("esse mês até agora" / "esse ciclo até agora").
+  labelPeriodoAtual?: string
 }
 
 export default function ComparativoMesAnterior({
@@ -18,11 +23,16 @@ export default function ComparativoMesAnterior({
   mesAtual,
   variant = 'dark',
   escopo = 'individual',
+  labelPeriodoAnterior,
+  labelPeriodoAtual,
 }: Props) {
   // Sem dado do mês anterior → não renderiza (primeiro mês na plataforma)
   if (comissaoMesAnterior <= 0) return null
 
   const mesAnterior = mesAtual === 1 ? 12 : mesAtual - 1
+  const labelAnterior = labelPeriodoAnterior ?? nomeMes(mesAnterior)
+  const labelAtual = labelPeriodoAtual ?? 'Esse mês até agora'
+
   const variacaoAbs = comissaoAtual - comissaoMesAnterior
   const variacaoPct = Math.round((variacaoAbs / comissaoMesAnterior) * 100)
   const subiu = variacaoAbs > 0
@@ -44,8 +54,8 @@ export default function ComparativoMesAnterior({
   const trendLabel = igual
     ? 'mesmo ritmo'
     : subiu
-      ? `+${variacaoPct}% vs ${nomeMes(mesAnterior)}`
-      : `${variacaoPct}% vs ${nomeMes(mesAnterior)}`
+      ? `+${variacaoPct}% vs ${labelAnterior}`
+      : `${variacaoPct}% vs ${labelAnterior}`
 
   return (
     <div className={cardCls}>
@@ -55,14 +65,14 @@ export default function ComparativoMesAnterior({
         <div className="flex-1 min-w-0">
           <p className={labelCls}>
             {escopo === 'coletivo'
-              ? `Em ${nomeMes(mesAnterior)} a barbearia faturou`
-              : `Em ${nomeMes(mesAnterior)} você fez`}
+              ? `Em ${labelAnterior} a barbearia faturou`
+              : `Em ${labelAnterior} você fez`}
           </p>
           <p className={valueCls}>{formatBRL(comissaoMesAnterior)}</p>
         </div>
         <div className={`w-px h-12 border-r ${dividerCls}`} />
         <div className="flex-1 min-w-0 text-right">
-          <p className={labelCls}>Esse mês até agora</p>
+          <p className={labelCls}>{labelAtual}</p>
           <p className={valueCls}>{formatBRL(comissaoAtual)}</p>
         </div>
       </div>

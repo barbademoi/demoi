@@ -12,6 +12,7 @@ interface Props {
   barbeariaName: string
   mes: number
   ano: number
+  cicloLabel?: string
   onCanvas?: (canvas: HTMLCanvasElement) => void
 }
 
@@ -32,7 +33,7 @@ function makeMetalGrad(ctx: CanvasRenderingContext2D, tier: 'bronze' | 'prata' |
   return g
 }
 
-export default function RankingCard({ barbeiros, meta, lancamentos, faturamentoAcumulado, barbeariaName, mes, ano, onCanvas }: Props) {
+export default function RankingCard({ barbeiros, meta, lancamentos, faturamentoAcumulado, barbeariaName, mes, ano, cicloLabel, onCanvas }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -82,7 +83,8 @@ export default function RankingCard({ barbeiros, meta, lancamentos, faturamentoA
     ctx.font = `600 22px ${FONT_SANS}`
     ctx.fillStyle = '#2563EB'
     ctx.textAlign = 'right'
-    ctx.fillText(`${nomeMes(mes).toUpperCase()} ${ano}`, W - 80, 110)
+    const tituloPeriodo = cicloLabel ? cicloLabel.toUpperCase() : `${nomeMes(mes).toUpperCase()} ${ano}`
+    ctx.fillText(tituloPeriodo, W - 80, 110)
 
     // Divider
     ctx.fillStyle = '#1E2028'
@@ -238,7 +240,7 @@ export default function RankingCard({ barbeiros, meta, lancamentos, faturamentoA
 
     onCanvas?.(canvas)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [barbeiros.map(b => b.id).join(','), lancamentos.map(l => l.comissao_acumulada).join(','), mes, ano])
+  }, [barbeiros.map(b => b.id).join(','), lancamentos.map(l => l.comissao_acumulada).join(','), mes, ano, cicloLabel])
 
   return (
     <canvas
