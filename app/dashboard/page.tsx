@@ -270,6 +270,7 @@ export default async function DashboardPage() {
           mes={mes}
           ano={ano}
           herdadoDeMesAnterior={herdadoDeMesAnterior}
+          diaFechamento={diaFechamento}
         />
       ) : null}
       campanhaSlot={modoAtual !== 'metas' ? (

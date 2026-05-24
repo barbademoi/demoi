@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { salvarMetas } from '@/app/dashboard/metas/actions'
-import { nomeMes } from '@/lib/utils'
+import { salvarMetas, buscarMetasPeriodo } from '@/app/dashboard/metas/actions'
+import { cicloDeData } from '@/lib/ciclo'
 import type { Barbeiro, MetaIndividual } from '@/types/database'
 
 interface MetaBarbeiro {
@@ -25,36 +25,75 @@ interface Props {
   mes: number
   ano: number
   herdadoDeMesAnterior?: boolean
+  diaFechamento?: number
 }
 
-export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, faturamentoAcumulado, premioColetivo, mes, ano, herdadoDeMesAnterior }: Props) {
+function mapMetasParaBarbeiros(barbeiros: Barbeiro[], inds?: MetaIndividual[]): MetaBarbeiro[] {
+  return barbeiros.map(b => {
+    const m = inds?.find(mi => mi.barbeiro_id === b.id)
+    return {
+      id: b.id,
+      nome: b.nome,
+      bronze_comm: m?.bronze_comm ? String(m.bronze_comm) : '',
+      prata_comm: m?.prata_comm ? String(m.prata_comm) : '',
+      ouro_comm: m?.ouro_comm ? String(m.ouro_comm) : '',
+      bronze_premio: m?.bronze_premio ?? '',
+      prata_premio: m?.prata_premio ?? '',
+      ouro_premio: m?.ouro_premio ?? '',
+    }
+  })
+}
+
+export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, faturamentoAcumulado, premioColetivo, mes, ano, herdadoDeMesAnterior, diaFechamento = 1 }: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [erro, setErro] = useState<string | null>(null)
   const [sucesso, setSucesso] = useState(false)
   const [msgSucesso, setMsgSucesso] = useState('✓ Metas salvas')
 
+  // ── Período selecionado (navegação entre meses/ciclos) ──
+  const [mesSel, setMesSel] = useState(mes)
+  const [anoSel, setAnoSel] = useState(ano)
+  const [carregandoPeriodo, setCarregandoPeriodo] = useState(false)
+  // Período em foco existe no banco? (controla aviso "sem metas")
+  const [periodoExiste, setPeriodoExiste] = useState(true)
+  // É o período atual (= não dá pra voltar antes dele)
+  const ehPeriodoAtual = mesSel === mes && anoSel === ano
+
+  const periodoLabel = cicloDeData(new Date(anoSel, mesSel - 1, diaFechamento), diaFechamento).label
+
   const [metaColetivaVal, setMetaColetivaVal] = useState(String(metaColetiva ?? ''))
   const [faturamentoVal, setFaturamentoVal] = useState(String(faturamentoAcumulado ?? ''))
   const [premioVal, setPremioVal] = useState(premioColetivo ?? '')
-  const [metas, setMetas] = useState<MetaBarbeiro[]>(() =>
-    barbeiros.map(b => {
-      const m = metasAtuais?.find(mi => mi.barbeiro_id === b.id)
-      return {
-        id: b.id,
-        nome: b.nome,
-        bronze_comm: m?.bronze_comm ? String(m.bronze_comm) : '',
-        prata_comm: m?.prata_comm ? String(m.prata_comm) : '',
-        ouro_comm: m?.ouro_comm ? String(m.ouro_comm) : '',
-        bronze_premio: m?.bronze_premio ?? '',
-        prata_premio: m?.prata_premio ?? '',
-        ouro_premio: m?.ouro_premio ?? '',
-      }
-    })
-  )
+  const [metas, setMetas] = useState<MetaBarbeiro[]>(() => mapMetasParaBarbeiros(barbeiros, metasAtuais))
 
   function updateMeta(id: string, field: keyof Omit<MetaBarbeiro, 'id' | 'nome'>, value: string) {
     setMetas(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m))
+  }
+
+  // Navega pra outro período e re-preenche os campos com o que já existe lá
+  function navegarPeriodo(delta: number) {
+    let m = mesSel + delta
+    let a = anoSel
+    if (m > 12) { m = 1; a += 1 }
+    if (m < 1) { m = 12; a -= 1 }
+    // Piso: não volta antes do período atual
+    if (a < ano || (a === ano && m < mes)) return
+
+    setMesSel(m)
+    setAnoSel(a)
+    setErro(null)
+    setCarregandoPeriodo(true)
+    startTransition(async () => {
+      const res = await buscarMetasPeriodo(m, a)
+      setCarregandoPeriodo(false)
+      if ('error' in res) { setErro(res.error); return }
+      setMetaColetivaVal(res.metaColetiva ? String(res.metaColetiva) : '')
+      setFaturamentoVal(res.faturamentoAcumulado ? String(res.faturamentoAcumulado) : '')
+      setPremioVal(res.premioColetivo)
+      setMetas(mapMetasParaBarbeiros(barbeiros, res.metasIndividuais))
+      setPeriodoExiste(res.existe)
+    })
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -62,8 +101,8 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
     setErro(null)
     startTransition(async () => {
       const fd = new FormData()
-      fd.set('mes', String(mes))
-      fd.set('ano', String(ano))
+      fd.set('mes', String(mesSel))
+      fd.set('ano', String(anoSel))
       fd.set('meta_coletiva', metaColetivaVal)
       fd.set('premio_coletivo', premioVal)
       fd.set('faturamento_acumulado', faturamentoVal)
@@ -104,21 +143,54 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
       style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.7)', zIndex:50, overflowY:'scroll' }}
     >
       <div className="card p-6 w-full mx-auto my-8" style={{ maxWidth:'672px' }}>
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="font-serif text-2xl text-text">
-            Metas — <span className="capitalize">{nomeMes(mes)} {ano}</span>
-          </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-serif text-2xl text-text">Configurar metas</h3>
           <button onClick={() => setOpen(false)} className="text-text-muted hover:text-text text-xl">×</button>
         </div>
 
-        {herdadoDeMesAnterior && (
+        {/* Seletor de período (navega entre ciclos futuros) */}
+        <div className="flex items-center justify-between gap-3 mb-6 p-2 rounded-xl bg-surface-2 border border-border">
+          <button
+            type="button"
+            onClick={() => navegarPeriodo(-1)}
+            disabled={ehPeriodoAtual || isPending}
+            aria-label="Período anterior"
+            className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <div className="text-center">
+            <p className="font-serif text-lg text-text capitalize leading-tight">{periodoLabel}</p>
+            {!periodoExiste && !carregandoPeriodo && (
+              <p className="text-amber-500 text-[11px] font-sans">Sem metas — configure abaixo</p>
+            )}
+            {ehPeriodoAtual && (
+              <p className="text-text-muted text-[11px] font-sans">período atual</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => navegarPeriodo(1)}
+            disabled={isPending}
+            aria-label="Próximo período"
+            className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </div>
+
+        {herdadoDeMesAnterior && ehPeriodoAtual && (
           <div className="mb-6 p-4 rounded-xl bg-primary/10 border border-primary/30 text-sm font-sans flex items-start gap-3">
             <span aria-hidden className="text-base leading-none mt-0.5">💡</span>
             <p className="flex-1 text-text leading-relaxed">
               <span className="font-semibold">Tudo já preenchido!</span> Carregamos as metas
               do mês anterior pra você não precisar digitar tudo de novo. Ajuste o que
-              precisar e clique em <span className="font-semibold">"Salvar metas"</span> pra
-              confirmar pra <span className="capitalize font-semibold">{nomeMes(mes)} {ano}</span>.
+              precisar e clique em <span className="font-semibold">&ldquo;Salvar metas&rdquo;</span> pra
+              confirmar pra <span className="capitalize font-semibold">{periodoLabel}</span>.
             </p>
           </div>
         )}
