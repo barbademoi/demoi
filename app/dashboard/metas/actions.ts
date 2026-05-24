@@ -2,6 +2,56 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import type { MetaIndividual } from '@/types/database'
+
+/**
+ * Busca as metas (coletiva + individuais) de um período específico.
+ * Usado pelo seletor de meses/ciclos futuros no MetasModal — quando o
+ * dono navega pra outro período, re-preenche os campos com o que já
+ * existe (ou vazio, se ainda não configurado).
+ */
+export async function buscarMetasPeriodo(mes: number, ano: number): Promise<{
+  metaColetiva: number
+  premioColetivo: string
+  faturamentoAcumulado: number
+  metasIndividuais: MetaIndividual[]
+  existe: boolean
+} | { error: string }> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: usuario } = await (supabase as any)
+    .from('usuarios').select('barbearia_id').eq('id', user.id).single() as
+    { data: { barbearia_id: string } | null }
+  if (!usuario) return { error: 'Barbearia não encontrada.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: meta } = await (supabase as any)
+    .from('metas')
+    .select('id, meta_coletiva, premio_coletivo, faturamento_acumulado')
+    .eq('barbearia_id', usuario.barbearia_id)
+    .eq('mes', mes)
+    .eq('ano', ano)
+    .maybeSingle() as { data: { id: string; meta_coletiva: number; premio_coletivo: string | null; faturamento_acumulado: number } | null }
+
+  if (!meta) {
+    return { metaColetiva: 0, premioColetivo: '', faturamentoAcumulado: 0, metasIndividuais: [], existe: false }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: indsRaw } = await (supabase as any)
+    .from('metas_individuais').select('*').eq('meta_id', meta.id)
+
+  return {
+    metaColetiva: Number(meta.meta_coletiva) || 0,
+    premioColetivo: meta.premio_coletivo ?? '',
+    faturamentoAcumulado: Number(meta.faturamento_acumulado) || 0,
+    metasIndividuais: (indsRaw ?? []) as MetaIndividual[],
+    existe: true,
+  }
+}
 
 export async function salvarMetas(formData: FormData) {
   const supabase = createClient()
