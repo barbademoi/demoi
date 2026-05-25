@@ -1,4 +1,4 @@
-import { spNowParts, spWallToUtc } from './tz'
+import { spNowParts, spWallToUtc, spPartsOf } from './tz'
 
 export type NomePeriodo = 'semana' | 'mes' | 'ano'
 
@@ -58,4 +58,16 @@ export function intervaloAnterior(periodo: NomePeriodo): Intervalo {
     inicio: spWallToUtc(y - 1, 0, 1, 0, 0, 0, 0),
     fim: spWallToUtc(y - 1, 11, 31, 23, 59, 59, 999),
   }
+}
+
+function ymd(d: Date): string {
+  const p = spPartsOf(d)
+  return `${p.y}-${String(p.m + 1).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`
+}
+
+// Data (YYYY-MM-DD) da segunda-feira da semana corrente ou anterior — usada
+// como semana_referencia das metas semanais.
+export function semanaRef(qual: 'atual' | 'anterior' = 'atual'): string {
+  const iv = qual === 'atual' ? intervalo('semana') : intervaloAnterior('semana')
+  return ymd(iv.inicio)
 }
