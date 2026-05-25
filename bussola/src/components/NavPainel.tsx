@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 const ITENS = [
   { href: '/painel', label: 'Home', icon: '🏠', exato: true },
   { href: '/painel/profissionais', label: 'Profissionais', icon: '👥' },
-  { href: '/painel/feedback/novo', label: 'Registrar', icon: '🎤' },
+  { href: '/painel/feedback/novo', label: 'Registrar', icon: '🎯' },
   { href: '/painel/reuniao', label: 'Reunião', icon: '📋' },
   { href: '/painel/historico-reunioes', label: 'Histórico', icon: '📚' },
   { href: '/painel/configuracoes', label: 'Configurações', icon: '⚙️' },

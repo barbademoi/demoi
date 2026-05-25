@@ -28,6 +28,7 @@ type Slide =
   | { tipo: 'intro' }
   | { tipo: 'titulo'; texto: string }
   | { tipo: 'feedback'; f: FeedbackSlide }
+  | { tipo: 'feedbackEquipe'; f: FeedbackSlide }
   | { tipo: 'metricas' }
   | { tipo: 'metaPassada'; meta: MetaSemanal }
   | { tipo: 'novasMetas' }
@@ -40,12 +41,13 @@ interface Props {
   pautaInicial: PautaReuniao
   positivos: FeedbackSlide[]
   negativos: FeedbackSlide[]
+  equipe: FeedbackSlide[]
   ativos: ProfLite[]
   metasPassadas: MetaSemanal[]
 }
 
 export default function ConduzirClient(props: Props) {
-  const { reuniaoId, estabNome, dataLabel, pautaInicial, positivos, negativos, ativos, metasPassadas } = props
+  const { reuniaoId, estabNome, dataLabel, pautaInicial, positivos, negativos, equipe, ativos, metasPassadas } = props
   const router = useRouter()
 
   const slides: Slide[] = [{ tipo: 'intro' }]
@@ -56,6 +58,10 @@ export default function ConduzirClient(props: Props) {
   if (negativos.length) {
     slides.push({ tipo: 'titulo', texto: '🌱 Pontos a desenvolver' })
     negativos.forEach((f) => slides.push({ tipo: 'feedback', f }))
+  }
+  if (equipe.length) {
+    slides.push({ tipo: 'titulo', texto: '👥 Sobre a equipe' })
+    equipe.forEach((f) => slides.push({ tipo: 'feedbackEquipe', f }))
   }
   slides.push({ tipo: 'metricas' })
   if (metasPassadas.length) {
@@ -167,11 +173,31 @@ export default function ConduzirClient(props: Props) {
             </div>
           )}
 
+          {s.tipo === 'feedbackEquipe' && (
+            <div className="text-center">
+              <div className="text-6xl mb-3">👥</div>
+              <h2 className="text-2xl font-bold text-text">Feedback sobre a equipe</h2>
+              <div className="flex justify-center my-3">
+                <Estrelas value={s.f.estrelas ?? 0} readOnly size={28} cor={TIPOS[s.f.tipo].estrela} />
+              </div>
+              <p className="text-xl text-text leading-relaxed">{s.f.texto}</p>
+              {s.f.categoria && <p className="text-sm text-primary mt-2">{s.f.categoria}</p>}
+              <textarea
+                value={notas[s.f.id] ?? ''}
+                onChange={(e) => setNotas((n) => ({ ...n, [s.f.id]: e.target.value }))}
+                placeholder="Anotação durante a discussão…"
+                rows={2}
+                className="input mt-5 text-base"
+              />
+            </div>
+          )}
+
           {s.tipo === 'metricas' && (
             <div className="text-center space-y-3">
               <h2 className="text-2xl font-bold text-text">📊 Métricas</h2>
               <p className="text-lg text-text">Elogios discutidos: <strong>{positivos.length}</strong></p>
               <p className="text-lg text-text">Pontos a desenvolver: <strong>{negativos.length}</strong></p>
+              <p className="text-lg text-text">Feedbacks de equipe: <strong>{equipe.length}</strong></p>
               {pautaInicial.metricasNotas && (
                 <p className="text-text-muted whitespace-pre-wrap mt-3">{pautaInicial.metricasNotas}</p>
               )}
@@ -226,7 +252,7 @@ export default function ConduzirClient(props: Props) {
           {s.tipo === 'fechamento' && (
             <div className="text-center space-y-4">
               <h2 className="text-2xl font-bold text-text">Fechamento</h2>
-              <p className="text-lg text-text">{positivos.length + negativos.length} feedbacks discutidos</p>
+              <p className="text-lg text-text">{positivos.length + negativos.length + equipe.length} feedbacks discutidos</p>
               <p className="text-lg text-text">{metasValidas.length} meta{metasValidas.length === 1 ? '' : 's'} definida{metasValidas.length === 1 ? '' : 's'}</p>
               <button type="button" onClick={finalizar} disabled={finalizando} className="btn-primary w-full mt-4">
                 {finalizando ? 'Finalizando…' : 'Finalizar reunião'}

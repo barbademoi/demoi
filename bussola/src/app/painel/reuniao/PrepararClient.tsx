@@ -16,7 +16,7 @@ export interface ProfLite {
 
 export interface FeedbackSemana {
   id: string
-  profissional_id: string
+  profissional_id: string | null
   tipo: TipoFeedback
   estrelas: number | null
   texto: string
@@ -37,11 +37,14 @@ export interface Alerta {
 
 interface Metricas {
   total: number
+  totalInd: number
+  totalEq: number
   positivos: number
   negativos: number
   observacoes: number
   maiorPlacar: { nome: string; valor: number }
   maisEvoluiu: { nome: string; delta: number }
+  placarEquipe: number
 }
 
 interface Props {
@@ -49,6 +52,7 @@ interface Props {
   dataReuniaoLabel: string
   pautaInicial: PautaReuniao
   feedbacks: FeedbackSemana[]
+  feedbacksEquipe: FeedbackSemana[]
   alertas: Alerta[]
   metasPassadas: MetaSemanal[]
   ativos: ProfLite[]
@@ -79,11 +83,11 @@ const DECISOES: { v: DecisaoFeedback; label: string; cls: string }[] = [
 ]
 
 export default function PrepararClient(props: Props) {
-  const { reuniaoId, dataReuniaoLabel, pautaInicial, feedbacks, alertas, metasPassadas, ativos, metricas } = props
+  const { reuniaoId, dataReuniaoLabel, pautaInicial, feedbacks, feedbacksEquipe, alertas, metasPassadas, ativos, metricas } = props
   const router = useRouter()
 
   const decisoesIniciais: Record<string, DecisaoFeedback> = {}
-  for (const f of feedbacks) decisoesIniciais[f.id] = pautaInicial.decisoes?.[f.id] ?? 'incluir'
+  for (const f of [...feedbacks, ...feedbacksEquipe]) decisoesIniciais[f.id] = pautaInicial.decisoes?.[f.id] ?? 'incluir'
 
   const [decisoes, setDecisoes] = useState<Record<string, DecisaoFeedback>>(decisoesIniciais)
   const [metricasNotas, setMetricasNotas] = useState(pautaInicial.metricasNotas ?? '')
@@ -183,7 +187,7 @@ export default function PrepararClient(props: Props) {
       <div className="card p-5">
         <h1 className="text-xl font-bold text-text">Preparar reunião</h1>
         <p className="text-text-muted text-sm">{dataReuniaoLabel}</p>
-        <p className="text-2xl font-bold text-primary mt-3">{metricas.total} feedbacks coletados nesta semana</p>
+        <p className="text-2xl font-bold text-primary mt-3">{metricas.totalInd} individuais · {metricas.totalEq} de equipe</p>
         <p className="text-xs text-text-muted mt-1">
           🟢 {metricas.positivos} positivos · 🔴 {metricas.negativos} negativos · ⚪ {metricas.observacoes} observações
         </p>
@@ -242,13 +246,49 @@ export default function PrepararClient(props: Props) {
         )}
       </Bloco>
 
-      {/* BLOCO 2 — MÉTRICAS */}
+      {/* BLOCO 2 — FEEDBACKS DE EQUIPE */}
+      <Bloco titulo="👥 Sobre a equipe">
+        {feedbacksEquipe.length === 0 ? (
+          <p className="text-text-muted text-sm">Nenhum feedback de equipe nesta semana.</p>
+        ) : (
+          feedbacksEquipe.map((f) => (
+            <div key={f.id} className="rounded-xl border border-border bg-white p-3">
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TIPOS[f.tipo].badge}`}>
+                  {TIPOS[f.tipo].emoji} {TIPOS[f.tipo].label}
+                </span>
+                <Estrelas value={f.estrelas ?? 0} readOnly size={14} cor={TIPOS[f.tipo].estrela} />
+              </div>
+              <p className="text-sm text-text mt-1.5">{f.texto}</p>
+              {f.categoria && <span className="inline-block mt-1 text-xs bg-primary-soft text-primary rounded-full px-2 py-0.5">{f.categoria}</span>}
+              <div className="flex gap-1.5 mt-2">
+                {DECISOES.filter((d) => d.v !== 'particular').map((d) => (
+                  <button
+                    key={d.v}
+                    type="button"
+                    onClick={() => setDecisoes((prev) => ({ ...prev, [f.id]: d.v }))}
+                    className={[
+                      'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
+                      decisoes[f.id] === d.v ? d.cls : 'border-border bg-white text-text-muted',
+                    ].join(' ')}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </Bloco>
+
+      {/* BLOCO 3 — MÉTRICAS */}
       <Bloco titulo="📊 Métricas da semana">
         <ul className="text-sm text-text space-y-1">
-          <li>Total de feedbacks: <strong>{metricas.total}</strong></li>
+          <li>Feedbacks individuais: <strong>{metricas.totalInd}</strong> · de equipe: <strong>{metricas.totalEq}</strong></li>
           <li>🟢 {metricas.positivos} · 🔴 {metricas.negativos} · ⚪ {metricas.observacoes}</li>
           <li>Maior placar da semana: <strong>{metricas.maiorPlacar.nome}</strong> ({metricas.maiorPlacar.valor > 0 ? '+' : ''}{metricas.maiorPlacar.valor})</li>
           <li>Quem mais evoluiu: <strong>{metricas.maisEvoluiu.nome}</strong> ({metricas.maisEvoluiu.delta > 0 ? '+' : ''}{metricas.maisEvoluiu.delta})</li>
+          <li>Placar da equipe: <strong>{metricas.placarEquipe > 0 ? '+' : ''}{metricas.placarEquipe}</strong></li>
         </ul>
         <textarea
           value={metricasNotas}
