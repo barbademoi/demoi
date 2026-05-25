@@ -19,7 +19,7 @@ export default async function NovoFeedbackPage({ searchParams }: { searchParams:
 
   const { data } = await supabase
     .from('profissionais')
-    .select('id, nome, foto_url')
+    .select('id, nome, foto_url, telefone, slug')
     .eq('estabelecimento_id', estabelecimento.id)
     .eq('status', 'ativo')
     .order('nome', { ascending: true })
