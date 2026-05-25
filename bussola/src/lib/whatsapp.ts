@@ -33,3 +33,10 @@ ${url}
 
 Salva esse link na tela inicial do celular pra acompanhar.`
 }
+
+// Mensagem neutra para envio pontual (pode ser elogio ou um recado).
+export function mensagemFeedback(primeiroNome: string, texto: string): string {
+  return `Oi ${primeiroNome}!
+
+${texto}`
+}
