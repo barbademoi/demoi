@@ -1,9 +1,11 @@
 export type TipoFeedback = 'positivo' | 'negativo' | 'observacao'
+export type EscopoFeedback = 'individual' | 'equipe'
 
 export interface Feedback {
   id: string
-  profissional_id: string
+  profissional_id: string | null
   estabelecimento_id: string
+  escopo: EscopoFeedback
   tipo: TipoFeedback
   categoria: string | null
   texto: string
@@ -65,6 +67,12 @@ export const PLACEHOLDERS: Record<TipoFeedback, string> = {
   positivo: 'O que ele fez bem? Ex: atendeu o cliente do horário das 14h com paciência…',
   negativo: 'O que precisa melhorar? Ex: chegou 15 min atrasado novamente…',
   observacao: 'Algo a anotar? Ex: comentou que quer fazer um curso…',
+}
+
+export const PLACEHOLDERS_EQUIPE: Record<TipoFeedback, string> = {
+  positivo: 'O que a equipe fez bem essa semana? Ex: o salão tá funcionando muito bem nos finais de semana…',
+  negativo: 'O que a equipe precisa melhorar? Ex: ninguém tá oferecendo barba pros clientes de corte…',
+  observacao: 'Algo a anotar sobre o coletivo? Ex: percebi que o clima tá pesado entre o time da tarde…',
 }
 
 const LABELS_ESTRELAS: Record<TipoFeedback, string[]> = {

@@ -2,10 +2,11 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
-import { CATEGORIAS, TIPOS, type TipoFeedback } from '@/lib/feedbacks'
+import { CATEGORIAS, TIPOS, type EscopoFeedback, type TipoFeedback } from '@/lib/feedbacks'
 
 interface EntradaFeedback {
-  profissional_id: string
+  escopo: EscopoFeedback
+  profissional_id: string | null
   tipo: TipoFeedback
   texto: string
   estrelas: number
@@ -25,7 +26,8 @@ async function getEstabelecimentoId() {
 }
 
 function validar(input: EntradaFeedback): string | null {
-  if (!input.profissional_id) return 'Escolha um profissional.'
+  if (input.escopo !== 'individual' && input.escopo !== 'equipe') return 'Escopo inválido.'
+  if (input.escopo === 'individual' && !input.profissional_id) return 'Escolha um profissional.'
   if (!(input.tipo in TIPOS)) return 'Tipo inválido.'
   const texto = (input.texto ?? '').trim()
   if (!texto) return 'Escreva o feedback.'
@@ -46,17 +48,22 @@ export async function criarFeedback(input: EntradaFeedback) {
     const estabelecimentoId = await getEstabelecimentoId()
     if (!estabelecimentoId) return { error: 'Sessão expirada. Faça login novamente.' }
 
-    // Garante que o profissional pertence a este estabelecimento.
-    const { data: prof } = await supabase
-      .from('profissionais')
-      .select('id')
-      .eq('id', input.profissional_id)
-      .eq('estabelecimento_id', estabelecimentoId)
-      .maybeSingle()
-    if (!prof) return { error: 'Profissional inválido.' }
+    const profId = input.escopo === 'equipe' ? null : input.profissional_id
+
+    // Para feedback individual, garante que o profissional pertence ao estabelecimento.
+    if (input.escopo === 'individual') {
+      const { data: prof } = await supabase
+        .from('profissionais')
+        .select('id')
+        .eq('id', profId)
+        .eq('estabelecimento_id', estabelecimentoId)
+        .maybeSingle()
+      if (!prof) return { error: 'Profissional inválido.' }
+    }
 
     const { error } = await supabase.from('feedbacks').insert({
-      profissional_id: input.profissional_id,
+      escopo: input.escopo,
+      profissional_id: profId,
       estabelecimento_id: estabelecimentoId,
       tipo: input.tipo,
       texto: input.texto.trim(),
@@ -70,8 +77,9 @@ export async function criarFeedback(input: EntradaFeedback) {
     }
 
     revalidatePath('/painel')
-    revalidatePath(`/painel/profissionais/${input.profissional_id}`)
+    if (profId) revalidatePath(`/painel/profissionais/${profId}`)
     revalidatePath('/painel/profissionais')
+    revalidatePath('/painel/feedbacks-equipe')
     return { ok: true }
   } catch (err) {
     console.error('[criarFeedback] erro inesperado:', err)
@@ -85,10 +93,12 @@ export async function atualizarFeedback(id: string, input: EntradaFeedback) {
 
   try {
     const supabase = createClient()
+    const profId = input.escopo === 'equipe' ? null : input.profissional_id
     const { error } = await supabase
       .from('feedbacks')
       .update({
-        profissional_id: input.profissional_id,
+        escopo: input.escopo,
+        profissional_id: profId,
         tipo: input.tipo,
         texto: input.texto.trim(),
         estrelas: input.estrelas,
@@ -99,7 +109,8 @@ export async function atualizarFeedback(id: string, input: EntradaFeedback) {
 
     revalidatePath('/painel')
     revalidatePath('/painel/profissionais')
-    revalidatePath(`/painel/profissionais/${input.profissional_id}`)
+    revalidatePath('/painel/feedbacks-equipe')
+    if (profId) revalidatePath(`/painel/profissionais/${profId}`)
     return { ok: true }
   } catch (err) {
     console.error('[atualizarFeedback] erro inesperado:', err)
