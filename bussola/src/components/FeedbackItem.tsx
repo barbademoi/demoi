@@ -15,8 +15,8 @@ import { excluirFeedback } from '@/app/painel/feedback/actions'
 
 const STATUS_LABEL: Record<string, string> = {
   pendente: 'Pendente',
-  discutido: 'Discutido na reunião',
-  particular: 'Tratado em particular',
+  discutido_reuniao: 'Discutido na reunião',
+  discutido_particular: 'Tratado em particular',
   arquivado: 'Arquivado',
 }
 

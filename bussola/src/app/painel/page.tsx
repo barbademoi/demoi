@@ -22,6 +22,27 @@ export default async function PainelPage() {
 
   const reuniao = proximaReuniao(estabelecimento.dia_reuniao ?? 1, estabelecimento.hora_reuniao ?? '09:00')
 
+  // Reunião pendente (planejada e já passou da data).
+  const { data: pendente } = await supabase
+    .from('reunioes')
+    .select('id')
+    .eq('estabelecimento_id', estabelecimento.id)
+    .eq('status', 'planejada')
+    .lt('data_reuniao', new Date().toISOString())
+    .order('data_reuniao', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  // Proximidade → cor do card.
+  const dias = reuniao.contagem === 'Hoje!' ? 0 : reuniao.contagem === 'Amanhã' ? 1 : parseInt(reuniao.contagem.replace(/\D/g, ''), 10) || 9
+  const cardClasse = pendente
+    ? 'border-red-300 bg-red-50'
+    : dias === 0
+      ? 'border-orange-300 bg-orange-50'
+      : dias <= 2
+        ? 'border-amber-300 bg-amber-50'
+        : 'border-border bg-surface'
+
   // Feedbacks da semana (resumo + alertas).
   const semana = intervalo('semana')
   const { data: semData } = await supabase
@@ -52,14 +73,21 @@ export default async function PainelPage() {
   return (
     <main className="max-w-3xl mx-auto px-4 py-6 space-y-6 animate-fade-in">
       {/* CARD PRÓXIMA REUNIÃO */}
-      <div className="card p-5">
+      <div className={`rounded-2xl border p-5 ${cardClasse}`}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs text-text-muted">Próxima reunião</p>
-            <p className="text-lg font-bold text-text">
-              {reuniao.diaLabel}, {reuniao.horaLabel}
-            </p>
-            <p className="text-sm text-primary font-medium">{reuniao.contagem}</p>
+            {pendente ? (
+              <>
+                <p className="text-sm font-bold text-red-700">Reunião pendente</p>
+                <p className="text-sm text-text mt-0.5">Marque como concluída ou reagende.</p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-text-muted">{dias === 0 ? '🔔 Reunião HOJE' : 'Próxima reunião'}</p>
+                <p className="text-lg font-bold text-text">{reuniao.diaLabel}, {reuniao.horaLabel}</p>
+                <p className="text-sm text-primary font-medium">{reuniao.contagem}</p>
+              </>
+            )}
           </div>
           {graves > 0 && (
             <span className="bg-red-100 text-red-700 rounded-full px-3 py-1 text-xs font-medium">
@@ -68,7 +96,7 @@ export default async function PainelPage() {
           )}
         </div>
 
-        <div className="mt-4 pt-4 border-t border-border">
+        <div className="mt-4 pt-4 border-t border-border/60">
           <p className="text-sm text-text">
             {total === 0
               ? 'Nenhum feedback registrado nesta semana ainda.'
@@ -81,16 +109,9 @@ export default async function PainelPage() {
           )}
         </div>
 
-        <div className="mt-4">
-          <button
-            type="button"
-            disabled
-            title="Disponível no próximo passo"
-            className="btn-secondary w-full opacity-60 cursor-not-allowed"
-          >
-            Preparar reunião
-          </button>
-        </div>
+        <Link href="/painel/reuniao" className="btn-primary w-full mt-4">
+          {pendente ? 'Resolver reunião' : dias === 0 ? 'Preparar agora' : 'Preparar reunião'}
+        </Link>
       </div>
 
       {/* BOTÃO PRINCIPAL */}
