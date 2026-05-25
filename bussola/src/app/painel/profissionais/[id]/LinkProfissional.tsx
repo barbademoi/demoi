@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { mensagemConvite } from '@/lib/whatsapp'
 
 interface Props {
   nome: string
@@ -11,15 +12,7 @@ interface Props {
 export default function LinkProfissional({ nome, url, destaque = false }: Props) {
   const [copiado, setCopiado] = useState(false)
 
-  const textoWhats = `Oi ${nome}! Esse é o link do seu placar na Bússola:
-${url}
-
-Aqui você vê:
-⭐ Seus elogios da semana
-📊 Sua evolução
-🏆 Suas conquistas
-
-Salva esse link na tela inicial do celular pra acompanhar sempre que quiser!`
+  const textoWhats = mensagemConvite(nome, url)
   const whatsHref = `https://wa.me/?text=${encodeURIComponent(textoWhats)}`
 
   async function copiar() {
@@ -50,7 +43,7 @@ Salva esse link na tela inicial do celular pra acompanhar sempre que quiser!`
       <h3 className="font-semibold text-text mb-1">🔗 Link do profissional</h3>
       <p className="text-text-muted text-sm mb-3">
         Compartilhe este link com <strong className="text-text">{nome}</strong> pelo WhatsApp. Ele
-        acessa o placar dele pelo celular, sem precisar criar conta.
+        acompanha os elogios dele pelo celular, sem precisar criar conta.
       </p>
 
       <input
