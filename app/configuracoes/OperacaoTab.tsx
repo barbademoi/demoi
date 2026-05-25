@@ -172,11 +172,14 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
         <p className="text-text-muted text-xs font-sans mb-3 leading-relaxed">
           Define o que cada barbeiro enxerga ao abrir o link individual dele.
         </p>
+        {/* Valor enviado no submit — fonte única de verdade (estado React).
+            À prova de falhas: não depende do `checked` dos radios visuais. */}
+        <input type="hidden" name="visibilidade_ranking" value={visibilidade} />
         <div className="space-y-2">
           {VISIBILIDADE_OPCOES.map(op => (
             <label key={op.value} className={['flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all',
               visibilidade === op.value ? 'border-primary bg-primary/5' : 'border-border bg-surface-2 hover:border-primary/40'].join(' ')}>
-              <input type="radio" name="visibilidade_ranking" value={op.value} checked={visibilidade === op.value}
+              <input type="radio" name="visibilidade_ranking_radio" value={op.value} checked={visibilidade === op.value}
                 onChange={() => setVisibilidade(op.value)} className="hidden" />
               <div className={['w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5',
                 visibilidade === op.value ? 'border-primary' : 'border-border'].join(' ')}>
