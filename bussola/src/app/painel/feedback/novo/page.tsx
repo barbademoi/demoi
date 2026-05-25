@@ -5,7 +5,7 @@ import FeedbackForm from '../FeedbackForm'
 
 export const dynamic = 'force-dynamic'
 
-export default async function NovoFeedbackPage() {
+export default async function NovoFeedbackPage({ searchParams }: { searchParams: { escopo?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/entrar')
@@ -38,7 +38,11 @@ export default async function NovoFeedbackPage() {
           .
         </p>
       )}
-      <FeedbackForm profissionais={profissionais} modo="novo" />
+      <FeedbackForm
+        profissionais={profissionais}
+        modo="novo"
+        escopoInicial={searchParams.escopo === 'equipe' ? 'equipe' : 'individual'}
+      />
     </main>
   )
 }

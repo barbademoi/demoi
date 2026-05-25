@@ -8,7 +8,9 @@ import {
   TIPOS,
   CATEGORIAS,
   PLACEHOLDERS,
+  PLACEHOLDERS_EQUIPE,
   labelEstrelas,
+  type EscopoFeedback,
   type TipoFeedback,
 } from '@/lib/feedbacks'
 import { criarFeedback, atualizarFeedback, excluirFeedback } from './actions'
@@ -21,7 +23,8 @@ interface ProfItem {
 
 interface Inicial {
   id: string
-  profissional_id: string
+  escopo: EscopoFeedback
+  profissional_id: string | null
   tipo: TipoFeedback
   texto: string
   estrelas: number | null
@@ -32,10 +35,12 @@ interface Props {
   profissionais: ProfItem[]
   modo: 'novo' | 'editar'
   inicial?: Inicial
+  escopoInicial?: EscopoFeedback
 }
 
-export default function FeedbackForm({ profissionais, modo, inicial }: Props) {
+export default function FeedbackForm({ profissionais, modo, inicial, escopoInicial }: Props) {
   const router = useRouter()
+  const [escopo, setEscopo] = useState<EscopoFeedback>(inicial?.escopo ?? escopoInicial ?? 'individual')
   const [profId, setProfId] = useState<string>(inicial?.profissional_id ?? '')
   const [tipo, setTipo] = useState<TipoFeedback | ''>(inicial?.tipo ?? '')
   const [texto, setTexto] = useState(inicial?.texto ?? '')
@@ -48,6 +53,13 @@ export default function FeedbackForm({ profissionais, modo, inicial }: Props) {
   const [confirmarExcluir, setConfirmarExcluir] = useState(false)
   const [isPending, startTransition] = useTransition()
 
+  const destinoPos = () =>
+    escopo === 'equipe'
+      ? '/painel/feedbacks-equipe'
+      : modo === 'editar' && profId
+        ? `/painel/profissionais/${profId}`
+        : '/painel'
+
   function excluir() {
     if (!inicial) return
     startTransition(async () => {
@@ -56,16 +68,16 @@ export default function FeedbackForm({ profissionais, modo, inicial }: Props) {
         setError(res.error)
         return
       }
-      router.push(`/painel/profissionais/${inicial.profissional_id}`)
+      router.push(inicial.escopo === 'equipe' ? '/painel/feedbacks-equipe' : `/painel/profissionais/${inicial.profissional_id}`)
     })
   }
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Auto-focus no texto quando profissional + tipo já escolhidos.
+  // Auto-focus no texto quando alvo + tipo já escolhidos.
   useEffect(() => {
-    if (profId && tipo && modo === 'novo') textareaRef.current?.focus()
-  }, [profId, tipo, modo])
+    if ((escopo === 'equipe' || profId) && tipo && modo === 'novo') textareaRef.current?.focus()
+  }, [escopo, profId, tipo, modo])
 
   // Auto-resize da textarea.
   function ajustarAltura() {
@@ -80,12 +92,20 @@ export default function FeedbackForm({ profissionais, modo, inicial }: Props) {
     ? profissionais.filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase()))
     : profissionais
 
-  const podeSalvar = !!profId && !!tipo && texto.trim().length > 0 && estrelas >= 1
+  const alvoOk = escopo === 'equipe' || !!profId
+  const podeSalvar = alvoOk && !!tipo && texto.trim().length > 0 && estrelas >= 1
 
   function salvar() {
     if (!podeSalvar || !tipo) return
     setError(null)
-    const input = { profissional_id: profId, tipo, texto, estrelas, categoria }
+    const input = {
+      escopo,
+      profissional_id: escopo === 'equipe' ? null : profId,
+      tipo,
+      texto,
+      estrelas,
+      categoria,
+    }
     startTransition(async () => {
       const res =
         modo === 'novo'
@@ -96,62 +116,90 @@ export default function FeedbackForm({ profissionais, modo, inicial }: Props) {
         return
       }
       setSalvo(true)
-      setTimeout(() => router.push(modo === 'novo' ? '/painel' : `/painel/profissionais/${profId}`), 700)
+      setTimeout(() => router.push(destinoPos()), 700)
     })
   }
 
   const cancelarHref = () =>
-    modo === 'editar' && inicial ? `/painel/profissionais/${inicial.profissional_id}` : '/painel'
+    modo === 'editar' && inicial
+      ? inicial.escopo === 'equipe'
+        ? '/painel/feedbacks-equipe'
+        : `/painel/profissionais/${inicial.profissional_id}`
+      : '/painel'
 
   return (
     <div className="space-y-6 pb-28">
-      {/* PASSO 1 — PROFISSIONAL */}
-      <section>
-        <h2 className="text-sm font-semibold text-text mb-2">1. Quem?</h2>
-        {profissionais.length > 6 && (
-          <input
-            type="text"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar profissional…"
-            className="input mb-3"
-          />
-        )}
-        {profissionais.length === 0 ? (
-          <p className="text-text-muted text-sm">Nenhum profissional ativo. Cadastre um primeiro.</p>
-        ) : (
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x">
-            {profsFiltrados.map((p) => {
-              const sel = profId === p.id
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setProfId(p.id)}
-                  className="flex flex-col items-center gap-1.5 shrink-0 w-[72px] snap-start"
-                >
-                  <span
-                    className={[
-                      'rounded-full p-0.5 border-2 transition-colors relative',
-                      sel ? 'border-primary' : 'border-transparent',
-                    ].join(' ')}
+      {/* TOGGLE — INDIVIDUAL x EQUIPE */}
+      <div className="grid grid-cols-2 gap-2">
+        {([['individual', '👤 Para alguém'], ['equipe', '👥 Para a equipe']] as [EscopoFeedback, string][]).map(([v, label]) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => setEscopo(v)}
+            className={[
+              'py-3 rounded-xl border text-sm font-semibold transition-colors',
+              escopo === v ? 'border-primary bg-primary text-white' : 'border-border bg-white text-text hover:border-primary/40',
+            ].join(' ')}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* PASSO 1 — ALVO */}
+      {escopo === 'individual' ? (
+        <section>
+          <h2 className="text-sm font-semibold text-text mb-2">1. Quem?</h2>
+          {profissionais.length > 6 && (
+            <input
+              type="text"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar profissional…"
+              className="input mb-3"
+            />
+          )}
+          {profissionais.length === 0 ? (
+            <p className="text-text-muted text-sm">Nenhum profissional ativo. Cadastre um primeiro.</p>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x">
+              {profsFiltrados.map((p) => {
+                const sel = profId === p.id
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setProfId(p.id)}
+                    className="flex flex-col items-center gap-1.5 shrink-0 w-[72px] snap-start"
                   >
-                    <Avatar nome={p.nome} fotoUrl={p.foto_url} size={56} />
-                    {sel && (
-                      <span className="absolute -bottom-0.5 -right-0.5 bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                        ✓
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-xs text-text text-center leading-tight line-clamp-2">
-                    {p.nome.split(' ')[0]}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </section>
+                    <span
+                      className={[
+                        'rounded-full p-0.5 border-2 transition-colors relative',
+                        sel ? 'border-primary' : 'border-transparent',
+                      ].join(' ')}
+                    >
+                      <Avatar nome={p.nome} fotoUrl={p.foto_url} size={56} />
+                      {sel && (
+                        <span className="absolute -bottom-0.5 -right-0.5 bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                          ✓
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-xs text-text text-center leading-tight line-clamp-2">
+                      {p.nome.split(' ')[0]}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </section>
+      ) : (
+        <p className="text-text-muted text-sm bg-primary-soft/50 rounded-xl p-3">
+          Este feedback é sobre a equipe como um todo. Aparecerá na pauta da reunião e no placar de
+          equipe da Home.
+        </p>
+      )}
 
       {/* PASSO 2 — TIPO */}
       <section>
@@ -186,7 +234,7 @@ export default function FeedbackForm({ profissionais, modo, inicial }: Props) {
             ref={textareaRef}
             value={texto}
             onChange={(e) => setTexto(e.target.value.slice(0, 500))}
-            placeholder={tipo ? PLACEHOLDERS[tipo] : 'Escolha o tipo acima…'}
+            placeholder={tipo ? (escopo === 'equipe' ? PLACEHOLDERS_EQUIPE[tipo] : PLACEHOLDERS[tipo]) : 'Escolha o tipo acima…'}
             rows={3}
             className="input resize-none overflow-hidden min-h-[96px]"
           />
