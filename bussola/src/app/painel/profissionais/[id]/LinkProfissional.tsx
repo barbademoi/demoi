@@ -11,7 +11,15 @@ interface Props {
 export default function LinkProfissional({ nome, url, destaque = false }: Props) {
   const [copiado, setCopiado] = useState(false)
 
-  const textoWhats = `Oi ${nome}! Esse é o link do seu placar na Bússola: ${url}. Salva esse link no seu celular pra acompanhar.`
+  const textoWhats = `Oi ${nome}! Esse é o link do seu placar na Bússola:
+${url}
+
+Aqui você vê:
+⭐ Seus elogios da semana
+📊 Sua evolução
+🏆 Suas conquistas
+
+Salva esse link na tela inicial do celular pra acompanhar sempre que quiser!`
   const whatsHref = `https://wa.me/?text=${encodeURIComponent(textoWhats)}`
 
   async function copiar() {
