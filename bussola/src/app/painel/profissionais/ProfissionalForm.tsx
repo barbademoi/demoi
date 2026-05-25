@@ -169,6 +169,21 @@ export default function ProfissionalForm({ estabelecimentoId, modo, inicial }: P
         </div>
 
         <div>
+          <label htmlFor="telefone" className="label">
+            WhatsApp <span className="text-text-muted font-normal">(opcional, com DDD)</span>
+          </label>
+          <input
+            id="telefone"
+            name="telefone"
+            type="tel"
+            inputMode="tel"
+            defaultValue={inicial?.telefone ?? ''}
+            placeholder="Ex.: 34 98424-3216"
+            className="input"
+          />
+        </div>
+
+        <div>
           <label htmlFor="funcao" className="label">Função</label>
           <input
             id="funcao"
