@@ -9,7 +9,13 @@ export const META_PIXEL_ID =
 
 function track(event: string, params?: Record<string, unknown>) {
   if (typeof window === 'undefined') return
-  if (typeof window.fbq !== 'function') return
+  if (typeof window.fbq !== 'function') {
+    // eslint-disable-next-line no-console
+    console.log('[pixel] track() abortado — window.fbq indisponível', { event })
+    return
+  }
+  // eslint-disable-next-line no-console
+  console.log('[pixel] disparando fbq track', { event, params })
   if (params) window.fbq('track', event, params)
   else window.fbq('track', event)
 }
