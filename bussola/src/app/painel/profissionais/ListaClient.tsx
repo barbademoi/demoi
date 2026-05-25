@@ -5,6 +5,18 @@ import Link from 'next/link'
 import Avatar from '@/components/Avatar'
 import StatusBadge from '@/components/StatusBadge'
 import type { Profissional, StatusProfissional } from '@/lib/profissionais'
+import { corPlacar, comSinal } from '@/lib/feedbacks'
+
+const DOT: Record<string, string> = {
+  verde: 'bg-green-500',
+  amarelo: 'bg-amber-500',
+  vermelho: 'bg-red-500',
+}
+const TXT: Record<string, string> = {
+  verde: 'text-green-600',
+  amarelo: 'text-amber-600',
+  vermelho: 'text-red-600',
+}
 
 type Filtro = 'todos' | StatusProfissional
 
@@ -15,7 +27,13 @@ const FILTROS: { valor: Filtro; label: string }[] = [
   { valor: 'desligado', label: 'Desligados' },
 ]
 
-export default function ListaClient({ profissionais }: { profissionais: Profissional[] }) {
+export default function ListaClient({
+  profissionais,
+  placares,
+}: {
+  profissionais: Profissional[]
+  placares: Record<string, number>
+}) {
   const [filtro, setFiltro] = useState<Filtro>('ativo')
 
   // Empty state geral — ninguém cadastrado ainda.
@@ -68,12 +86,24 @@ export default function ListaClient({ profissionais }: { profissionais: Profissi
               href={`/painel/profissionais/${p.id}`}
               className="card p-4 flex items-center gap-3 hover:border-primary/40 transition-colors"
             >
-              <Avatar nome={p.nome} fotoUrl={p.foto_url} size={48} />
+              <div className="relative">
+                <Avatar nome={p.nome} fotoUrl={p.foto_url} size={48} />
+                <span
+                  className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white ${DOT[corPlacar(placares[p.id] ?? 0)]}`}
+                />
+              </div>
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-text truncate">{p.nome}</p>
                 <p className="text-sm text-text-muted truncate">{p.funcao || 'Sem função'}</p>
               </div>
-              <StatusBadge status={p.status} />
+              <div className="text-right shrink-0">
+                <p className={`text-sm font-bold ${TXT[corPlacar(placares[p.id] ?? 0)]}`}>
+                  {comSinal(placares[p.id] ?? 0)}
+                </p>
+                <div className="mt-0.5">
+                  <StatusBadge status={p.status} />
+                </div>
+              </div>
             </Link>
           ))}
         </div>
