@@ -23,12 +23,7 @@ export default function EnviarElogioWhats({
   const tel = normalizarTelefone(telefone)
   const primeiro = nome.split(' ')[0]
 
-  function enviar() {
-    if (!tel || !texto.trim()) return
-    window.open(linkWhats(tel, mensagemFeedback(primeiro, texto.trim())), '_blank')
-    setAberto(false)
-    setTexto('')
-  }
+  const href = tel && texto.trim() ? linkWhats(tel, mensagemFeedback(primeiro, texto.trim())) : undefined
 
   if (!tel) {
     return (
@@ -51,7 +46,7 @@ export default function EnviarElogioWhats({
 
       {aberto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setAberto(false)}>
-          <div className="bg-surface rounded-2xl w-full max-w-md p-5 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-surface rounded-2xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
             <h4 className="font-semibold text-text mb-3">Enviar feedback pro {primeiro}</h4>
 
             <textarea
@@ -62,19 +57,26 @@ export default function EnviarElogioWhats({
               className="input"
             />
 
-            <button
-              type="button"
-              onClick={enviar}
-              disabled={!texto.trim()}
-              className="btn-primary w-full py-3 mt-3"
-            >
-              📱 Enviar no WhatsApp
-            </button>
+            {href ? (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setAberto(false)}
+                className="btn-primary w-full py-3 mt-3 text-center"
+              >
+                📱 Enviar no WhatsApp
+              </a>
+            ) : (
+              <button type="button" disabled className="btn-primary w-full py-3 mt-3 opacity-50 cursor-not-allowed">
+                📱 Enviar no WhatsApp
+              </button>
+            )}
 
             {elogios.length > 0 && (
               <div className="mt-4">
                 <p className="text-xs text-text-muted mb-2">Ou reaproveite um elogio recente:</p>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
                   {elogios.map((e) => (
                     <button
                       key={e.id}
