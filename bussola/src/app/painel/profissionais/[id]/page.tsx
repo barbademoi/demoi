@@ -6,10 +6,25 @@ import Avatar from '@/components/Avatar'
 import StatusBadge from '@/components/StatusBadge'
 import { tempoDeCasa } from '@/lib/tempoDeCasa'
 import type { Profissional } from '@/lib/profissionais'
+import { calcularPlacar, type Feedback, type FeedbackComProfissional } from '@/lib/feedbacks'
+import { intervalo, intervaloAnterior, type NomePeriodo } from '@/lib/periodos'
+import PlacarCards from '@/components/PlacarCards'
 import AcoesStatus from './AcoesStatus'
 import LinkProfissional from './LinkProfissional'
 import CompetenciasEditor from './CompetenciasEditor'
 import PerfilIAEditor from './PerfilIAEditor'
+import FeedbacksList from './FeedbacksList'
+
+function placarPeriodo(fbs: Feedback[], periodo: NomePeriodo) {
+  const dentro = (iv: { inicio: Date; fim: Date }) =>
+    fbs.filter((f) => {
+      const t = new Date(f.created_at).getTime()
+      return t >= iv.inicio.getTime() && t <= iv.fim.getTime()
+    })
+  const atual = calcularPlacar(dentro(intervalo(periodo)))
+  const anterior = calcularPlacar(dentro(intervaloAnterior(periodo)))
+  return { atual, delta: atual - anterior }
+}
 
 export default async function PerfilProfissionalPage({
   params,
@@ -37,6 +52,21 @@ export default async function PerfilProfissionalPage({
 
   const tempo = tempoDeCasa(p.data_entrada)
   const destaque = searchParams.novo === '1'
+
+  const { data: fbData } = await supabase
+    .from('feedbacks')
+    .select('*')
+    .eq('profissional_id', p.id)
+    .is('deletado_em', null)
+    .order('created_at', { ascending: false })
+  const feedbacks = (fbData ?? []) as Feedback[]
+  const feedbacksLista: FeedbackComProfissional[] = feedbacks.map((f) => ({ ...f, profissionais: null }))
+
+  const placar = {
+    semana: placarPeriodo(feedbacks, 'semana'),
+    mes: placarPeriodo(feedbacks, 'mes'),
+    ano: placarPeriodo(feedbacks, 'ano'),
+  }
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-6 space-y-5 animate-fade-in">
@@ -84,20 +114,16 @@ export default async function PerfilProfissionalPage({
         }}
       />
 
-      {/* FEEDBACKS (placeholder — Prompt 3) */}
-      <div className="card p-5">
-        <h3 className="font-semibold text-text mb-1">Feedbacks</h3>
-        <p className="text-text-muted text-sm">
-          Aqui vão aparecer todos os feedbacks registrados pra {p.nome}. Disponível no próximo passo.
-        </p>
+      {/* PLACAR */}
+      <div>
+        <h3 className="font-semibold text-text mb-3">Placar</h3>
+        <PlacarCards semana={placar.semana} mes={placar.mes} ano={placar.ano} />
       </div>
 
-      {/* PLACAR (placeholder — Prompt 3) */}
-      <div className="card p-5">
-        <h3 className="font-semibold text-text mb-1">Placar</h3>
-        <p className="text-text-muted text-sm">
-          Placar do profissional será exibido aqui após os primeiros feedbacks.
-        </p>
+      {/* FEEDBACKS */}
+      <div>
+        <h3 className="font-semibold text-text mb-3">Feedbacks</h3>
+        <FeedbacksList feedbacks={feedbacksLista} nome={p.nome} />
       </div>
     </main>
   )

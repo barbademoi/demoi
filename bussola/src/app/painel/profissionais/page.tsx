@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import type { Profissional } from '@/lib/profissionais'
+import { calcularPlacar, type TipoFeedback } from '@/lib/feedbacks'
+import { intervalo } from '@/lib/periodos'
 import ListaClient from './ListaClient'
 
 export default async function ProfissionaisPage() {
@@ -24,6 +26,25 @@ export default async function ProfissionaisPage() {
 
   const profissionais = (data ?? []) as Profissional[]
 
+  // Placar do mês por profissional (para o semáforo nos cards).
+  const mes = intervalo('mes')
+  const { data: fbMes } = await supabase
+    .from('feedbacks')
+    .select('profissional_id, tipo, estrelas')
+    .eq('estabelecimento_id', estabelecimento.id)
+    .is('deletado_em', null)
+    .gte('created_at', mes.inicio.toISOString())
+    .lte('created_at', mes.fim.toISOString())
+
+  const placares: Record<string, number> = {}
+  const agrupado: Record<string, { tipo: TipoFeedback; estrelas: number | null }[]> = {}
+  for (const f of (fbMes ?? []) as { profissional_id: string; tipo: TipoFeedback; estrelas: number | null }[]) {
+    ;(agrupado[f.profissional_id] ??= []).push({ tipo: f.tipo, estrelas: f.estrelas })
+  }
+  for (const p of profissionais) {
+    placares[p.id] = calcularPlacar(agrupado[p.id] ?? [])
+  }
+
   return (
     <main className="max-w-3xl mx-auto px-4 py-6 animate-fade-in">
       <div className="flex items-center justify-between gap-3 mb-5">
@@ -35,7 +56,7 @@ export default async function ProfissionaisPage() {
         )}
       </div>
 
-      <ListaClient profissionais={profissionais} />
+      <ListaClient profissionais={profissionais} placares={placares} />
     </main>
   )
 }
