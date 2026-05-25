@@ -32,6 +32,7 @@ export default async function ProfissionaisPage() {
     .from('feedbacks')
     .select('profissional_id, tipo, estrelas')
     .eq('estabelecimento_id', estabelecimento.id)
+    .eq('escopo', 'individual')
     .is('deletado_em', null)
     .gte('created_at', mes.inicio.toISOString())
     .lte('created_at', mes.fim.toISOString())

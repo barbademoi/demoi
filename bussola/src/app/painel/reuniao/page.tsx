@@ -49,20 +49,22 @@ export default async function PrepararReuniaoPage() {
 
   const { data: fbData } = await supabase
     .from('feedbacks')
-    .select('id, profissional_id, tipo, estrelas, texto, categoria, created_at, status, profissionais(nome, foto_url)')
+    .select('id, profissional_id, escopo, tipo, estrelas, texto, categoria, created_at, status, profissionais(nome, foto_url)')
     .eq('estabelecimento_id', est.id)
     .is('deletado_em', null)
     .gte('created_at', semanaAnt.inicio.toISOString())
     .lte('created_at', semana.fim.toISOString())
     .order('created_at', { ascending: false })
 
-  type FbRange = FeedbackSemana & { status: string }
+  type FbRange = FeedbackSemana & { status: string; escopo: 'individual' | 'equipe' }
   const range = (fbData ?? []) as unknown as FbRange[]
   const noIntervalo = (f: FbRange, iv: { inicio: Date; fim: Date }) => {
     const t = new Date(f.created_at).getTime()
     return t >= iv.inicio.getTime() && t <= iv.fim.getTime()
   }
   const fbSemana = range.filter((f) => noIntervalo(f, semana))
+  const fbSemanaInd = fbSemana.filter((f) => f.escopo === 'individual')
+  const fbSemanaEq = fbSemana.filter((f) => f.escopo === 'equipe')
 
   const { data: ativosData } = await supabase
     .from('profissionais')
@@ -81,10 +83,10 @@ export default async function PrepararReuniaoPage() {
     placarAnt[p.id] = calcularPlacar(seus.filter((f) => noIntervalo(f, semanaAnt)))
   }
 
-  // Alertas.
+  // Alertas (individuais).
   const alertas: Alerta[] = []
   for (const p of ativos) {
-    const seus = fbSemana.filter((f) => f.profissional_id === p.id)
+    const seus = fbSemanaInd.filter((f) => f.profissional_id === p.id)
     const graves = seus.filter((f) => f.tipo === 'negativo' && (f.estrelas ?? 0) >= 4)
     const positivos = seus.filter((f) => f.tipo === 'positivo')
     const negativos = seus.filter((f) => f.tipo === 'negativo')
@@ -108,8 +110,24 @@ export default async function PrepararReuniaoPage() {
     })
   }
 
+  // Alerta especial de equipe (placar negativo).
+  const placarEquipe = calcularPlacar(fbSemanaEq)
+  if (placarEquipe < 0) {
+    alertas.unshift({
+      profId: 'equipe',
+      nome: 'Equipe',
+      foto_url: null,
+      grave: true,
+      razoes: ['Placar de equipe negativo na semana'],
+      sugestao: 'Trate o clima coletivo na reunião',
+      feedbackIds: fbSemanaEq.filter((f) => f.tipo === 'negativo').map((f) => f.id),
+    })
+  }
+
   // Métricas.
-  const total = fbSemana.length
+  const totalInd = fbSemanaInd.length
+  const totalEq = fbSemanaEq.length
+  const total = totalInd
   const positivos = fbSemana.filter((f) => f.tipo === 'positivo').length
   const negativos = fbSemana.filter((f) => f.tipo === 'negativo').length
   const observacoes = fbSemana.filter((f) => f.tipo === 'observacao').length
@@ -142,7 +160,7 @@ export default async function PrepararReuniaoPage() {
       reuniaoId={reuniao!.id}
       dataReuniaoLabel={`${prox.diaLabel}, ${prox.horaLabel}`}
       pautaInicial={(reuniao!.pauta as PautaReuniao | null) ?? {}}
-      feedbacks={fbSemana.map((f) => ({
+      feedbacks={fbSemanaInd.map((f) => ({
         id: f.id,
         profissional_id: f.profissional_id,
         tipo: f.tipo,
@@ -152,16 +170,29 @@ export default async function PrepararReuniaoPage() {
         created_at: f.created_at,
         profissionais: f.profissionais,
       }))}
+      feedbacksEquipe={fbSemanaEq.map((f) => ({
+        id: f.id,
+        profissional_id: f.profissional_id,
+        tipo: f.tipo,
+        estrelas: f.estrelas,
+        texto: f.texto,
+        categoria: f.categoria,
+        created_at: f.created_at,
+        profissionais: null,
+      }))}
       alertas={alertas}
       metasPassadas={metasPassadas}
       ativos={ativos}
       metricas={{
         total,
+        totalInd,
+        totalEq,
         positivos,
         negativos,
         observacoes,
         maiorPlacar,
         maisEvoluiu,
+        placarEquipe,
       }}
     />
   )

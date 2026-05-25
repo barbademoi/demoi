@@ -35,16 +35,18 @@ export default async function ConduzirPage({ params }: { params: { id: string } 
   const semana = intervalo('semana')
   const { data: fbData } = await supabase
     .from('feedbacks')
-    .select('id, profissional_id, tipo, estrelas, texto, categoria, profissionais(nome, foto_url)')
+    .select('id, profissional_id, escopo, tipo, estrelas, texto, categoria, profissionais(nome, foto_url)')
     .eq('estabelecimento_id', est.id)
     .is('deletado_em', null)
     .gte('created_at', semana.inicio.toISOString())
     .lte('created_at', semana.fim.toISOString())
 
-  const todos = (fbData ?? []) as unknown as FeedbackSlide[]
+  const todos = (fbData ?? []) as unknown as (FeedbackSlide & { escopo: 'individual' | 'equipe' })[]
   const incluidos = todos.filter((f) => (decisoes[f.id] ?? 'incluir') === 'incluir')
-  const positivos = incluidos.filter((f) => f.tipo === 'positivo').sort((a, b) => (b.estrelas ?? 0) - (a.estrelas ?? 0))
-  const negativos = incluidos.filter((f) => f.tipo === 'negativo').sort((a, b) => (b.estrelas ?? 0) - (a.estrelas ?? 0))
+  const ind = incluidos.filter((f) => f.escopo === 'individual')
+  const positivos = ind.filter((f) => f.tipo === 'positivo').sort((a, b) => (b.estrelas ?? 0) - (a.estrelas ?? 0))
+  const negativos = ind.filter((f) => f.tipo === 'negativo').sort((a, b) => (b.estrelas ?? 0) - (a.estrelas ?? 0))
+  const equipe = incluidos.filter((f) => f.escopo === 'equipe')
 
   const { data: ativosData } = await supabase
     .from('profissionais')
@@ -70,6 +72,7 @@ export default async function ConduzirPage({ params }: { params: { id: string } 
       pautaInicial={pauta}
       positivos={positivos}
       negativos={negativos}
+      equipe={equipe}
       ativos={(ativosData ?? []) as { id: string; nome: string; foto_url: string | null }[]}
       metasPassadas={(metasData ?? []) as MetaSemanal[]}
     />
