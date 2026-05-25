@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import FeedbackItem from '@/components/FeedbackItem'
 import { proximaReuniao } from '@/lib/reuniao'
 import { intervalo } from '@/lib/periodos'
-import type { FeedbackComProfissional, TipoFeedback } from '@/lib/feedbacks'
+import { calcularPlacar, comSinal, type Feedback, type FeedbackComProfissional, type TipoFeedback } from '@/lib/feedbacks'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,6 +49,7 @@ export default async function PainelPage() {
     .from('feedbacks')
     .select('tipo, estrelas')
     .eq('estabelecimento_id', estabelecimento.id)
+    .eq('escopo', 'individual')
     .is('deletado_em', null)
     .gte('created_at', semana.inicio.toISOString())
     .lte('created_at', semana.fim.toISOString())
@@ -60,15 +61,32 @@ export default async function PainelPage() {
   const observacoes = sem.filter((f) => f.tipo === 'observacao').length
   const graves = sem.filter((f) => f.tipo === 'negativo' && f.estrelas === 5).length
 
-  // Últimos 5 feedbacks.
+  // Últimos 5 feedbacks individuais.
   const { data: ultData } = await supabase
     .from('feedbacks')
     .select('*, profissionais(nome, foto_url)')
     .eq('estabelecimento_id', estabelecimento.id)
+    .eq('escopo', 'individual')
     .is('deletado_em', null)
     .order('created_at', { ascending: false })
     .limit(5)
   const ultimos = (ultData ?? []) as unknown as FeedbackComProfissional[]
+
+  // Placar da equipe (independente dos placares individuais).
+  const mes = intervalo('mes')
+  const { data: eqData } = await supabase
+    .from('feedbacks')
+    .select('tipo, estrelas, texto, created_at')
+    .eq('estabelecimento_id', estabelecimento.id)
+    .eq('escopo', 'equipe')
+    .is('deletado_em', null)
+    .gte('created_at', mes.inicio.toISOString())
+    .order('created_at', { ascending: false })
+  const eq = (eqData ?? []) as { tipo: TipoFeedback; estrelas: number | null; texto: string; created_at: string }[]
+  const eqSemana = eq.filter((f) => new Date(f.created_at).getTime() >= semana.inicio.getTime())
+  const placarEqSemana = calcularPlacar(eqSemana as Feedback[])
+  const placarEqMes = calcularPlacar(eq as Feedback[])
+  const corEq = (v: number) => (v > 0 ? 'text-green-600' : v < 0 ? 'text-red-600' : 'text-amber-600')
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-6 space-y-6 animate-fade-in">
@@ -114,13 +132,42 @@ export default async function PainelPage() {
         </Link>
       </div>
 
-      {/* BOTÃO PRINCIPAL */}
-      <Link
-        href="/painel/feedback/novo"
-        className="btn-primary w-full text-lg py-6 shadow-md"
-      >
-        🎤 Registrar feedback
-      </Link>
+      {/* BOTÕES DE REGISTRO */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Link href="/painel/feedback/novo" className="btn-primary w-full py-5 shadow-md">
+          🎯 Registrar feedback
+        </Link>
+        <Link href="/painel/feedback/novo?escopo=equipe" className="btn-secondary w-full py-5 shadow-sm">
+          👥 Registrar para a equipe
+        </Link>
+      </div>
+
+      {/* PLACAR DA EQUIPE */}
+      <div className="card p-5">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <h2 className="font-semibold text-text">👥 Equipe</h2>
+          <Link href="/painel/feedbacks-equipe" className="text-sm text-primary font-medium">Ver todos</Link>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-border p-3 text-center">
+            <p className="text-xs text-text-muted">Semana</p>
+            <p className={`text-3xl font-bold ${corEq(placarEqSemana)}`}>{comSinal(placarEqSemana)}</p>
+          </div>
+          <div className="rounded-xl border border-border p-3 text-center">
+            <p className="text-xs text-text-muted">Mês</p>
+            <p className={`text-3xl font-bold ${corEq(placarEqMes)}`}>{comSinal(placarEqMes)}</p>
+          </div>
+        </div>
+        {eq.length > 0 && (
+          <ul className="mt-3 space-y-1">
+            {eq.slice(0, 3).map((f, i) => (
+              <li key={i} className="text-xs text-text-muted truncate">
+                • {f.texto.length > 50 ? `${f.texto.slice(0, 50)}…` : f.texto}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {/* ÚLTIMOS FEEDBACKS */}
       <section>
