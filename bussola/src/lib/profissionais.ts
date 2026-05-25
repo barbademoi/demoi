@@ -5,6 +5,7 @@ export interface Profissional {
   estabelecimento_id: string
   slug: string
   nome: string
+  telefone: string | null
   foto_url: string | null
   funcao: string | null
   data_entrada: string | null

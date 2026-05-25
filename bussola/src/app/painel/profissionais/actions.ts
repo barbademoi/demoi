@@ -41,6 +41,7 @@ function camposDoForm(formData: FormData) {
   const estilo = formData.get('estilo_comunicacao') as string | null
   return {
     nome: ((formData.get('nome') as string) ?? '').trim(),
+    telefone: ((formData.get('telefone') as string) ?? '').trim() || null,
     funcao: ((formData.get('funcao') as string) ?? '').trim() || null,
     data_entrada: ((formData.get('data_entrada') as string) ?? '').trim() || null,
     foto_url: ((formData.get('foto_url') as string) ?? '').trim() || null,
