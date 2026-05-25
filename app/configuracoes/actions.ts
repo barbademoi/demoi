@@ -75,6 +75,8 @@ export async function salvarOperacaoConfig(formData: FormData) {
   const diaFechRaw = parseInt((formData.get('dia_fechamento') as string) || '1', 10)
   const dia_fechamento = Math.min(28, Math.max(1, isNaN(diaFechRaw) ? 1 : diaFechRaw))
 
+  console.log('[salvarOperacaoConfig]', { barbeariaId, visibilidade_ranking, modalidade, dia_fechamento })
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from('barbearias')
@@ -84,7 +86,10 @@ export async function salvarOperacaoConfig(formData: FormData) {
     })
     .eq('id', barbeariaId)
 
-  if (error) return { error: 'Erro ao salvar.' }
+  if (error) {
+    console.error('[salvarOperacaoConfig] erro:', error)
+    return { error: 'Erro ao salvar.' }
+  }
   revalidatePath('/configuracoes')
   revalidatePath('/dashboard')
   // Revalida todas as telas de barbeiro (visibilidade do ranking muda aqui)
