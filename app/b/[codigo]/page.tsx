@@ -50,6 +50,8 @@ export default async function BarbeiroPage({ params }: Props) {
   const visibilidadeRanking: 'completo' | 'posicoes' | 'proprio' =
     barbearia?.visibilidade_ranking ?? 'completo'
   const isAutonomo = barbearia?.modalidade === 'sozinho'
+
+  console.log('[/b/[codigo]]', { codigo: params.codigo, barbearia_id: barbeiro.barbearia_id, visibilidade_ranking_lido: barbearia?.visibilidade_ranking, visibilidadeRanking })
   const diaFechamento = barbearia?.dia_fechamento ?? 1
 
   const hoje = new Date()
