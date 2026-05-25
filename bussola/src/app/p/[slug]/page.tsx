@@ -61,16 +61,16 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
     .maybeSingle()
   if (!estab) return <TelaInvalida />
 
-  // Só elogios individuais positivos deste profissional.
+  // Elogios e pontos a desenvolver (individuais) deste profissional.
   const { data: fbData } = await admin
     .from('feedbacks')
-    .select('id, texto, categoria, created_at')
+    .select('id, tipo, texto, categoria, created_at')
     .eq('profissional_id', prof.id)
     .eq('escopo', 'individual')
-    .eq('tipo', 'positivo')
+    .in('tipo', ['positivo', 'negativo'])
     .is('deletado_em', null)
     .order('created_at', { ascending: false })
-  const elogios = (fbData ?? []) as ItemElogio[]
+  const itens = (fbData ?? []) as ItemElogio[]
 
   const semana = intervalo('semana')
   const mes = intervalo('mes')
@@ -79,10 +79,11 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
     return t >= iv.inicio.getTime() && t <= iv.fim.getTime()
   }
 
-  const elogiosSemana = elogios.filter((e) => dentro(e.created_at, semana)).length
+  const positivos = itens.filter((e) => e.tipo === 'positivo')
+  const elogiosSemana = positivos.filter((e) => dentro(e.created_at, semana)).length
 
   // Categoria mais elogiada no mês (empate → mais recente).
-  const elogiosMes = elogios.filter((e) => dentro(e.created_at, mes))
+  const elogiosMes = positivos.filter((e) => dentro(e.created_at, mes))
   const contagem: Record<string, { n: number; idx: number }> = {}
   elogiosMes.forEach((e, i) => {
     if (!e.categoria) return
@@ -121,8 +122,8 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
 
         {/* TIMELINE */}
         <section>
-          <h2 className="font-semibold text-text mb-3">Seus elogios</h2>
-          <Timeline elogios={elogios} />
+          <h2 className="font-semibold text-text mb-3">Seus feedbacks</h2>
+          <Timeline itens={itens} />
         </section>
 
         {/* RODAPÉ */}
