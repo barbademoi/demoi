@@ -86,6 +86,9 @@ export async function salvarOperacaoConfig(formData: FormData) {
 
   if (error) return { error: 'Erro ao salvar.' }
   revalidatePath('/configuracoes')
+  revalidatePath('/dashboard')
+  // Revalida todas as telas de barbeiro (visibilidade do ranking muda aqui)
+  revalidatePath('/b/[codigo]', 'page')
   return { ok: true }
 }
 

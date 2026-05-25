@@ -17,6 +17,12 @@ interface Props {
   params: { codigo: string }
 }
 
+// Tela do barbeiro precisa estar sempre em tempo real: comissão, ranking,
+// lançamentos e config de visibilidade mudam a qualquer momento pelo dono.
+// Sem isto, o Next servia versão cacheada (ranking aparecia mesmo após o
+// dono trocar pra "Só o próprio progresso").
+export const dynamic = 'force-dynamic'
+
 type LancamentoComNome = Lancamento & { barbeiros: { nome: string } | null }
 
 export default async function BarbeiroPage({ params }: Props) {
