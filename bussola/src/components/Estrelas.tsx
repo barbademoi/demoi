@@ -8,9 +8,17 @@ interface Props {
   max?: number
   size?: number
   readOnly?: boolean
+  cor?: string
 }
 
-export default function Estrelas({ value, onChange, max = 5, size = 28, readOnly = false }: Props) {
+export default function Estrelas({
+  value,
+  onChange,
+  max = 5,
+  size = 28,
+  readOnly = false,
+  cor = '#F5B301',
+}: Props) {
   const [hover, setHover] = useState(0)
   const editavel = !readOnly && !!onChange
 
@@ -34,7 +42,7 @@ export default function Estrelas({ value, onChange, max = 5, size = 28, readOnly
             onMouseEnter={() => editavel && setHover(n)}
             aria-label={`${n} de ${max}`}
             className={editavel ? 'cursor-pointer transition-transform active:scale-90' : 'cursor-default'}
-            style={{ lineHeight: 1, fontSize: size, color: cheia ? '#F5B301' : '#D4D9E0' }}
+            style={{ lineHeight: 1, fontSize: size, color: cheia ? cor : '#D4D9E0' }}
           >
             {cheia ? '★' : '☆'}
           </button>
