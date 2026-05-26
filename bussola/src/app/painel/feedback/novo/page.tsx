@@ -12,10 +12,12 @@ export default async function NovoFeedbackPage({ searchParams }: { searchParams:
 
   const { data: estabelecimento } = await supabase
     .from('estabelecimentos')
-    .select('id')
+    .select('id, config_ia')
     .eq('dono_id', user.id)
     .maybeSingle()
   if (!estabelecimento) redirect('/onboarding')
+
+  const categorizacaoAuto = (estabelecimento.config_ia as { categorizacao_auto?: boolean } | null)?.categorizacao_auto !== false
 
   const { data } = await supabase
     .from('profissionais')
@@ -42,6 +44,7 @@ export default async function NovoFeedbackPage({ searchParams }: { searchParams:
         profissionais={profissionais}
         modo="novo"
         escopoInicial={searchParams.escopo === 'equipe' ? 'equipe' : 'individual'}
+        categorizacaoAuto={categorizacaoAuto}
       />
     </main>
   )
