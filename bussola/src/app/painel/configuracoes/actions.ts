@@ -16,7 +16,6 @@ export async function salvarConfigIA(config: ConfigIA) {
       tom: TONS.includes(config.tom) ? config.tom : 'direto',
       categorizacao_auto: !!config.categorizacao_auto,
       resumo_semana: !!config.resumo_semana,
-      mensagens_personalizadas: !!config.mensagens_personalizadas,
     }
 
     const { error } = await supabase.from('estabelecimentos').update({ config_ia: limpo }).eq('dono_id', user.id)

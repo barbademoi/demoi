@@ -13,7 +13,6 @@ const TONS: { v: TomIA; label: string; desc: string }[] = [
 const TOGGLES: { chave: keyof Omit<ConfigIA, 'tom'>; label: string }[] = [
   { chave: 'categorizacao_auto', label: 'Categorização automática de feedbacks' },
   { chave: 'resumo_semana', label: 'Resumo da semana pela IA (na reunião)' },
-  { chave: 'mensagens_personalizadas', label: 'Mensagens de WhatsApp personalizadas' },
 ]
 
 export default function ConfiguracoesClient({ inicial }: { inicial: ConfigIA }) {

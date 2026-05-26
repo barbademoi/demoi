@@ -35,6 +35,5 @@ alter table estabelecimentos
   add column if not exists config_ia jsonb default '{
     "tom": "direto",
     "categorizacao_auto": true,
-    "resumo_semana": true,
-    "mensagens_personalizadas": true
+    "resumo_semana": true
   }';
