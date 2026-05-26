@@ -8,14 +8,12 @@ export interface ConfigIA {
   tom: TomIA
   categorizacao_auto: boolean
   resumo_semana: boolean
-  mensagens_personalizadas: boolean
 }
 
 export const CONFIG_IA_PADRAO: ConfigIA = {
   tom: 'direto',
   categorizacao_auto: true,
   resumo_semana: true,
-  mensagens_personalizadas: true,
 }
 
 function ajusteTom(tom: TomIA): string {
@@ -87,27 +85,6 @@ Se o feedback não se encaixar em nenhuma, responda: "Outro"`
 
 export function userCategoria(tipo: TipoFeedback, texto: string): string {
   return `Tipo: ${TIPO_LABEL[tipo]}\nTexto: "${texto}"\n\nCategoria:`
-}
-
-// ── Mensagem de WhatsApp ──────────────────────────────────────────
-export function systemWhats(tom: TomIA): string {
-  return `Você escreve mensagens curtas de WhatsApp para donos de barbearia enviarem aos profissionais reconhecendo um bom trabalho.
-
-REGRAS RÍGIDAS:
-- Máximo 4 linhas
-- Português coloquial brasileiro
-- Tom caloroso mas profissional
-- Comece com o primeiro nome do profissional
-- Mencione o que ele fez (do texto do elogio)
-- Termine com uma frase de motivação
-- SEM clichês ("você é incrível", "parabéns")
-- SEM emojis exagerados (no máximo 1, opcional)${ajusteTom(tom)}
-
-Responda APENAS com a mensagem. Sem aspas, sem introdução.`
-}
-
-export function userWhats(primeiroNome: string, texto: string, categoria: string | null): string {
-  return `Profissional: ${primeiroNome}\nTexto do elogio (registrado pelo dono):\n"${texto}"\nCategoria: ${categoria || 'não classificada'}\n\nGere a mensagem.`
 }
 
 // ── Resumo da semana ──────────────────────────────────────────────
