@@ -36,9 +36,10 @@ interface Props {
   modo: 'novo' | 'editar'
   inicial?: Inicial
   escopoInicial?: EscopoFeedback
+  categorizacaoAuto?: boolean
 }
 
-export default function FeedbackForm({ profissionais, modo, inicial, escopoInicial }: Props) {
+export default function FeedbackForm({ profissionais, modo, inicial, escopoInicial, categorizacaoAuto }: Props) {
   const router = useRouter()
   const [escopo, setEscopo] = useState<EscopoFeedback>(inicial?.escopo ?? escopoInicial ?? 'individual')
   const [profId, setProfId] = useState<string>(inicial?.profissional_id ?? '')
@@ -46,6 +47,7 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
   const [texto, setTexto] = useState(inicial?.texto ?? '')
   const [estrelas, setEstrelas] = useState(inicial?.estrelas ?? 0)
   const [categoria, setCategoria] = useState<string | null>(inicial?.categoria ?? null)
+  const [sugCat, setSugCat] = useState<string | null>(null)
   const [busca, setBusca] = useState('')
 
   const [error, setError] = useState<string | null>(null)
@@ -87,6 +89,33 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
     el.style.height = `${el.scrollHeight}px`
   }
   useEffect(ajustarAltura, [texto])
+
+  // Sugestão de categoria pela IA (debounce 800ms).
+  useEffect(() => {
+    if (!categorizacaoAuto || modo !== 'novo' || !tipo) {
+      setSugCat(null)
+      return
+    }
+    const t = texto.trim()
+    if (t.length < 10) {
+      setSugCat(null)
+      return
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const r = await fetch('/api/ia/sugerir-categoria', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texto: t, tipo }),
+        })
+        const j = await r.json()
+        if (r.ok && j.categoria) setSugCat(j.categoria)
+      } catch {
+        /* silencioso */
+      }
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [texto, tipo, categorizacaoAuto, modo])
 
   const profsFiltrados = busca.trim()
     ? profissionais.filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase()))
@@ -283,6 +312,15 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
             )
           })}
         </div>
+        {sugCat && categoria !== sugCat && (
+          <button
+            type="button"
+            onClick={() => setCategoria(sugCat)}
+            className="mt-2 text-xs text-primary"
+          >
+            ✨ Sugerido pela IA: <span className="font-semibold underline">{sugCat}</span> — tocar para usar
+          </button>
+        )}
       </section>
 
       {error && <p className="text-red-600 text-sm">{error}</p>}

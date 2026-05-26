@@ -15,10 +15,12 @@ export default async function PrepararReuniaoPage() {
 
   const { data: est } = await supabase
     .from('estabelecimentos')
-    .select('id, nome, dia_reuniao, hora_reuniao')
+    .select('id, nome, dia_reuniao, hora_reuniao, config_ia')
     .eq('dono_id', user.id)
     .maybeSingle()
   if (!est) redirect('/onboarding')
+
+  const mostrarResumo = (est.config_ia as { resumo_semana?: boolean } | null)?.resumo_semana !== false
 
   // Reunião planejada mais próxima; cria se não existir.
   let reuniao: Reuniao | null = null
@@ -194,6 +196,7 @@ export default async function PrepararReuniaoPage() {
         maisEvoluiu,
         placarEquipe,
       }}
+      mostrarResumo={mostrarResumo}
     />
   )
 }

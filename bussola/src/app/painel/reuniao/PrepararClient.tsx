@@ -7,6 +7,8 @@ import Estrelas from '@/components/Estrelas'
 import { TIPOS, type TipoFeedback } from '@/lib/feedbacks'
 import type { AvaliacaoMeta, DecisaoFeedback, MetaSemanal, NovaMeta, PautaReuniao } from '@/lib/pauta'
 import { salvarPauta, marcarParticular } from './actions'
+import SugestaoFala from './SugestaoFala'
+import ResumoSemana from './ResumoSemana'
 
 export interface ProfLite {
   id: string
@@ -57,6 +59,7 @@ interface Props {
   metasPassadas: MetaSemanal[]
   ativos: ProfLite[]
   metricas: Metricas
+  mostrarResumo: boolean
 }
 
 function Bloco({ titulo, children, dir }: { titulo: string; children: React.ReactNode; dir?: React.ReactNode }) {
@@ -83,7 +86,7 @@ const DECISOES: { v: DecisaoFeedback; label: string; cls: string }[] = [
 ]
 
 export default function PrepararClient(props: Props) {
-  const { reuniaoId, dataReuniaoLabel, pautaInicial, feedbacks, feedbacksEquipe, alertas, metasPassadas, ativos, metricas } = props
+  const { reuniaoId, dataReuniaoLabel, pautaInicial, feedbacks, feedbacksEquipe, alertas, metasPassadas, ativos, metricas, mostrarResumo } = props
   const router = useRouter()
 
   const decisoesIniciais: Record<string, DecisaoFeedback> = {}
@@ -157,12 +160,9 @@ export default function PrepararClient(props: Props) {
       </div>
       {grave && <p className="text-orange-700 text-xs font-medium mt-1">Sugerimos conversa individual</p>}
       <p className="text-sm text-text mt-1.5">{f.texto}</p>
-      <div className="flex items-center gap-2 flex-wrap mt-2">
-        {f.categoria && <span className="text-xs bg-primary-soft text-primary rounded-full px-2 py-0.5">{f.categoria}</span>}
-        <button type="button" disabled title="Disponível no próximo passo" className="text-xs text-text-muted/60 cursor-not-allowed">
-          💡 Sugestão de fala
-        </button>
-      </div>
+      {f.categoria && (
+        <span className="inline-block text-xs bg-primary-soft text-primary rounded-full px-2 py-0.5 mt-2">{f.categoria}</span>
+      )}
       <div className="flex gap-1.5 mt-2">
         {DECISOES.map((d) => (
           <button
@@ -178,6 +178,7 @@ export default function PrepararClient(props: Props) {
           </button>
         ))}
       </div>
+      <SugestaoFala feedbackId={f.id} />
     </div>
   )
 
@@ -192,6 +193,8 @@ export default function PrepararClient(props: Props) {
           🟢 {metricas.positivos} positivos · 🔴 {metricas.negativos} negativos · ⚪ {metricas.observacoes} observações
         </p>
       </div>
+
+      {mostrarResumo && <ResumoSemana />}
 
       {/* ALERTAS */}
       {alertas.length > 0 && (
