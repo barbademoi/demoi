@@ -54,6 +54,7 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
   const [error, setError] = useState<string | null>(null)
   const [salvo, setSalvo] = useState(false)
   const [modalWhats, setModalWhats] = useState(false)
+  const [copiadoWhats, setCopiadoWhats] = useState(false)
   const [confirmarExcluir, setConfirmarExcluir] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -347,9 +348,7 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
                 {tel ? (
                   <a
                     href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setTimeout(() => router.push('/painel'), 300)}
+                    onClick={() => setTimeout(() => router.push('/painel'), 400)}
                     className="btn-primary w-full py-3 text-center"
                   >
                     📱 Enviar agora
@@ -362,6 +361,23 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
                     className="btn-primary w-full py-3 opacity-50 cursor-not-allowed"
                   >
                     📱 Enviar agora
+                  </button>
+                )}
+                {tel && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(msg)
+                        setCopiadoWhats(true)
+                        setTimeout(() => setCopiadoWhats(false), 2000)
+                      } catch {
+                        /* ignore */
+                      }
+                    }}
+                    className="btn-secondary w-full py-2.5 text-sm"
+                  >
+                    {copiadoWhats ? 'Mensagem copiada ✓' : 'Copiar mensagem'}
                   </button>
                 )}
                 <button type="button" onClick={() => router.push('/painel')} className="text-text-muted hover:text-text py-2 text-sm">

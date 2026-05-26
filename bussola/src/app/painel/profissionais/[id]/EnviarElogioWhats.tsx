@@ -20,10 +20,22 @@ export default function EnviarElogioWhats({
 }) {
   const [aberto, setAberto] = useState(false)
   const [texto, setTexto] = useState('')
+  const [copiado, setCopiado] = useState(false)
   const tel = normalizarTelefone(telefone)
   const primeiro = nome.split(' ')[0]
 
   const href = tel && texto.trim() ? linkWhats(tel, mensagemFeedback(primeiro, texto.trim())) : undefined
+
+  async function copiar() {
+    if (!texto.trim()) return
+    try {
+      await navigator.clipboard.writeText(mensagemFeedback(primeiro, texto.trim()))
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 2000)
+    } catch {
+      /* ignore */
+    }
+  }
 
   if (!tel) {
     return (
@@ -45,7 +57,7 @@ export default function EnviarElogioWhats({
       </button>
 
       {aberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setAberto(false)}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-8" onClick={() => setAberto(false)}>
           <div className="bg-surface rounded-2xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
             <h4 className="font-semibold text-text mb-3">Enviar feedback pro {primeiro}</h4>
 
@@ -60,8 +72,6 @@ export default function EnviarElogioWhats({
             {href ? (
               <a
                 href={href}
-                target="_blank"
-                rel="noopener noreferrer"
                 onClick={() => setAberto(false)}
                 className="btn-primary w-full py-3 mt-3 text-center"
               >
@@ -72,6 +82,15 @@ export default function EnviarElogioWhats({
                 📱 Enviar no WhatsApp
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={copiar}
+              disabled={!texto.trim()}
+              className="btn-secondary w-full py-2.5 mt-2 text-sm disabled:opacity-50"
+            >
+              {copiado ? 'Mensagem copiada ✓' : 'Copiar mensagem'}
+            </button>
 
             {elogios.length > 0 && (
               <div className="mt-4">
