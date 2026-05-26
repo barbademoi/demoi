@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { normalizarTelefone, linkWhats, mensagemFeedback } from '@/lib/whatsapp'
+import { normalizarTelefone, mensagemFeedback, enviarWhats } from '@/lib/whatsapp'
 
 interface ElogioRapido {
   id: string
@@ -24,7 +24,11 @@ export default function EnviarElogioWhats({
   const tel = normalizarTelefone(telefone)
   const primeiro = nome.split(' ')[0]
 
-  const href = tel && texto.trim() ? linkWhats(tel, mensagemFeedback(primeiro, texto.trim())) : undefined
+  async function enviar() {
+    if (!texto.trim()) return
+    await enviarWhats(mensagemFeedback(primeiro, texto.trim()), tel)
+    setAberto(false)
+  }
 
   async function copiar() {
     if (!texto.trim()) return
@@ -69,19 +73,14 @@ export default function EnviarElogioWhats({
               className="input"
             />
 
-            {href ? (
-              <a
-                href={href}
-                onClick={() => setAberto(false)}
-                className="btn-primary w-full py-3 mt-3 text-center"
-              >
-                📱 Enviar no WhatsApp
-              </a>
-            ) : (
-              <button type="button" disabled className="btn-primary w-full py-3 mt-3 opacity-50 cursor-not-allowed">
-                📱 Enviar no WhatsApp
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={enviar}
+              disabled={!texto.trim()}
+              className="btn-primary w-full py-3 mt-3 disabled:opacity-50"
+            >
+              📱 Enviar no WhatsApp
+            </button>
 
             <button
               type="button"
