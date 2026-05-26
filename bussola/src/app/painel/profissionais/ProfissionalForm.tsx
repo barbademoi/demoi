@@ -12,40 +12,10 @@ import {
   type Profissional,
 } from '@/lib/profissionais'
 import { criarProfissional, atualizarProfissional } from './actions'
+import RecortadorFoto from './RecortadorFoto'
 
 const TIPOS_OK = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_BYTES = 2 * 1024 * 1024
-
-function comprimir(file: File): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      const max = 512
-      let { width, height } = img
-      if (width >= height && width > max) {
-        height = Math.round((height * max) / width)
-        width = max
-      } else if (height > max) {
-        width = Math.round((width * max) / height)
-        height = max
-      }
-      const canvas = document.createElement('canvas')
-      canvas.width = width
-      canvas.height = height
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return reject(new Error('canvas'))
-      ctx.drawImage(img, 0, 0, width, height)
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob'))), 'image/webp', 0.85)
-    }
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      reject(new Error('load'))
-    }
-    img.src = url
-  })
-}
 
 interface Props {
   estabelecimentoId: string
@@ -59,6 +29,7 @@ export default function ProfissionalForm({ estabelecimentoId, modo, inicial }: P
   const [fotoUrl, setFotoUrl] = useState<string | null>(inicial?.foto_url ?? null)
   const [uploading, setUploading] = useState(false)
   const [erroFoto, setErroFoto] = useState<string | null>(null)
+  const [fileParaRecortar, setFileParaRecortar] = useState<File | null>(null)
 
   const [nome, setNome] = useState(inicial?.nome ?? '')
   const [motivadores, setMotivadores] = useState<string[]>(inicial?.motivadores ?? [])
@@ -76,22 +47,27 @@ export default function ProfissionalForm({ estabelecimentoId, modo, inicial }: P
     })
   }
 
-  async function handleFoto(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
+    e.target.value = '' // permite re-selecionar o mesmo arquivo
     if (!file) return
     setErroFoto(null)
     if (!TIPOS_OK.includes(file.type)) {
       setErroFoto('Use uma imagem JPG, PNG ou WEBP.')
       return
     }
+    setFileParaRecortar(file)
+  }
+
+  async function enviarRecorte(blob: Blob) {
+    setFileParaRecortar(null)
+    setErroFoto(null)
+    if (blob.size > MAX_BYTES) {
+      setErroFoto('Imagem muito grande (máx. 2MB).')
+      return
+    }
     setUploading(true)
     try {
-      const blob = await comprimir(file)
-      if (blob.size > MAX_BYTES) {
-        setErroFoto('Imagem muito grande (máx. 2MB).')
-        setUploading(false)
-        return
-      }
       const supabase = createClient()
       const path = `${estabelecimentoId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`
       const { error: upErr } = await supabase.storage
@@ -106,8 +82,8 @@ export default function ProfissionalForm({ estabelecimentoId, modo, inicial }: P
       const { data } = supabase.storage.from('profissionais-fotos').getPublicUrl(path)
       setFotoUrl(data.publicUrl)
     } catch (err) {
-      console.error('[comprimir foto]', err)
-      setErroFoto('Não foi possível processar a imagem.')
+      console.error('[upload foto]', err)
+      setErroFoto('Não foi possível enviar a imagem.')
     }
     setUploading(false)
   }
@@ -132,6 +108,14 @@ export default function ProfissionalForm({ estabelecimentoId, modo, inicial }: P
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+      {fileParaRecortar && (
+        <RecortadorFoto
+          file={fileParaRecortar}
+          onConfirm={enviarRecorte}
+          onCancel={() => setFileParaRecortar(null)}
+        />
+      )}
+
       {/* SEÇÃO 1 — DADOS BÁSICOS */}
       <section className="card p-5 sm:p-6 space-y-5">
         <h2 className="font-semibold text-text">Dados básicos</h2>
