@@ -13,15 +13,12 @@ import {
   type EscopoFeedback,
   type TipoFeedback,
 } from '@/lib/feedbacks'
-import { normalizarTelefone, mensagemElogio, enviarWhats } from '@/lib/whatsapp'
 import { criarFeedback, atualizarFeedback, excluirFeedback } from './actions'
 
 interface ProfItem {
   id: string
   nome: string
   foto_url: string | null
-  telefone: string | null
-  slug: string
 }
 
 interface Inicial {
@@ -53,8 +50,6 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
 
   const [error, setError] = useState<string | null>(null)
   const [salvo, setSalvo] = useState(false)
-  const [modalWhats, setModalWhats] = useState(false)
-  const [copiadoWhats, setCopiadoWhats] = useState(false)
   const [confirmarExcluir, setConfirmarExcluir] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -118,11 +113,6 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
           : await atualizarFeedback(inicial!.id, input)
       if (res?.error) {
         setError(res.error)
-        return
-      }
-      // Elogio individual positivo → oferece envio por WhatsApp.
-      if (modo === 'novo' && escopo === 'individual' && tipo === 'positivo') {
-        setModalWhats(true)
         return
       }
       setSalvo(true)
@@ -329,72 +319,6 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
           ✓ Feedback registrado!
         </div>
       )}
-
-      {modalWhats && (() => {
-        const prof = profissionais.find((p) => p.id === profId)
-        const tel = normalizarTelefone(prof?.telefone)
-        const primeiro = (prof?.nome ?? '').split(' ')[0]
-        const url = typeof window !== 'undefined' && prof ? `${window.location.origin}/p/${prof.slug}` : ''
-        const msg = mensagemElogio(primeiro, texto, url)
-        return (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4">
-            <div className="bg-surface rounded-2xl w-full max-w-md p-5">
-              <h4 className="font-semibold text-text mb-1">Feedback registrado! 🎉</h4>
-              <p className="text-sm text-text-muted mb-5">
-                Quer enviar este reconhecimento pro <strong className="text-text">{primeiro}</strong> agora pelo WhatsApp?
-              </p>
-              <div className="flex flex-col gap-2">
-                {tel ? (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await enviarWhats(msg, tel)
-                      setTimeout(() => router.push('/painel'), 400)
-                    }}
-                    className="btn-primary w-full py-3 text-center"
-                  >
-                    📱 Enviar agora
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    disabled
-                    title={`Cadastre o WhatsApp de ${primeiro} no perfil`}
-                    className="btn-primary w-full py-3 opacity-50 cursor-not-allowed"
-                  >
-                    📱 Enviar agora
-                  </button>
-                )}
-                {tel && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(msg)
-                        setCopiadoWhats(true)
-                        setTimeout(() => setCopiadoWhats(false), 2000)
-                      } catch {
-                        /* ignore */
-                      }
-                    }}
-                    className="btn-secondary w-full py-2.5 text-sm"
-                  >
-                    {copiadoWhats ? 'Mensagem copiada ✓' : 'Copiar mensagem'}
-                  </button>
-                )}
-                <button type="button" onClick={() => router.push('/painel')} className="text-text-muted hover:text-text py-2 text-sm">
-                  Depois
-                </button>
-              </div>
-              {!tel && (
-                <p className="text-xs text-text-muted/80 mt-3 text-center">
-                  Cadastre o WhatsApp de {primeiro} no perfil dele para habilitar o envio.
-                </p>
-              )}
-            </div>
-          </div>
-        )
-      })()}
 
       {confirmarExcluir && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={() => setConfirmarExcluir(false)}>

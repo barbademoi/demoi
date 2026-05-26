@@ -10,7 +10,6 @@ import { calcularPlacar, type Feedback, type FeedbackComProfissional } from '@/l
 import { intervalo, intervaloAnterior, type NomePeriodo } from '@/lib/periodos'
 import PlacarCards from '@/components/PlacarCards'
 import AcoesStatus from './AcoesStatus'
-import EnviarElogioWhats from './EnviarElogioWhats'
 import LinkProfissional from './LinkProfissional'
 import CompetenciasEditor from './CompetenciasEditor'
 import PerfilIAEditor from './PerfilIAEditor'
@@ -89,19 +88,11 @@ export default async function PerfilProfissionalPage({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap mt-4 pt-4 border-t border-border">
+        <div className="flex items-center justify-between gap-2 mt-4 pt-4 border-t border-border">
           <Link href={`/painel/profissionais/${p.id}/editar`} className="btn-secondary px-4 py-2 text-sm">
             Editar
           </Link>
-          <EnviarElogioWhats
-            nome={p.nome}
-            telefone={p.telefone}
-            url={urlPublica}
-            elogios={feedbacks.filter((f) => f.tipo === 'positivo').slice(0, 5).map((f) => ({ id: f.id, texto: f.texto }))}
-          />
-          <div className="ml-auto">
-            <AcoesStatus id={p.id} nome={p.nome} status={p.status} />
-          </div>
+          <AcoesStatus id={p.id} nome={p.nome} status={p.status} />
         </div>
       </div>
 
