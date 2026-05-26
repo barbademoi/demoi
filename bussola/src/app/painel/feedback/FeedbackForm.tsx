@@ -13,7 +13,7 @@ import {
   type EscopoFeedback,
   type TipoFeedback,
 } from '@/lib/feedbacks'
-import { normalizarTelefone, linkWhats, mensagemElogio } from '@/lib/whatsapp'
+import { normalizarTelefone, mensagemElogio, enviarWhats } from '@/lib/whatsapp'
 import { criarFeedback, atualizarFeedback, excluirFeedback } from './actions'
 
 interface ProfItem {
@@ -336,7 +336,6 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
         const primeiro = (prof?.nome ?? '').split(' ')[0]
         const url = typeof window !== 'undefined' && prof ? `${window.location.origin}/p/${prof.slug}` : ''
         const msg = mensagemElogio(primeiro, texto, url)
-        const href = tel ? linkWhats(tel, msg) : '#'
         return (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4">
             <div className="bg-surface rounded-2xl w-full max-w-md p-5">
@@ -346,13 +345,16 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
               </p>
               <div className="flex flex-col gap-2">
                 {tel ? (
-                  <a
-                    href={href}
-                    onClick={() => setTimeout(() => router.push('/painel'), 400)}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await enviarWhats(msg, tel)
+                      setTimeout(() => router.push('/painel'), 400)
+                    }}
                     className="btn-primary w-full py-3 text-center"
                   >
                     📱 Enviar agora
-                  </a>
+                  </button>
                 ) : (
                   <button
                     type="button"

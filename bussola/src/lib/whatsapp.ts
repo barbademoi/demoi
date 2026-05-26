@@ -40,3 +40,21 @@ export function mensagemFeedback(primeiroNome: string, texto: string): string {
 
 ${texto}`
 }
+
+// Abre a folha de compartilhamento nativa (iOS/Android) — onde o usuário
+// escolhe WhatsApp OU WhatsApp Business. Cai no link wa.me se não houver
+// suporte (ex.: desktop). Use somente no cliente, dentro de um gesto.
+export async function enviarWhats(mensagem: string, telefone: string | null): Promise<void> {
+  const nav = typeof navigator !== 'undefined' ? navigator : undefined
+  if (nav?.share) {
+    try {
+      await nav.share({ text: mensagem })
+    } catch {
+      // usuário cancelou — não faz fallback
+    }
+    return
+  }
+  const tel = normalizarTelefone(telefone)
+  const href = tel ? linkWhats(tel, mensagem) : `https://wa.me/?text=${encodeURIComponent(mensagem)}`
+  if (typeof window !== 'undefined') window.location.href = href
+}
