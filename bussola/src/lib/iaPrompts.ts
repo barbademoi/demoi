@@ -98,5 +98,6 @@ REGRAS:
 - Se houver alertas (graves), MENCIONAR
 - Português coloquial brasileiro
 - SEM listar tudo: filtre o que importa
-- SEM emojis${ajusteTom(tom)}`
+- SEM emojis
+- Responda SÓ com o parágrafo do resumo: sem título, sem markdown, sem asteriscos, sem começar com "Resumo da semana"${ajusteTom(tom)}`
 }

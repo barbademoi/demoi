@@ -96,16 +96,21 @@ export async function POST(req: Request) {
 
   try {
     const res = await gerarTexto(systemResumo(est.config.tom), dados, 200)
+    // Limpeza defensiva: remove markdown e um eventual título "Resumo da semana".
+    const resumo = res.texto
+      .replace(/\*+/g, '')
+      .replace(/^\s*resumo da semana[:\s-]*/i, '')
+      .trim()
     await supabase.from('sugestoes_ia').insert({
       tipo: 'resumo_semana',
       feedback_id: null,
       estabelecimento_id: est.id,
-      conteudo: res.texto,
+      conteudo: resumo,
       prompt_tokens: res.inputTokens,
       completion_tokens: res.outputTokens,
       modelo: res.modelo,
     })
-    return NextResponse.json({ resumo: res.texto, cached: false })
+    return NextResponse.json({ resumo, cached: false })
   } catch (err) {
     console.error('[resumo-semana]', err)
     return NextResponse.json({ error: 'Não foi possível gerar o resumo.' }, { status: 502 })
