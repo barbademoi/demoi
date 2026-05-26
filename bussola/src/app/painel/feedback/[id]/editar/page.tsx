@@ -28,7 +28,7 @@ export default async function EditarFeedbackPage({ params }: { params: { id: str
 
   const { data: profsData } = await supabase
     .from('profissionais')
-    .select('id, nome, foto_url, telefone, slug')
+    .select('id, nome, foto_url')
     .eq('estabelecimento_id', estabelecimento.id)
     .eq('status', 'ativo')
     .order('nome', { ascending: true })
