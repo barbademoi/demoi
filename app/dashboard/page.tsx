@@ -156,6 +156,10 @@ export default async function DashboardPage() {
   const rankingBarbeiros = ranking.filter(b => b.tipo !== 'recepcionista')
   const rankingRecepcionistas = ranking.filter(b => b.tipo === 'recepcionista')
 
+  // Recepcionistas participam só das pontuações (campanha), não das metas de
+  // comissão — então ficam de fora da configuração de metas individuais.
+  const barbeirosMetas = barbeiros.filter(b => b.tipo !== 'recepcionista')
+
   // ── Gamificação ──────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: modoRaw } = await (supabase as any)
@@ -262,7 +266,7 @@ export default async function DashboardPage() {
       novaRecepcionistaSlot={<NovoBarbeiroModal tipo="recepcionista" />}
       metasSlot={modoAtual !== 'pontos' ? (
         <MetasModal
-          barbeiros={barbeiros}
+          barbeiros={barbeirosMetas}
           metasAtuais={metasParaForm}
           metaColetiva={metaColetivaParaForm}
           faturamentoAcumulado={meta?.faturamento_acumulado}
