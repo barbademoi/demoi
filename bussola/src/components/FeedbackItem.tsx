@@ -82,6 +82,15 @@ export default function FeedbackItem({
             {variante === 'perfil' && (
               <span className="text-text-muted/80">· {STATUS_LABEL[feedback.status] ?? feedback.status}</span>
             )}
+            {variante === 'perfil' && feedback.tipo === 'positivo' && (
+              feedback.resposta_profissional ? (
+                <span className="text-blue-600" title={feedback.resposta_profissional}>· 💬 Respondeu</span>
+              ) : feedback.lido_em ? (
+                <span className="text-green-600">· ✓ Lido</span>
+              ) : (
+                <span className="text-text-muted/60">· 👁 Não leu</span>
+              )
+            )}
           </div>
         </div>
 

@@ -31,10 +31,13 @@ export default function FeedbacksList({
   const [tipo, setTipo] = useState<FiltroTipo>('todos')
   const [categoria, setCategoria] = useState<string>('todas')
   const [periodo, setPeriodo] = useState<FiltroPeriodo>('tudo')
+  const [leitura, setLeitura] = useState<'todos' | 'lidos' | 'respondidos'>('todos')
 
   const lista = feedbacks.filter((f) => {
     if (tipo !== 'todos' && f.tipo !== tipo) return false
     if (categoria !== 'todas' && f.categoria !== categoria) return false
+    if (leitura === 'lidos' && !f.lido_em) return false
+    if (leitura === 'respondidos' && !f.resposta_profissional) return false
     if (periodo !== 'tudo') {
       const { inicio, fim } = intervalo(periodo)
       const t = new Date(f.created_at).getTime()
@@ -57,6 +60,22 @@ export default function FeedbacksList({
             ].join(' ')}
           >
             {p.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {([['todos', 'Todos'], ['lidos', 'Lidos'], ['respondidos', 'Respondidos']] as ['todos' | 'lidos' | 'respondidos', string][]).map(([v, label]) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => setLeitura(v)}
+            className={[
+              'px-3 py-1 rounded-full text-xs font-medium border transition-colors',
+              leitura === v ? 'border-primary bg-primary text-white' : 'border-border bg-white text-text-muted',
+            ].join(' ')}
+          >
+            {label}
           </button>
         ))}
       </div>

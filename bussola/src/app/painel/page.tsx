@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import FeedbackItem from '@/components/FeedbackItem'
+import AtividadeItem, { type AtividadeFb } from '@/components/AtividadeItem'
+import MarcarVisto from './MarcarVisto'
 import { proximaReuniao } from '@/lib/reuniao'
 import { intervalo } from '@/lib/periodos'
 import { calcularPlacar, comSinal, type Feedback, type FeedbackComProfissional, type TipoFeedback } from '@/lib/feedbacks'
@@ -87,6 +89,22 @@ export default async function PainelPage() {
   const placarEqSemana = calcularPlacar(eqSemana as Feedback[])
   const placarEqMes = calcularPlacar(eq as Feedback[])
   const corEq = (v: number) => (v > 0 ? 'text-green-600' : v < 0 ? 'text-red-600' : 'text-amber-600')
+
+  // Atividade da equipe (leituras e respostas).
+  const { data: atvData } = await supabase
+    .from('feedbacks')
+    .select('id, texto, lido_em, resposta_profissional, resposta_em, profissionais(nome, foto_url)')
+    .eq('estabelecimento_id', estabelecimento.id)
+    .not('lido_em', 'is', null)
+    .order('lido_em', { ascending: false })
+    .limit(30)
+  const atividade = ((atvData ?? []) as unknown as AtividadeFb[])
+    .sort((a, b) => {
+      const ta = Math.max(Date.parse(a.resposta_em ?? a.lido_em ?? '0') || 0, Date.parse(a.lido_em ?? '0') || 0)
+      const tb = Math.max(Date.parse(b.resposta_em ?? b.lido_em ?? '0') || 0, Date.parse(b.lido_em ?? '0') || 0)
+      return tb - ta
+    })
+    .slice(0, 10)
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-6 space-y-6 animate-fade-in">
@@ -182,6 +200,25 @@ export default async function PainelPage() {
           </div>
         )}
       </section>
+
+      {/* ATIVIDADE DA EQUIPE */}
+      <section>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <h2 className="text-sm font-semibold text-text">📬 Atividade da equipe</h2>
+          {atividade.length > 0 && (
+            <Link href="/painel/atividade" className="text-sm text-primary font-medium">Ver tudo</Link>
+          )}
+        </div>
+        {atividade.length === 0 ? (
+          <p className="text-text-muted text-sm">Nenhuma confirmação de leitura ainda.</p>
+        ) : (
+          <div className="space-y-2">
+            {atividade.map((a) => <AtividadeItem key={a.id} a={a} />)}
+          </div>
+        )}
+      </section>
+
+      <MarcarVisto />
     </main>
   )
 }
