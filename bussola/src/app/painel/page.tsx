@@ -93,7 +93,7 @@ export default async function PainelPage() {
   // Atividade da equipe (leituras e respostas).
   const { data: atvData } = await supabase
     .from('feedbacks')
-    .select('id, texto, lido_em, resposta_profissional, resposta_em, profissionais(nome, foto_url)')
+    .select('id, tipo, texto, lido_em, resposta_profissional, resposta_em, profissionais(nome, foto_url)')
     .eq('estabelecimento_id', estabelecimento.id)
     .not('lido_em', 'is', null)
     .order('lido_em', { ascending: false })

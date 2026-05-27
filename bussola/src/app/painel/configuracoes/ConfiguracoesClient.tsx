@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import type { ConfigIA, TomIA } from '@/lib/iaPrompts'
-import { salvarConfigIA } from './actions'
+import { salvarConfigIA, salvarVisibilidade, type VisibilidadeConfig } from './actions'
 
 const TONS: { v: TomIA; label: string; desc: string }[] = [
   { v: 'direto', label: 'Direto', desc: 'Sem rodeio, ao ponto.' },
@@ -16,10 +16,20 @@ const TOGGLES: { chave: keyof Omit<ConfigIA, 'tom'>; label: string }[] = [
   { chave: 'dicas_blocos', label: 'Dicas de liderança nos blocos da reunião' },
 ]
 
-export default function ConfiguracoesClient({ inicial }: { inicial: ConfigIA }) {
+export default function ConfiguracoesClient({
+  inicial,
+  visInicial,
+}: {
+  inicial: ConfigIA
+  visInicial: VisibilidadeConfig
+}) {
   const [config, setConfig] = useState<ConfigIA>(inicial)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  const [vis, setVis] = useState<VisibilidadeConfig>(visInicial)
+  const [feedbackVis, setFeedbackVis] = useState<string | null>(null)
+  const [isPendingVis, startTransitionVis] = useTransition()
 
   function salvar() {
     setFeedback(null)
@@ -29,7 +39,16 @@ export default function ConfiguracoesClient({ inicial }: { inicial: ConfigIA }) 
     })
   }
 
+  function salvarVis() {
+    setFeedbackVis(null)
+    startTransitionVis(async () => {
+      const res = await salvarVisibilidade(vis)
+      setFeedbackVis(res?.error ? res.error : 'Salvo ✓')
+    })
+  }
+
   return (
+    <>
     <div className="card p-5 space-y-6">
       <h2 className="font-semibold text-text">Inteligência Artificial</h2>
 
@@ -74,5 +93,66 @@ export default function ConfiguracoesClient({ inicial }: { inicial: ConfigIA }) 
         {isPending ? 'Salvando…' : 'Salvar configurações'}
       </button>
     </div>
+
+    <div className="card p-5 space-y-5 mt-4">
+      <div>
+        <h2 className="font-semibold text-text">Visibilidade pra Equipe</h2>
+        <p className="text-sm text-text-muted mt-1">
+          Cada profissional tem um link com suas mensagens. Escolha o que ele enxerga.
+        </p>
+      </div>
+
+      <label className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border">
+        <span className="text-sm text-text">
+          Mostrar pontos a desenvolver
+          <span className="block text-xs text-text-muted">Os feedbacks negativos aparecem pro profissional.</span>
+        </span>
+        <input
+          type="checkbox"
+          checked={vis.mostrar_negativos_profissional}
+          onChange={(e) => setVis((v) => ({ ...v, mostrar_negativos_profissional: e.target.checked }))}
+          className="accent-primary w-5 h-5 shrink-0"
+        />
+      </label>
+
+      <label className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border">
+        <span className="text-sm text-text">
+          Mostrar observações
+          <span className="block text-xs text-text-muted">As anotações de observação aparecem pro profissional.</span>
+        </span>
+        <input
+          type="checkbox"
+          checked={vis.mostrar_observacoes_profissional}
+          onChange={(e) => setVis((v) => ({ ...v, mostrar_observacoes_profissional: e.target.checked }))}
+          className="accent-primary w-5 h-5 shrink-0"
+        />
+      </label>
+
+      <div className={`p-3 rounded-xl border border-border ${vis.mostrar_negativos_profissional ? '' : 'opacity-50'}`}>
+        <label className="block text-sm text-text mb-1">Carência antes de mostrar um ponto a desenvolver</label>
+        <p className="text-xs text-text-muted mb-2">
+          Tempo pra você revisar, editar ou excluir antes do profissional ver.
+        </p>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={0}
+            max={1440}
+            value={vis.atraso_negativo_minutos}
+            disabled={!vis.mostrar_negativos_profissional}
+            onChange={(e) => setVis((v) => ({ ...v, atraso_negativo_minutos: Number(e.target.value) }))}
+            className="input w-24"
+          />
+          <span className="text-sm text-text-muted">minutos</span>
+        </div>
+      </div>
+
+      {feedbackVis && <p className="text-sm text-text-muted">{feedbackVis}</p>}
+
+      <button type="button" onClick={salvarVis} disabled={isPendingVis} className="btn-primary w-full">
+        {isPendingVis ? 'Salvando…' : 'Salvar visibilidade'}
+      </button>
+    </div>
+    </>
   )
 }

@@ -32,6 +32,14 @@ export default function FeedbackItem({
   const [isPending, startTransition] = useTransition()
   const meta = TIPOS[feedback.tipo]
 
+  // Visibilidade pro profissional: null = nunca compartilhado; futuro = em carência.
+  const compartilhado = !!feedback.visivel_profissional_em
+  const emCarencia =
+    compartilhado && new Date(feedback.visivel_profissional_em!).getTime() > Date.now()
+  const restanteMin = emCarencia
+    ? Math.max(1, Math.ceil((new Date(feedback.visivel_profissional_em!).getTime() - Date.now()) / 60000))
+    : 0
+
   function excluir() {
     startTransition(async () => {
       const res = await excluirFeedback(feedback.id)
@@ -82,7 +90,12 @@ export default function FeedbackItem({
             {variante === 'perfil' && (
               <span className="text-text-muted/80">· {STATUS_LABEL[feedback.status] ?? feedback.status}</span>
             )}
-            {variante === 'perfil' && feedback.tipo === 'positivo' && (
+            {variante === 'perfil' && emCarencia && (
+              <span className="text-orange-600" title="Ainda não visível pro profissional. Você pode editar ou excluir.">
+                · 🕐 Em carência · {restanteMin} min
+              </span>
+            )}
+            {variante === 'perfil' && compartilhado && !emCarencia && (
               feedback.resposta_profissional ? (
                 <span className="text-blue-600" title={feedback.resposta_profissional}>· 💬 Respondeu</span>
               ) : feedback.lido_em ? (

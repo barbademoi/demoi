@@ -10,7 +10,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const admin = createAdminClient()
   const { data: fb } = await admin
     .from('feedbacks')
-    .select('id, tipo, escopo, lido_em, profissionais(slug, status)')
+    .select('id, escopo, lido_em, visivel_profissional_em, profissionais(slug, status)')
     .eq('id', params.id)
     .is('deletado_em', null)
     .maybeSingle()
@@ -18,11 +18,15 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (!fb) return NextResponse.json({ error: 'Feedback não encontrado.' }, { status: 404 })
 
   const prof = (fb as unknown as { profissionais: { slug: string; status: string } | null }).profissionais
-  if (fb.tipo !== 'positivo' || fb.escopo !== 'individual' || !prof) {
+  if (fb.escopo !== 'individual' || !prof) {
     return NextResponse.json({ error: 'Não permitido.' }, { status: 400 })
   }
   if (prof.slug !== slug || prof.status === 'desligado') {
     return NextResponse.json({ error: 'Sem acesso.' }, { status: 403 })
+  }
+  // Só permite confirmar o que já está visível pro profissional (respeita a carência).
+  if (!fb.visivel_profissional_em || new Date(fb.visivel_profissional_em).getTime() > Date.now()) {
+    return NextResponse.json({ error: 'Ainda não disponível.' }, { status: 403 })
   }
 
   const update: Record<string, string> = { lido_em: fb.lido_em ?? new Date().toISOString() }
