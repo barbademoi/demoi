@@ -65,8 +65,10 @@ export default function BarbeiroClient({
   cicloLabel, diaFechamento,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
+  // Recepcionista participa só das pontuações — esconde tudo de comissão/metas.
+  const isRecepcionista = barbeiro.tipo === 'recepcionista'
   const mostraPontos = modo === 'pontos' || modo === 'ambos'
-  const mostraMetas = modo === 'metas' || modo === 'ambos'
+  const mostraMetas = (modo === 'metas' || modo === 'ambos') && !isRecepcionista
   const [aba, setAba] = useState<'progresso' | 'lancar'>('progresso')
   const [celebracaoFechada, setCelebracaoFechada] = useState(false)
 
