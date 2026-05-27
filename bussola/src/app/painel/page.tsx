@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { Bell, AlertTriangle, Sparkles, Sprout, Eye, MessageSquarePlus, Users, Inbox } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
 import FeedbackItem from '@/components/FeedbackItem'
 import AtividadeItem, { type AtividadeFb } from '@/components/AtividadeItem'
@@ -35,15 +36,15 @@ export default async function PainelPage() {
     .limit(1)
     .maybeSingle()
 
-  // Proximidade → cor do card.
+  // Proximidade → acento na borda esquerda do card (sem fundos saturados).
   const dias = reuniao.contagem === 'Hoje!' ? 0 : reuniao.contagem === 'Amanhã' ? 1 : parseInt(reuniao.contagem.replace(/\D/g, ''), 10) || 9
   const cardClasse = pendente
-    ? 'border-red-300 bg-red-50'
+    ? 'border-border border-l-[3px] border-l-vinho'
     : dias === 0
-      ? 'border-orange-300 bg-orange-50'
+      ? 'border-border border-l-[3px] border-l-ambar'
       : dias <= 2
-        ? 'border-amber-300 bg-amber-50'
-        : 'border-border bg-surface'
+        ? 'border-border border-l-[3px] border-l-marrom'
+        : 'border-border'
 
   // Feedbacks da semana (resumo + alertas).
   const semana = intervalo('semana')
@@ -88,7 +89,7 @@ export default async function PainelPage() {
   const eqSemana = eq.filter((f) => new Date(f.created_at).getTime() >= semana.inicio.getTime())
   const placarEqSemana = calcularPlacar(eqSemana as Feedback[])
   const placarEqMes = calcularPlacar(eq as Feedback[])
-  const corEq = (v: number) => (v > 0 ? 'text-green-600' : v < 0 ? 'text-red-600' : 'text-amber-600')
+  const corEq = (v: number) => (v > 0 ? 'text-verde-musgo' : v < 0 ? 'text-vinho' : 'text-chumbo')
 
   // Atividade da equipe (leituras e respostas).
   const { data: atvData } = await supabase
@@ -109,39 +110,44 @@ export default async function PainelPage() {
   return (
     <main className="max-w-3xl mx-auto px-4 py-6 space-y-6 animate-fade-in">
       {/* CARD PRÓXIMA REUNIÃO */}
-      <div className={`rounded-2xl border p-5 ${cardClasse}`}>
+      <div className={`rounded-lg border p-5 bg-surface shadow-suave ${cardClasse}`}>
         <div className="flex items-start justify-between gap-3">
           <div>
             {pendente ? (
               <>
-                <p className="text-sm font-bold text-red-700">Reunião pendente</p>
+                <p className="text-sm font-bold text-vinho">Reunião pendente</p>
                 <p className="text-sm text-text mt-0.5">Marque como concluída ou reagende.</p>
               </>
             ) : (
               <>
-                <p className="text-xs text-text-muted">{dias === 0 ? '🔔 Reunião HOJE' : 'Próxima reunião'}</p>
+                <p className="text-xs text-chumbo inline-flex items-center gap-1">
+                  {dias === 0 && <Bell size={14} strokeWidth={1.5} color="#A56336" />}
+                  {dias === 0 ? 'Reunião HOJE' : 'Próxima reunião'}
+                </p>
                 <p className="text-lg font-bold text-text">{reuniao.diaLabel}, {reuniao.horaLabel}</p>
-                <p className="text-sm text-primary font-medium">{reuniao.contagem}</p>
+                <p className="text-sm text-marrom font-medium">{reuniao.contagem}</p>
               </>
             )}
           </div>
           {graves > 0 && (
-            <span className="bg-red-100 text-red-700 rounded-full px-3 py-1 text-xs font-medium">
-              ⚠ {graves} grave{graves > 1 ? 's' : ''}
+            <span className="inline-flex items-center gap-1 bg-vinho/10 text-vinho rounded-full px-3 py-1 text-xs font-medium">
+              <AlertTriangle size={14} strokeWidth={1.5} /> {graves} grave{graves > 1 ? 's' : ''}
             </span>
           )}
         </div>
 
-        <div className="mt-4 pt-4 border-t border-border/60">
+        <div className="mt-4 pt-4 border-t border-border">
           <p className="text-sm text-text">
             {total === 0
               ? 'Nenhum feedback registrado nesta semana ainda.'
               : `${total} feedback${total > 1 ? 's' : ''} esta semana`}
           </p>
           {total > 0 && (
-            <p className="text-xs text-text-muted mt-1">
-              🟢 {positivos} positivos · 🔴 {negativos} negativos · ⚪ {observacoes} observações
-            </p>
+            <div className="flex items-center gap-3 text-xs text-grafite mt-1.5">
+              <span className="inline-flex items-center gap-1"><Sparkles size={14} strokeWidth={1.5} color="#5C7148" /> {positivos} positivos</span>
+              <span className="inline-flex items-center gap-1"><Sprout size={14} strokeWidth={1.5} color="#A56336" /> {negativos} a desenvolver</span>
+              <span className="inline-flex items-center gap-1"><Eye size={14} strokeWidth={1.5} color="#2D3E50" /> {observacoes} observações</span>
+            </div>
           )}
         </div>
 
@@ -152,34 +158,38 @@ export default async function PainelPage() {
 
       {/* BOTÕES DE REGISTRO */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Link href="/painel/feedback/novo" className="btn-primary w-full py-5 shadow-md">
-          🎯 Registrar feedback
+        <Link href="/painel/feedback/novo" className="btn-primary w-full py-4">
+          <MessageSquarePlus size={20} strokeWidth={1.5} />
+          Registrar feedback
         </Link>
-        <Link href="/painel/feedback/novo?escopo=equipe" className="btn-secondary w-full py-5 shadow-sm">
-          👥 Registrar para a equipe
+        <Link href="/painel/feedback/novo?escopo=equipe" className="btn-secondary w-full py-4">
+          <Users size={20} strokeWidth={1.5} />
+          Registrar para a equipe
         </Link>
       </div>
 
       {/* PLACAR DA EQUIPE */}
       <div className="card p-5">
         <div className="flex items-center justify-between gap-2 mb-3">
-          <h2 className="font-semibold text-text">👥 Equipe</h2>
-          <Link href="/painel/feedbacks-equipe" className="text-sm text-primary font-medium">Ver todos</Link>
+          <h2 className="font-semibold text-text inline-flex items-center gap-2">
+            <Users size={20} strokeWidth={1.5} color="#8B6F47" /> Equipe
+          </h2>
+          <Link href="/painel/feedbacks-equipe" className="text-sm text-marrom font-medium">Ver todos</Link>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-border p-3 text-center">
-            <p className="text-xs text-text-muted">Semana</p>
+          <div className="rounded-md border border-border p-3 text-center">
+            <p className="text-xs text-chumbo">Semana</p>
             <p className={`text-3xl font-bold ${corEq(placarEqSemana)}`}>{comSinal(placarEqSemana)}</p>
           </div>
-          <div className="rounded-xl border border-border p-3 text-center">
-            <p className="text-xs text-text-muted">Mês</p>
+          <div className="rounded-md border border-border p-3 text-center">
+            <p className="text-xs text-chumbo">Mês</p>
             <p className={`text-3xl font-bold ${corEq(placarEqMes)}`}>{comSinal(placarEqMes)}</p>
           </div>
         </div>
         {eq.length > 0 && (
           <ul className="mt-3 space-y-1">
             {eq.slice(0, 3).map((f, i) => (
-              <li key={i} className="text-xs text-text-muted truncate">
+              <li key={i} className="text-xs text-grafite truncate">
                 • {f.texto.length > 50 ? `${f.texto.slice(0, 50)}…` : f.texto}
               </li>
             ))}
@@ -191,7 +201,7 @@ export default async function PainelPage() {
       <section>
         <h2 className="text-sm font-semibold text-text mb-3">Últimos feedbacks</h2>
         {ultimos.length === 0 ? (
-          <p className="text-text-muted text-sm">Seus feedbacks vão aparecer aqui.</p>
+          <p className="text-chumbo text-sm">Seus feedbacks vão aparecer aqui.</p>
         ) : (
           <div className="space-y-3">
             {ultimos.map((f) => (
@@ -204,13 +214,15 @@ export default async function PainelPage() {
       {/* ATIVIDADE DA EQUIPE */}
       <section>
         <div className="flex items-center justify-between gap-2 mb-3">
-          <h2 className="text-sm font-semibold text-text">📬 Atividade da equipe</h2>
+          <h2 className="text-sm font-semibold text-text inline-flex items-center gap-2">
+            <Inbox size={18} strokeWidth={1.5} color="#8B6F47" /> Atividade da equipe
+          </h2>
           {atividade.length > 0 && (
-            <Link href="/painel/atividade" className="text-sm text-primary font-medium">Ver tudo</Link>
+            <Link href="/painel/atividade" className="text-sm text-marrom font-medium">Ver tudo</Link>
           )}
         </div>
         {atividade.length === 0 ? (
-          <p className="text-text-muted text-sm">Nenhuma confirmação de leitura ainda.</p>
+          <p className="text-chumbo text-sm">Nenhuma confirmação de leitura ainda.</p>
         ) : (
           <div className="space-y-2">
             {atividade.map((a) => <AtividadeItem key={a.id} a={a} />)}

@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Check, Sparkles, Sprout } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import Estrelas from '@/components/Estrelas'
+import { TIPO_VISUAL } from '@/components/tipoVisual'
 import {
   TIPOS,
   CATEGORIAS,
@@ -221,8 +223,8 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
                     >
                       <Avatar nome={p.nome} fotoUrl={p.foto_url} size={56} />
                       {sel && (
-                        <span className="absolute -bottom-0.5 -right-0.5 bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                          ✓
+                        <span className="absolute -bottom-0.5 -right-0.5 bg-marrom text-white rounded-full w-5 h-5 flex items-center justify-center">
+                          <Check size={12} strokeWidth={2} />
                         </span>
                       )}
                     </span>
@@ -248,6 +250,8 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
         <div className="grid grid-cols-3 gap-2">
           {(Object.keys(TIPOS) as TipoFeedback[]).map((t) => {
             const meta = TIPOS[t]
+            const v = TIPO_VISUAL[t]
+            const Icon = v.Icon
             const sel = tipo === t
             return (
               <button
@@ -255,11 +259,11 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
                 type="button"
                 onClick={() => setTipo(t)}
                 className={[
-                  'py-3 rounded-xl border text-sm font-medium transition-colors',
-                  sel ? meta.selecionado : 'border-border bg-white text-text hover:border-primary/40',
+                  'flex flex-col items-center gap-1 py-3 rounded-md border text-sm font-medium transition-colors',
+                  sel ? meta.selecionado : 'border-border bg-white text-text hover:border-marrom/40',
                 ].join(' ')}
               >
-                <span className="block text-xl">{meta.emoji}</span>
+                <Icon size={22} strokeWidth={1.5} color={sel ? '#FFFFFF' : v.cor} />
                 {meta.label}
               </button>
             )
@@ -328,27 +332,28 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
           <button
             type="button"
             onClick={() => setCategoria(sugCat)}
-            className="mt-2 text-xs text-primary"
+            className="mt-2 inline-flex items-center gap-1 text-xs text-marrom"
           >
-            ✨ Sugerido pela IA: <span className="font-semibold underline">{sugCat}</span> — tocar para usar
+            <Sparkles size={14} strokeWidth={1.5} />
+            Sugerido pela IA: <span className="font-semibold underline">{sugCat}</span> — tocar para usar
           </button>
         )}
       </section>
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {error && <p className="text-vinho text-sm">{error}</p>}
 
       {modo === 'editar' && (
         <button
           type="button"
           onClick={() => setConfirmarExcluir(true)}
-          className="text-red-600 text-sm hover:underline"
+          className="text-vinho text-sm hover:underline"
         >
           Excluir feedback
         </button>
       )}
 
-      {/* RODAPÉ FIXO */}
-      <div className="fixed bottom-0 left-0 right-0 bg-surface border-t border-border p-3">
+      {/* RODAPÉ FIXO (acima da bottom nav no mobile) */}
+      <div className="fixed bottom-16 lg:bottom-0 left-0 right-0 z-40 bg-surface border-t border-border p-3">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <button
             type="button"
@@ -358,33 +363,34 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
           >
             {isPending ? 'Salvando…' : modo === 'novo' ? 'Salvar feedback' : 'Salvar alterações'}
           </button>
-          <a href={cancelarHref()} className="text-text-muted hover:text-text px-4 py-4 text-sm">
+          <a href={cancelarHref()} className="text-grafite hover:text-text px-4 py-4 text-sm">
             Cancelar
           </a>
         </div>
       </div>
 
       {salvo && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium z-50">
-          ✓ Feedback registrado!
+        <div className="fixed bottom-32 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 bg-verde-musgo text-white px-5 py-3 rounded-md shadow-media text-sm font-medium z-50">
+          <Check size={16} strokeWidth={2} />
+          Feedback registrado!
         </div>
       )}
 
       {confirmarExcluir && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={() => setConfirmarExcluir(false)}>
-          <div className="bg-surface rounded-2xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-surface rounded-lg w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
             <h4 className="font-semibold text-text mb-2">Excluir este feedback?</h4>
-            <p className="text-sm text-text-muted mb-5">Essa ação não pode ser desfeita.</p>
+            <p className="text-sm text-grafite mb-5">Essa ação não pode ser desfeita.</p>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={excluir}
                 disabled={isPending}
-                className="flex-1 py-3 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition-colors disabled:opacity-60"
+                className="btn-destrutivo flex-1"
               >
                 {isPending ? 'Excluindo…' : 'Sim, excluir'}
               </button>
-              <button type="button" onClick={() => setConfirmarExcluir(false)} className="text-text-muted hover:text-text px-4">
+              <button type="button" onClick={() => setConfirmarExcluir(false)} className="text-grafite hover:text-text px-4">
                 Cancelar
               </button>
             </div>
@@ -395,10 +401,10 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
       {/* AVISO DE CARÊNCIA — negativo individual */}
       {carencia && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4">
-          <div className="bg-surface rounded-2xl w-full max-w-md p-5">
-            <div className="text-3xl mb-2">🌱</div>
+          <div className="bg-surface rounded-lg w-full max-w-md p-5">
+            <Sprout size={32} strokeWidth={1.5} color="#A56336" className="mb-2" />
             <h4 className="font-semibold text-text mb-2">Feedback registrado!</h4>
-            <p className="text-sm text-text-muted mb-5">
+            <p className="text-sm text-grafite mb-5">
               Como é um ponto a desenvolver, ele só vai aparecer
               {carencia.nome ? <> pra <span className="font-semibold text-text">{carencia.nome}</span></> : ' pro profissional'}{' '}
               em <span className="font-semibold text-text">{carencia.atraso} {carencia.atraso === 1 ? 'minuto' : 'minutos'}</span>.
@@ -416,7 +422,7 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
                 <button
                   type="button"
                   onClick={() => router.push(`/painel/feedback/${carencia.id}/editar`)}
-                  className="flex-1 py-3 rounded-xl border border-border bg-white text-text font-medium hover:border-primary/40 transition-colors"
+                  className="btn-secondary flex-1"
                 >
                   Editar agora
                 </button>
@@ -429,7 +435,7 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
                       router.push('/painel')
                     })
                   }}
-                  className="flex-1 py-3 rounded-xl border border-red-200 bg-white text-red-600 font-medium hover:bg-red-50 transition-colors disabled:opacity-60"
+                  className="flex-1 py-3 rounded-md border border-border bg-white text-vinho text-sm font-medium hover:bg-vinho/5 transition-colors disabled:opacity-60"
                 >
                   {isPending ? 'Excluindo…' : 'Excluir'}
                 </button>

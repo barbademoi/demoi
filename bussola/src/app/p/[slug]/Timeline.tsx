@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { Check, CheckCircle2 } from 'lucide-react'
 import { tempoRelativo, dataLonga, type TipoFeedback } from '@/lib/feedbacks'
+import { TIPO_VISUAL } from '@/components/tipoVisual'
 
 export interface ItemElogio {
   id: string
@@ -17,45 +19,10 @@ export interface ItemElogio {
 
 const PAGINA = 20
 
-interface TipoVisual {
-  label: string
-  emoji: string
-  tag: string
-  borda: string
-  placeholder: string
-}
-
-const VISUAL: Record<TipoFeedback, TipoVisual> = {
-  positivo: {
-    label: 'Elogio',
-    emoji: '✨',
-    tag: 'text-green-700 bg-green-50 border-green-200',
-    borda: 'border-green-200',
-    placeholder: 'Quer responder algo? Não é obrigatório. Ex: Obrigado, fico feliz que notou!',
-  },
-  negativo: {
-    label: 'Ponto a desenvolver',
-    emoji: '🌱',
-    tag: 'text-orange-700 bg-orange-50 border-orange-200',
-    borda: 'border-orange-200',
-    placeholder: 'Quer comentar? Não é obrigatório. Ex: Entendi, vou trabalhar nisso.',
-  },
-  observacao: {
-    label: 'Observação',
-    emoji: '📝',
-    tag: 'text-slate-600 bg-slate-50 border-slate-200',
-    borda: 'border-slate-200',
-    placeholder: 'Quer responder algo? Não é obrigatório.',
-  },
-}
-
-function Tag({ tipo }: { tipo: TipoFeedback }) {
-  const v = VISUAL[tipo]
-  return (
-    <span className={`text-xs font-medium border rounded-full px-2 py-0.5 ${v.tag}`}>
-      {v.emoji} {v.label}
-    </span>
-  )
+const PLACEHOLDER: Record<TipoFeedback, string> = {
+  positivo: 'Quer responder algo? Não é obrigatório. Ex: Obrigado, fico feliz que notou!',
+  negativo: 'Quer comentar? Não é obrigatório. Ex: Entendi, vou trabalhar nisso.',
+  observacao: 'Quer responder algo? Não é obrigatório.',
 }
 
 function Card({ item, slug }: { item: ItemElogio; slug: string }) {
@@ -65,8 +32,8 @@ function Card({ item, slug }: { item: ItemElogio; slug: string }) {
   const [respostaSalva, setRespostaSalva] = useState<string | null>(item.resposta_profissional)
   const [enviando, setEnviando] = useState(false)
 
-  const v = VISUAL[item.tipo]
-  const novo = !lidoEm
+  const v = TIPO_VISUAL[item.tipo]
+  const Icon = v.Icon
 
   async function confirmar(respostaTexto?: string) {
     setEnviando(true)
@@ -90,18 +57,21 @@ function Card({ item, slug }: { item: ItemElogio; slug: string }) {
   }
 
   return (
-    <article className={`rounded-2xl border bg-surface p-4 animate-fade-in ${novo ? v.borda : 'border-border'}`}>
+    <article className={`rounded-lg border border-border bg-surface p-4 border-l-[3px] ${v.bordaEsq} animate-fade-in`}>
       <div className="flex items-center justify-between gap-2">
-        <Tag tipo={item.tipo} />
-        <span className="text-xs text-text-muted">{tempoRelativo(item.created_at)}</span>
+        <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide ${v.texto}`}>
+          <Icon size={16} strokeWidth={1.5} />
+          {v.label}
+        </span>
+        <span className="text-xs text-chumbo">{tempoRelativo(item.created_at)}</span>
       </div>
-      <p className="text-text text-[17px] leading-relaxed mt-2 whitespace-pre-wrap">{item.texto}</p>
+      <p className="text-text text-[15px] leading-relaxed mt-2 whitespace-pre-wrap">{item.texto}</p>
       {item.categoria && (
-        <span className="inline-block mt-2 text-xs text-text-muted border border-border rounded-full px-2 py-0.5">{item.categoria}</span>
+        <span className="inline-block mt-2 text-xs text-chumbo border border-border rounded-full px-2 py-0.5">{item.categoria}</span>
       )}
 
       {respostaSalva && (
-        <p className="text-sm text-text-muted italic mt-3 border-l-2 border-border pl-3">Sua resposta: {respostaSalva}</p>
+        <p className="text-sm text-grafite italic mt-3 border-l-2 border-border pl-3">Sua resposta: {respostaSalva}</p>
       )}
 
       {!lidoEm && (
@@ -109,14 +79,18 @@ function Card({ item, slug }: { item: ItemElogio; slug: string }) {
           type="button"
           onClick={() => confirmar()}
           disabled={enviando}
-          className="btn-primary w-full mt-3 py-3 disabled:opacity-60"
+          className="btn-secondary w-full mt-3 disabled:opacity-60"
         >
-          {enviando ? 'Confirmando…' : 'Recebi ✓'}
+          <Check size={18} strokeWidth={1.5} />
+          {enviando ? 'Confirmando…' : 'Recebi'}
         </button>
       )}
 
       {lidoEm && !respostaSalva && !mostrarResp && (
-        <p className="text-xs text-text-muted mt-3">Você confirmou leitura em {dataLonga(lidoEm)}.</p>
+        <p className="inline-flex items-center gap-1.5 text-xs text-verde-musgo mt-3">
+          <CheckCircle2 size={14} strokeWidth={1.5} />
+          Você confirmou leitura em {dataLonga(lidoEm)}.
+        </p>
       )}
 
       {mostrarResp && !respostaSalva && (
@@ -125,15 +99,15 @@ function Card({ item, slug }: { item: ItemElogio; slug: string }) {
             value={resposta}
             onChange={(e) => setResposta(e.target.value)}
             rows={2}
-            placeholder={v.placeholder}
+            placeholder={PLACEHOLDER[item.tipo]}
             className="input text-sm"
             autoFocus
           />
           <div className="flex gap-2">
-            <button type="button" onClick={() => confirmar(resposta)} disabled={enviando || !resposta.trim()} className="btn-primary flex-1 py-2.5 text-sm disabled:opacity-60">
+            <button type="button" onClick={() => confirmar(resposta)} disabled={enviando || !resposta.trim()} className="btn-primary flex-1 disabled:opacity-60">
               Enviar resposta
             </button>
-            <button type="button" onClick={() => setMostrarResp(false)} className="text-text-muted text-sm px-4">Pular</button>
+            <button type="button" onClick={() => setMostrarResp(false)} className="text-grafite text-sm px-4">Pular</button>
           </div>
         </div>
       )}
@@ -146,8 +120,8 @@ export default function Timeline({ itens, slug }: { itens: ItemElogio[]; slug: s
 
   if (itens.length === 0) {
     return (
-      <div className="rounded-2xl border border-border bg-surface p-6 text-center">
-        <p className="text-text-muted">Ainda não há mensagens registradas. Dê o seu melhor — cada atendimento é uma oportunidade.</p>
+      <div className="rounded-lg border border-border bg-surface p-6 text-center">
+        <p className="text-grafite">Ainda não há mensagens registradas. Dê o seu melhor — cada atendimento é uma oportunidade.</p>
       </div>
     )
   }
@@ -156,7 +130,7 @@ export default function Timeline({ itens, slug }: { itens: ItemElogio[]; slug: s
     <div className="space-y-3">
       {itens.slice(0, mostrar).map((e) => <Card key={e.id} item={e} slug={slug} />)}
       {mostrar < itens.length && (
-        <button type="button" onClick={() => setMostrar((m) => m + PAGINA)} className="btn-secondary w-full py-3 text-sm">
+        <button type="button" onClick={() => setMostrar((m) => m + PAGINA)} className="btn-secondary w-full text-sm">
           Ver mais
         </button>
       )}
