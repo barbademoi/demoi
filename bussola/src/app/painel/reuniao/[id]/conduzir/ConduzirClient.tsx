@@ -5,16 +5,20 @@ import { useRouter } from 'next/navigation'
 import Avatar from '@/components/Avatar'
 import Estrelas from '@/components/Estrelas'
 import { TIPOS, type TipoFeedback } from '@/lib/feedbacks'
-import type { MetaSemanal, NovaMeta, PautaReuniao } from '@/lib/pauta'
-import { finalizarReuniao } from '../../actions'
+import type { AvaliacaoMeta, MetaSemanal, NovaMeta, PautaReuniao } from '@/lib/pauta'
+import { salvarPauta, finalizarReuniao, marcarDiscutido } from '../../actions'
+import SugestaoFala from '../../SugestaoFala'
 
-export interface FeedbackSlide {
+export interface FbItem {
   id: string
-  profissional_id: string
+  profissional_id: string | null
+  escopo: 'individual' | 'equipe'
   tipo: TipoFeedback
   estrelas: number | null
   texto: string
   categoria: string | null
+  status: string
+  sugestao_ia: string | null
   profissionais: { nome: string; foto_url: string | null } | null
 }
 
@@ -24,250 +28,322 @@ interface ProfLite {
   foto_url: string | null
 }
 
-type Slide =
-  | { tipo: 'intro' }
-  | { tipo: 'titulo'; texto: string }
-  | { tipo: 'feedback'; f: FeedbackSlide }
-  | { tipo: 'feedbackEquipe'; f: FeedbackSlide }
-  | { tipo: 'metricas' }
-  | { tipo: 'metaPassada'; meta: MetaSemanal }
-  | { tipo: 'novasMetas' }
-  | { tipo: 'fechamento' }
+interface Metricas {
+  total: number
+  positivos: number
+  negativos: number
+  observacoes: number
+  maiorPlacar: { nome: string; valor: number }
+  maisEvoluiu: { nome: string; delta: number }
+}
 
 interface Props {
   reuniaoId: string
-  estabNome: string
   dataLabel: string
   pautaInicial: PautaReuniao
-  positivos: FeedbackSlide[]
-  negativos: FeedbackSlide[]
-  equipe: FeedbackSlide[]
+  positivos: FbItem[]
+  negativos: FbItem[]
+  observacoes: FbItem[]
+  equipe: FbItem[]
   ativos: ProfLite[]
   metasPassadas: MetaSemanal[]
+  metricas: Metricas
+}
+
+function Bloco({ titulo, sub, children }: { titulo: string; sub?: string; children: React.ReactNode }) {
+  const [aberto, setAberto] = useState(true)
+  return (
+    <section className="card overflow-hidden">
+      <button type="button" onClick={() => setAberto((v) => !v)} className="w-full flex items-center justify-between p-4 text-left">
+        <span>
+          <span className="font-semibold text-text">{titulo}</span>
+          {sub && <span className="text-text-muted text-sm font-normal"> {sub}</span>}
+        </span>
+        <span className="text-text-muted text-xl leading-none">{aberto ? '−' : '+'}</span>
+      </button>
+      {aberto && <div className="px-4 pb-4 space-y-3">{children}</div>}
+    </section>
+  )
 }
 
 export default function ConduzirClient(props: Props) {
-  const { reuniaoId, estabNome, dataLabel, pautaInicial, positivos, negativos, equipe, ativos, metasPassadas } = props
+  const { reuniaoId, dataLabel, pautaInicial, positivos, negativos, observacoes, equipe, ativos, metasPassadas, metricas } = props
   const router = useRouter()
 
-  const slides: Slide[] = [{ tipo: 'intro' }]
-  if (positivos.length) {
-    slides.push({ tipo: 'titulo', texto: '🎉 Elogios da semana' })
-    positivos.forEach((f) => slides.push({ tipo: 'feedback', f }))
-  }
-  if (negativos.length) {
-    slides.push({ tipo: 'titulo', texto: '🌱 Pontos a desenvolver' })
-    negativos.forEach((f) => slides.push({ tipo: 'feedback', f }))
-  }
-  if (equipe.length) {
-    slides.push({ tipo: 'titulo', texto: '👥 Sobre a equipe' })
-    equipe.forEach((f) => slides.push({ tipo: 'feedbackEquipe', f }))
-  }
-  slides.push({ tipo: 'metricas' })
-  if (metasPassadas.length) {
-    slides.push({ tipo: 'titulo', texto: '🎯 Metas da semana passada' })
-    metasPassadas.forEach((m) => slides.push({ tipo: 'metaPassada', meta: m }))
-  }
-  slides.push({ tipo: 'titulo', texto: '🚀 Novas metas' })
-  slides.push({ tipo: 'novasMetas' })
-  slides.push({ tipo: 'fechamento' })
+  const todosFb = [...positivos, ...negativos, ...observacoes, ...equipe]
 
-  const [idx, setIdx] = useState(0)
-  const [presentes, setPresentes] = useState<Set<string>>(new Set(pautaInicial.presentes ?? ativos.map((a) => a.id)))
+  const [discutidos, setDiscutidos] = useState<Set<string>>(
+    new Set(todosFb.filter((f) => f.status.startsWith('discutido')).map((f) => f.id))
+  )
   const [notas, setNotas] = useState<Record<string, string>>(pautaInicial.anotacoes ?? {})
+  const [avaliacoes, setAvaliacoes] = useState<Record<string, { avaliacao: AvaliacaoMeta; comentario?: string }>>(pautaInicial.metasPassadas ?? {})
   const [novasMetas, setNovasMetas] = useState<NovaMeta[]>(pautaInicial.novasMetas ?? [])
+  const [metricasNotas, setMetricasNotas] = useState(pautaInicial.metricasNotas ?? '')
+  const [metricasDiscutida, setMetricasDiscutida] = useState(!!pautaInicial.metricasDiscutida)
+  const [confirmar, setConfirmar] = useState(false)
   const [finalizando, startFinalizar] = useTransition()
-  const touchX = useRef<number | null>(null)
 
-  const irPara = (n: number) => setIdx((i) => Math.max(0, Math.min(slides.length - 1, n)))
-  const prox = () => irPara(idx + 1)
-  const ant = () => irPara(idx - 1)
-
+  const inicioMs = useRef(pautaInicial.iniciada_em ? Date.parse(pautaInicial.iniciada_em) : Date.now())
+  const inicioISO = new Date(inicioMs.current).toISOString()
+  const [agora, setAgora] = useState(Date.now())
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); prox() }
-      else if (e.key === 'ArrowLeft') { e.preventDefault(); ant() }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx, slides.length])
+    const id = setInterval(() => setAgora(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  const minutos = Math.floor((agora - inicioMs.current) / 60000)
 
-  function onTouchEnd(e: React.TouchEvent) {
-    if (touchX.current === null) return
-    const dx = e.changedTouches[0].clientX - touchX.current
-    if (Math.abs(dx) > 50) (dx < 0 ? prox : ant)()
-    touchX.current = null
+  function montarPauta(): PautaReuniao {
+    return {
+      ...pautaInicial,
+      iniciada_em: inicioISO,
+      anotacoes: notas,
+      metasPassadas: avaliacoes,
+      novasMetas: novasMetas.filter((m) => m.texto.trim()),
+      metricasNotas,
+      metricasDiscutida,
+    }
   }
+
+  // Salvamento da pauta com debounce de 1s (pula a 1ª renderização).
+  const primeiraRef = useRef(true)
+  useEffect(() => {
+    if (primeiraRef.current) {
+      primeiraRef.current = false
+      return
+    }
+    const t = setTimeout(() => {
+      salvarPauta(reuniaoId, montarPauta())
+    }, 1000)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notas, avaliacoes, novasMetas, metricasNotas, metricasDiscutida])
+
+  function toggle(f: FbItem) {
+    setDiscutidos((prev) => {
+      const n = new Set(prev)
+      const novo = !n.has(f.id)
+      if (novo) n.add(f.id)
+      else n.delete(f.id)
+      marcarDiscutido(f.id, novo)
+      return n
+    })
+  }
+
+  const nomePorId = (id: string | null) => (id ? ativos.find((a) => a.id === id)?.nome ?? '—' : 'Equipe')
+
+  // Progresso.
+  const novasValidas = novasMetas.filter((m) => m.texto.trim())
+  const metasComAval = metasPassadas.filter((m) => avaliacoes[m.id]?.avaliacao).length
+  const total = todosFb.length + 1 + metasPassadas.length + novasValidas.length
+  const feitos = discutidos.size + (metricasDiscutida ? 1 : 0) + metasComAval + novasValidas.length
+  const pendentes = Math.max(0, total - feitos)
+  const pct = total ? Math.round((feitos / total) * 100) : 100
 
   function finalizar() {
-    const pauta: PautaReuniao = {
-      ...pautaInicial,
-      presentes: Array.from(presentes),
-      anotacoes: notas,
-      novasMetas: novasMetas.filter((m) => m.texto.trim()),
-    }
     startFinalizar(async () => {
-      const res = await finalizarReuniao(reuniaoId, pauta)
+      const res = await finalizarReuniao(reuniaoId, montarPauta())
       if (!res?.error) router.push(`/painel/reuniao/${reuniaoId}/resumo`)
     })
   }
 
-  const nomePorId = (id: string | null) => (id ? ativos.find((a) => a.id === id)?.nome ?? '—' : 'Geral')
-  const s = slides[idx]
-  const metasValidas = novasMetas.filter((m) => m.texto.trim())
+  const Card = ({ f }: { f: FbItem }) => {
+    const marcado = discutidos.has(f.id)
+    const grave = f.tipo === 'negativo' && (f.estrelas ?? 0) >= 4
+    return (
+      <div className={`rounded-xl border p-3 transition-opacity ${marcado ? 'opacity-50' : ''} ${grave ? 'border-orange-300 bg-orange-50' : 'border-border bg-white'}`}>
+        <div className="flex items-start gap-3">
+          <input
+            type="checkbox"
+            checked={marcado}
+            onChange={() => toggle(f)}
+            className="accent-primary mt-0.5 shrink-0"
+            style={{ width: 24, height: 24 }}
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              {f.escopo === 'individual' && f.profissionais ? (
+                <>
+                  <Avatar nome={f.profissionais.nome} fotoUrl={f.profissionais.foto_url} size={28} />
+                  <span className="text-sm font-medium text-text">{f.profissionais.nome}</span>
+                </>
+              ) : (
+                <span className="text-sm font-medium text-text">👥 Equipe</span>
+              )}
+              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TIPOS[f.tipo].badge}`}>{TIPOS[f.tipo].label}</span>
+              <Estrelas value={f.estrelas ?? 0} readOnly size={14} cor={TIPOS[f.tipo].estrela} />
+            </div>
+            {grave && <p className="text-orange-700 text-xs font-medium mt-1">Conversa individual sugerida</p>}
+            <p className="text-sm text-text mt-1.5">{f.texto}</p>
+            {f.categoria && <span className="inline-block mt-1 text-xs bg-primary-soft text-primary rounded-full px-2 py-0.5">{f.categoria}</span>}
+            {f.escopo === 'individual' && <SugestaoFala feedbackId={f.id} inicial={f.sugestao_ia} />}
+            <textarea
+              value={notas[f.id] ?? ''}
+              onChange={(e) => setNotas((n) => ({ ...n, [f.id]: e.target.value }))}
+              placeholder="Anotação…"
+              rows={1}
+              className="input mt-2 text-sm py-2 min-h-[40px]"
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div
-      className="min-h-screen bg-background flex flex-col"
-      onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
-      onTouchEnd={onTouchEnd}
-    >
-      <div className="flex-1 flex items-center justify-center px-5 py-8">
-        <div className="w-full max-w-lg">
-          {s.tipo === 'intro' && (
-            <div className="text-center space-y-4">
-              <p className="text-text-muted">Reunião de</p>
-              <h1 className="text-3xl font-bold text-text">{dataLabel}</h1>
-              <p className="text-text-muted">{estabNome}</p>
-              <div className="space-y-2 text-left max-w-xs mx-auto mt-6">
-                {ativos.map((p) => (
-                  <label key={p.id} className="flex items-center gap-3 p-2 rounded-xl border border-border bg-white">
-                    <input
-                      type="checkbox"
-                      checked={presentes.has(p.id)}
-                      onChange={(e) => setPresentes((prev) => { const n = new Set(prev); e.target.checked ? n.add(p.id) : n.delete(p.id); return n })}
-                      className="accent-primary w-5 h-5"
-                    />
-                    <Avatar nome={p.nome} fotoUrl={p.foto_url} size={32} />
-                    <span className="text-sm text-text">{p.nome}</span>
-                  </label>
-                ))}
-              </div>
-              <button type="button" onClick={prox} className="btn-primary mt-4">Começar</button>
-            </div>
-          )}
-
-          {s.tipo === 'titulo' && (
-            <h1 className="text-4xl font-extrabold text-center text-text">{s.texto}</h1>
-          )}
-
-          {s.tipo === 'feedback' && (
-            <div className="text-center">
-              <div className="flex justify-center mb-4">
-                <Avatar nome={s.f.profissionais?.nome ?? '?'} fotoUrl={s.f.profissionais?.foto_url} size={96} />
-              </div>
-              <h2 className="text-2xl font-bold text-text">{s.f.profissionais?.nome}</h2>
-              <div className="flex justify-center my-3">
-                <Estrelas value={s.f.estrelas ?? 0} readOnly size={28} cor={TIPOS[s.f.tipo].estrela} />
-              </div>
-              <p className="text-xl text-text leading-relaxed">{s.f.texto}</p>
-              {s.f.categoria && <p className="text-sm text-primary mt-2">{s.f.categoria}</p>}
-              <textarea
-                value={notas[s.f.id] ?? ''}
-                onChange={(e) => setNotas((n) => ({ ...n, [s.f.id]: e.target.value }))}
-                placeholder="Anotação durante a discussão…"
-                rows={2}
-                className="input mt-5 text-base"
-              />
-            </div>
-          )}
-
-          {s.tipo === 'feedbackEquipe' && (
-            <div className="text-center">
-              <div className="text-6xl mb-3">👥</div>
-              <h2 className="text-2xl font-bold text-text">Feedback sobre a equipe</h2>
-              <div className="flex justify-center my-3">
-                <Estrelas value={s.f.estrelas ?? 0} readOnly size={28} cor={TIPOS[s.f.tipo].estrela} />
-              </div>
-              <p className="text-xl text-text leading-relaxed">{s.f.texto}</p>
-              {s.f.categoria && <p className="text-sm text-primary mt-2">{s.f.categoria}</p>}
-              <textarea
-                value={notas[s.f.id] ?? ''}
-                onChange={(e) => setNotas((n) => ({ ...n, [s.f.id]: e.target.value }))}
-                placeholder="Anotação durante a discussão…"
-                rows={2}
-                className="input mt-5 text-base"
-              />
-            </div>
-          )}
-
-          {s.tipo === 'metricas' && (
-            <div className="text-center space-y-3">
-              <h2 className="text-2xl font-bold text-text">📊 Métricas</h2>
-              <p className="text-lg text-text">Elogios discutidos: <strong>{positivos.length}</strong></p>
-              <p className="text-lg text-text">Pontos a desenvolver: <strong>{negativos.length}</strong></p>
-              <p className="text-lg text-text">Feedbacks de equipe: <strong>{equipe.length}</strong></p>
-              {pautaInicial.metricasNotas && (
-                <p className="text-text-muted whitespace-pre-wrap mt-3">{pautaInicial.metricasNotas}</p>
-              )}
-            </div>
-          )}
-
-          {s.tipo === 'metaPassada' && (
-            <div className="text-center space-y-2">
-              <p className="text-xl text-text font-medium">{s.meta.texto}</p>
-              <p className="text-text-muted">Responsável: {nomePorId(s.meta.responsavel_id)}</p>
-              {(() => {
-                const av = pautaInicial.metasPassadas?.[s.meta.id]
-                const map: Record<string, string> = { cumprida: '✅ Cumprida', parcial: '⚠️ Parcial', nao_cumprida: '❌ Não cumprida' }
-                return <p className="text-lg mt-2">{av ? map[av.avaliacao] : 'Não avaliada'}{av?.comentario ? ` — ${av.comentario}` : ''}</p>
-              })()}
-            </div>
-          )}
-
-          {s.tipo === 'novasMetas' && (
-            <div className="space-y-3">
-              <h2 className="text-2xl font-bold text-text text-center mb-2">🚀 Novas metas</h2>
-              {novasMetas.map((m, i) => (
-                <div key={i} className="rounded-xl border border-border bg-white p-3 space-y-2">
-                  <input
-                    type="text"
-                    value={m.texto}
-                    onChange={(e) => setNovasMetas((arr) => arr.map((x, j) => (j === i ? { ...x, texto: e.target.value } : x)))}
-                    placeholder="Texto da meta"
-                    className="input text-base py-2.5"
-                  />
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={m.responsavel_id ?? ''}
-                      onChange={(e) => setNovasMetas((arr) => arr.map((x, j) => (j === i ? { ...x, responsavel_id: e.target.value || null } : x)))}
-                      className="input text-sm py-2 flex-1"
-                    >
-                      <option value="">Geral</option>
-                      {ativos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                    </select>
-                    <button type="button" onClick={() => setNovasMetas((arr) => arr.filter((_, j) => j !== i))} className="text-red-600 text-sm px-2">Remover</button>
-                  </div>
-                </div>
-              ))}
-              {novasMetas.length < 3 && (
-                <button type="button" onClick={() => setNovasMetas((m) => [...m, { texto: '', responsavel_id: null }])} className="btn-secondary w-full py-2.5 text-sm">
-                  + Adicionar meta
-                </button>
-              )}
-            </div>
-          )}
-
-          {s.tipo === 'fechamento' && (
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl font-bold text-text">Fechamento</h2>
-              <p className="text-lg text-text">{positivos.length + negativos.length + equipe.length} feedbacks discutidos</p>
-              <p className="text-lg text-text">{metasValidas.length} meta{metasValidas.length === 1 ? '' : 's'} definida{metasValidas.length === 1 ? '' : 's'}</p>
-              <button type="button" onClick={finalizar} disabled={finalizando} className="btn-primary w-full mt-4">
-                {finalizando ? 'Finalizando…' : 'Finalizar reunião'}
-              </button>
-            </div>
-          )}
+    <main className="max-w-2xl mx-auto px-4 py-4 space-y-4 pb-28 animate-fade-in">
+      {/* CABEÇALHO */}
+      <div className="sticky top-[56px] z-10 -mx-4 px-4 py-3 bg-background/95 backdrop-blur border-b border-border">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="font-bold text-text">Reunião — {dataLabel}</p>
+            <p className="text-xs text-text-muted">Tempo: {minutos} min</p>
+          </div>
+          <button type="button" onClick={() => (pendentes > 0 ? setConfirmar(true) : finalizar())} disabled={finalizando} className="btn-primary px-4 py-2 text-sm">
+            Finalizar
+          </button>
+        </div>
+        <div className="mt-2">
+          <div className="h-1.5 rounded-full bg-border overflow-hidden">
+            <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="text-xs text-text-muted mt-1">Progresso: {feitos}/{total} itens</p>
         </div>
       </div>
 
-      {/* NAVEGAÇÃO */}
-      <div className="border-t border-border bg-surface px-4 py-3 flex items-center justify-between">
-        <button type="button" onClick={ant} disabled={idx === 0} className="btn-secondary px-4 py-2 text-sm disabled:opacity-40">←</button>
-        <span className="text-xs text-text-muted">{idx + 1} / {slides.length}</span>
-        <button type="button" onClick={prox} disabled={idx === slides.length - 1} className="btn-secondary px-4 py-2 text-sm disabled:opacity-40">→</button>
+      {positivos.length > 0 && (
+        <Bloco titulo="🎉 Elogios" sub={`(${positivos.length} — ${positivos.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
+          {positivos.map((f) => <Card key={f.id} f={f} />)}
+        </Bloco>
+      )}
+
+      {equipe.length > 0 && (
+        <Bloco titulo="👥 Sobre a equipe" sub={`(${equipe.length} — ${equipe.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
+          {equipe.map((f) => <Card key={f.id} f={f} />)}
+        </Bloco>
+      )}
+
+      {negativos.length > 0 && (
+        <Bloco titulo="🌱 Pontos a desenvolver" sub={`(${negativos.length} — ${negativos.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
+          {negativos.map((f) => <Card key={f.id} f={f} />)}
+        </Bloco>
+      )}
+
+      {observacoes.length > 0 && (
+        <Bloco titulo="👁 Observações" sub={`(${observacoes.length})`}>
+          {observacoes.map((f) => <Card key={f.id} f={f} />)}
+        </Bloco>
+      )}
+
+      {/* MÉTRICAS */}
+      <Bloco titulo="📊 Métricas da semana">
+        <ul className="text-sm text-text space-y-1">
+          <li>Total: <strong>{metricas.total}</strong> · 🟢 {metricas.positivos} · 🔴 {metricas.negativos} · ⚪ {metricas.observacoes}</li>
+          <li>Maior placar: <strong>{metricas.maiorPlacar.nome}</strong> ({metricas.maiorPlacar.valor > 0 ? '+' : ''}{metricas.maiorPlacar.valor})</li>
+          <li>Mais evoluiu: <strong>{metricas.maisEvoluiu.nome}</strong> ({metricas.maisEvoluiu.delta > 0 ? '+' : ''}{metricas.maisEvoluiu.delta})</li>
+        </ul>
+        <textarea
+          value={metricasNotas}
+          onChange={(e) => setMetricasNotas(e.target.value)}
+          rows={2}
+          placeholder="Anotações de métricas externas (faturamento etc.)"
+          className="input"
+        />
+        <label className="flex items-center gap-3 mt-1">
+          <input type="checkbox" checked={metricasDiscutida} onChange={(e) => setMetricasDiscutida(e.target.checked)} className="accent-primary" style={{ width: 22, height: 22 }} />
+          <span className="text-sm text-text">Discuti as métricas</span>
+        </label>
+      </Bloco>
+
+      {/* METAS PASSADAS */}
+      {metasPassadas.length > 0 && (
+        <Bloco titulo="🎯 Metas da semana passada" sub={`(${metasComAval}/${metasPassadas.length})`}>
+          {metasPassadas.map((m) => {
+            const av = avaliacoes[m.id]
+            return (
+              <div key={m.id} className="rounded-xl border border-border p-3">
+                <p className="text-sm text-text font-medium">{m.texto}</p>
+                <p className="text-xs text-text-muted">Responsável: {nomePorId(m.responsavel_id)}</p>
+                <div className="flex gap-1.5 mt-2">
+                  {([['cumprida', '✅ Cumprida'], ['parcial', '⚠️ Parcial'], ['nao_cumprida', '❌ Não']] as [AvaliacaoMeta, string][]).map(([v, label]) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setAvaliacoes((a) => ({ ...a, [m.id]: { ...a[m.id], avaliacao: v } }))}
+                      className={['px-2.5 py-1.5 rounded-lg text-xs font-medium border', av?.avaliacao === v ? 'border-primary bg-primary text-white' : 'border-border bg-white text-text-muted'].join(' ')}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={av?.comentario ?? ''}
+                  onChange={(e) => setAvaliacoes((a) => ({ ...a, [m.id]: { avaliacao: a[m.id]?.avaliacao ?? 'parcial', comentario: e.target.value } }))}
+                  placeholder="Comentário (opcional)"
+                  className="input mt-2 text-sm py-2"
+                />
+              </div>
+            )
+          })}
+        </Bloco>
+      )}
+
+      {/* NOVAS METAS */}
+      <Bloco titulo="🚀 Novas metas" sub={`(${novasValidas.length})`}>
+        {novasMetas.map((m, i) => (
+          <div key={i} className="rounded-xl border border-border p-3 space-y-2">
+            <input
+              type="text"
+              value={m.texto}
+              onChange={(e) => setNovasMetas((arr) => arr.map((x, j) => (j === i ? { ...x, texto: e.target.value } : x)))}
+              placeholder="Ex.: Cumprimentar todo cliente pelo nome"
+              className="input text-sm py-2.5"
+            />
+            <div className="flex items-center gap-2">
+              <select
+                value={m.responsavel_id ?? ''}
+                onChange={(e) => setNovasMetas((arr) => arr.map((x, j) => (j === i ? { ...x, responsavel_id: e.target.value || null } : x)))}
+                className="input text-sm py-2 flex-1"
+              >
+                <option value="">Equipe</option>
+                {ativos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+              </select>
+              <button type="button" onClick={() => setNovasMetas((arr) => arr.filter((_, j) => j !== i))} className="text-red-600 text-sm px-2">Excluir</button>
+            </div>
+          </div>
+        ))}
+        {novasMetas.length < 3 && (
+          <button type="button" onClick={() => setNovasMetas((m) => [...m, { texto: '', responsavel_id: null }])} className="btn-secondary w-full py-2.5 text-sm">
+            + Adicionar nova meta
+          </button>
+        )}
+        <p className="text-xs text-text-muted">Mínimo 1 meta, máximo 3.</p>
+      </Bloco>
+
+      {/* AÇÕES */}
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={() => (pendentes > 0 ? setConfirmar(true) : finalizar())} disabled={finalizando} className="btn-primary flex-1">
+          {finalizando ? 'Finalizando…' : 'Finalizar reunião'}
+        </button>
+        <button type="button" onClick={() => { salvarPauta(reuniaoId, montarPauta()); router.push('/painel/reuniao') }} className="btn-secondary text-sm px-3">
+          Salvar e depois
+        </button>
       </div>
-    </div>
+
+      {confirmar && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={() => setConfirmar(false)}>
+          <div className="bg-surface rounded-2xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+            <h4 className="font-semibold text-text mb-2">Finalizar reunião?</h4>
+            <p className="text-sm text-text-muted mb-5">Você tem {pendentes} {pendentes === 1 ? 'item' : 'itens'} sem discutir. Deseja mesmo finalizar?</p>
+            <div className="flex gap-2">
+              <button type="button" onClick={finalizar} disabled={finalizando} className="btn-primary flex-1">
+                {finalizando ? 'Finalizando…' : 'Finalizar mesmo assim'}
+              </button>
+              <button type="button" onClick={() => setConfirmar(false)} className="text-text-muted hover:text-text px-4">Voltar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
   )
 }

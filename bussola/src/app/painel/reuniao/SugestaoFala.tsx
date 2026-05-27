@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 
-export default function SugestaoFala({ feedbackId }: { feedbackId: string }) {
-  const [sugestao, setSugestao] = useState<string | null>(null)
+export default function SugestaoFala({ feedbackId, inicial }: { feedbackId: string; inicial?: string | null }) {
+  const [sugestao, setSugestao] = useState<string | null>(inicial ?? null)
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState(false)
   const [copiado, setCopiado] = useState(false)

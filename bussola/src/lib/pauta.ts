@@ -16,6 +16,7 @@ export interface PautaReuniao {
   presentes?: string[]
   anotacoes?: Record<string, string> // feedbackId -> nota durante a condução
   anotacaoGeral?: string
+  metricasDiscutida?: boolean
 }
 
 export interface Reuniao {
