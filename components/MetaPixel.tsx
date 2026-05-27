@@ -10,7 +10,22 @@ function RouteTracker() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    trackPageView()
+    const eventId =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `pv_${Date.now()}_${Math.random().toString(36).slice(2)}`
+
+    // 1) Pixel do navegador (com eventID pra deduplicar com o CAPI).
+    trackPageView(eventId)
+
+    // 2) CAPI server-side via endpoint first-party — sobrevive a ITP/ad blocker
+    //    que bloqueia o connect.facebook.net. Mesmo eventId = sem contagem dupla.
+    fetch('/api/meta/pageview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventId, eventSourceUrl: window.location.href }),
+      keepalive: true,
+    }).catch(() => {})
   }, [pathname, searchParams])
 
   return null
@@ -35,7 +50,6 @@ export default function MetaPixel() {
             s.parentNode.insertBefore(t,s)}(window, document,'script',
             'https://connect.facebook.net/en_US/fbevents.js');
             fbq('init', '${META_PIXEL_ID}');
-            fbq('track', 'PageView');
           `,
         }}
       />
