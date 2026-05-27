@@ -67,7 +67,7 @@ export default function FeedbacksList({
       </div>
 
       <div className="flex flex-wrap gap-1.5 mb-2">
-        {([['todos', 'Todos'], ['lidos', 'Lidos'], ['respondidos', 'Respondidos'], ['carencia', '🕐 Em carência']] as ['todos' | 'lidos' | 'respondidos' | 'carencia', string][]).map(([v, label]) => (
+        {([['todos', 'Todos'], ['lidos', 'Lidos'], ['respondidos', 'Respondidos'], ['carencia', 'Em carência']] as ['todos' | 'lidos' | 'respondidos' | 'carencia', string][]).map(([v, label]) => (
           <button
             key={v}
             type="button"

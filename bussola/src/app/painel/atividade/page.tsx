@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { Inbox } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
 import AtividadeClient, { type ItemAtividade } from './AtividadeClient'
 
@@ -33,7 +34,9 @@ export default async function AtividadePage() {
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-6 animate-fade-in">
-      <h1 className="text-xl font-bold text-text mb-4">📬 Atividade da equipe</h1>
+      <h1 className="text-xl font-semibold text-text mb-4 inline-flex items-center gap-2">
+        <Inbox size={22} strokeWidth={1.5} color="#8B6F47" /> Atividade da equipe
+      </h1>
       <AtividadeClient itens={itens} ativos={(ativosData ?? []) as { id: string; nome: string }[]} />
     </main>
   )

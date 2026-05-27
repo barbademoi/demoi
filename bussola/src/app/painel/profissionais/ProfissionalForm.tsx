@@ -134,7 +134,7 @@ export default function ProfissionalForm({ estabelecimentoId, modo, inicial }: P
               />
             </label>
             <p className="text-xs text-text-muted mt-1.5">JPG, PNG ou WEBP. Opcional.</p>
-            {erroFoto && <p className="text-red-600 text-xs mt-1">{erroFoto}</p>}
+            {erroFoto && <p className="text-vinho text-xs mt-1">{erroFoto}</p>}
           </div>
         </div>
 
@@ -307,7 +307,7 @@ export default function ProfissionalForm({ estabelecimentoId, modo, inicial }: P
         )}
       </section>
 
-      {error && <p className="text-red-600 text-sm text-center">{error}</p>}
+      {error && <p className="text-vinho text-sm text-center">{error}</p>}
 
       <div className="flex items-center gap-3">
         <button type="submit" disabled={isPending || uploading} className="btn-primary flex-1">

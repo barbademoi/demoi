@@ -46,7 +46,7 @@ export default function AcoesStatus({
             type="button"
             onClick={() => setConfirmarDesligar(true)}
             disabled={isPending}
-            className="px-4 py-2 text-sm rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+            className="px-4 py-2 text-sm rounded-md border border-border text-vinho hover:bg-vinho/5 transition-colors"
           >
             Desligar
           </button>
@@ -55,9 +55,9 @@ export default function AcoesStatus({
 
       {confirmarDesligar && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={() => setConfirmarDesligar(false)}>
-          <div className="bg-surface rounded-2xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-surface rounded-lg w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
             <h4 className="font-semibold text-text mb-2">Desligar {nome}?</h4>
-            <p className="text-sm text-text-muted mb-5">
+            <p className="text-sm text-grafite mb-5">
               O link do profissional vai parar de funcionar e ele não terá mais acesso ao placar.
               Você pode reativar depois se quiser.
             </p>
@@ -66,11 +66,11 @@ export default function AcoesStatus({
                 type="button"
                 onClick={() => aplicar('desligado')}
                 disabled={isPending}
-                className="flex-1 py-3 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition-colors disabled:opacity-60"
+                className="btn-destrutivo flex-1"
               >
                 {isPending ? 'Desligando…' : 'Sim, desligar'}
               </button>
-              <button type="button" onClick={() => setConfirmarDesligar(false)} className="text-text-muted hover:text-text px-4">
+              <button type="button" onClick={() => setConfirmarDesligar(false)} className="text-grafite hover:text-text px-4">
                 Cancelar
               </button>
             </div>

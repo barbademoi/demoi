@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Link2, Copy, Check, MessageCircle, CheckCircle2 } from 'lucide-react'
 import { mensagemConvite } from '@/lib/whatsapp'
 
 interface Props {
@@ -36,12 +37,14 @@ export default function LinkProfissional({ nome, url, destaque = false }: Props)
       ].join(' ')}
     >
       {destaque && (
-        <p className="text-primary text-sm font-medium mb-3">
-          ✅ Profissional criado! Compartilhe o link abaixo.
+        <p className="inline-flex items-center gap-1.5 text-verde-musgo text-sm font-medium mb-3">
+          <CheckCircle2 size={16} strokeWidth={1.5} /> Profissional criado! Compartilhe o link abaixo.
         </p>
       )}
-      <h3 className="font-semibold text-text mb-1">🔗 Link do profissional</h3>
-      <p className="text-text-muted text-sm mb-3">
+      <h3 className="font-semibold text-text mb-1 inline-flex items-center gap-2">
+        <Link2 size={18} strokeWidth={1.5} color="#8B6F47" /> Link do profissional
+      </h3>
+      <p className="text-chumbo text-sm mb-3">
         Compartilhe este link com <strong className="text-text">{nome}</strong> pelo WhatsApp. Ele
         acompanha os elogios dele pelo celular, sem precisar criar conta.
       </p>
@@ -55,16 +58,18 @@ export default function LinkProfissional({ nome, url, destaque = false }: Props)
       />
 
       <div className="flex flex-col sm:flex-row gap-2">
-        <button type="button" onClick={copiar} className="btn-secondary flex-1 py-3 text-sm">
-          {copiado ? '✓ Link copiado!' : '📋 Copiar link'}
+        <button type="button" onClick={copiar} className="btn-secondary flex-1 text-sm">
+          {copiado ? <Check size={18} strokeWidth={1.5} /> : <Copy size={18} strokeWidth={1.5} />}
+          {copiado ? 'Link copiado!' : 'Copiar link'}
         </button>
         <a
           href={whatsHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn-primary flex-1 py-3 text-sm"
+          className="btn-primary flex-1 text-sm"
         >
-          📱 Compartilhar no WhatsApp
+          <MessageCircle size={18} strokeWidth={1.5} />
+          Compartilhar no WhatsApp
         </a>
       </div>
     </div>

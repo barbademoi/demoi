@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Sparkles, Sprout } from 'lucide-react'
+import { Check, Sparkles, Sprout, User, Users } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import Estrelas from '@/components/Estrelas'
 import { TIPO_VISUAL } from '@/components/tipoVisual'
@@ -174,16 +174,17 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
     <div className="space-y-6 pb-28">
       {/* TOGGLE — INDIVIDUAL x EQUIPE */}
       <div className="grid grid-cols-2 gap-2">
-        {([['individual', '👤 Para alguém'], ['equipe', '👥 Para a equipe']] as [EscopoFeedback, string][]).map(([v, label]) => (
+        {([['individual', 'Para alguém', User], ['equipe', 'Para a equipe', Users]] as [EscopoFeedback, string, typeof User][]).map(([v, label, Icon]) => (
           <button
             key={v}
             type="button"
             onClick={() => setEscopo(v)}
             className={[
-              'py-3 rounded-xl border text-sm font-semibold transition-colors',
-              escopo === v ? 'border-primary bg-primary text-white' : 'border-border bg-white text-text hover:border-primary/40',
+              'inline-flex items-center justify-center gap-2 py-3 rounded-md border text-sm font-semibold transition-colors',
+              escopo === v ? 'border-marrom bg-marrom text-white' : 'border-border bg-white text-text hover:border-marrom/40',
             ].join(' ')}
           >
+            <Icon size={18} strokeWidth={1.5} />
             {label}
           </button>
         ))}
