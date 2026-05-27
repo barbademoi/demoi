@@ -22,13 +22,22 @@ async function getEstabConfig() {
     .select('id, mostrar_negativos_profissional, mostrar_observacoes_profissional, atraso_negativo_minutos')
     .eq('dono_id', user.id)
     .maybeSingle()
-  if (!data) return null
-  return {
-    id: data.id as string,
-    mostrarNeg: data.mostrar_negativos_profissional !== false,
-    mostrarObs: data.mostrar_observacoes_profissional !== false,
-    atraso: typeof data.atraso_negativo_minutos === 'number' ? data.atraso_negativo_minutos : 5,
+  if (data) {
+    return {
+      id: data.id as string,
+      mostrarNeg: data.mostrar_negativos_profissional !== false,
+      mostrarObs: data.mostrar_observacoes_profissional !== false,
+      atraso: typeof data.atraso_negativo_minutos === 'number' ? data.atraso_negativo_minutos : 5,
+    }
   }
+  // Fallback: migration de visibilidade ainda não rodada → usa padrões.
+  const { data: base } = await supabase
+    .from('estabelecimentos')
+    .select('id')
+    .eq('dono_id', user.id)
+    .maybeSingle()
+  if (!base) return null
+  return { id: base.id as string, mostrarNeg: true, mostrarObs: true, atraso: 5 }
 }
 
 // Quando o feedback fica visível pro profissional (null = nunca).
