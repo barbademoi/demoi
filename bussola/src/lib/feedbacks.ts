@@ -15,6 +15,9 @@ export interface Feedback {
   sugestao_ia: string | null
   created_at: string
   deletado_em: string | null
+  lido_em: string | null
+  resposta_profissional: string | null
+  resposta_em: string | null
 }
 
 export interface FeedbackComProfissional extends Feedback {
