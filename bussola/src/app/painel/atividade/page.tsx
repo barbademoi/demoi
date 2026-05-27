@@ -14,7 +14,7 @@ export default async function AtividadePage() {
 
   const { data } = await supabase
     .from('feedbacks')
-    .select('id, profissional_id, texto, lido_em, resposta_profissional, resposta_em, profissionais(nome, foto_url)')
+    .select('id, profissional_id, tipo, texto, lido_em, resposta_profissional, resposta_em, profissionais(nome, foto_url)')
     .eq('estabelecimento_id', est.id)
     .not('lido_em', 'is', null)
     .order('lido_em', { ascending: false })

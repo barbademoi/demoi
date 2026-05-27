@@ -1,25 +1,61 @@
 'use client'
 
 import { useState } from 'react'
-import { tempoRelativo, dataLonga } from '@/lib/feedbacks'
+import { tempoRelativo, dataLonga, type TipoFeedback } from '@/lib/feedbacks'
 
 export interface ItemElogio {
   id: string
-  tipo: 'positivo' | 'negativo'
+  tipo: TipoFeedback
   texto: string
   categoria: string | null
   created_at: string
   lido_em: string | null
   resposta_profissional: string | null
+  resposta_em: string | null
+  visivel_profissional_em: string | null
 }
 
 const PAGINA = 20
 
-function Tag({ tipo }: { tipo: 'positivo' | 'negativo' }) {
-  if (tipo === 'negativo') {
-    return <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">A desenvolver</span>
-  }
-  return <span className="text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">Elogio</span>
+interface TipoVisual {
+  label: string
+  emoji: string
+  tag: string
+  borda: string
+  placeholder: string
+}
+
+const VISUAL: Record<TipoFeedback, TipoVisual> = {
+  positivo: {
+    label: 'Elogio',
+    emoji: '✨',
+    tag: 'text-green-700 bg-green-50 border-green-200',
+    borda: 'border-green-200',
+    placeholder: 'Quer responder algo? Não é obrigatório. Ex: Obrigado, fico feliz que notou!',
+  },
+  negativo: {
+    label: 'Ponto a desenvolver',
+    emoji: '🌱',
+    tag: 'text-orange-700 bg-orange-50 border-orange-200',
+    borda: 'border-orange-200',
+    placeholder: 'Quer comentar? Não é obrigatório. Ex: Entendi, vou trabalhar nisso.',
+  },
+  observacao: {
+    label: 'Observação',
+    emoji: '📝',
+    tag: 'text-slate-600 bg-slate-50 border-slate-200',
+    borda: 'border-slate-200',
+    placeholder: 'Quer responder algo? Não é obrigatório.',
+  },
+}
+
+function Tag({ tipo }: { tipo: TipoFeedback }) {
+  const v = VISUAL[tipo]
+  return (
+    <span className={`text-xs font-medium border rounded-full px-2 py-0.5 ${v.tag}`}>
+      {v.emoji} {v.label}
+    </span>
+  )
 }
 
 function Card({ item, slug }: { item: ItemElogio; slug: string }) {
@@ -29,8 +65,8 @@ function Card({ item, slug }: { item: ItemElogio; slug: string }) {
   const [respostaSalva, setRespostaSalva] = useState<string | null>(item.resposta_profissional)
   const [enviando, setEnviando] = useState(false)
 
-  const podeConfirmar = item.tipo === 'positivo'
-  const novo = podeConfirmar && !lidoEm
+  const v = VISUAL[item.tipo]
+  const novo = !lidoEm
 
   async function confirmar(respostaTexto?: string) {
     setEnviando(true)
@@ -54,7 +90,7 @@ function Card({ item, slug }: { item: ItemElogio; slug: string }) {
   }
 
   return (
-    <article className={`rounded-2xl border bg-surface p-4 animate-fade-in ${novo ? 'border-primary/40' : 'border-border'}`}>
+    <article className={`rounded-2xl border bg-surface p-4 animate-fade-in ${novo ? v.borda : 'border-border'}`}>
       <div className="flex items-center justify-between gap-2">
         <Tag tipo={item.tipo} />
         <span className="text-xs text-text-muted">{tempoRelativo(item.created_at)}</span>
@@ -68,7 +104,7 @@ function Card({ item, slug }: { item: ItemElogio; slug: string }) {
         <p className="text-sm text-text-muted italic mt-3 border-l-2 border-border pl-3">Sua resposta: {respostaSalva}</p>
       )}
 
-      {podeConfirmar && !lidoEm && (
+      {!lidoEm && (
         <button
           type="button"
           onClick={() => confirmar()}
@@ -79,7 +115,7 @@ function Card({ item, slug }: { item: ItemElogio; slug: string }) {
         </button>
       )}
 
-      {podeConfirmar && lidoEm && !respostaSalva && !mostrarResp && (
+      {lidoEm && !respostaSalva && !mostrarResp && (
         <p className="text-xs text-text-muted mt-3">Você confirmou leitura em {dataLonga(lidoEm)}.</p>
       )}
 
@@ -89,7 +125,7 @@ function Card({ item, slug }: { item: ItemElogio; slug: string }) {
             value={resposta}
             onChange={(e) => setResposta(e.target.value)}
             rows={2}
-            placeholder="Quer responder algo? Não é obrigatório. Ex: Obrigado, fico feliz que notou!"
+            placeholder={v.placeholder}
             className="input text-sm"
             autoFocus
           />
@@ -111,7 +147,7 @@ export default function Timeline({ itens, slug }: { itens: ItemElogio[]; slug: s
   if (itens.length === 0) {
     return (
       <div className="rounded-2xl border border-border bg-surface p-6 text-center">
-        <p className="text-text-muted">Ainda não há feedbacks registrados. Dê o seu melhor — cada atendimento é uma oportunidade.</p>
+        <p className="text-text-muted">Ainda não há mensagens registradas. Dê o seu melhor — cada atendimento é uma oportunidade.</p>
       </div>
     )
   }

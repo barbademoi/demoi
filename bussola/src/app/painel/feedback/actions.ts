@@ -13,16 +13,35 @@ interface EntradaFeedback {
   categoria: string | null
 }
 
-async function getEstabelecimentoId() {
+async function getEstabConfig() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
   const { data } = await supabase
     .from('estabelecimentos')
-    .select('id')
+    .select('id, mostrar_negativos_profissional, mostrar_observacoes_profissional, atraso_negativo_minutos')
     .eq('dono_id', user.id)
     .maybeSingle()
-  return data?.id ?? null
+  if (!data) return null
+  return {
+    id: data.id as string,
+    mostrarNeg: data.mostrar_negativos_profissional !== false,
+    mostrarObs: data.mostrar_observacoes_profissional !== false,
+    atraso: typeof data.atraso_negativo_minutos === 'number' ? data.atraso_negativo_minutos : 5,
+  }
+}
+
+// Quando o feedback fica visível pro profissional (null = nunca).
+function calcularVisivel(
+  escopo: EscopoFeedback,
+  tipo: TipoFeedback,
+  cfg: { mostrarNeg: boolean; mostrarObs: boolean; atraso: number }
+): string | null {
+  if (escopo !== 'individual') return null
+  if (tipo === 'positivo') return new Date().toISOString()
+  if (tipo === 'observacao') return cfg.mostrarObs ? new Date().toISOString() : null
+  // negativo
+  return cfg.mostrarNeg ? new Date(Date.now() + cfg.atraso * 60000).toISOString() : null
 }
 
 function validar(input: EntradaFeedback): string | null {
@@ -45,8 +64,8 @@ export async function criarFeedback(input: EntradaFeedback) {
 
   try {
     const supabase = createClient()
-    const estabelecimentoId = await getEstabelecimentoId()
-    if (!estabelecimentoId) return { error: 'Sessão expirada. Faça login novamente.' }
+    const cfg = await getEstabConfig()
+    if (!cfg) return { error: 'Sessão expirada. Faça login novamente.' }
 
     const profId = input.escopo === 'equipe' ? null : input.profissional_id
 
@@ -56,22 +75,29 @@ export async function criarFeedback(input: EntradaFeedback) {
         .from('profissionais')
         .select('id')
         .eq('id', profId)
-        .eq('estabelecimento_id', estabelecimentoId)
+        .eq('estabelecimento_id', cfg.id)
         .maybeSingle()
       if (!prof) return { error: 'Profissional inválido.' }
     }
 
-    const { error } = await supabase.from('feedbacks').insert({
-      escopo: input.escopo,
-      profissional_id: profId,
-      estabelecimento_id: estabelecimentoId,
-      tipo: input.tipo,
-      texto: input.texto.trim(),
-      estrelas: input.estrelas,
-      categoria: input.categoria,
-      status: 'pendente',
-    })
-    if (error) {
+    const visivel = calcularVisivel(input.escopo, input.tipo, cfg)
+
+    const { data: novo, error } = await supabase
+      .from('feedbacks')
+      .insert({
+        escopo: input.escopo,
+        profissional_id: profId,
+        estabelecimento_id: cfg.id,
+        tipo: input.tipo,
+        texto: input.texto.trim(),
+        estrelas: input.estrelas,
+        categoria: input.categoria,
+        status: 'pendente',
+        visivel_profissional_em: visivel,
+      })
+      .select('id')
+      .single()
+    if (error || !novo) {
       console.error('[criarFeedback] erro supabase:', error)
       return { error: 'Não foi possível salvar. Tente novamente.' }
     }
@@ -80,7 +106,9 @@ export async function criarFeedback(input: EntradaFeedback) {
     if (profId) revalidatePath(`/painel/profissionais/${profId}`)
     revalidatePath('/painel/profissionais')
     revalidatePath('/painel/feedbacks-equipe')
-    return { ok: true }
+    // Negativo individual entra em carência → cliente mostra o aviso.
+    const carencia = input.escopo === 'individual' && input.tipo === 'negativo' && cfg.mostrarNeg
+    return { ok: true, id: novo.id as string, atraso: cfg.atraso, carencia }
   } catch (err) {
     console.error('[criarFeedback] erro inesperado:', err)
     return { error: 'Erro interno. Tente novamente.' }

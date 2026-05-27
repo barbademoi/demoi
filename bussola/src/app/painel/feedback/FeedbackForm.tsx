@@ -52,6 +52,7 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
 
   const [error, setError] = useState<string | null>(null)
   const [salvo, setSalvo] = useState(false)
+  const [carencia, setCarencia] = useState<{ id: string; atraso: number; nome: string } | null>(null)
   const [confirmarExcluir, setConfirmarExcluir] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -136,13 +137,24 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
       categoria,
     }
     startTransition(async () => {
-      const res =
-        modo === 'novo'
-          ? await criarFeedback(input)
-          : await atualizarFeedback(inicial!.id, input)
-      if (res?.error) {
-        setError(res.error)
-        return
+      if (modo === 'novo') {
+        const res = await criarFeedback(input)
+        if (res?.error) {
+          setError(res.error)
+          return
+        }
+        // Negativo individual → aviso de carência (pode editar/excluir antes de aparecer).
+        if (res?.carencia && res.id) {
+          const prof = profissionais.find((p) => p.id === profId)
+          setCarencia({ id: res.id, atraso: res.atraso ?? 5, nome: (prof?.nome ?? '').split(' ')[0] })
+          return
+        }
+      } else {
+        const res = await atualizarFeedback(inicial!.id, input)
+        if (res?.error) {
+          setError(res.error)
+          return
+        }
       }
       setSalvo(true)
       setTimeout(() => router.push(destinoPos()), 700)
@@ -375,6 +387,53 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
               <button type="button" onClick={() => setConfirmarExcluir(false)} className="text-text-muted hover:text-text px-4">
                 Cancelar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AVISO DE CARÊNCIA — negativo individual */}
+      {carencia && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4">
+          <div className="bg-surface rounded-2xl w-full max-w-md p-5">
+            <div className="text-3xl mb-2">🌱</div>
+            <h4 className="font-semibold text-text mb-2">Feedback registrado!</h4>
+            <p className="text-sm text-text-muted mb-5">
+              Como é um ponto a desenvolver, ele só vai aparecer
+              {carencia.nome ? <> pra <span className="font-semibold text-text">{carencia.nome}</span></> : ' pro profissional'}{' '}
+              em <span className="font-semibold text-text">{carencia.atraso} {carencia.atraso === 1 ? 'minuto' : 'minutos'}</span>.
+              Até lá você pode editar ou excluir.
+            </p>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => router.push('/painel')}
+                className="btn-primary w-full"
+              >
+                OK, entendi
+              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => router.push(`/painel/feedback/${carencia.id}/editar`)}
+                  className="flex-1 py-3 rounded-xl border border-border bg-white text-text font-medium hover:border-primary/40 transition-colors"
+                >
+                  Editar agora
+                </button>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => {
+                    startTransition(async () => {
+                      await excluirFeedback(carencia.id)
+                      router.push('/painel')
+                    })
+                  }}
+                  className="flex-1 py-3 rounded-xl border border-red-200 bg-white text-red-600 font-medium hover:bg-red-50 transition-colors disabled:opacity-60"
+                >
+                  {isPending ? 'Excluindo…' : 'Excluir'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

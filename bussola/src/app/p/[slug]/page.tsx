@@ -61,14 +61,16 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
     .maybeSingle()
   if (!estab) return <TelaInvalida />
 
-  // Elogios e pontos a desenvolver (individuais) deste profissional.
+  // Mensagens individuais deste profissional já visíveis (respeitando a carência).
+  const agora = new Date().toISOString()
   const { data: fbData } = await admin
     .from('feedbacks')
-    .select('id, tipo, texto, categoria, created_at, lido_em, resposta_profissional')
+    .select('id, tipo, texto, categoria, created_at, lido_em, resposta_profissional, resposta_em, visivel_profissional_em')
     .eq('profissional_id', prof.id)
     .eq('escopo', 'individual')
-    .in('tipo', ['positivo', 'negativo'])
     .is('deletado_em', null)
+    .not('visivel_profissional_em', 'is', null)
+    .lte('visivel_profissional_em', agora)
     .order('created_at', { ascending: false })
   const itens = (fbData ?? []) as ItemElogio[]
 
@@ -122,7 +124,7 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
 
         {/* TIMELINE */}
         <section>
-          <h2 className="font-semibold text-text mb-3">Seus feedbacks</h2>
+          <h2 className="font-semibold text-text mb-3">Suas mensagens</h2>
           <Timeline itens={itens} slug={params.slug} />
         </section>
 

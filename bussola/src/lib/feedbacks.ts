@@ -18,6 +18,7 @@ export interface Feedback {
   lido_em: string | null
   resposta_profissional: string | null
   resposta_em: string | null
+  visivel_profissional_em: string | null
 }
 
 export interface FeedbackComProfissional extends Feedback {
