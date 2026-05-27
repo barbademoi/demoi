@@ -10,6 +10,7 @@ const LABELS: Record<string, string> = {
   categoria_feedback: 'Categorizações',
   mensagem_whatsapp: 'Mensagens personalizadas',
   resumo_semana: 'Resumos de semana',
+  dica_bloco: 'Dicas de bloco',
 }
 
 // Preço Haiku 4.5: US$ 1,00 / 1M tokens de entrada · US$ 5,00 / 1M de saída.
