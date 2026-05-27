@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { Lock } from 'lucide-react'
 import { createAdminClient } from '@/utils/supabase/admin'
 import Avatar from '@/components/Avatar'
 import { intervalo } from '@/lib/periodos'
@@ -32,10 +33,10 @@ function TelaInvalida() {
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm text-center">
-        <h1 className="text-2xl font-bold text-primary mb-6">Bússola</h1>
-        <div className="text-5xl mb-3">🔒</div>
+        <h1 className="font-serif text-3xl text-preto mb-6">Bússola</h1>
+        <Lock size={48} strokeWidth={1.5} color="#8A8A8A" className="mx-auto mb-3" />
         <p className="text-text font-semibold text-lg">Link não disponível</p>
-        <p className="text-text-muted text-sm mt-2">
+        <p className="text-chumbo text-sm mt-2">
           Este link não está ativo. Se você acha que é um erro, fale com o responsável pelo
           estabelecimento.
         </p>
@@ -105,19 +106,23 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
       <main className="max-w-md mx-auto px-4 py-8 space-y-6">
         {/* IDENTIFICAÇÃO */}
         <div className="flex flex-col items-center text-center">
-          <Avatar nome={prof.nome} fotoUrl={prof.foto_url} size={88} />
-          <h1 className="text-2xl font-bold text-text mt-3">Olá, {primeiroNome}</h1>
-          <p className="text-text-muted text-sm">{estab.nome}</p>
+          <span className="rounded-full border-2 border-border p-0.5">
+            <Avatar nome={prof.nome} fotoUrl={prof.foto_url} size={64} />
+          </span>
+          <h1 className="text-xl font-semibold text-preto mt-3">Olá, {primeiroNome}</h1>
+          <p className="text-chumbo text-sm">{estab.nome}</p>
         </div>
 
         {/* FRASE DA SEMANA */}
-        <p className="text-center text-text text-[17px] leading-relaxed px-2">
-          {fraseSemana(elogiosSemana)}
-        </p>
+        <div className="rounded-lg border border-border bg-surface p-4">
+          <p className="text-center text-grafite text-[15px] leading-relaxed">
+            {fraseSemana(elogiosSemana)}
+          </p>
+        </div>
 
         {/* RESUMO MENSAL */}
         {categoriaTop && (
-          <p className="text-center text-sm text-text-muted">
+          <p className="text-center text-sm text-chumbo">
             Sua categoria mais elogiada este mês: <span className="text-text font-medium">{categoriaTop}</span>
           </p>
         )}
@@ -130,8 +135,8 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
 
         {/* RODAPÉ */}
         <footer className="pt-4 text-center space-y-1">
-          <p className="text-xs font-semibold text-primary/70">Bússola</p>
-          <p className="text-xs text-text-muted/80">Salve este link no celular pra acompanhar sempre.</p>
+          <p className="font-serif text-base text-marrom">Bússola</p>
+          <p className="text-xs text-chumbo">Salve este link no celular pra acompanhar sempre.</p>
         </footer>
       </main>
     </div>
