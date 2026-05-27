@@ -2,13 +2,46 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  Sparkles,
+  Users,
+  Sprout,
+  Eye,
+  BarChart3,
+  Target,
+  Compass,
+  Check,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  Minus,
+  Plus,
+  type LucideIcon,
+} from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import Estrelas from '@/components/Estrelas'
+import { TIPO_VISUAL } from '@/components/tipoVisual'
 import { TIPOS, type TipoFeedback } from '@/lib/feedbacks'
 import type { AvaliacaoMeta, MetaSemanal, NovaMeta, PautaReuniao } from '@/lib/pauta'
 import { salvarPauta, finalizarReuniao, marcarDiscutido } from '../../actions'
 import SugestaoFala from '../../SugestaoFala'
 import DicaBloco from './DicaBloco'
+
+// Checkbox customizado (sem o padrão do navegador).
+function Checkbox({ checked, onChange, size = 22 }: { checked: boolean; onChange: () => void; size?: number }) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      onClick={onChange}
+      className={`shrink-0 rounded border flex items-center justify-center transition-colors ${checked ? 'bg-marrom border-marrom' : 'bg-white border-border'}`}
+      style={{ width: size, height: size }}
+    >
+      {checked && <Check size={size - 8} strokeWidth={2.5} color="#FFFFFF" />}
+    </button>
+  )
+}
 
 export interface FbItem {
   id: string
@@ -52,16 +85,17 @@ interface Props {
   mostrarDicas: boolean
 }
 
-function Bloco({ titulo, sub, children }: { titulo: string; sub?: string; children: React.ReactNode }) {
+function Bloco({ titulo, icon: Icon, sub, children }: { titulo: string; icon: LucideIcon; sub?: string; children: React.ReactNode }) {
   const [aberto, setAberto] = useState(true)
   return (
     <section className="card overflow-hidden">
       <button type="button" onClick={() => setAberto((v) => !v)} className="w-full flex items-center justify-between p-4 text-left">
-        <span>
+        <span className="inline-flex items-center gap-2">
+          <Icon size={20} strokeWidth={1.5} color="#8B6F47" />
           <span className="font-semibold text-text">{titulo}</span>
-          {sub && <span className="text-text-muted text-sm font-normal"> {sub}</span>}
+          {sub && <span className="text-chumbo text-sm font-normal"> {sub}</span>}
         </span>
-        <span className="text-text-muted text-xl leading-none">{aberto ? '−' : '+'}</span>
+        {aberto ? <Minus size={20} strokeWidth={1.5} color="#8A8A8A" /> : <Plus size={20} strokeWidth={1.5} color="#8A8A8A" />}
       </button>
       <div className={aberto ? 'px-4 pb-4 space-y-3' : 'hidden'}>{children}</div>
     </section>
@@ -175,16 +209,12 @@ export default function ConduzirClient(props: Props) {
   const Card = ({ f }: { f: FbItem }) => {
     const marcado = discutidos.has(f.id)
     const grave = f.tipo === 'negativo' && (f.estrelas ?? 0) >= 4
+    const v = TIPO_VISUAL[f.tipo]
+    const TipoIcon = v.Icon
     return (
-      <div className={`rounded-xl border p-3 transition-opacity ${marcado ? 'opacity-50' : ''} ${grave ? 'border-orange-300 bg-orange-50' : 'border-border bg-white'}`}>
+      <div className={`rounded-md border border-border p-3 border-l-[3px] ${v.bordaEsq} bg-white transition-opacity ${marcado ? 'opacity-50' : ''}`}>
         <div className="flex items-start gap-3">
-          <input
-            type="checkbox"
-            checked={marcado}
-            onChange={() => toggle(f)}
-            className="accent-primary mt-0.5 shrink-0"
-            style={{ width: 24, height: 24 }}
-          />
+          <Checkbox checked={marcado} onChange={() => toggle(f)} size={24} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               {f.escopo === 'individual' && f.profissionais ? (
@@ -193,14 +223,18 @@ export default function ConduzirClient(props: Props) {
                   <span className="text-sm font-medium text-text">{f.profissionais.nome}</span>
                 </>
               ) : (
-                <span className="text-sm font-medium text-text">👥 Equipe</span>
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-text">
+                  <Users size={16} strokeWidth={1.5} color="#8B6F47" /> Equipe
+                </span>
               )}
-              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TIPOS[f.tipo].badge}`}>{TIPOS[f.tipo].label}</span>
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${v.badge}`}>
+                <TipoIcon size={13} strokeWidth={1.5} /> {v.label}
+              </span>
               <Estrelas value={f.estrelas ?? 0} readOnly size={14} cor={TIPOS[f.tipo].estrela} />
             </div>
-            {grave && <p className="text-orange-700 text-xs font-medium mt-1">Conversa individual sugerida</p>}
+            {grave && <p className="text-ambar text-xs font-medium mt-1">Conversa individual sugerida</p>}
             <p className="text-sm text-text mt-1.5">{f.texto}</p>
-            {f.categoria && <span className="inline-block mt-1 text-xs bg-primary-soft text-primary rounded-full px-2 py-0.5">{f.categoria}</span>}
+            {f.categoria && <span className="inline-block mt-1 text-xs bg-linho text-grafite rounded-full px-2 py-0.5">{f.categoria}</span>}
             {f.escopo === 'individual' && <SugestaoFala feedbackId={f.id} inicial={f.sugestao_ia} />}
             <textarea
               value={notas[f.id] ?? ''}
@@ -218,57 +252,62 @@ export default function ConduzirClient(props: Props) {
   return (
     <main className="max-w-2xl mx-auto px-4 py-4 space-y-4 pb-28 animate-fade-in">
       {/* CABEÇALHO */}
-      <div className="sticky top-[56px] z-10 -mx-4 px-4 py-3 bg-background/95 backdrop-blur border-b border-border">
+      <div className="sticky top-0 z-10 -mx-4 px-4 py-3 bg-background/95 backdrop-blur border-b border-border">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="font-bold text-text">Reunião — {dataLabel}</p>
-            <p className="text-xs text-text-muted">Tempo: {minutos} min</p>
+            <p className="font-semibold text-text">Reunião — {dataLabel}</p>
+            <p className="text-xs text-chumbo">Tempo: {minutos} min</p>
           </div>
           <button type="button" onClick={() => (pendentes > 0 ? setConfirmar(true) : finalizar())} disabled={finalizando} className="btn-primary px-4 py-2 text-sm">
             Finalizar
           </button>
         </div>
         <div className="mt-2">
-          <div className="h-1.5 rounded-full bg-border overflow-hidden">
-            <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+          <div className="h-1 rounded-sm bg-linho overflow-hidden">
+            <div className="h-full bg-marrom transition-all" style={{ width: `${pct}%` }} />
           </div>
-          <p className="text-xs text-text-muted mt-1">Progresso: {feitos}/{total} itens</p>
+          <p className="text-xs text-chumbo mt-1">Progresso: {feitos}/{total} itens</p>
         </div>
       </div>
 
       {positivos.length > 0 && (
-        <Bloco titulo="🎉 Elogios" sub={`(${positivos.length} — ${positivos.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
+        <Bloco titulo="Elogios" icon={Sparkles} sub={`(${positivos.length} — ${positivos.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
           {mostrarDicas && <DicaBloco bloco="elogios" contexto={ctx.elogios} />}
           {positivos.map((f) => <Card key={f.id} f={f} />)}
         </Bloco>
       )}
 
       {equipe.length > 0 && (
-        <Bloco titulo="👥 Sobre a equipe" sub={`(${equipe.length} — ${equipe.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
+        <Bloco titulo="Sobre a equipe" icon={Users} sub={`(${equipe.length} — ${equipe.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
           {mostrarDicas && <DicaBloco bloco="equipe" contexto={ctx.equipe} />}
           {equipe.map((f) => <Card key={f.id} f={f} />)}
         </Bloco>
       )}
 
       {negativos.length > 0 && (
-        <Bloco titulo="🌱 Pontos a desenvolver" sub={`(${negativos.length} — ${negativos.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
+        <Bloco titulo="Pontos a desenvolver" icon={Sprout} sub={`(${negativos.length} — ${negativos.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
           {mostrarDicas && <DicaBloco bloco="desenvolvimento" contexto={ctx.desenvolvimento} />}
           {negativos.map((f) => <Card key={f.id} f={f} />)}
         </Bloco>
       )}
 
       {observacoes.length > 0 && (
-        <Bloco titulo="👁 Observações" sub={`(${observacoes.length})`}>
+        <Bloco titulo="Observações" icon={Eye} sub={`(${observacoes.length})`}>
           {mostrarDicas && <DicaBloco bloco="observacoes" contexto={ctx.observacoes} />}
           {observacoes.map((f) => <Card key={f.id} f={f} />)}
         </Bloco>
       )}
 
       {/* MÉTRICAS */}
-      <Bloco titulo="📊 Métricas da semana">
+      <Bloco titulo="Métricas da semana" icon={BarChart3}>
         {mostrarDicas && <DicaBloco bloco="metricas" contexto={ctx.metricas} />}
         <ul className="text-sm text-text space-y-1">
-          <li>Total: <strong>{metricas.total}</strong> · 🟢 {metricas.positivos} · 🔴 {metricas.negativos} · ⚪ {metricas.observacoes}</li>
+          <li className="inline-flex items-center gap-2 flex-wrap">
+            Total: <strong>{metricas.total}</strong>
+            <span className="inline-flex items-center gap-1 text-grafite">· <Sparkles size={14} strokeWidth={1.5} color="#5C7148" /> {metricas.positivos}</span>
+            <span className="inline-flex items-center gap-1 text-grafite"><Sprout size={14} strokeWidth={1.5} color="#A56336" /> {metricas.negativos}</span>
+            <span className="inline-flex items-center gap-1 text-grafite"><Eye size={14} strokeWidth={1.5} color="#2D3E50" /> {metricas.observacoes}</span>
+          </li>
           <li>Maior placar: <strong>{metricas.maiorPlacar.nome}</strong> ({metricas.maiorPlacar.valor > 0 ? '+' : ''}{metricas.maiorPlacar.valor})</li>
           <li>Mais evoluiu: <strong>{metricas.maisEvoluiu.nome}</strong> ({metricas.maisEvoluiu.delta > 0 ? '+' : ''}{metricas.maisEvoluiu.delta})</li>
         </ul>
@@ -279,31 +318,31 @@ export default function ConduzirClient(props: Props) {
           placeholder="Anotações de métricas externas (faturamento etc.)"
           className="input"
         />
-        <label className="flex items-center gap-3 mt-1">
-          <input type="checkbox" checked={metricasDiscutida} onChange={(e) => setMetricasDiscutida(e.target.checked)} className="accent-primary" style={{ width: 22, height: 22 }} />
+        <label className="flex items-center gap-3 mt-1 cursor-pointer">
+          <Checkbox checked={metricasDiscutida} onChange={() => setMetricasDiscutida((v) => !v)} />
           <span className="text-sm text-text">Discuti as métricas</span>
         </label>
       </Bloco>
 
       {/* METAS PASSADAS */}
       {metasPassadas.length > 0 && (
-        <Bloco titulo="🎯 Metas da semana passada" sub={`(${metasComAval}/${metasPassadas.length})`}>
+        <Bloco titulo="Metas da semana passada" icon={Target} sub={`(${metasComAval}/${metasPassadas.length})`}>
           {mostrarDicas && <DicaBloco bloco="metas_passadas" contexto={ctx.metas_passadas} />}
           {metasPassadas.map((m) => {
             const av = avaliacoes[m.id]
             return (
-              <div key={m.id} className="rounded-xl border border-border p-3">
+              <div key={m.id} className="rounded-md border border-border p-3">
                 <p className="text-sm text-text font-medium">{m.texto}</p>
-                <p className="text-xs text-text-muted">Responsável: {nomePorId(m.responsavel_id)}</p>
+                <p className="text-xs text-chumbo">Responsável: {nomePorId(m.responsavel_id)}</p>
                 <div className="flex gap-1.5 mt-2">
-                  {([['cumprida', '✅ Cumprida'], ['parcial', '⚠️ Parcial'], ['nao_cumprida', '❌ Não']] as [AvaliacaoMeta, string][]).map(([v, label]) => (
+                  {([['cumprida', CheckCircle2, 'Cumprida'], ['parcial', AlertTriangle, 'Parcial'], ['nao_cumprida', XCircle, 'Não']] as [AvaliacaoMeta, LucideIcon, string][]).map(([v, AvIcon, label]) => (
                     <button
                       key={v}
                       type="button"
                       onClick={() => setAvaliacoes((a) => ({ ...a, [m.id]: { ...a[m.id], avaliacao: v } }))}
-                      className={['px-2.5 py-1.5 rounded-lg text-xs font-medium border', av?.avaliacao === v ? 'border-primary bg-primary text-white' : 'border-border bg-white text-text-muted'].join(' ')}
+                      className={['inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium border', av?.avaliacao === v ? 'border-marrom bg-marrom text-white' : 'border-border bg-white text-grafite'].join(' ')}
                     >
-                      {label}
+                      <AvIcon size={14} strokeWidth={1.5} /> {label}
                     </button>
                   ))}
                 </div>
@@ -321,10 +360,10 @@ export default function ConduzirClient(props: Props) {
       )}
 
       {/* NOVAS METAS */}
-      <Bloco titulo="🚀 Novas metas" sub={`(${novasValidas.length})`}>
+      <Bloco titulo="Novas metas" icon={Compass} sub={`(${novasValidas.length})`}>
         {mostrarDicas && <DicaBloco bloco="metas_novas" contexto={ctx.metas_novas} />}
         {novasMetas.map((m, i) => (
-          <div key={i} className="rounded-xl border border-border p-3 space-y-2">
+          <div key={i} className="rounded-md border border-border p-3 space-y-2">
             <input
               type="text"
               value={m.texto}
@@ -341,16 +380,16 @@ export default function ConduzirClient(props: Props) {
                 <option value="">Equipe</option>
                 {ativos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
               </select>
-              <button type="button" onClick={() => setNovasMetas((arr) => arr.filter((_, j) => j !== i))} className="text-red-600 text-sm px-2">Excluir</button>
+              <button type="button" onClick={() => setNovasMetas((arr) => arr.filter((_, j) => j !== i))} className="text-vinho text-sm px-2">Excluir</button>
             </div>
           </div>
         ))}
         {novasMetas.length < 3 && (
           <button type="button" onClick={() => setNovasMetas((m) => [...m, { texto: '', responsavel_id: null }])} className="btn-secondary w-full py-2.5 text-sm">
-            + Adicionar nova meta
+            <Plus size={16} strokeWidth={1.5} /> Adicionar nova meta
           </button>
         )}
-        <p className="text-xs text-text-muted">Mínimo 1 meta, máximo 3.</p>
+        <p className="text-xs text-chumbo">Mínimo 1 meta, máximo 3.</p>
       </Bloco>
 
       {/* AÇÕES */}
@@ -365,14 +404,14 @@ export default function ConduzirClient(props: Props) {
 
       {confirmar && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={() => setConfirmar(false)}>
-          <div className="bg-surface rounded-2xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-surface rounded-lg w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
             <h4 className="font-semibold text-text mb-2">Finalizar reunião?</h4>
-            <p className="text-sm text-text-muted mb-5">Você tem {pendentes} {pendentes === 1 ? 'item' : 'itens'} sem discutir. Deseja mesmo finalizar?</p>
+            <p className="text-sm text-grafite mb-5">Você tem {pendentes} {pendentes === 1 ? 'item' : 'itens'} sem discutir. Deseja mesmo finalizar?</p>
             <div className="flex gap-2">
               <button type="button" onClick={finalizar} disabled={finalizando} className="btn-primary flex-1">
                 {finalizando ? 'Finalizando…' : 'Finalizar mesmo assim'}
               </button>
-              <button type="button" onClick={() => setConfirmar(false)} className="text-text-muted hover:text-text px-4">Voltar</button>
+              <button type="button" onClick={() => setConfirmar(false)} className="text-grafite hover:text-text px-4">Voltar</button>
             </div>
           </div>
         </div>

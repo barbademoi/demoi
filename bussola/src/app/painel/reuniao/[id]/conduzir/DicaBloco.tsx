@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Lightbulb, RotateCw, X } from 'lucide-react'
 
 export default function DicaBloco({ bloco, contexto }: { bloco: string; contexto: string }) {
   const [dica, setDica] = useState<string | null>(null)
@@ -34,25 +35,31 @@ export default function DicaBloco({ bloco, contexto }: { bloco: string; contexto
   if (oculto) return null
 
   return (
-    <div className="rounded-xl border-l-4 border-primary bg-[#E8F0F7] p-3 mb-1">
+    <div className="rounded-md border-l-[3px] border-marrom bg-linho p-3 mb-1">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-primary">💡 Dica da Bússola</span>
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-marrom">
+          <Lightbulb size={16} strokeWidth={1.5} /> Dica da Bússola
+        </span>
         <div className="flex items-center gap-3 shrink-0">
-          <button type="button" onClick={() => carregar(true)} disabled={loading} className="text-xs text-primary disabled:opacity-50">↻ Nova</button>
-          <button type="button" onClick={() => setOculto(true)} className="text-xs text-text-muted" aria-label="Esconder dica">✕</button>
+          <button type="button" onClick={() => carregar(true)} disabled={loading} className="inline-flex items-center gap-1 text-xs text-marrom disabled:opacity-50">
+            <RotateCw size={13} strokeWidth={1.5} /> Nova
+          </button>
+          <button type="button" onClick={() => setOculto(true)} className="text-chumbo" aria-label="Esconder dica">
+            <X size={16} strokeWidth={1.5} />
+          </button>
         </div>
       </div>
       {loading ? (
         <div className="space-y-1.5 mt-2">
-          <div className="h-2.5 bg-primary/15 rounded w-full animate-pulse" />
-          <div className="h-2.5 bg-primary/15 rounded w-2/3 animate-pulse" />
+          <div className="h-2.5 bg-marrom/15 rounded w-full animate-pulse" />
+          <div className="h-2.5 bg-marrom/15 rounded w-2/3 animate-pulse" />
         </div>
       ) : erro ? (
-        <button type="button" onClick={() => carregar(false)} className="text-xs text-red-600 mt-1">
+        <button type="button" onClick={() => carregar(false)} className="text-xs text-vinho mt-1">
           Não foi possível gerar dica. Tentar novamente?
         </button>
       ) : (
-        <p className="text-sm text-text mt-1 leading-relaxed">{dica}</p>
+        <p className="text-sm text-grafite italic mt-1 leading-relaxed">{dica}</p>
       )}
     </div>
   )
