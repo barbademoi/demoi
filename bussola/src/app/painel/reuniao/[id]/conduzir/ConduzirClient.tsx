@@ -8,6 +8,7 @@ import { TIPOS, type TipoFeedback } from '@/lib/feedbacks'
 import type { AvaliacaoMeta, MetaSemanal, NovaMeta, PautaReuniao } from '@/lib/pauta'
 import { salvarPauta, finalizarReuniao, marcarDiscutido } from '../../actions'
 import SugestaoFala from '../../SugestaoFala'
+import DicaBloco from './DicaBloco'
 
 export interface FbItem {
   id: string
@@ -48,6 +49,7 @@ interface Props {
   ativos: ProfLite[]
   metasPassadas: MetaSemanal[]
   metricas: Metricas
+  mostrarDicas: boolean
 }
 
 function Bloco({ titulo, sub, children }: { titulo: string; sub?: string; children: React.ReactNode }) {
@@ -61,16 +63,40 @@ function Bloco({ titulo, sub, children }: { titulo: string; sub?: string; childr
         </span>
         <span className="text-text-muted text-xl leading-none">{aberto ? '−' : '+'}</span>
       </button>
-      {aberto && <div className="px-4 pb-4 space-y-3">{children}</div>}
+      <div className={aberto ? 'px-4 pb-4 space-y-3' : 'hidden'}>{children}</div>
     </section>
   )
 }
 
 export default function ConduzirClient(props: Props) {
-  const { reuniaoId, dataLabel, pautaInicial, positivos, negativos, observacoes, equipe, ativos, metasPassadas, metricas } = props
+  const { reuniaoId, dataLabel, pautaInicial, positivos, negativos, observacoes, equipe, ativos, metasPassadas, metricas, mostrarDicas } = props
   const router = useRouter()
 
   const todosFb = [...positivos, ...negativos, ...observacoes, ...equipe]
+
+  // Contexto curto por bloco, para a "Dica da Bússola".
+  const freq = (vals: (string | null)[]) => {
+    const c: Record<string, number> = {}
+    vals.forEach((v) => { if (v) c[v] = (c[v] ?? 0) + 1 })
+    return Object.entries(c).sort((a, b) => b[1] - a[1]).map(([k]) => k).slice(0, 3).join(', ')
+  }
+  const nomesElogiados = (() => {
+    const c: Record<string, number> = {}
+    positivos.forEach((f) => { const n = f.profissionais?.nome; if (n) c[n] = (c[n] ?? 0) + 1 })
+    return Object.entries(c).map(([n, q]) => `${n} (${q})`).join(', ')
+  })()
+  const maisForte = positivos[0]
+  const placarEq = equipe.reduce((s, f) => s + (f.tipo === 'positivo' ? (f.estrelas ?? 0) : f.tipo === 'negativo' ? -(f.estrelas ?? 0) : 0), 0)
+  const graves = negativos.filter((f) => (f.estrelas ?? 0) >= 4)
+  const ctx: Record<string, string> = {
+    elogios: `${positivos.length} elogios na semana. Elogiados: ${nomesElogiados || '—'}. Mais forte: ${maisForte ? `${maisForte.estrelas ?? 0}★ — ${maisForte.texto.slice(0, 80)}` : '—'}. Categoria mais frequente: ${freq(positivos.map((f) => f.categoria)) || '—'}.`,
+    equipe: `${equipe.length} feedbacks de equipe. P/N/O: ${equipe.filter((f) => f.tipo === 'positivo').length}/${equipe.filter((f) => f.tipo === 'negativo').length}/${equipe.filter((f) => f.tipo === 'observacao').length}. Placar de equipe: ${placarEq}.`,
+    desenvolvimento: `${negativos.length} feedbacks negativos, ${graves.length} graves (4-5★). Com feedback grave: ${Array.from(new Set(graves.map((f) => f.profissionais?.nome).filter(Boolean))).join(', ') || '—'}. Categorias: ${freq(negativos.map((f) => f.categoria)) || '—'}.`,
+    observacoes: `${observacoes.length} observações. Temas: ${freq(observacoes.map((f) => f.categoria)) || observacoes.slice(0, 2).map((f) => f.texto.slice(0, 40)).join('; ') || '—'}.`,
+    metricas: `${metricas.total} feedbacks na semana. Destaque (maior placar): ${metricas.maiorPlacar.nome}. Mais evoluiu: ${metricas.maisEvoluiu.nome}.`,
+    metas_passadas: `${metasPassadas.length} metas da semana passada para revisar.`,
+    metas_novas: `Planejando novas metas. Categorias problemáticas da semana: ${freq(negativos.map((f) => f.categoria)) || 'nenhuma'}.`,
+  }
 
   const [discutidos, setDiscutidos] = useState<Set<string>>(
     new Set(todosFb.filter((f) => f.status.startsWith('discutido')).map((f) => f.id))
@@ -212,30 +238,35 @@ export default function ConduzirClient(props: Props) {
 
       {positivos.length > 0 && (
         <Bloco titulo="🎉 Elogios" sub={`(${positivos.length} — ${positivos.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
+          {mostrarDicas && <DicaBloco bloco="elogios" contexto={ctx.elogios} />}
           {positivos.map((f) => <Card key={f.id} f={f} />)}
         </Bloco>
       )}
 
       {equipe.length > 0 && (
         <Bloco titulo="👥 Sobre a equipe" sub={`(${equipe.length} — ${equipe.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
+          {mostrarDicas && <DicaBloco bloco="equipe" contexto={ctx.equipe} />}
           {equipe.map((f) => <Card key={f.id} f={f} />)}
         </Bloco>
       )}
 
       {negativos.length > 0 && (
         <Bloco titulo="🌱 Pontos a desenvolver" sub={`(${negativos.length} — ${negativos.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
+          {mostrarDicas && <DicaBloco bloco="desenvolvimento" contexto={ctx.desenvolvimento} />}
           {negativos.map((f) => <Card key={f.id} f={f} />)}
         </Bloco>
       )}
 
       {observacoes.length > 0 && (
         <Bloco titulo="👁 Observações" sub={`(${observacoes.length})`}>
+          {mostrarDicas && <DicaBloco bloco="observacoes" contexto={ctx.observacoes} />}
           {observacoes.map((f) => <Card key={f.id} f={f} />)}
         </Bloco>
       )}
 
       {/* MÉTRICAS */}
       <Bloco titulo="📊 Métricas da semana">
+        {mostrarDicas && <DicaBloco bloco="metricas" contexto={ctx.metricas} />}
         <ul className="text-sm text-text space-y-1">
           <li>Total: <strong>{metricas.total}</strong> · 🟢 {metricas.positivos} · 🔴 {metricas.negativos} · ⚪ {metricas.observacoes}</li>
           <li>Maior placar: <strong>{metricas.maiorPlacar.nome}</strong> ({metricas.maiorPlacar.valor > 0 ? '+' : ''}{metricas.maiorPlacar.valor})</li>
@@ -257,6 +288,7 @@ export default function ConduzirClient(props: Props) {
       {/* METAS PASSADAS */}
       {metasPassadas.length > 0 && (
         <Bloco titulo="🎯 Metas da semana passada" sub={`(${metasComAval}/${metasPassadas.length})`}>
+          {mostrarDicas && <DicaBloco bloco="metas_passadas" contexto={ctx.metas_passadas} />}
           {metasPassadas.map((m) => {
             const av = avaliacoes[m.id]
             return (
@@ -290,6 +322,7 @@ export default function ConduzirClient(props: Props) {
 
       {/* NOVAS METAS */}
       <Bloco titulo="🚀 Novas metas" sub={`(${novasValidas.length})`}>
+        {mostrarDicas && <DicaBloco bloco="metas_novas" contexto={ctx.metas_novas} />}
         {novasMetas.map((m, i) => (
           <div key={i} className="rounded-xl border border-border p-3 space-y-2">
             <input
