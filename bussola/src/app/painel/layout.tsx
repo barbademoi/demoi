@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import NavPainel from '@/components/NavPainel'
-import { sair } from './actions'
+import Sidebar from '@/components/Sidebar'
+import BottomNav from '@/components/BottomNav'
 
 export default async function PainelLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
@@ -32,33 +32,22 @@ export default async function PainelLayout({ children }: { children: React.React
   const novas = count ?? 0
 
   return (
-    <div className="min-h-screen">
-      <header className="bg-surface border-b border-border sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <Link href="/painel" className="min-w-0">
-            <span className="block text-lg font-bold text-primary leading-tight">Bússola</span>
-            <span className="block text-xs text-text-muted truncate">{estabelecimento.nome}</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link href="/painel/atividade" className="relative px-2 py-1 text-lg" aria-label="Atividade">
-              🔔
-              {novas > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
-                  {novas > 9 ? '9+' : novas}
-                </span>
-              )}
-            </Link>
-            <form action={sair}>
-              <button type="submit" className="btn-secondary px-3 py-2 text-sm">Sair</button>
-            </form>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen lg:flex">
+      <Sidebar nomeEstab={estabelecimento.nome} email={user.email ?? ''} novas={novas} />
 
-      <div className="max-w-6xl mx-auto sm:flex">
-        <NavPainel />
-        <main className="flex-1 min-w-0 pb-20 sm:pb-0">{children}</main>
+      <div className="flex-1 min-w-0">
+        {/* Header só no mobile (no desktop o logo fica na sidebar) */}
+        <header className="lg:hidden bg-surface border-b border-border sticky top-0 z-20 px-4 py-3">
+          <Link href="/painel" className="block min-w-0">
+            <span className="block font-serif text-xl text-preto leading-tight">Bússola</span>
+            <span className="block text-xs text-chumbo truncate">{estabelecimento.nome}</span>
+          </Link>
+        </header>
+
+        <main className="max-w-4xl mx-auto pb-20 lg:pb-8">{children}</main>
       </div>
+
+      <BottomNav novas={novas} />
     </div>
   )
 }
