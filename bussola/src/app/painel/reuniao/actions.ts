@@ -48,6 +48,21 @@ export async function marcarParticular(reuniaoId: string, feedbackIds: string[])
   }
 }
 
+export async function marcarDiscutido(feedbackId: string, discutido: boolean) {
+  try {
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('feedbacks')
+      .update({ status: discutido ? 'discutido_reuniao' : 'pendente' })
+      .eq('id', feedbackId)
+    if (error) return { error: 'Não foi possível atualizar.' }
+    return { ok: true }
+  } catch (err) {
+    console.error('[marcarDiscutido]', err)
+    return { error: 'Erro interno.' }
+  }
+}
+
 export async function finalizarReuniao(reuniaoId: string, pauta: PautaReuniao) {
   try {
     const supabase = createClient()
