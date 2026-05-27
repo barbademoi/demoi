@@ -15,10 +15,12 @@ export default async function ConduzirPage({ params }: { params: { id: string } 
 
   const { data: est } = await supabase
     .from('estabelecimentos')
-    .select('id, nome, dia_reuniao, hora_reuniao')
+    .select('id, nome, dia_reuniao, hora_reuniao, config_ia')
     .eq('dono_id', user.id)
     .maybeSingle()
   if (!est) redirect('/onboarding')
+
+  const mostrarDicas = (est.config_ia as { dicas_blocos?: boolean } | null)?.dicas_blocos !== false
 
   const { data: reuniaoData } = await supabase
     .from('reunioes')
@@ -112,6 +114,7 @@ export default async function ConduzirPage({ params }: { params: { id: string } 
         maiorPlacar,
         maisEvoluiu,
       }}
+      mostrarDicas={mostrarDicas}
     />
   )
 }
