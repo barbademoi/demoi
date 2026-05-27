@@ -64,7 +64,7 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
   // Elogios e pontos a desenvolver (individuais) deste profissional.
   const { data: fbData } = await admin
     .from('feedbacks')
-    .select('id, tipo, texto, categoria, created_at')
+    .select('id, tipo, texto, categoria, created_at, lido_em, resposta_profissional')
     .eq('profissional_id', prof.id)
     .eq('escopo', 'individual')
     .in('tipo', ['positivo', 'negativo'])
@@ -123,7 +123,7 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
         {/* TIMELINE */}
         <section>
           <h2 className="font-semibold text-text mb-3">Seus feedbacks</h2>
-          <Timeline itens={itens} />
+          <Timeline itens={itens} slug={params.slug} />
         </section>
 
         {/* RODAPÉ */}
