@@ -2,6 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Neutros */
+  --cor-preto: #0F0F0F;
+  --cor-carvao: #1F1F1F;
+  --cor-grafite: #4A4A4A;
+  --cor-chumbo: #8A8A8A;
+  --cor-areia: #F5F1EA;
+  --cor-linho: #EBE5DA;
+  --cor-branco: #FFFFFF;
+  --cor-borda: #E5DDD0;
+
+  /* Marca */
+  --cor-marrom: #8B6F47;
+  --cor-marrom-escuro: #5C4A30;
+  --cor-marrom-claro: #A88B62;
+
+  /* Funcionais */
+  --cor-verde-musgo: #5C7148;
+  --cor-ambar: #A56336;
+  --cor-vinho: #8B2E2E;
+  --cor-azul-noite: #2D3E50;
+
+  /* Sombras */
+  --sombra-suave: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --sombra-media: 0 4px 12px rgba(0, 0, 0, 0.06);
+
+  /* Raios de borda */
+  --raio-pequeno: 6px;
+  --raio-medio: 8px;
+  --raio-grande: 12px;
+}
+
 @layer base {
   body {
     @apply bg-background text-text antialiased;
@@ -9,37 +41,48 @@
 }
 
 @layer components {
-  /* Botão primário — grande e clicável, mobile-first */
+  /* Botão primário — marrom, sóbrio */
   .btn-primary {
-    @apply inline-flex items-center justify-center
+    @apply inline-flex items-center justify-center gap-2
            bg-primary text-white font-medium
-           rounded-xl px-6 py-4 text-base
-           transition-colors
+           rounded-md px-5 py-3 text-sm
+           transition-colors duration-150
            hover:bg-primary-hover
-           disabled:opacity-60 disabled:cursor-not-allowed;
+           disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
+  /* Botão secundário — contorno discreto */
   .btn-secondary {
-    @apply inline-flex items-center justify-center
-           bg-white text-primary font-medium
-           border border-border rounded-xl px-6 py-4 text-base
-           transition-colors hover:bg-primary-soft
-           disabled:opacity-60 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2
+           bg-transparent text-grafite font-medium
+           border border-border rounded-md px-5 py-3 text-sm
+           transition-colors duration-150 hover:bg-linho
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Botão destrutivo */
+  .btn-destrutivo {
+    @apply inline-flex items-center justify-center gap-2
+           bg-vinho text-white font-medium
+           rounded-md px-5 py-3 text-sm
+           transition-colors duration-150 hover:opacity-90
+           disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .input {
-    @apply w-full rounded-xl border border-border bg-white
-           px-4 py-3.5 text-base text-text
-           placeholder:text-text-muted/60
-           focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
+    @apply w-full rounded-md border border-border bg-white
+           px-3 py-2.5 text-base text-text
+           placeholder:text-chumbo
+           focus:outline-none focus:ring-[3px] focus:ring-marrom/20 focus:border-marrom
            transition;
   }
 
   .label {
-    @apply block text-sm font-medium text-text mb-1.5;
+    @apply block text-sm font-medium text-grafite mb-1.5;
   }
 
   .card {
-    @apply bg-surface border border-border rounded-2xl shadow-sm;
+    @apply bg-surface border border-border rounded-lg;
+    box-shadow: var(--sombra-suave);
   }
 }

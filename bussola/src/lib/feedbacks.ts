@@ -38,23 +38,23 @@ export const TIPOS: Record<TipoFeedback, TipoMeta> = {
   positivo: {
     label: 'Positivo',
     emoji: '👍',
-    badge: 'bg-green-100 text-green-700',
-    selecionado: 'border-green-600 bg-green-600 text-white',
-    estrela: '#F5B301',
+    badge: 'bg-verde-musgo/10 text-verde-musgo',
+    selecionado: 'border-verde-musgo bg-verde-musgo text-white',
+    estrela: '#8B6F47',
   },
   negativo: {
     label: 'Negativo',
     emoji: '👎',
-    badge: 'bg-red-100 text-red-700',
-    selecionado: 'border-red-600 bg-red-600 text-white',
-    estrela: '#C2410C',
+    badge: 'bg-ambar/10 text-ambar',
+    selecionado: 'border-ambar bg-ambar text-white',
+    estrela: '#A56336',
   },
   observacao: {
     label: 'Observação',
     emoji: '👁',
-    badge: 'bg-gray-200 text-gray-600',
-    selecionado: 'border-gray-500 bg-gray-500 text-white',
-    estrela: '#2563EB',
+    badge: 'bg-azul-noite/10 text-azul-noite',
+    selecionado: 'border-azul-noite bg-azul-noite text-white',
+    estrela: '#2D3E50',
   },
 }
 
