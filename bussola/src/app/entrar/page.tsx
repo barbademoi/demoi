@@ -23,8 +23,8 @@ export default function EntrarPage() {
     <main className="min-h-screen flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm animate-fade-in">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">Bússola</h1>
-          <p className="text-text-muted text-sm">Acesso do dono</p>
+          <h1 className="font-serif text-4xl text-preto mb-2">Bússola</h1>
+          <p className="text-chumbo text-sm">Acesso do dono</p>
         </div>
 
         <div className="card p-6 sm:p-8">
@@ -64,7 +64,7 @@ export default function EntrarPage() {
             </div>
 
             {error && (
-              <p className="text-red-600 text-sm text-center">{error}</p>
+              <p className="text-vinho text-sm text-center">{error}</p>
             )}
 
             <button type="submit" disabled={isPending} className="btn-primary w-full">

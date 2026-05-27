@@ -73,7 +73,7 @@ export default function OnboardingForm() {
       </div>
 
       {error && (
-        <p className="text-red-600 text-sm text-center">{error}</p>
+        <p className="text-vinho text-sm text-center">{error}</p>
       )}
 
       <button type="submit" disabled={isPending} className="btn-primary w-full">

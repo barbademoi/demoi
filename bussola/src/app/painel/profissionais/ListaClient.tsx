@@ -8,14 +8,14 @@ import type { Profissional, StatusProfissional } from '@/lib/profissionais'
 import { corPlacar, comSinal } from '@/lib/feedbacks'
 
 const DOT: Record<string, string> = {
-  verde: 'bg-green-500',
-  amarelo: 'bg-amber-500',
-  vermelho: 'bg-red-500',
+  verde: 'bg-verde-musgo',
+  amarelo: 'bg-marrom',
+  vermelho: 'bg-vinho',
 }
 const TXT: Record<string, string> = {
-  verde: 'text-green-600',
-  amarelo: 'text-amber-600',
-  vermelho: 'text-red-600',
+  verde: 'text-verde-musgo',
+  amarelo: 'text-grafite',
+  vermelho: 'text-vinho',
 }
 
 type Filtro = 'todos' | StatusProfissional

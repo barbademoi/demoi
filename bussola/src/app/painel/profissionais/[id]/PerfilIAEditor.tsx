@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { Pencil } from 'lucide-react'
 import {
   MOTIVADORES,
   MAX_MOTIVADORES,
@@ -93,10 +94,10 @@ function Linha({
       <button
         type="button"
         onClick={onEdit}
-        className="text-text-muted hover:text-primary text-sm shrink-0"
+        className="text-chumbo hover:text-marrom shrink-0"
         aria-label={`Editar ${label}`}
       >
-        ✎
+        <Pencil size={16} strokeWidth={1.5} />
       </button>
     </div>
   )

@@ -37,7 +37,7 @@ export default function CompetenciasEditor({
           <div key={c.chave} className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm text-text">{c.label}</p>
-              {salvo === c.chave && <p className="text-green-600 text-xs">Salvo ✓</p>}
+              {salvo === c.chave && <p className="text-verde-musgo text-xs">Salvo</p>}
             </div>
             <Estrelas
               value={valores[c.chave] ?? 0}

@@ -2,8 +2,25 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  Sparkles,
+  Users,
+  BarChart3,
+  Sprout,
+  Target,
+  Compass,
+  Minus,
+  Plus,
+  Play,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  Eye,
+  type LucideIcon,
+} from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import Estrelas from '@/components/Estrelas'
+import { TIPO_VISUAL } from '@/components/tipoVisual'
 import { TIPOS, type TipoFeedback } from '@/lib/feedbacks'
 import type { AvaliacaoMeta, DecisaoFeedback, MetaSemanal, NovaMeta, PautaReuniao } from '@/lib/pauta'
 import { salvarPauta, marcarParticular } from './actions'
@@ -62,7 +79,7 @@ interface Props {
   mostrarResumo: boolean
 }
 
-function Bloco({ titulo, children, dir }: { titulo: string; children: React.ReactNode; dir?: React.ReactNode }) {
+function Bloco({ titulo, icon: Icon, children, dir }: { titulo: string; icon: LucideIcon; children: React.ReactNode; dir?: React.ReactNode }) {
   const [aberto, setAberto] = useState(true)
   return (
     <section className="card">
@@ -71,8 +88,10 @@ function Bloco({ titulo, children, dir }: { titulo: string; children: React.Reac
         onClick={() => setAberto((v) => !v)}
         className="w-full flex items-center justify-between p-4"
       >
-        <h2 className="font-semibold text-text text-left">{titulo}</h2>
-        <span className="text-text-muted text-xl">{aberto ? '−' : '+'}</span>
+        <h2 className="font-semibold text-text text-left inline-flex items-center gap-2">
+          <Icon size={20} strokeWidth={1.5} color="#8B6F47" /> {titulo}
+        </h2>
+        {aberto ? <Minus size={20} strokeWidth={1.5} color="#8A8A8A" /> : <Plus size={20} strokeWidth={1.5} color="#8A8A8A" />}
       </button>
       {aberto && <div className="px-4 pb-4 space-y-3">{dir}{children}</div>}
     </section>
@@ -80,10 +99,20 @@ function Bloco({ titulo, children, dir }: { titulo: string; children: React.Reac
 }
 
 const DECISOES: { v: DecisaoFeedback; label: string; cls: string }[] = [
-  { v: 'incluir', label: 'Incluir', cls: 'border-primary bg-primary text-white' },
-  { v: 'particular', label: 'Em particular', cls: 'border-amber-500 bg-amber-500 text-white' },
-  { v: 'ignorar', label: 'Ignorar', cls: 'border-gray-400 bg-gray-400 text-white' },
+  { v: 'incluir', label: 'Incluir', cls: 'border-marrom bg-marrom text-white' },
+  { v: 'particular', label: 'Em particular', cls: 'border-ambar bg-ambar text-white' },
+  { v: 'ignorar', label: 'Ignorar', cls: 'border-chumbo bg-chumbo text-white' },
 ]
+
+function MetricasResumo({ positivos, negativos, observacoes }: { positivos: number; negativos: number; observacoes: number }) {
+  return (
+    <span className="inline-flex items-center gap-3 flex-wrap">
+      <span className="inline-flex items-center gap-1"><Sparkles size={14} strokeWidth={1.5} color="#5C7148" /> {positivos} positivos</span>
+      <span className="inline-flex items-center gap-1"><Sprout size={14} strokeWidth={1.5} color="#A56336" /> {negativos} a desenvolver</span>
+      <span className="inline-flex items-center gap-1"><Eye size={14} strokeWidth={1.5} color="#2D3E50" /> {observacoes} observações</span>
+    </span>
+  )
+}
 
 export default function PrepararClient(props: Props) {
   const { reuniaoId, dataReuniaoLabel, pautaInicial, feedbacks, feedbacksEquipe, alertas, metasPassadas, ativos, metricas, mostrarResumo } = props
@@ -123,7 +152,7 @@ export default function PrepararClient(props: Props) {
     setFeedback(null)
     startTransition(async () => {
       const res = await salvarPauta(reuniaoId, montarPauta())
-      setFeedback(res?.error ? res.error : 'Pauta salva ✓')
+      setFeedback(res?.error ? res.error : 'Pauta salva')
     })
   }
 
@@ -151,47 +180,48 @@ export default function PrepararClient(props: Props) {
     setNovasMetas((m) => [...m, { texto: '', responsavel_id: null }])
   }
 
-  const CardFeedback = ({ f, grave }: { f: FeedbackSemana; grave?: boolean }) => (
-    <div className={`rounded-xl border p-3 ${grave ? 'border-orange-300 bg-orange-50' : 'border-border bg-white'}`}>
-      <div className="flex items-center gap-2">
-        <Avatar nome={f.profissionais?.nome ?? '?'} fotoUrl={f.profissionais?.foto_url} size={32} />
-        <span className="font-medium text-text text-sm">{f.profissionais?.nome}</span>
-        <Estrelas value={f.estrelas ?? 0} readOnly size={14} cor={TIPOS[f.tipo].estrela} />
+  const CardFeedback = ({ f, grave }: { f: FeedbackSemana; grave?: boolean }) => {
+    const v = TIPO_VISUAL[f.tipo]
+    return (
+      <div className={`rounded-md border border-border p-3 bg-white border-l-[3px] ${grave ? 'border-l-ambar' : v.bordaEsq}`}>
+        <div className="flex items-center gap-2">
+          <Avatar nome={f.profissionais?.nome ?? '?'} fotoUrl={f.profissionais?.foto_url} size={32} />
+          <span className="font-medium text-text text-sm">{f.profissionais?.nome}</span>
+          <Estrelas value={f.estrelas ?? 0} readOnly size={14} cor={TIPOS[f.tipo].estrela} />
+        </div>
+        {grave && <p className="text-ambar text-xs font-medium mt-1">Sugerimos conversa individual</p>}
+        <p className="text-sm text-text mt-1.5">{f.texto}</p>
+        {f.categoria && (
+          <span className="inline-block text-xs bg-linho text-grafite rounded-full px-2 py-0.5 mt-2">{f.categoria}</span>
+        )}
+        <div className="flex gap-1.5 mt-2">
+          {DECISOES.map((d) => (
+            <button
+              key={d.v}
+              type="button"
+              onClick={() => setDecisoes((prev) => ({ ...prev, [f.id]: d.v }))}
+              className={[
+                'px-2.5 py-1 rounded-md text-xs font-medium border transition-colors',
+                decisoes[f.id] === d.v ? d.cls : 'border-border bg-white text-grafite',
+              ].join(' ')}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+        <SugestaoFala feedbackId={f.id} />
       </div>
-      {grave && <p className="text-orange-700 text-xs font-medium mt-1">Sugerimos conversa individual</p>}
-      <p className="text-sm text-text mt-1.5">{f.texto}</p>
-      {f.categoria && (
-        <span className="inline-block text-xs bg-primary-soft text-primary rounded-full px-2 py-0.5 mt-2">{f.categoria}</span>
-      )}
-      <div className="flex gap-1.5 mt-2">
-        {DECISOES.map((d) => (
-          <button
-            key={d.v}
-            type="button"
-            onClick={() => setDecisoes((prev) => ({ ...prev, [f.id]: d.v }))}
-            className={[
-              'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
-              decisoes[f.id] === d.v ? d.cls : 'border-border bg-white text-text-muted',
-            ].join(' ')}
-          >
-            {d.label}
-          </button>
-        ))}
-      </div>
-      <SugestaoFala feedbackId={f.id} />
-    </div>
-  )
+    )
+  }
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-6 space-y-4 pb-32 animate-fade-in">
       {/* CABEÇALHO */}
       <div className="card p-5">
-        <h1 className="text-xl font-bold text-text">Preparar reunião</h1>
-        <p className="text-text-muted text-sm">{dataReuniaoLabel}</p>
-        <p className="text-2xl font-bold text-primary mt-3">{metricas.totalInd} individuais · {metricas.totalEq} de equipe</p>
-        <p className="text-xs text-text-muted mt-1">
-          🟢 {metricas.positivos} positivos · 🔴 {metricas.negativos} negativos · ⚪ {metricas.observacoes} observações
-        </p>
+        <h1 className="text-xl font-semibold text-text">Preparar reunião</h1>
+        <p className="text-chumbo text-sm">{dataReuniaoLabel}</p>
+        <p className="text-2xl font-bold text-marrom mt-3">{metricas.totalInd} individuais · {metricas.totalEq} de equipe</p>
+        <p className="text-xs text-grafite mt-1.5"><MetricasResumo positivos={metricas.positivos} negativos={metricas.negativos} observacoes={metricas.observacoes} /></p>
       </div>
 
       {mostrarResumo && <ResumoSemana />}
@@ -202,7 +232,7 @@ export default function PrepararClient(props: Props) {
           {alertas.map((a) => (
             <div
               key={a.profId}
-              className={`rounded-2xl border p-4 ${a.grave ? 'border-red-300 bg-red-50' : 'border-amber-300 bg-amber-50'}`}
+              className={`card p-4 border-l-[3px] ${a.grave ? 'border-l-vinho' : 'border-l-ambar'}`}
             >
               <div className="flex items-center gap-2">
                 <Avatar nome={a.nome} fotoUrl={a.foto_url} size={36} />
@@ -211,7 +241,7 @@ export default function PrepararClient(props: Props) {
               <ul className="text-sm text-text mt-2 list-disc pl-5">
                 {a.razoes.map((r) => <li key={r}>{r}</li>)}
               </ul>
-              <p className="text-xs text-text-muted mt-1">{a.sugestao}</p>
+              <p className="text-xs text-chumbo mt-1">{a.sugestao}</p>
               {a.feedbackIds.length > 0 && (
                 <button
                   type="button"
@@ -229,13 +259,14 @@ export default function PrepararClient(props: Props) {
 
       {/* BLOCO 1 — ELOGIOS */}
       <Bloco
-        titulo="🎉 Elogios da semana"
+        titulo="Elogios da semana"
+        icon={Sparkles}
         dir={
           positivos.length > 5 ? (
             <button
               type="button"
               onClick={() => setMostrarTodosElogios((v) => !v)}
-              className="text-xs text-primary font-medium"
+              className="text-xs text-marrom font-medium"
             >
               {mostrarTodosElogios ? 'Mostrar Top 5' : 'Mostrar todos'}
             </button>
@@ -243,52 +274,56 @@ export default function PrepararClient(props: Props) {
         }
       >
         {positivos.length === 0 ? (
-          <p className="text-text-muted text-sm">Nenhum elogio registrado nesta semana.</p>
+          <p className="text-chumbo text-sm">Nenhum elogio registrado nesta semana.</p>
         ) : (
           elogiosVisiveis.map((f) => <CardFeedback key={f.id} f={f} />)
         )}
       </Bloco>
 
       {/* BLOCO 2 — FEEDBACKS DE EQUIPE */}
-      <Bloco titulo="👥 Sobre a equipe">
+      <Bloco titulo="Sobre a equipe" icon={Users}>
         {feedbacksEquipe.length === 0 ? (
-          <p className="text-text-muted text-sm">Nenhum feedback de equipe nesta semana.</p>
+          <p className="text-chumbo text-sm">Nenhum feedback de equipe nesta semana.</p>
         ) : (
-          feedbacksEquipe.map((f) => (
-            <div key={f.id} className="rounded-xl border border-border bg-white p-3">
-              <div className="flex items-center gap-2">
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TIPOS[f.tipo].badge}`}>
-                  {TIPOS[f.tipo].emoji} {TIPOS[f.tipo].label}
-                </span>
-                <Estrelas value={f.estrelas ?? 0} readOnly size={14} cor={TIPOS[f.tipo].estrela} />
+          feedbacksEquipe.map((f) => {
+            const v = TIPO_VISUAL[f.tipo]
+            const TipoIcon = v.Icon
+            return (
+              <div key={f.id} className={`rounded-md border border-border bg-white p-3 border-l-[3px] ${v.bordaEsq}`}>
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${v.badge}`}>
+                    <TipoIcon size={13} strokeWidth={1.5} /> {v.label}
+                  </span>
+                  <Estrelas value={f.estrelas ?? 0} readOnly size={14} cor={TIPOS[f.tipo].estrela} />
+                </div>
+                <p className="text-sm text-text mt-1.5">{f.texto}</p>
+                {f.categoria && <span className="inline-block mt-1 text-xs bg-linho text-grafite rounded-full px-2 py-0.5">{f.categoria}</span>}
+                <div className="flex gap-1.5 mt-2">
+                  {DECISOES.filter((d) => d.v !== 'particular').map((d) => (
+                    <button
+                      key={d.v}
+                      type="button"
+                      onClick={() => setDecisoes((prev) => ({ ...prev, [f.id]: d.v }))}
+                      className={[
+                        'px-2.5 py-1 rounded-md text-xs font-medium border transition-colors',
+                        decisoes[f.id] === d.v ? d.cls : 'border-border bg-white text-grafite',
+                      ].join(' ')}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <p className="text-sm text-text mt-1.5">{f.texto}</p>
-              {f.categoria && <span className="inline-block mt-1 text-xs bg-primary-soft text-primary rounded-full px-2 py-0.5">{f.categoria}</span>}
-              <div className="flex gap-1.5 mt-2">
-                {DECISOES.filter((d) => d.v !== 'particular').map((d) => (
-                  <button
-                    key={d.v}
-                    type="button"
-                    onClick={() => setDecisoes((prev) => ({ ...prev, [f.id]: d.v }))}
-                    className={[
-                      'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
-                      decisoes[f.id] === d.v ? d.cls : 'border-border bg-white text-text-muted',
-                    ].join(' ')}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))
+            )
+          })
         )}
       </Bloco>
 
       {/* BLOCO 3 — MÉTRICAS */}
-      <Bloco titulo="📊 Métricas da semana">
+      <Bloco titulo="Métricas da semana" icon={BarChart3}>
         <ul className="text-sm text-text space-y-1">
           <li>Feedbacks individuais: <strong>{metricas.totalInd}</strong> · de equipe: <strong>{metricas.totalEq}</strong></li>
-          <li>🟢 {metricas.positivos} · 🔴 {metricas.negativos} · ⚪ {metricas.observacoes}</li>
+          <li><MetricasResumo positivos={metricas.positivos} negativos={metricas.negativos} observacoes={metricas.observacoes} /></li>
           <li>Maior placar da semana: <strong>{metricas.maiorPlacar.nome}</strong> ({metricas.maiorPlacar.valor > 0 ? '+' : ''}{metricas.maiorPlacar.valor})</li>
           <li>Quem mais evoluiu: <strong>{metricas.maisEvoluiu.nome}</strong> ({metricas.maisEvoluiu.delta > 0 ? '+' : ''}{metricas.maisEvoluiu.delta})</li>
           <li>Placar da equipe: <strong>{metricas.placarEquipe > 0 ? '+' : ''}{metricas.placarEquipe}</strong></li>
@@ -302,40 +337,40 @@ export default function PrepararClient(props: Props) {
         />
       </Bloco>
 
-      {/* BLOCO 3 — PONTOS A DESENVOLVER */}
-      <Bloco titulo="🌱 Pontos a desenvolver">
+      {/* BLOCO 4 — PONTOS A DESENVOLVER */}
+      <Bloco titulo="Pontos a desenvolver" icon={Sprout}>
         {negativos.length === 0 ? (
-          <p className="text-text-muted text-sm">Nenhum ponto negativo nesta semana. 👏</p>
+          <p className="text-chumbo text-sm">Nenhum ponto negativo nesta semana.</p>
         ) : (
           negativos.map((f) => <CardFeedback key={f.id} f={f} grave={(f.estrelas ?? 0) >= 4} />)
         )}
       </Bloco>
 
-      {/* BLOCO 4 — METAS PASSADAS */}
-      <Bloco titulo="🎯 Metas da semana passada">
+      {/* BLOCO 5 — METAS PASSADAS */}
+      <Bloco titulo="Metas da semana passada" icon={Target}>
         {metasPassadas.length === 0 ? (
-          <p className="text-text-muted text-sm">
+          <p className="text-chumbo text-sm">
             Nenhuma meta definida na semana anterior. Você definirá as primeiras metas ao final desta reunião.
           </p>
         ) : (
           metasPassadas.map((m) => {
             const av = avaliacoes[m.id]
             return (
-              <div key={m.id} className="rounded-xl border border-border p-3">
+              <div key={m.id} className="rounded-md border border-border p-3">
                 <p className="text-sm text-text font-medium">{m.texto}</p>
-                <p className="text-xs text-text-muted">Responsável: {nomePorId(m.responsavel_id)}</p>
+                <p className="text-xs text-chumbo">Responsável: {nomePorId(m.responsavel_id)}</p>
                 <div className="flex gap-1.5 mt-2">
-                  {([['cumprida', '✅ Cumprida'], ['parcial', '⚠️ Parcial'], ['nao_cumprida', '❌ Não cumprida']] as [AvaliacaoMeta, string][]).map(([v, label]) => (
+                  {([['cumprida', CheckCircle2, 'Cumprida'], ['parcial', AlertTriangle, 'Parcial'], ['nao_cumprida', XCircle, 'Não cumprida']] as [AvaliacaoMeta, LucideIcon, string][]).map(([v, AvIcon, label]) => (
                     <button
                       key={v}
                       type="button"
                       onClick={() => setAvaliacoes((a) => ({ ...a, [m.id]: { ...a[m.id], avaliacao: v } }))}
                       className={[
-                        'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
-                        av?.avaliacao === v ? 'border-primary bg-primary text-white' : 'border-border bg-white text-text-muted',
+                        'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-colors',
+                        av?.avaliacao === v ? 'border-marrom bg-marrom text-white' : 'border-border bg-white text-grafite',
                       ].join(' ')}
                     >
-                      {label}
+                      <AvIcon size={14} strokeWidth={1.5} /> {label}
                     </button>
                   ))}
                 </div>
@@ -352,10 +387,10 @@ export default function PrepararClient(props: Props) {
         )}
       </Bloco>
 
-      {/* BLOCO 5 — NOVAS METAS */}
-      <Bloco titulo="🚀 Novas metas">
+      {/* BLOCO 6 — NOVAS METAS */}
+      <Bloco titulo="Novas metas" icon={Compass}>
         {novasMetas.map((m, i) => (
-          <div key={i} className="rounded-xl border border-border p-3 space-y-2">
+          <div key={i} className="rounded-md border border-border p-3 space-y-2">
             <input
               type="text"
               value={m.texto}
@@ -372,7 +407,7 @@ export default function PrepararClient(props: Props) {
                 <option value="">Geral (toda a equipe)</option>
                 {ativos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
               </select>
-              <button type="button" onClick={() => setNovasMetas((arr) => arr.filter((_, j) => j !== i))} className="text-red-600 text-sm px-2">
+              <button type="button" onClick={() => setNovasMetas((arr) => arr.filter((_, j) => j !== i))} className="text-vinho text-sm px-2">
                 Remover
               </button>
             </div>
@@ -380,19 +415,19 @@ export default function PrepararClient(props: Props) {
         ))}
         {novasMetas.length < 3 && (
           <button type="button" onClick={addMeta} className="btn-secondary w-full py-2.5 text-sm">
-            + Adicionar meta
+            <Plus size={16} strokeWidth={1.5} /> Adicionar meta
           </button>
         )}
-        {novasMetas.length === 0 && <p className="text-text-muted text-xs">Sugestão: defina de 1 a 3 metas.</p>}
+        {novasMetas.length === 0 && <p className="text-chumbo text-xs">Sugestão: defina de 1 a 3 metas.</p>}
       </Bloco>
 
-      {feedback && <p className="text-center text-sm text-text-muted">{feedback}</p>}
+      {feedback && <p className="text-center text-sm text-chumbo">{feedback}</p>}
 
-      {/* RODAPÉ FIXO */}
-      <div className="fixed bottom-0 left-0 right-0 bg-surface border-t border-border p-3 z-20">
+      {/* RODAPÉ FIXO (acima da bottom nav no mobile) */}
+      <div className="fixed bottom-16 lg:bottom-0 left-0 right-0 bg-surface border-t border-border p-3 z-40">
         <div className="max-w-2xl mx-auto flex items-center gap-2">
           <button type="button" onClick={iniciar} disabled={isPending} className="btn-primary flex-1">
-            ▶ Iniciar Modo Reunião
+            <Play size={18} strokeWidth={1.5} /> Iniciar Modo Reunião
           </button>
           <button type="button" onClick={salvar} disabled={isPending} className="btn-secondary text-sm px-3">
             Salvar

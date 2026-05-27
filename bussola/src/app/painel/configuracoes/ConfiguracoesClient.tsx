@@ -35,7 +35,7 @@ export default function ConfiguracoesClient({
     setFeedback(null)
     startTransition(async () => {
       const res = await salvarConfigIA(config)
-      setFeedback(res?.error ? res.error : 'Salvo ✓')
+      setFeedback(res?.error ? res.error : 'Salvo')
     })
   }
 
@@ -43,7 +43,7 @@ export default function ConfiguracoesClient({
     setFeedbackVis(null)
     startTransitionVis(async () => {
       const res = await salvarVisibilidade(vis)
-      setFeedbackVis(res?.error ? res.error : 'Salvo ✓')
+      setFeedbackVis(res?.error ? res.error : 'Salvo')
     })
   }
 

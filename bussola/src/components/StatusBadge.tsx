@@ -1,9 +1,9 @@
 import type { StatusProfissional } from '@/lib/profissionais'
 
 const MAP: Record<StatusProfissional, { label: string; cls: string }> = {
-  ativo: { label: 'Ativo', cls: 'bg-green-100 text-green-700' },
-  afastado: { label: 'Afastado', cls: 'bg-amber-100 text-amber-700' },
-  desligado: { label: 'Desligado', cls: 'bg-gray-200 text-gray-600' },
+  ativo: { label: 'Ativo', cls: 'bg-verde-musgo/10 text-verde-musgo' },
+  afastado: { label: 'Afastado', cls: 'bg-ambar/10 text-ambar' },
+  desligado: { label: 'Desligado', cls: 'bg-linho text-grafite' },
 }
 
 export default function StatusBadge({ status }: { status: StatusProfissional }) {
