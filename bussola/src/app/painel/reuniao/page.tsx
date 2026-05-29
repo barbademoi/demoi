@@ -1,10 +1,9 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { calcularPlacar } from '@/lib/feedbacks'
-import { intervalo, intervaloAnterior, semanaRef } from '@/lib/periodos'
+import { intervalo } from '@/lib/periodos'
 import { proximaReuniao } from '@/lib/reuniao'
-import type { MetaSemanal, PautaReuniao, Reuniao } from '@/lib/pauta'
-import PrepararClient, { type Alerta, type FeedbackSemana, type ProfLite } from './PrepararClient'
+import type { PautaReuniao, Reuniao } from '@/lib/pauta'
+import PrepararClient, { type ObsSemana } from './PrepararClient'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,113 +46,16 @@ export default async function PrepararReuniaoPage() {
   }
 
   const semana = intervalo('semana')
-  const semanaAnt = intervaloAnterior('semana')
 
   const { data: fbData } = await supabase
     .from('feedbacks')
-    .select('id, profissional_id, escopo, texto, categoria, created_at, status, profissionais(nome, foto_url)')
+    .select('id, profissional_id, escopo, texto, categoria, momento_reuniao, created_at, profissionais(nome, foto_url)')
     .eq('estabelecimento_id', est.id)
     .is('deletado_em', null)
-    .gte('created_at', semanaAnt.inicio.toISOString())
+    .gte('created_at', semana.inicio.toISOString())
     .lte('created_at', semana.fim.toISOString())
     .order('created_at', { ascending: false })
-
-  type FbRange = FeedbackSemana & { status: string; escopo: 'individual' | 'equipe' }
-  const range = (fbData ?? []) as unknown as FbRange[]
-  const noIntervalo = (f: FbRange, iv: { inicio: Date; fim: Date }) => {
-    const t = new Date(f.created_at).getTime()
-    return t >= iv.inicio.getTime() && t <= iv.fim.getTime()
-  }
-  const fbSemana = range.filter((f) => noIntervalo(f, semana))
-  const fbSemanaInd = fbSemana.filter((f) => f.escopo === 'individual')
-  const fbSemanaEq = fbSemana.filter((f) => f.escopo === 'equipe')
-
-  const { data: ativosData } = await supabase
-    .from('profissionais')
-    .select('id, nome, foto_url')
-    .eq('estabelecimento_id', est.id)
-    .eq('status', 'ativo')
-    .order('nome')
-  const ativos = (ativosData ?? []) as ProfLite[]
-
-  // Placar por profissional (semana e semana anterior).
-  const placarSem: Record<string, number> = {}
-  const placarAnt: Record<string, number> = {}
-  for (const p of ativos) {
-    const seus = range.filter((f) => f.profissional_id === p.id)
-    placarSem[p.id] = calcularPlacar(seus.filter((f) => noIntervalo(f, semana)))
-    placarAnt[p.id] = calcularPlacar(seus.filter((f) => noIntervalo(f, semanaAnt)))
-  }
-
-  // Alertas (individuais).
-  const alertas: Alerta[] = []
-  for (const p of ativos) {
-    const seus = fbSemanaInd.filter((f) => f.profissional_id === p.id)
-    const graves = seus.filter((f) => f.tipo === 'negativo' && (f.estrelas ?? 0) >= 4)
-    const positivos = seus.filter((f) => f.tipo === 'positivo')
-    const negativos = seus.filter((f) => f.tipo === 'negativo')
-    const razoes: string[] = []
-    let grave = false
-    if (graves.length >= 2) {
-      razoes.push(`${graves.length} feedbacks graves nesta semana`)
-      grave = true
-    }
-    if ((placarSem[p.id] ?? 0) < 0) razoes.push('Placar negativo na semana')
-    if (positivos.length === 0 && seus.length > 0) razoes.push('Nenhum elogio nesta semana')
-    if (razoes.length === 0) continue
-    alertas.push({
-      profId: p.id,
-      nome: p.nome,
-      foto_url: p.foto_url,
-      grave,
-      razoes,
-      sugestao: grave ? 'Conversar em particular antes da reunião' : 'Verificar se está tudo bem',
-      feedbackIds: negativos.map((f) => f.id),
-    })
-  }
-
-  // Alerta especial de equipe (placar negativo).
-  const placarEquipe = calcularPlacar(fbSemanaEq)
-  if (placarEquipe < 0) {
-    alertas.unshift({
-      profId: 'equipe',
-      nome: 'Equipe',
-      foto_url: null,
-      grave: true,
-      razoes: ['Placar de equipe negativo na semana'],
-      sugestao: 'Trate o clima coletivo na reunião',
-      feedbackIds: fbSemanaEq.filter((f) => f.tipo === 'negativo').map((f) => f.id),
-    })
-  }
-
-  // Métricas.
-  const totalInd = fbSemanaInd.length
-  const totalEq = fbSemanaEq.length
-  const total = totalInd
-  const positivos = fbSemana.filter((f) => f.tipo === 'positivo').length
-  const negativos = fbSemana.filter((f) => f.tipo === 'negativo').length
-  const observacoes = fbSemana.filter((f) => f.tipo === 'observacao').length
-
-  let maiorPlacar = { nome: '—', valor: 0 }
-  let maisEvoluiu = { nome: '—', delta: 0 }
-  for (const p of ativos) {
-    if ((placarSem[p.id] ?? 0) > maiorPlacar.valor || maiorPlacar.nome === '—') {
-      maiorPlacar = { nome: p.nome, valor: placarSem[p.id] ?? 0 }
-    }
-    const delta = (placarSem[p.id] ?? 0) - (placarAnt[p.id] ?? 0)
-    if (delta > maisEvoluiu.delta || maisEvoluiu.nome === '—') {
-      maisEvoluiu = { nome: p.nome, delta }
-    }
-  }
-
-  // Metas da semana passada.
-  const { data: metasPassadasData } = await supabase
-    .from('metas_semanais')
-    .select('*')
-    .eq('estabelecimento_id', est.id)
-    .eq('semana_referencia', semanaRef('anterior'))
-    .order('created_at')
-  const metasPassadas = (metasPassadasData ?? []) as MetaSemanal[]
+  const observacoes = (fbData ?? []) as unknown as ObsSemana[]
 
   const prox = proximaReuniao(est.dia_reuniao ?? 1, est.hora_reuniao ?? '09:00')
 
@@ -162,40 +64,7 @@ export default async function PrepararReuniaoPage() {
       reuniaoId={reuniao!.id}
       dataReuniaoLabel={`${prox.diaLabel}, ${prox.horaLabel}`}
       pautaInicial={(reuniao!.pauta as PautaReuniao | null) ?? {}}
-      feedbacks={fbSemanaInd.map((f) => ({
-        id: f.id,
-        profissional_id: f.profissional_id,
-        tipo: f.tipo,
-        estrelas: f.estrelas,
-        texto: f.texto,
-        categoria: f.categoria,
-        created_at: f.created_at,
-        profissionais: f.profissionais,
-      }))}
-      feedbacksEquipe={fbSemanaEq.map((f) => ({
-        id: f.id,
-        profissional_id: f.profissional_id,
-        tipo: f.tipo,
-        estrelas: f.estrelas,
-        texto: f.texto,
-        categoria: f.categoria,
-        created_at: f.created_at,
-        profissionais: null,
-      }))}
-      alertas={alertas}
-      metasPassadas={metasPassadas}
-      ativos={ativos}
-      metricas={{
-        total,
-        totalInd,
-        totalEq,
-        positivos,
-        negativos,
-        observacoes,
-        maiorPlacar,
-        maisEvoluiu,
-        placarEquipe,
-      }}
+      observacoes={observacoes}
       mostrarResumo={mostrarResumo}
     />
   )
