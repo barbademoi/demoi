@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { intervalo, intervaloAnterior, semanaRef } from '@/lib/periodos'
 import { proximaReuniao } from '@/lib/reuniao'
-import { calcularPlacar, type Feedback } from '@/lib/feedbacks'
+import { calcularPlacar } from '@/lib/feedbacks'
 import type { MetaSemanal, PautaReuniao, Reuniao } from '@/lib/pauta'
 import ConduzirClient, { type FbItem } from './ConduzirClient'
 
@@ -78,7 +78,7 @@ export default async function ConduzirPage({ params }: { params: { id: string } 
     .is('deletado_em', null)
     .gte('created_at', semanaAnt.inicio.toISOString())
     .lte('created_at', semana.fim.toISOString())
-  const range = (rangeData ?? []) as { profissional_id: string; tipo: Feedback['tipo']; estrelas: number | null; created_at: string }[]
+  const range = (rangeData ?? []) as { profissional_id: string; tipo: null; estrelas: null; created_at: string }[]
   const dentro = (iso: string, iv: { inicio: Date; fim: Date }) => {
     const t = new Date(iso).getTime()
     return t >= iv.inicio.getTime() && t <= iv.fim.getTime()

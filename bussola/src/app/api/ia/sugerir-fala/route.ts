@@ -8,7 +8,7 @@ import { donoEstab } from '../helpers'
 export async function POST(req: Request) {
   if (!temChaveIA()) return NextResponse.json({ error: 'IA não configurada.' }, { status: 503 })
 
-  const { feedbackId, regenerar } = await req.json().catch(() => ({}))
+  const { feedbackId, regenerar, momento } = await req.json().catch(() => ({}))
   if (!feedbackId) return NextResponse.json({ error: 'feedbackId obrigatório.' }, { status: 400 })
 
   const { supabase, est } = await donoEstab()
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const res = await gerarTexto(systemFala(est.config.tom), userFala(fb.profissionais, fb), 120)
+    const res = await gerarTexto(systemFala(est.config.tom, momento ?? null), userFala(fb.profissionais, fb), 120)
     if (regenerar) {
       await supabase.from('sugestoes_ia').delete().eq('feedback_id', feedbackId).eq('tipo', 'fala_reuniao')
     }

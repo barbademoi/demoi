@@ -2,14 +2,11 @@ import { NextResponse } from 'next/server'
 import { temChaveIA, gerarTexto } from '@/utils/anthropic'
 import { systemResumo } from '@/lib/iaPrompts'
 import { intervalo } from '@/lib/periodos'
-import type { TipoFeedback } from '@/lib/feedbacks'
 import { donoEstab } from '../helpers'
 
 interface FbResumo {
   profissional_id: string | null
   escopo: 'individual' | 'equipe'
-  tipo: TipoFeedback
-  estrelas: number | null
   categoria: string | null
   texto: string
   profissionais: { nome: string } | null
@@ -49,32 +46,18 @@ export async function POST(req: Request) {
   const fbs = (data ?? []) as unknown as FbResumo[]
 
   if (fbs.length === 0) {
-    return NextResponse.json({ resumo: 'Nenhum feedback registrado nesta semana ainda.', cached: false })
+    return NextResponse.json({ resumo: 'Nenhuma observação registrada nesta semana ainda.', cached: false })
   }
 
   const ind = fbs.filter((f) => f.escopo === 'individual')
   const eq = fbs.filter((f) => f.escopo === 'equipe')
-  const pos = fbs.filter((f) => f.tipo === 'positivo').length
-  const neg = fbs.filter((f) => f.tipo === 'negativo').length
-  const obs = fbs.filter((f) => f.tipo === 'observacao').length
 
-  // Top 3 mais elogiados.
-  const elogiosPorProf: Record<string, number> = {}
+  // Volume por colaborador (sinaliza quem teve mais atenção).
+  const porProf: Record<string, number> = {}
   for (const f of ind) {
-    if (f.tipo === 'positivo' && f.profissionais) {
-      elogiosPorProf[f.profissionais.nome] = (elogiosPorProf[f.profissionais.nome] ?? 0) + 1
-    }
+    if (f.profissionais) porProf[f.profissionais.nome] = (porProf[f.profissionais.nome] ?? 0) + 1
   }
-  const top3 = Object.entries(elogiosPorProf).sort((a, b) => b[1] - a[1]).slice(0, 3)
-
-  // Alertas: graves (negativo, 4-5 estrelas).
-  const gravesPorProf: Record<string, number> = {}
-  for (const f of ind) {
-    if (f.tipo === 'negativo' && (f.estrelas ?? 0) >= 4 && f.profissionais) {
-      gravesPorProf[f.profissionais.nome] = (gravesPorProf[f.profissionais.nome] ?? 0) + 1
-    }
-  }
-  const alertas = Object.entries(gravesPorProf).filter(([, n]) => n >= 2)
+  const top = Object.entries(porProf).sort((a, b) => b[1] - a[1]).slice(0, 5)
 
   // Categorias mais frequentes.
   const catFreq: Record<string, number> = {}
@@ -83,20 +66,25 @@ export async function POST(req: Request) {
   }
   const cats = Object.entries(catFreq).sort((a, b) => b[1] - a[1]).slice(0, 3)
 
-  const dados = [
-    `Feedbacks individuais: ${ind.length}. Feedbacks de equipe: ${eq.length}.`,
-    `Distribuição: ${pos} positivos, ${neg} negativos, ${obs} observações.`,
-    `Mais elogiados: ${top3.length ? top3.map(([n, c]) => `${n} (${c})`).join(', ') : 'ninguém ainda'}.`,
-    alertas.length ? `ALERTAS: ${alertas.map(([n, c]) => `${n} com ${c} feedbacks graves`).join('; ')}.` : 'Sem alertas graves.',
-    eq.length ? `Sobre a equipe: ${eq.map((f) => `(${f.tipo}) ${f.texto}`).join(' | ')}` : '',
-    cats.length ? `Categorias mais frequentes: ${cats.map(([c, n]) => `${c} (${n})`).join(', ')}.` : '',
-    '',
-    'Gere o resumo da semana.',
-  ].filter(Boolean).join('\n')
+  const linhas: string[] = []
+  linhas.push(`Total de observações na semana: ${fbs.length} (${ind.length} individuais, ${eq.length} sobre a equipe).`)
+  if (top.length) linhas.push(`Volume por colaborador: ${top.map(([n, c]) => `${n} (${c})`).join(', ')}.`)
+  if (cats.length) linhas.push(`Categorias mais frequentes: ${cats.map(([c, n]) => `${c} (${n})`).join(', ')}.`)
+  linhas.push('')
+  linhas.push('Observações individuais (até 30):')
+  for (const f of ind.slice(0, 30)) {
+    linhas.push(`- ${f.profissionais?.nome ?? '—'}${f.categoria ? ` [${f.categoria}]` : ''}: ${f.texto}`)
+  }
+  if (eq.length) {
+    linhas.push('')
+    linhas.push('Observações sobre a equipe:')
+    for (const f of eq.slice(0, 15)) linhas.push(`- ${f.texto}`)
+  }
+  linhas.push('')
+  linhas.push('Gere o resumo da semana.')
 
   try {
-    const res = await gerarTexto(systemResumo(est.config.tom), dados, 200)
-    // Limpeza defensiva: remove markdown e um eventual título "Resumo da semana".
+    const res = await gerarTexto(systemResumo(est.config.tom), linhas.join('\n'), 200)
     const resumo = res.texto
       .replace(/\*+/g, '')
       .replace(/^\s*resumo da semana[:\s-]*/i, '')
