@@ -70,6 +70,63 @@ export async function buscarMetasPeriodo(mes: number, ano: number): Promise<{
   }
 }
 
+/**
+ * Busca a meta mais recente anterior ao período (mes, ano) informado.
+ * Usado pelo botão "Copiar metas de <mês>" no MetasModal quando o dono
+ * navega pra um período futuro que ainda não tem metas configuradas.
+ * Devolve `{ existe: false }` se não houver nenhuma meta anterior.
+ */
+export async function buscarMetasMaisRecenteAntes(mes: number, ano: number): Promise<
+  | {
+      existe: true
+      mesOrigem: number
+      anoOrigem: number
+      metaColetiva: number
+      premioColetivo: string
+      metasIndividuais: MetaIndividual[]
+    }
+  | { existe: false }
+  | { error: string }
+> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: usuario } = await (supabase as any)
+    .from('usuarios').select('barbearia_id').eq('id', user.id).single() as
+    { data: { barbearia_id: string } | null }
+  if (!usuario) return { error: 'Barbearia não encontrada.' }
+
+  // Volume é pequeno (≤12 por ano), então filtrar em JS sai mais simples e
+  // seguro do que montar um OR composto no PostgREST.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: todas } = await (supabase as any)
+    .from('metas')
+    .select('id, mes, ano, meta_coletiva, premio_coletivo')
+    .eq('barbearia_id', usuario.barbearia_id)
+    .order('ano', { ascending: false })
+    .order('mes', { ascending: false }) as {
+      data: Array<{ id: string; mes: number; ano: number; meta_coletiva: number; premio_coletivo: string | null }> | null
+    }
+
+  const meta = (todas ?? []).find(m => m.ano < ano || (m.ano === ano && m.mes < mes))
+  if (!meta) return { existe: false }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: indsRaw } = await (supabase as any)
+    .from('metas_individuais').select('*').eq('meta_id', meta.id)
+
+  return {
+    existe: true,
+    mesOrigem: meta.mes,
+    anoOrigem: meta.ano,
+    metaColetiva: Number(meta.meta_coletiva) || 0,
+    premioColetivo: meta.premio_coletivo ?? '',
+    metasIndividuais: (indsRaw ?? []) as MetaIndividual[],
+  }
+}
+
 export async function salvarMetas(formData: FormData) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
