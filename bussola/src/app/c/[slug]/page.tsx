@@ -50,12 +50,21 @@ export default async function FeedbackClientePage({ params }: { params: { slug: 
 
   const colaboradores = (ativos ?? []) as ColaboradorLite[]
 
+  // Quantos brindes ativos a empresa tem? Usado pra exibir o aviso de
+  // sorteio em cima do campo de comentário.
+  const { count: brindesAtivos } = await admin
+    .from('brindes')
+    .select('id', { count: 'exact', head: true })
+    .eq('estabelecimento_id', est.id)
+    .eq('ativo', true)
+
   return (
     <FeedbackClienteCliente
       slug={params.slug}
       nomeEmpresa={est.nome as string}
       colaboradores={colaboradores}
       mensagemPosFeedback={(est.mensagem_pos_feedback as string | null) ?? ''}
+      temBrindes={(brindesAtivos ?? 0) > 0}
     />
   )
 }
