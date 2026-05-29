@@ -10,6 +10,7 @@ import LogoUpload from '@/components/dashboard/LogoUpload'
 import ModoMesSelector from '@/components/dashboard/ModoMesSelector'
 import CampanhaModal from '@/components/dashboard/CampanhaModal'
 import CampanhaToggle from '@/components/dashboard/CampanhaToggle'
+import ResumoReuniaoModal from '@/components/dashboard/ResumoReuniaoModal'
 import DashboardShell from '@/components/dashboard/DashboardShell'
 import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario } from '@/types/database'
 
@@ -283,6 +284,7 @@ export default async function DashboardPage() {
       campanhaToggleSlot={modoAtual !== 'metas' && campanha ? (
         <CampanhaToggle campanhaId={campanha.id} ativo={campanha.ativo} />
       ) : null}
+      resumoReuniaoSlot={<ResumoReuniaoModal mes={mes} ano={ano} />}
     />
   )
 }
