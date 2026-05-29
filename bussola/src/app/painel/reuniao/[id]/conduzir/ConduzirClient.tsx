@@ -25,7 +25,6 @@ import { TIPOS, type TipoFeedback } from '@/lib/feedbacks'
 import type { AvaliacaoMeta, MetaSemanal, NovaMeta, PautaReuniao } from '@/lib/pauta'
 import { salvarPauta, finalizarReuniao, marcarDiscutido } from '../../actions'
 import SugestaoFala from '../../SugestaoFala'
-import DicaBloco from './DicaBloco'
 
 // Checkbox customizado (sem o padrão do navegador).
 function Checkbox({ checked, onChange, size = 22 }: { checked: boolean; onChange: () => void; size?: number }) {
@@ -47,7 +46,7 @@ export interface FbItem {
   id: string
   profissional_id: string | null
   escopo: 'individual' | 'equipe'
-  tipo: TipoFeedback
+  tipo: TipoFeedback | null
   estrelas: number | null
   texto: string
   categoria: string | null
@@ -209,7 +208,7 @@ export default function ConduzirClient(props: Props) {
   const Card = ({ f }: { f: FbItem }) => {
     const marcado = discutidos.has(f.id)
     const grave = f.tipo === 'negativo' && (f.estrelas ?? 0) >= 4
-    const v = TIPO_VISUAL[f.tipo]
+    const v = TIPO_VISUAL[f.tipo ?? 'observacao']
     const TipoIcon = v.Icon
     return (
       <div className={`rounded-md border border-border p-3 border-l-[3px] ${v.bordaEsq} bg-white transition-opacity ${marcado ? 'opacity-50' : ''}`}>
@@ -230,7 +229,7 @@ export default function ConduzirClient(props: Props) {
               <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${v.badge}`}>
                 <TipoIcon size={13} strokeWidth={1.5} /> {v.label}
               </span>
-              <Estrelas value={f.estrelas ?? 0} readOnly size={14} cor={TIPOS[f.tipo].estrela} />
+              {(f.estrelas ?? 0) > 0 && <Estrelas value={f.estrelas ?? 0} readOnly size={14} cor={TIPOS[f.tipo ?? 'observacao'].estrela} />}
             </div>
             {grave && <p className="text-ambar text-xs font-medium mt-1">Conversa individual sugerida</p>}
             <p className="text-sm text-text mt-1.5">{f.texto}</p>
@@ -272,35 +271,30 @@ export default function ConduzirClient(props: Props) {
 
       {positivos.length > 0 && (
         <Bloco titulo="Elogios" icon={Sparkles} sub={`(${positivos.length} — ${positivos.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
-          {mostrarDicas && <DicaBloco bloco="elogios" contexto={ctx.elogios} />}
           {positivos.map((f) => <Card key={f.id} f={f} />)}
         </Bloco>
       )}
 
       {equipe.length > 0 && (
         <Bloco titulo="Sobre a equipe" icon={Users} sub={`(${equipe.length} — ${equipe.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
-          {mostrarDicas && <DicaBloco bloco="equipe" contexto={ctx.equipe} />}
           {equipe.map((f) => <Card key={f.id} f={f} />)}
         </Bloco>
       )}
 
       {negativos.length > 0 && (
         <Bloco titulo="Pontos a desenvolver" icon={Sprout} sub={`(${negativos.length} — ${negativos.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
-          {mostrarDicas && <DicaBloco bloco="desenvolvimento" contexto={ctx.desenvolvimento} />}
           {negativos.map((f) => <Card key={f.id} f={f} />)}
         </Bloco>
       )}
 
       {observacoes.length > 0 && (
         <Bloco titulo="Observações" icon={Eye} sub={`(${observacoes.length})`}>
-          {mostrarDicas && <DicaBloco bloco="observacoes" contexto={ctx.observacoes} />}
           {observacoes.map((f) => <Card key={f.id} f={f} />)}
         </Bloco>
       )}
 
       {/* MÉTRICAS */}
       <Bloco titulo="Métricas da semana" icon={BarChart3}>
-        {mostrarDicas && <DicaBloco bloco="metricas" contexto={ctx.metricas} />}
         <ul className="text-sm text-text space-y-1">
           <li className="inline-flex items-center gap-2 flex-wrap">
             Total: <strong>{metricas.total}</strong>
@@ -327,7 +321,6 @@ export default function ConduzirClient(props: Props) {
       {/* METAS PASSADAS */}
       {metasPassadas.length > 0 && (
         <Bloco titulo="Metas da semana passada" icon={Target} sub={`(${metasComAval}/${metasPassadas.length})`}>
-          {mostrarDicas && <DicaBloco bloco="metas_passadas" contexto={ctx.metas_passadas} />}
           {metasPassadas.map((m) => {
             const av = avaliacoes[m.id]
             return (
@@ -361,7 +354,6 @@ export default function ConduzirClient(props: Props) {
 
       {/* NOVAS METAS */}
       <Bloco titulo="Novas metas" icon={Compass} sub={`(${novasValidas.length})`}>
-        {mostrarDicas && <DicaBloco bloco="metas_novas" contexto={ctx.metas_novas} />}
         {novasMetas.map((m, i) => (
           <div key={i} className="rounded-md border border-border p-3 space-y-2">
             <input
