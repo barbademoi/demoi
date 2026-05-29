@@ -13,6 +13,7 @@ import {
   History,
   Settings,
   LogOut,
+  Star,
   X,
   type LucideIcon,
 } from 'lucide-react'
@@ -32,6 +33,7 @@ const PRINCIPAIS: Item[] = [
 
 const SECUNDARIOS: Item[] = [
   { href: '/painel/reuniao', label: 'Preparar Reunião', icon: ClipboardList },
+  { href: '/painel/feedbacks-cliente', label: 'Feedback de Clientes', icon: Star },
   { href: '/painel/historico-reunioes', label: 'Histórico', icon: History },
   { href: '/painel/configuracoes', label: 'Configurações', icon: Settings },
 ]
