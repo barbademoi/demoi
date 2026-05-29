@@ -63,9 +63,14 @@ export default async function BarbeiroPage({ params }: Props) {
   // ── Metas ─────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
-    .from('metas').select('id, meta_coletiva, premio_coletivo, faturamento_acumulado')
+    .from('metas').select('id, meta_coletiva, meta_coletiva_bronze, meta_coletiva_prata, premio_coletivo, premio_coletivo_bronze, premio_coletivo_prata, faturamento_acumulado')
     .eq('barbearia_id', barbeiro.barbearia_id).eq('mes', mes).eq('ano', ano).single()
-  const meta = metaRaw as { id: string; meta_coletiva: number; premio_coletivo: string | null; faturamento_acumulado: number } | null
+  const meta = metaRaw as {
+    id: string
+    meta_coletiva: number; meta_coletiva_bronze: number; meta_coletiva_prata: number
+    premio_coletivo: string | null; premio_coletivo_bronze: string | null; premio_coletivo_prata: string | null
+    faturamento_acumulado: number
+  } | null
 
   let metaInd: MetaIndividual | null = null
   if (meta) {
@@ -248,7 +253,11 @@ export default async function BarbeiroPage({ params }: Props) {
           faturamentoColetivo={faturamentoColetivo}
           progressoColetivo={progressoColetivo}
           metaColetiva={meta?.meta_coletiva ?? 0}
+          metaColetivaBronze={meta?.meta_coletiva_bronze ?? 0}
+          metaColetivaPrata={meta?.meta_coletiva_prata ?? 0}
           premioColetivo={meta?.premio_coletivo ?? null}
+          premioColetivoBronze={meta?.premio_coletivo_bronze ?? null}
+          premioColetivoPrata={meta?.premio_coletivo_prata ?? null}
           insights={insights}
           mensagemIA={mensagemIA}
           tiersJaCelebrados={tiersJaCelebrados}

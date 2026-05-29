@@ -55,10 +55,14 @@ export async function gerarResumoReuniao(mes: number, ano: number): Promise<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: meta } = await (supabase as any)
     .from('metas')
-    .select('id, meta_coletiva, premio_coletivo')
+    .select('id, meta_coletiva, meta_coletiva_bronze, meta_coletiva_prata, premio_coletivo, premio_coletivo_bronze, premio_coletivo_prata')
     .eq('barbearia_id', usuario.barbearia_id)
     .eq('mes', mes).eq('ano', ano)
-    .maybeSingle() as { data: { id: string; meta_coletiva: number; premio_coletivo: string | null } | null }
+    .maybeSingle() as { data: {
+      id: string
+      meta_coletiva: number; meta_coletiva_bronze: number; meta_coletiva_prata: number
+      premio_coletivo: string | null; premio_coletivo_bronze: string | null; premio_coletivo_prata: string | null
+    } | null }
 
   let metasInd: MetaIndLite[] = []
   if (meta) {
@@ -108,9 +112,19 @@ export async function gerarResumoReuniao(mes: number, ano: number): Promise<
   blocos.push(`PERÍODO: ${periodoLabel}`)
 
   if (meta) {
-    let m = `META COLETIVA: ${fmtBRL(Number(meta.meta_coletiva) || 0)}`
-    if (meta.premio_coletivo) m += `\nPRÊMIO COLETIVO: ${meta.premio_coletivo}`
-    blocos.push(m)
+    const tiersColetivos: string[] = []
+    const addTier = (label: string, valor: number, premio: string | null) => {
+      if (!valor || valor <= 0) return
+      let l = `${label}: ${fmtBRL(valor)}`
+      if (premio) l += ` — prêmio: ${premio}`
+      tiersColetivos.push(l)
+    }
+    addTier('Bronze', Number(meta.meta_coletiva_bronze) || 0, meta.premio_coletivo_bronze)
+    addTier('Prata',  Number(meta.meta_coletiva_prata)  || 0, meta.premio_coletivo_prata)
+    addTier('Ouro',   Number(meta.meta_coletiva)        || 0, meta.premio_coletivo)
+    if (tiersColetivos.length > 0) {
+      blocos.push(`META COLETIVA (tiers Bronze/Prata/Ouro):\n${tiersColetivos.map(t => `- ${t}`).join('\n')}`)
+    }
   }
 
   if (metasInd.length > 0) {
@@ -175,7 +189,7 @@ Retorne somente o texto formatado, pronto para ser lido em reunião ou enviado n
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-haiku-4-5',
       max_tokens: 1500,
       messages: [{ role: 'user', content: prompt }],
     })

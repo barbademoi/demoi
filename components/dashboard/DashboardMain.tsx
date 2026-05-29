@@ -31,7 +31,11 @@ type BarbeiroRow = {
 type MetaSimples = {
   id: string
   meta_coletiva: number
+  meta_coletiva_bronze?: number
+  meta_coletiva_prata?: number
   premio_coletivo: string | null
+  premio_coletivo_bronze?: string | null
+  premio_coletivo_prata?: string | null
   faturamento_acumulado: number
 }
 
@@ -252,6 +256,18 @@ function TodosView({
   const ritmoColetivo = diasUteisCorridos > 0 ? faturamentoExibido / diasUteisCorridos : 0
   const ritmoOk = ritmoColetivo >= necesarioPorDia
 
+  // Tiers da meta coletiva (só quando bronze/prata também foram configurados;
+  // caso contrário cai no display legado de 1 barra)
+  const tiersColetivos = meta ? [
+    { id: 'bronze' as const, label: 'Bronze', emoji: '🥉', valor: meta.meta_coletiva_bronze ?? 0 },
+    { id: 'prata'  as const, label: 'Prata',  emoji: '🥈', valor: meta.meta_coletiva_prata  ?? 0 },
+    { id: 'ouro'   as const, label: 'Ouro',   emoji: '🏆', valor: meta.meta_coletiva },
+  ].filter(t => t.valor > 0) : []
+  const temTiers = tiersColetivos.length > 1
+  const tiersHit = tiersColetivos.filter(t => faturamentoExibido >= t.valor)
+  const tierAtingido = tiersHit.length > 0 ? tiersHit[tiersHit.length - 1] : null
+  const proximoTier = tiersColetivos.find(t => faturamentoExibido < t.valor)
+
   return (
     <div className="space-y-6">
       {/* Hero: Meta Coletiva */}
@@ -289,6 +305,17 @@ function TodosView({
                 {falta > 0 && (
                   <p className="text-text-muted text-sm font-sans mt-1">
                     faltam <span className="text-text font-semibold">{formatBRL(falta)}</span>
+                  </p>
+                )}
+                {temTiers && (
+                  <p className="text-text-muted text-xs font-sans mt-2">
+                    {tierAtingido
+                      ? `${tierAtingido.emoji} ${tierAtingido.label} atingido`
+                      : 'Nenhum tier atingido ainda'}
+                    {proximoTier && (
+                      <> · Faltam <span className="text-text font-semibold">{formatBRL(proximoTier.valor - faturamentoExibido)}</span> pra {proximoTier.emoji} {proximoTier.label}</>
+                    )}
+                    {!proximoTier && tierAtingido && ' · 🎉 Equipe arrasou!'}
                   </p>
                 )}
               </div>

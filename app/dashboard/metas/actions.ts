@@ -12,7 +12,11 @@ import type { MetaIndividual } from '@/types/database'
  */
 export async function buscarMetasPeriodo(mes: number, ano: number): Promise<{
   metaColetiva: number
+  metaColetivaBronze: number
+  metaColetivaPrata: number
   premioColetivo: string
+  premioColetivoBronze: string
+  premioColetivoPrata: string
   faturamentoAcumulado: number
   metasIndividuais: MetaIndividual[]
   existe: boolean
@@ -30,14 +34,23 @@ export async function buscarMetasPeriodo(mes: number, ano: number): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: meta } = await (supabase as any)
     .from('metas')
-    .select('id, meta_coletiva, premio_coletivo, faturamento_acumulado')
+    .select('id, meta_coletiva, meta_coletiva_bronze, meta_coletiva_prata, premio_coletivo, premio_coletivo_bronze, premio_coletivo_prata, faturamento_acumulado')
     .eq('barbearia_id', usuario.barbearia_id)
     .eq('mes', mes)
     .eq('ano', ano)
-    .maybeSingle() as { data: { id: string; meta_coletiva: number; premio_coletivo: string | null; faturamento_acumulado: number } | null }
+    .maybeSingle() as { data: {
+      id: string
+      meta_coletiva: number; meta_coletiva_bronze: number; meta_coletiva_prata: number
+      premio_coletivo: string | null; premio_coletivo_bronze: string | null; premio_coletivo_prata: string | null
+      faturamento_acumulado: number
+    } | null }
 
   if (!meta) {
-    return { metaColetiva: 0, premioColetivo: '', faturamentoAcumulado: 0, metasIndividuais: [], existe: false }
+    return {
+      metaColetiva: 0, metaColetivaBronze: 0, metaColetivaPrata: 0,
+      premioColetivo: '', premioColetivoBronze: '', premioColetivoPrata: '',
+      faturamentoAcumulado: 0, metasIndividuais: [], existe: false,
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,7 +59,11 @@ export async function buscarMetasPeriodo(mes: number, ano: number): Promise<{
 
   return {
     metaColetiva: Number(meta.meta_coletiva) || 0,
+    metaColetivaBronze: Number(meta.meta_coletiva_bronze) || 0,
+    metaColetivaPrata: Number(meta.meta_coletiva_prata) || 0,
     premioColetivo: meta.premio_coletivo ?? '',
+    premioColetivoBronze: meta.premio_coletivo_bronze ?? '',
+    premioColetivoPrata: meta.premio_coletivo_prata ?? '',
     faturamentoAcumulado: Number(meta.faturamento_acumulado) || 0,
     metasIndividuais: (indsRaw ?? []) as MetaIndividual[],
     existe: true,
@@ -70,8 +87,22 @@ export async function salvarMetas(formData: FormData) {
   const mes = parseInt(formData.get('mes') as string)
   const ano = parseInt(formData.get('ano') as string)
   const meta_coletiva = parseFloat(formData.get('meta_coletiva') as string) || 0
+  const meta_coletiva_bronze = parseFloat(formData.get('meta_coletiva_bronze') as string) || 0
+  const meta_coletiva_prata = parseFloat(formData.get('meta_coletiva_prata') as string) || 0
   const premio_coletivo = formData.get('premio_coletivo') as string
+  const premio_coletivo_bronze = (formData.get('premio_coletivo_bronze') as string) || ''
+  const premio_coletivo_prata = (formData.get('premio_coletivo_prata') as string) || ''
   const faturamento_acumulado = parseFloat(formData.get('faturamento_acumulado') as string) || 0
+
+  const colsColetivas = {
+    meta_coletiva,
+    meta_coletiva_bronze,
+    meta_coletiva_prata,
+    premio_coletivo: premio_coletivo || null,
+    premio_coletivo_bronze: premio_coletivo_bronze || null,
+    premio_coletivo_prata: premio_coletivo_prata || null,
+    faturamento_acumulado,
+  }
 
   // Upsert meta coletiva
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -90,14 +121,14 @@ export async function salvarMetas(formData: FormData) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any)
       .from('metas')
-      .update({ meta_coletiva, premio_coletivo, faturamento_acumulado })
+      .update(colsColetivas)
       .eq('id', meta_id)
     if (error) return { error: error.message }
   } else {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: newMeta, error } = await (supabase as any)
       .from('metas')
-      .insert({ barbearia_id: usuario.barbearia_id, mes, ano, meta_coletiva, premio_coletivo, faturamento_acumulado })
+      .insert({ barbearia_id: usuario.barbearia_id, mes, ano, ...colsColetivas })
       .select('id')
       .single()
     if (error) return { error: error.message }

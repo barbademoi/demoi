@@ -20,8 +20,12 @@ interface Props {
   barbeiros: Barbeiro[]
   metasAtuais?: MetaIndividual[]
   metaColetiva?: number
+  metaColetivaBronze?: number
+  metaColetivaPrata?: number
   faturamentoAcumulado?: number
   premioColetivo?: string
+  premioColetivoBronze?: string
+  premioColetivoPrata?: string
   mes: number
   ano: number
   herdadoDeMesAnterior?: boolean
@@ -44,7 +48,13 @@ function mapMetasParaBarbeiros(barbeiros: Barbeiro[], inds?: MetaIndividual[]): 
   })
 }
 
-export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, faturamentoAcumulado, premioColetivo, mes, ano, herdadoDeMesAnterior, diaFechamento = 1 }: Props) {
+export default function MetasModal({
+  barbeiros, metasAtuais,
+  metaColetiva, metaColetivaBronze, metaColetivaPrata,
+  faturamentoAcumulado,
+  premioColetivo, premioColetivoBronze, premioColetivoPrata,
+  mes, ano, herdadoDeMesAnterior, diaFechamento = 1,
+}: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [erro, setErro] = useState<string | null>(null)
@@ -62,9 +72,15 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
 
   const periodoLabel = cicloDeData(new Date(anoSel, mesSel - 1, diaFechamento), diaFechamento).label
 
-  const [metaColetivaVal, setMetaColetivaVal] = useState(String(metaColetiva ?? ''))
+  // Meta coletiva por tier (Bronze, Prata, Ouro). `metaColetivaVal` segue
+  // sendo o tier Ouro (campo legado) — Bronze e Prata são novos.
+  const [metaColetivaBronzeVal, setMetaColetivaBronzeVal] = useState(String(metaColetivaBronze ?? ''))
+  const [metaColetivaPrataVal,  setMetaColetivaPrataVal]  = useState(String(metaColetivaPrata  ?? ''))
+  const [metaColetivaVal,       setMetaColetivaVal]       = useState(String(metaColetiva       ?? ''))
+  const [premioBronzeVal, setPremioBronzeVal] = useState(premioColetivoBronze ?? '')
+  const [premioPrataVal,  setPremioPrataVal]  = useState(premioColetivoPrata  ?? '')
+  const [premioVal,       setPremioVal]       = useState(premioColetivo       ?? '')
   const [faturamentoVal, setFaturamentoVal] = useState(String(faturamentoAcumulado ?? ''))
-  const [premioVal, setPremioVal] = useState(premioColetivo ?? '')
   const [metas, setMetas] = useState<MetaBarbeiro[]>(() => mapMetasParaBarbeiros(barbeiros, metasAtuais))
 
   function updateMeta(id: string, field: keyof Omit<MetaBarbeiro, 'id' | 'nome'>, value: string) {
@@ -88,9 +104,13 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
       const res = await buscarMetasPeriodo(m, a)
       setCarregandoPeriodo(false)
       if ('error' in res) { setErro(res.error); return }
+      setMetaColetivaBronzeVal(res.metaColetivaBronze ? String(res.metaColetivaBronze) : '')
+      setMetaColetivaPrataVal(res.metaColetivaPrata ? String(res.metaColetivaPrata) : '')
       setMetaColetivaVal(res.metaColetiva ? String(res.metaColetiva) : '')
-      setFaturamentoVal(res.faturamentoAcumulado ? String(res.faturamentoAcumulado) : '')
+      setPremioBronzeVal(res.premioColetivoBronze)
+      setPremioPrataVal(res.premioColetivoPrata)
       setPremioVal(res.premioColetivo)
+      setFaturamentoVal(res.faturamentoAcumulado ? String(res.faturamentoAcumulado) : '')
       setMetas(mapMetasParaBarbeiros(barbeiros, res.metasIndividuais))
       setPeriodoExiste(res.existe)
     })
@@ -104,7 +124,11 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
       fd.set('mes', String(mesSel))
       fd.set('ano', String(anoSel))
       fd.set('meta_coletiva', metaColetivaVal)
+      fd.set('meta_coletiva_bronze', metaColetivaBronzeVal)
+      fd.set('meta_coletiva_prata', metaColetivaPrataVal)
       fd.set('premio_coletivo', premioVal)
+      fd.set('premio_coletivo_bronze', premioBronzeVal)
+      fd.set('premio_coletivo_prata', premioPrataVal)
       fd.set('faturamento_acumulado', faturamentoVal)
       fd.set('barbeiros', JSON.stringify(
         metas.map(m => ({
@@ -196,37 +220,87 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Meta coletiva */}
+          {/* Meta coletiva (Bronze / Prata / Ouro) */}
           <div className="card p-4 space-y-3">
             <h4 className="font-sans font-semibold text-text text-sm">Meta coletiva</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label">Faturamento acumulado (R$)</label>
-                <input
-                  type="number" step="0.01" min="0"
-                  value={faturamentoVal}
-                  onChange={e => setFaturamentoVal(e.target.value)}
-                  placeholder="0,00" className="input"
-                />
-              </div>
-              <div>
-                <label className="label">Meta do mês (R$)</label>
-                <input
-                  type="number" step="0.01" min="0"
-                  value={metaColetivaVal}
-                  onChange={e => setMetaColetivaVal(e.target.value)}
-                  placeholder="60000" className="input"
-                />
-              </div>
-            </div>
+
             <div>
-              <label className="label">Prêmio coletivo</label>
+              <label className="label">Faturamento acumulado (R$)</label>
               <input
-                type="text"
-                value={premioVal}
-                onChange={e => setPremioVal(e.target.value)}
-                placeholder="Ex: Rodízio de pizza" className="input"
+                type="number" step="0.01" min="0"
+                value={faturamentoVal}
+                onChange={e => setFaturamentoVal(e.target.value)}
+                placeholder="0,00" className="input"
               />
+              <p className="text-text-muted text-[11px] font-sans mt-1">
+                Quanto a equipe já fez no período.
+              </p>
+            </div>
+
+            <div className="border-t border-border pt-3 space-y-3">
+              <p className="text-text-muted text-xs font-sans">
+                Defina os 3 tiers da meta coletiva. Quando o faturamento atingir um tier, a equipe ganha o prêmio correspondente.
+              </p>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="label metal-text-bronze">Bronze (R$)</label>
+                  <input
+                    type="number" step="0.01" min="0"
+                    value={metaColetivaBronzeVal}
+                    onChange={e => setMetaColetivaBronzeVal(e.target.value)}
+                    placeholder="0" className="input text-center py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="label metal-text-silver">Prata (R$)</label>
+                  <input
+                    type="number" step="0.01" min="0"
+                    value={metaColetivaPrataVal}
+                    onChange={e => setMetaColetivaPrataVal(e.target.value)}
+                    placeholder="0" className="input text-center py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="label metal-text-gold">Ouro (R$)</label>
+                  <input
+                    type="number" step="0.01" min="0"
+                    value={metaColetivaVal}
+                    onChange={e => setMetaColetivaVal(e.target.value)}
+                    placeholder="0" className="input text-center py-2 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="label">Prêmio Bronze</label>
+                  <input
+                    type="text"
+                    value={premioBronzeVal}
+                    onChange={e => setPremioBronzeVal(e.target.value)}
+                    placeholder="Ex: Almoço" className="input py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="label">Prêmio Prata</label>
+                  <input
+                    type="text"
+                    value={premioPrataVal}
+                    onChange={e => setPremioPrataVal(e.target.value)}
+                    placeholder="Ex: Pizza" className="input py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="label">Prêmio Ouro</label>
+                  <input
+                    type="text"
+                    value={premioVal}
+                    onChange={e => setPremioVal(e.target.value)}
+                    placeholder="Ex: Churrasco" className="input py-2 text-sm"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
