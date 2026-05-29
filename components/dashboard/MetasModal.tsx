@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { salvarMetas, buscarMetasPeriodo } from '@/app/dashboard/metas/actions'
+import { salvarMetas, buscarMetasPeriodo, buscarMetasMaisRecenteAntes } from '@/app/dashboard/metas/actions'
 import { cicloDeData } from '@/lib/ciclo'
+import { formatBRL } from '@/lib/utils'
 import type { Barbeiro, MetaIndividual } from '@/types/database'
 
 interface MetaBarbeiro {
@@ -57,6 +58,15 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
   const [carregandoPeriodo, setCarregandoPeriodo] = useState(false)
   // Período em foco existe no banco? (controla aviso "sem metas")
   const [periodoExiste, setPeriodoExiste] = useState(true)
+  // Quando o período não tem metas, oferece copiar do mais recente anterior.
+  const [metasAnt, setMetasAnt] = useState<{
+    mesOrigem: number
+    anoOrigem: number
+    metaColetiva: number
+    premioColetivo: string
+    metasIndividuais: MetaIndividual[]
+  } | null>(null)
+  const [mostrarConfirmCopia, setMostrarConfirmCopia] = useState(false)
   // É o período atual (= não dá pra voltar antes dele)
   const ehPeriodoAtual = mesSel === mes && anoSel === ano
 
@@ -93,7 +103,30 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
       setPremioVal(res.premioColetivo)
       setMetas(mapMetasParaBarbeiros(barbeiros, res.metasIndividuais))
       setPeriodoExiste(res.existe)
+
+      // Período sem metas → procura a mais recente anterior pra oferecer "Copiar".
+      if (!res.existe) {
+        const ant = await buscarMetasMaisRecenteAntes(m, a)
+        if ('error' in ant) return
+        setMetasAnt(ant.existe ? {
+          mesOrigem: ant.mesOrigem,
+          anoOrigem: ant.anoOrigem,
+          metaColetiva: ant.metaColetiva,
+          premioColetivo: ant.premioColetivo,
+          metasIndividuais: ant.metasIndividuais,
+        } : null)
+      } else {
+        setMetasAnt(null)
+      }
     })
+  }
+
+  function aplicarCopia() {
+    if (!metasAnt) return
+    setMetaColetivaVal(metasAnt.metaColetiva ? String(metasAnt.metaColetiva) : '')
+    setPremioVal(metasAnt.premioColetivo)
+    setMetas(mapMetasParaBarbeiros(barbeiros, metasAnt.metasIndividuais))
+    setMostrarConfirmCopia(false)
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -139,6 +172,7 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
   }
 
   return (
+    <>
     <div
       style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.7)', zIndex:50, overflowY:'scroll' }}
     >
@@ -182,6 +216,22 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
             </svg>
           </button>
         </div>
+
+        {!periodoExiste && !carregandoPeriodo && metasAnt && (
+          <div className="mb-6 p-4 rounded-xl bg-surface-2 border border-border">
+            <p className="font-sans text-sm text-text mb-3">
+              <span className="capitalize font-semibold">{periodoLabel}</span> — sem metas configuradas
+            </p>
+            <button
+              type="button"
+              onClick={() => setMostrarConfirmCopia(true)}
+              className="btn-ghost text-sm py-2 px-4 border border-border"
+            >
+              📋 Copiar metas de {cicloDeData(new Date(metasAnt.anoOrigem, metasAnt.mesOrigem - 1, diaFechamento), diaFechamento).label}
+            </button>
+            <p className="text-xs text-text-muted font-sans mt-2">ou configure do zero abaixo</p>
+          </div>
+        )}
 
         {herdadoDeMesAnterior && ehPeriodoAtual && (
           <div className="mb-6 p-4 rounded-xl bg-primary/10 border border-primary/30 text-sm font-sans flex items-start gap-3">
@@ -311,5 +361,58 @@ export default function MetasModal({ barbeiros, metasAtuais, metaColetiva, fatur
         </form>
       </div>
     </div>
+
+    {mostrarConfirmCopia && metasAnt && (
+      <div
+        style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.85)', zIndex:60, overflowY:'auto' }}
+      >
+        <div className="card p-6 w-full mx-auto my-8" style={{ maxWidth:'520px' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-serif text-xl text-text">
+              Copiar de <span className="capitalize">{cicloDeData(new Date(metasAnt.anoOrigem, metasAnt.mesOrigem - 1, diaFechamento), diaFechamento).label}</span>?
+            </h3>
+            <button type="button" onClick={() => setMostrarConfirmCopia(false)} className="text-text-muted hover:text-text text-xl">×</button>
+          </div>
+
+          <div className="space-y-2 mb-4 p-3 rounded-xl bg-surface-2 border border-border">
+            <p className="text-sm font-sans text-text">
+              <span className="text-text-muted">Meta coletiva:</span>{' '}
+              <span className="font-semibold">{formatBRL(metasAnt.metaColetiva)}</span>
+            </p>
+            {metasAnt.premioColetivo && (
+              <p className="text-sm font-sans text-text">
+                <span className="text-text-muted">Prêmio:</span>{' '}
+                <span className="font-semibold">{metasAnt.premioColetivo}</span>
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1.5 mb-5 max-h-72 overflow-y-auto">
+            {barbeiros.map(b => {
+              const mi = metasAnt.metasIndividuais.find(x => x.barbeiro_id === b.id)
+              if (!mi) return null
+              return (
+                <p key={b.id} className="text-xs font-sans text-text">
+                  <span className="font-semibold">{b.nome}</span>{' '}
+                  <span className="text-text-muted">
+                    BRZ {formatBRL(mi.bronze_comm)} · PRT {formatBRL(mi.prata_comm)} · OUR {formatBRL(mi.ouro_comm)}
+                  </span>
+                </p>
+              )
+            })}
+          </div>
+
+          <div className="flex gap-3">
+            <button type="button" onClick={() => setMostrarConfirmCopia(false)} className="btn-ghost flex-1">
+              Cancelar
+            </button>
+            <button type="button" onClick={aplicarCopia} className="btn-primary flex-1">
+              ✓ Copiar e editar
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
