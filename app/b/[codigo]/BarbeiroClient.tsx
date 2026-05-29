@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { formatBRL, TIER_CONFIG, calcProgresso } from '@/lib/utils'
+import { REGRAS_FIXAS } from '@/lib/regras'
 import LancarDiaForm from './LancarDiaForm'
 import CelebracaoOverlay from '@/components/barbeiro/CelebracaoOverlay'
 import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
@@ -69,7 +70,7 @@ export default function BarbeiroClient({
   const isRecepcionista = barbeiro.tipo === 'recepcionista'
   const mostraPontos = modo === 'pontos' || modo === 'ambos'
   const mostraMetas = (modo === 'metas' || modo === 'ambos') && !isRecepcionista
-  const [aba, setAba] = useState<'progresso' | 'lancar'>('progresso')
+  const [aba, setAba] = useState<'progresso' | 'lancar' | 'regras'>('progresso')
   const [celebracaoFechada, setCelebracaoFechada] = useState(false)
 
   const posicaoPts = rankingPontos.findIndex(r => r.barbeiro_id === barbeiro.id)
@@ -151,6 +152,15 @@ export default function BarbeiroClient({
           >
             Lançar dia
           </button>
+          {campanha && (
+            <button
+              onClick={() => setAba('regras')}
+              className={`flex-1 py-3.5 text-sm font-sans font-semibold transition-colors
+                ${aba === 'regras' ? 'text-text border-b-2 border-primary' : 'text-text-muted hover:text-text'}`}
+            >
+              Regras
+            </button>
+          )}
         </div>
       )}
 
@@ -502,6 +512,35 @@ export default function BarbeiroClient({
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── ABA: REGRAS ── */}
+      {aba === 'regras' && mostraPontos && campanha && (
+        <div className="space-y-6 pt-2">
+          <div className="card p-6 space-y-4">
+            <h3 className="font-serif text-lg text-text flex items-center gap-2">
+              <span aria-hidden>📋</span> Regras do mês
+            </h3>
+            <ul className="space-y-3">
+              {REGRAS_FIXAS.map((r, i) => (
+                <li key={i} className="text-sm font-sans text-text flex items-start gap-2 leading-relaxed">
+                  <span className="text-green-400 mt-0.5 shrink-0">✓</span>
+                  <span>{r}</span>
+                </li>
+              ))}
+            </ul>
+            {campanha.regras_personalizadas && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="text-text-muted text-xs font-sans uppercase tracking-wide mb-2">
+                  Combinados da barbearia
+                </p>
+                <p className="text-sm font-sans text-text leading-relaxed whitespace-pre-wrap">
+                  {campanha.regras_personalizadas}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </>

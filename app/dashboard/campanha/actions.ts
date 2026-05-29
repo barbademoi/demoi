@@ -34,6 +34,7 @@ export async function salvarCampanha(params: {
   minPontosRecep: number
   bonusAssinQtd: number
   bonusAssinValor: number
+  regrasPersonalizadas?: string
   servicos: ServicoInput[]
   premios: PremioInput[]
 }) {
@@ -58,6 +59,7 @@ export async function salvarCampanha(params: {
       min_pontos_recep: params.minPontosRecep,
       bonus_assin_qtd: params.bonusAssinQtd,
       bonus_assin_valor: params.bonusAssinValor,
+      regras_personalizadas: params.regrasPersonalizadas?.trim() || null,
     }, { onConflict: 'barbearia_id,mes,ano' })
     .select('id')
     .single()
