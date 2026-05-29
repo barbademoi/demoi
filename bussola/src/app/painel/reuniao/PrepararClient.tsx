@@ -26,7 +26,14 @@ export interface ObsSemana {
   categoria: string | null
   momento_reuniao: Momento | null
   created_at: string
-  profissionais: { nome: string; foto_url: string | null } | null
+  profissionais: { nome: string; foto_url: string | null } | { nome: string; foto_url: string | null }[] | null
+}
+
+// Supabase às vezes devolve o relacionamento como array; normaliza pra objeto.
+function profOf(o: ObsSemana): { nome: string; foto_url: string | null } | null {
+  if (!o.profissionais) return null
+  if (Array.isArray(o.profissionais)) return o.profissionais[0] ?? null
+  return o.profissionais
 }
 
 interface Props {
@@ -76,13 +83,21 @@ export default function PrepararClient({ reuniaoId, dataReuniaoLabel, observacoe
   }, [])
 
   // Observações de escopo equipe sempre caem em "equipe" no painel visual.
-  const efetivo = (o: ObsSemana): Momento =>
-    o.escopo === 'equipe' ? 'equipe' : (o.momento_reuniao ?? 'neutro')
+  // Defensivo: só aceita um dos 4 momentos válidos; qualquer outro vira 'neutro'.
+  const efetivo = (o: ObsSemana): Momento => {
+    if (o.escopo === 'equipe') return 'equipe'
+    const m = o.momento_reuniao
+    return m === 'reconhecimento' || m === 'ajuste' || m === 'equipe' || m === 'neutro' ? m : 'neutro'
+  }
 
   const grupos = useMemo(() => {
     const m: Record<Momento, ObsSemana[]> = { reconhecimento: [], equipe: [], ajuste: [], neutro: [] }
-    for (const o of obs) m[efetivo(o)].push(o)
+    for (const o of obs) {
+      const key = efetivo(o)
+      ;(m[key] ?? m.neutro).push(o)
+    }
     return m
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [obs])
 
   function reclassificar(id: string, novo: Momento) {
@@ -156,11 +171,13 @@ export default function PrepararClient({ reuniaoId, dataReuniaoLabel, observacoe
               {meta.titulo} ({lista.length})
             </h2>
             <div className="space-y-2">
-              {lista.map((o) => (
+              {lista.map((o) => {
+                const prof = profOf(o)
+                return (
                 <div key={o.id} className="card p-3">
                   <div className="flex items-start gap-2">
-                    {o.escopo === 'individual' && o.profissionais ? (
-                      <Avatar nome={o.profissionais.nome} fotoUrl={o.profissionais.foto_url} size={28} />
+                    {o.escopo === 'individual' && prof ? (
+                      <Avatar nome={prof.nome ?? '—'} fotoUrl={prof.foto_url} size={28} />
                     ) : (
                       <span className="w-7 h-7 rounded-full bg-linho flex items-center justify-center shrink-0">
                         <Users size={14} strokeWidth={1.5} color="#8B6F47" />
@@ -169,7 +186,7 @@ export default function PrepararClient({ reuniaoId, dataReuniaoLabel, observacoe
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap text-xs text-chumbo">
                         <span className="font-medium text-text">
-                          {o.escopo === 'individual' ? o.profissionais?.nome ?? '—' : 'Equipe'}
+                          {o.escopo === 'individual' ? prof?.nome ?? '—' : 'Equipe'}
                         </span>
                         {o.categoria && <span className="bg-linho text-grafite rounded-full px-2 py-0.5">{o.categoria}</span>}
                       </div>
@@ -190,7 +207,8 @@ export default function PrepararClient({ reuniaoId, dataReuniaoLabel, observacoe
                     </div>
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </section>
         )

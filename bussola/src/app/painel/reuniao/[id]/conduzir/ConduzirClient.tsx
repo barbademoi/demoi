@@ -35,7 +35,14 @@ export interface ObsItem {
   status: string
   momento_reuniao: Momento | null
   sugestao_ia: string | null
-  profissionais: { nome: string; foto_url: string | null } | null
+  profissionais: { nome: string; foto_url: string | null } | { nome: string; foto_url: string | null }[] | null
+}
+
+// Supabase às vezes devolve o relacionamento como array; normaliza pra objeto.
+function profOf(o: ObsItem): { nome: string; foto_url: string | null } | null {
+  if (!o.profissionais) return null
+  if (Array.isArray(o.profissionais)) return o.profissionais[0] ?? null
+  return o.profissionais
 }
 
 interface ProfLite {
@@ -219,16 +226,17 @@ function ObsCard({
     setLoadingSug(false)
   }
 
+  const prof = profOf(obs)
   return (
     <div className={`rounded-md border border-border p-3 bg-white transition-opacity ${marcado ? 'opacity-50' : ''}`}>
       <div className="flex items-start gap-3">
         <Checkbox checked={marcado} onChange={toggle} size={22} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            {obs.escopo === 'individual' && obs.profissionais ? (
+            {obs.escopo === 'individual' && prof ? (
               <>
-                <Avatar nome={obs.profissionais.nome} fotoUrl={obs.profissionais.foto_url} size={28} />
-                <span className="text-sm font-medium text-text">{obs.profissionais.nome}</span>
+                <Avatar nome={prof.nome ?? '—'} fotoUrl={prof.foto_url} size={28} />
+                <span className="text-sm font-medium text-text">{prof.nome ?? '—'}</span>
               </>
             ) : (
               <span className="inline-flex items-center gap-1 text-sm font-medium text-text">
@@ -358,11 +366,11 @@ export default function ConduzirClient(props: Props) {
   // Contexto pra sugestao-fala-momento (mantém prompt curto).
   function contextoIA(): string {
     if (tela === 'reconhecimento') {
-      const nomes = Array.from(new Set(recs.map((o) => o.profissionais?.nome).filter(Boolean))) as string[]
+      const nomes = Array.from(new Set(recs.map((o) => profOf(o)?.nome).filter(Boolean))) as string[]
       return `${recs.length} reconhecimentos. Pessoas: ${nomes.join(', ') || '—'}.`
     }
     if (tela === 'ajuste') {
-      const nomes = Array.from(new Set(ajustes.map((o) => o.profissionais?.nome).filter(Boolean))) as string[]
+      const nomes = Array.from(new Set(ajustes.map((o) => profOf(o)?.nome).filter(Boolean))) as string[]
       return `${ajustes.length} pontos a desenvolver. Pessoas: ${nomes.join(', ') || '—'}.`
     }
     if (tela === 'equipe') {
