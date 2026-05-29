@@ -2,33 +2,60 @@
 
 import { useState, useTransition } from 'react'
 import { gerarResumoReuniao } from '@/app/dashboard/resumo/actions'
+import { cicloDeData } from '@/lib/ciclo'
 
 interface Props {
   mes: number
   ano: number
+  diaFechamento?: number
 }
 
-export default function ResumoReuniaoModal({ mes, ano }: Props) {
+export default function ResumoReuniaoModal({ mes, ano, diaFechamento = 1 }: Props) {
   const [open, setOpen] = useState(false)
   const [texto, setTexto] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const [copiado, setCopiado] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  function gerar() {
+  // Período selecionado — começa no período atual passado pelo dashboard.
+  const [mesSel, setMesSel] = useState(mes)
+  const [anoSel, setAnoSel] = useState(ano)
+
+  const periodoLabel = cicloDeData(new Date(anoSel, mesSel - 1, diaFechamento), diaFechamento).label
+  const ehPeriodoAtual = mesSel === mes && anoSel === ano
+
+  function gerarPara(m: number, a: number) {
     setErro(null)
     setTexto('')
     setCopiado(false)
     startTransition(async () => {
-      const res = await gerarResumoReuniao(mes, ano)
+      const res = await gerarResumoReuniao(m, a)
       if ('error' in res) setErro(res.error)
       else setTexto(res.texto)
     })
   }
 
+  function gerar() {
+    gerarPara(mesSel, anoSel)
+  }
+
+  function navegarPeriodo(delta: number) {
+    let m = mesSel + delta
+    let a = anoSel
+    if (m > 12) { m = 1; a += 1 }
+    if (m < 1)  { m = 12; a -= 1 }
+    // Piso conservador: não voltar antes de 2024 (constraint do schema das metas).
+    if (a < 2024) return
+    setMesSel(m)
+    setAnoSel(a)
+    gerarPara(m, a)
+  }
+
   function abrir() {
     setOpen(true)
-    gerar()
+    setMesSel(mes)
+    setAnoSel(ano)
+    gerarPara(mes, ano)
   }
 
   function copiar() {
@@ -76,6 +103,40 @@ export default function ResumoReuniaoModal({ mes, ano }: Props) {
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
+        </div>
+
+        {/* Seletor de período */}
+        <div className="px-6 pt-4 shrink-0">
+          <div className="flex items-center justify-between gap-3 p-2 rounded-xl bg-surface-2 border border-border">
+            <button
+              type="button"
+              onClick={() => navegarPeriodo(-1)}
+              disabled={isPending || (anoSel === 2024 && mesSel === 1)}
+              aria-label="Período anterior"
+              className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <div className="text-center">
+              <p className="font-serif text-lg text-text capitalize leading-tight">{periodoLabel}</p>
+              {ehPeriodoAtual && (
+                <p className="text-text-muted text-[11px] font-sans">período atual</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => navegarPeriodo(1)}
+              disabled={isPending}
+              aria-label="Próximo período"
+              className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Body */}

@@ -204,8 +204,6 @@ Retorne somente o texto formatado, pronto para ser lido em reunião ou enviado n
     return { texto }
   } catch (err) {
     console.error('[gerarResumoReuniao] erro:', err)
-    // Temporário: expõe a mensagem real pra acelerar diagnóstico em produção.
-    const detalhe = err instanceof Error ? err.message : String(err)
-    return { error: `Erro ao gerar o resumo: ${detalhe.slice(0, 300)}` }
+    return { error: 'Erro ao gerar o resumo. Tente de novo em alguns segundos.' }
   }
 }
