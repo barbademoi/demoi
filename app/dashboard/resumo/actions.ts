@@ -189,7 +189,7 @@ Retorne somente o texto formatado, pronto para ser lido em reunião ou enviado n
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 1500,
       messages: [{ role: 'user', content: prompt }],
     })
@@ -204,6 +204,8 @@ Retorne somente o texto formatado, pronto para ser lido em reunião ou enviado n
     return { texto }
   } catch (err) {
     console.error('[gerarResumoReuniao] erro:', err)
-    return { error: 'Erro ao gerar o resumo. Tente de novo em alguns segundos.' }
+    // Temporário: expõe a mensagem real pra acelerar diagnóstico em produção.
+    const detalhe = err instanceof Error ? err.message : String(err)
+    return { error: `Erro ao gerar o resumo: ${detalhe.slice(0, 300)}` }
   }
 }
