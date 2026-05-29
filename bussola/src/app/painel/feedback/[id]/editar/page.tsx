@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import type { Feedback } from '@/lib/feedbacks'
+import { CATEGORIAS, type Feedback } from '@/lib/feedbacks'
 import FeedbackForm from '../../FeedbackForm'
 
 export const dynamic = 'force-dynamic'
@@ -12,10 +12,15 @@ export default async function EditarFeedbackPage({ params }: { params: { id: str
 
   const { data: estabelecimento } = await supabase
     .from('estabelecimentos')
-    .select('id')
+    .select('id, categorias_customizadas')
     .eq('dono_id', user.id)
     .maybeSingle()
   if (!estabelecimento) redirect('/onboarding')
+
+  const categorias =
+    Array.isArray(estabelecimento.categorias_customizadas) && estabelecimento.categorias_customizadas.length > 0
+      ? (estabelecimento.categorias_customizadas as string[])
+      : CATEGORIAS
 
   const { data: fbData } = await supabase
     .from('feedbacks')
@@ -35,9 +40,10 @@ export default async function EditarFeedbackPage({ params }: { params: { id: str
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-6 animate-fade-in">
-      <h1 className="text-xl font-bold text-text mb-4">Editar feedback</h1>
+      <h1 className="text-xl font-semibold text-text mb-4">Editar observação</h1>
       <FeedbackForm
         profissionais={profsData ?? []}
+        categorias={categorias}
         modo="editar"
         inicial={{
           id: fb.id,

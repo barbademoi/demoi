@@ -25,9 +25,9 @@ export default async function OnboardingPage() {
     <main className="min-h-screen flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md animate-fade-in">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-primary mb-2">Vamos configurar</h1>
-          <p className="text-text-muted text-sm">
-            Conte um pouco sobre o seu estabelecimento.
+          <h1 className="text-2xl font-semibold text-text mb-2">Vamos configurar</h1>
+          <p className="text-chumbo text-sm">
+            Conte um pouco sobre a sua empresa.
           </p>
         </div>
 

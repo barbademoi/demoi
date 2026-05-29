@@ -12,7 +12,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: 'Bússola',
-  description: 'Gestão de pessoas e reuniões semanais para donos de barbearia',
+  description: 'Mentor de reuniões com IA para gestores de equipe',
 }
 
 export const viewport: Viewport = {

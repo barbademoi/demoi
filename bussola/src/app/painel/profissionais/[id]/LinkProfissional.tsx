@@ -38,11 +38,11 @@ export default function LinkProfissional({ nome, url, destaque = false }: Props)
     >
       {destaque && (
         <p className="inline-flex items-center gap-1.5 text-verde-musgo text-sm font-medium mb-3">
-          <CheckCircle2 size={16} strokeWidth={1.5} /> Profissional criado! Compartilhe o link abaixo.
+          <CheckCircle2 size={16} strokeWidth={1.5} /> Colaborador cadastrado. Compartilhe o link abaixo.
         </p>
       )}
       <h3 className="font-semibold text-text mb-1 inline-flex items-center gap-2">
-        <Link2 size={18} strokeWidth={1.5} color="#8B6F47" /> Link do profissional
+        <Link2 size={18} strokeWidth={1.5} color="#8B6F47" /> Link do colaborador
       </h3>
       <p className="text-chumbo text-sm mb-3">
         Compartilhe este link com <strong className="text-text">{nome}</strong> pelo WhatsApp. Ele

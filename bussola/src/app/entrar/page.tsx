@@ -24,7 +24,7 @@ export default function EntrarPage() {
       <div className="w-full max-w-sm animate-fade-in">
         <div className="text-center mb-8">
           <h1 className="font-serif text-4xl text-preto mb-2">Bússola</h1>
-          <p className="text-chumbo text-sm">Acesso do dono</p>
+          <p className="text-chumbo text-sm">Acesso do gestor</p>
         </div>
 
         <div className="card p-6 sm:p-8">

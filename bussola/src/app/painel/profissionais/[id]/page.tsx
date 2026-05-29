@@ -70,8 +70,8 @@ export default async function PerfilProfissionalPage({
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-6 space-y-5 animate-fade-in">
-      <Link href="/painel/profissionais" className="text-sm text-text-muted hover:text-primary">
-        ← Profissionais
+      <Link href="/painel/profissionais" className="text-sm text-chumbo hover:text-marrom">
+        ← Colaboradores
       </Link>
 
       {/* IDENTIFICAÇÃO */}

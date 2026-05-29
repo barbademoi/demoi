@@ -175,7 +175,7 @@ export default function ProfissionalForm({ estabelecimentoId, modo, inicial }: P
             type="text"
             list="funcoes-sugeridas"
             defaultValue={inicial?.funcao ?? ''}
-            placeholder="Ex.: Barbeiro"
+            placeholder="Ex.: Atendente"
             className="input"
           />
           <datalist id="funcoes-sugeridas">
@@ -287,7 +287,7 @@ export default function ProfissionalForm({ estabelecimentoId, modo, inicial }: P
                 name="pontos_desenvolvimento"
                 rows={2}
                 defaultValue={inicial?.pontos_desenvolvimento ?? ''}
-                placeholder="Ex.: tem dificuldade com horário, precisa melhorar o degradê"
+                placeholder="Ex.: tem dificuldade com prazos, precisa melhorar comunicação"
                 className="input"
               />
             </div>
@@ -299,7 +299,7 @@ export default function ProfissionalForm({ estabelecimentoId, modo, inicial }: P
                 name="notas_livres"
                 rows={2}
                 defaultValue={inicial?.notas_livres ?? ''}
-                placeholder="Ex.: filho no hospital, quer abrir próprio salão em 2 anos"
+                placeholder="Ex.: filho no hospital, quer abrir próprio negócio em 2 anos"
                 className="input"
               />
             </div>

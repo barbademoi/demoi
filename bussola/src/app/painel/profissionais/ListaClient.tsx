@@ -44,9 +44,9 @@ export default function ListaClient({
           ＋
         </div>
         <p className="text-text font-medium mb-1">Sua equipe começa aqui</p>
-        <p className="text-text-muted text-sm mb-6">Cadastre o primeiro profissional da sua equipe.</p>
+        <p className="text-chumbo text-sm mb-6">Cadastre o primeiro colaborador da sua equipe.</p>
         <Link href="/painel/profissionais/novo" className="btn-primary">
-          + Cadastrar profissional
+          + Cadastrar colaborador
         </Link>
       </div>
     )
@@ -76,7 +76,7 @@ export default function ListaClient({
 
       {lista.length === 0 ? (
         <p className="text-text-muted text-sm text-center py-10">
-          Nenhum profissional nesse filtro.
+          Nenhum colaborador nesse filtro.
         </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

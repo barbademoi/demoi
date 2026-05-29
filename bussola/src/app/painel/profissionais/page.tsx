@@ -49,10 +49,10 @@ export default async function ProfissionaisPage() {
   return (
     <main className="max-w-3xl mx-auto px-4 py-6 animate-fade-in">
       <div className="flex items-center justify-between gap-3 mb-5">
-        <h1 className="text-xl font-bold text-text">Profissionais</h1>
+        <h1 className="text-xl font-semibold text-text">Colaboradores</h1>
         {profissionais.length > 0 && (
           <Link href="/painel/profissionais/novo" className="btn-primary px-4 py-2.5 text-sm">
-            + Cadastrar profissional
+            + Cadastrar colaborador
           </Link>
         )}
       </div>

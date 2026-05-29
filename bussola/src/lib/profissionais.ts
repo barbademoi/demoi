@@ -19,7 +19,7 @@ export interface Profissional {
   created_at: string
 }
 
-export const FUNCOES_SUGERIDAS = ['Barbeiro', 'Recepcionista', 'Gerente', 'Auxiliar']
+export const FUNCOES_SUGERIDAS = ['Atendente', 'Recepcionista', 'Gerente', 'Auxiliar', 'Vendedor', 'Operador']
 
 export const MOTIVADORES = [
   'Dinheiro / comissão',
@@ -38,10 +38,10 @@ export const ESTILOS_COMUNICACAO = [
 ]
 
 export const COMPETENCIAS: { chave: string; label: string }[] = [
-  { chave: 'tecnica', label: 'Técnica (corte, barba, química)' },
+  { chave: 'tecnica', label: 'Conhecimento técnico' },
   { chave: 'atendimento', label: 'Atendimento ao cliente' },
   { chave: 'pontualidade', label: 'Pontualidade e presença' },
   { chave: 'equipe', label: 'Trabalho em equipe' },
-  { chave: 'organizacao', label: 'Organização e limpeza' },
-  { chave: 'vendas', label: 'Vendas e produtos' },
+  { chave: 'organizacao', label: 'Organização' },
+  { chave: 'resultados', label: 'Resultados' },
 ]

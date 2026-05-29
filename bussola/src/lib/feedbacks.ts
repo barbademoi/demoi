@@ -59,23 +59,23 @@ export const TIPOS: Record<TipoFeedback, TipoMeta> = {
 }
 
 export const CATEGORIAS = [
-  'Técnico',
+  'Desempenho técnico',
   'Atendimento',
   'Comportamento',
   'Cultura',
-  'Vendas',
   'Pontualidade',
+  'Resultados',
 ]
 
 export const PLACEHOLDERS: Record<TipoFeedback, string> = {
-  positivo: 'O que ele fez bem? Ex: atendeu o cliente do horário das 14h com paciência…',
-  negativo: 'O que precisa melhorar? Ex: chegou 15 min atrasado novamente…',
+  positivo: 'O que essa pessoa fez bem? Ex: atendeu o cliente das 14h com paciência…',
+  negativo: 'O que precisa melhorar? Ex: chegou 15 min atrasada novamente…',
   observacao: 'Algo a anotar? Ex: comentou que quer fazer um curso…',
 }
 
 export const PLACEHOLDERS_EQUIPE: Record<TipoFeedback, string> = {
-  positivo: 'O que a equipe fez bem essa semana? Ex: o salão tá funcionando muito bem nos finais de semana…',
-  negativo: 'O que a equipe precisa melhorar? Ex: ninguém tá oferecendo barba pros clientes de corte…',
+  positivo: 'O que a equipe fez bem essa semana? Ex: o time tá funcionando muito bem nos finais de semana…',
+  negativo: 'O que a equipe precisa melhorar? Ex: ninguém tá pegando as ligações no horário de pico…',
   observacao: 'Algo a anotar sobre o coletivo? Ex: percebi que o clima tá pesado entre o time da tarde…',
 }
 

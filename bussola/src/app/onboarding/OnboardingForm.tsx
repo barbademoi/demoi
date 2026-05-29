@@ -12,6 +12,24 @@ const DIAS = [
   { valor: 6, label: 'Sábado' },
 ]
 
+const SETORES = [
+  'Barbearia / Salão',
+  'Restaurante / Bar',
+  'Loja / Comércio',
+  'Oficina / Serviço técnico',
+  'Escritório (advocacia, contabilidade, etc.)',
+  'Agência / Criativo',
+  'Clínica / Saúde',
+  'Outro',
+]
+
+const TAMANHOS = [
+  { v: '1-5', label: '1 a 5 pessoas' },
+  { v: '6-15', label: '6 a 15 pessoas' },
+  { v: '16-30', label: '16 a 30 pessoas' },
+  { v: '30+', label: 'Mais de 30 pessoas' },
+]
+
 export default function OnboardingForm() {
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -30,19 +48,39 @@ export default function OnboardingForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label htmlFor="nome" className="label">Nome do estabelecimento</label>
+        <label htmlFor="nome" className="label">Nome da empresa</label>
         <input
           id="nome"
           name="nome"
           type="text"
           required
-          placeholder="Ex.: Barbearia do João"
+          placeholder="Ex.: Casa do João"
           className="input"
         />
       </div>
 
       <div>
-        <label htmlFor="endereco" className="label">Endereço <span className="text-text-muted font-normal">(opcional)</span></label>
+        <label htmlFor="setor" className="label">Setor <span className="text-chumbo font-normal">(opcional)</span></label>
+        <select id="setor" name="setor" defaultValue="" className="input">
+          <option value="">Selecione…</option>
+          {SETORES.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="tamanho_equipe" className="label">Tamanho da equipe <span className="text-chumbo font-normal">(opcional)</span></label>
+        <select id="tamanho_equipe" name="tamanho_equipe" defaultValue="" className="input">
+          <option value="">Selecione…</option>
+          {TAMANHOS.map((t) => (
+            <option key={t.v} value={t.v}>{t.label}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="endereco" className="label">Endereço <span className="text-chumbo font-normal">(opcional)</span></label>
         <input
           id="endereco"
           name="endereco"

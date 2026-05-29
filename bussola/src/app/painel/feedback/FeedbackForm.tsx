@@ -8,7 +8,7 @@ import Estrelas from '@/components/Estrelas'
 import { TIPO_VISUAL } from '@/components/tipoVisual'
 import {
   TIPOS,
-  CATEGORIAS,
+  CATEGORIAS as CATEGORIAS_PADRAO,
   PLACEHOLDERS,
   PLACEHOLDERS_EQUIPE,
   labelEstrelas,
@@ -39,9 +39,11 @@ interface Props {
   inicial?: Inicial
   escopoInicial?: EscopoFeedback
   categorizacaoAuto?: boolean
+  categorias?: string[]
 }
 
-export default function FeedbackForm({ profissionais, modo, inicial, escopoInicial, categorizacaoAuto }: Props) {
+export default function FeedbackForm({ profissionais, modo, inicial, escopoInicial, categorizacaoAuto, categorias }: Props) {
+  const CATEGORIAS = categorias && categorias.length > 0 ? categorias : CATEGORIAS_PADRAO
   const router = useRouter()
   const [escopo, setEscopo] = useState<EscopoFeedback>(inicial?.escopo ?? escopoInicial ?? 'individual')
   const [profId, setProfId] = useState<string>(inicial?.profissional_id ?? '')

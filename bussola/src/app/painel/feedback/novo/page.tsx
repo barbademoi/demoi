@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import { CATEGORIAS } from '@/lib/feedbacks'
 import FeedbackForm from '../FeedbackForm'
 
 export const dynamic = 'force-dynamic'
@@ -12,12 +13,16 @@ export default async function NovoFeedbackPage({ searchParams }: { searchParams:
 
   const { data: estabelecimento } = await supabase
     .from('estabelecimentos')
-    .select('id, config_ia')
+    .select('id, config_ia, categorias_customizadas')
     .eq('dono_id', user.id)
     .maybeSingle()
   if (!estabelecimento) redirect('/onboarding')
 
   const categorizacaoAuto = (estabelecimento.config_ia as { categorizacao_auto?: boolean } | null)?.categorizacao_auto !== false
+  const categorias =
+    Array.isArray(estabelecimento.categorias_customizadas) && estabelecimento.categorias_customizadas.length > 0
+      ? (estabelecimento.categorias_customizadas as string[])
+      : CATEGORIAS
 
   const { data } = await supabase
     .from('profissionais')
@@ -30,11 +35,11 @@ export default async function NovoFeedbackPage({ searchParams }: { searchParams:
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-6 animate-fade-in">
-      <h1 className="text-xl font-bold text-text mb-1">Registrar feedback</h1>
+      <h1 className="text-xl font-semibold text-text mb-1">Registrar observação</h1>
       {profissionais.length === 0 && (
-        <p className="text-text-muted text-sm mb-4">
-          Você ainda não tem profissionais ativos.{' '}
-          <Link href="/painel/profissionais/novo" className="text-primary underline">
+        <p className="text-chumbo text-sm mb-4">
+          Você ainda não tem colaboradores ativos.{' '}
+          <Link href="/painel/profissionais/novo" className="text-marrom underline">
             Cadastrar um
           </Link>
           .
@@ -42,6 +47,7 @@ export default async function NovoFeedbackPage({ searchParams }: { searchParams:
       )}
       <FeedbackForm
         profissionais={profissionais}
+        categorias={categorias}
         modo="novo"
         escopoInicial={searchParams.escopo === 'equipe' ? 'equipe' : 'individual'}
         categorizacaoAuto={categorizacaoAuto}
