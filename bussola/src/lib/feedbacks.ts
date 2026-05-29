@@ -1,18 +1,27 @@
+// Antes a Bússola tinha tipos (positivo/negativo/observação) e estrelas.
+// Hoje tudo é "observação". Os tipos foram aposentados pela Parte 2 do AJUSTE F.
+// Esses tipos seguem exportados pra back-compat com componentes ainda em
+// transição (FeedbackItem, AtividadeItem, Timeline), até serem reescritos
+// nas próximas fases.
 export type TipoFeedback = 'positivo' | 'negativo' | 'observacao'
 export type EscopoFeedback = 'individual' | 'equipe'
+export type MomentoReuniao = 'reconhecimento' | 'ajuste' | 'equipe' | 'neutro' | null
 
 export interface Feedback {
   id: string
   profissional_id: string | null
   estabelecimento_id: string
   escopo: EscopoFeedback
-  tipo: TipoFeedback
+  // tipo e estrelas só sobrevivem aqui porque alguns componentes ainda os
+  // exibem em registros antigos. Não são mais escritos no banco.
+  tipo: TipoFeedback | null
   categoria: string | null
   texto: string
   audio_url: string | null
   estrelas: number | null
   status: string
   sugestao_ia: string | null
+  momento_reuniao: MomentoReuniao
   created_at: string
   deletado_em: string | null
   lido_em: string | null
@@ -28,13 +37,13 @@ export interface FeedbackComProfissional extends Feedback {
 interface TipoMeta {
   label: string
   emoji: string
-  // classes Tailwind para botão selecionado / badge
   badge: string
   selecionado: string
-  estrela: string // cor das estrelas
+  estrela: string
 }
 
-export const TIPOS: Record<TipoFeedback, TipoMeta> = {
+// Mantido pra back-compat (cards antigos). Novos registros não têm tipo.
+export const TIPOS: Record<'positivo' | 'negativo' | 'observacao', TipoMeta> = {
   positivo: {
     label: 'Positivo',
     emoji: '👍',
@@ -67,68 +76,35 @@ export const CATEGORIAS = [
   'Resultados',
 ]
 
-export const PLACEHOLDERS: Record<TipoFeedback, string> = {
-  positivo: 'O que essa pessoa fez bem? Ex: atendeu o cliente das 14h com paciência…',
-  negativo: 'O que precisa melhorar? Ex: chegou 15 min atrasada novamente…',
-  observacao: 'Algo a anotar? Ex: comentou que quer fazer um curso…',
+// Placeholders únicos (sem variação por tipo, que não existe mais).
+export const PLACEHOLDER_INDIVIDUAL = (nome: string) =>
+  `Anote o que você observou sobre ${nome}. Pode ser algo bom, algo a melhorar, ou qualquer comentário.`
+
+export const PLACEHOLDER_EQUIPE =
+  'Anote o que você observou sobre a equipe. Pode ser algo positivo, algo a melhorar, ou qualquer comentário.'
+
+export function labelEstrelas(_tipo: TipoFeedback, _n: number): string {
+  return ''
 }
 
-export const PLACEHOLDERS_EQUIPE: Record<TipoFeedback, string> = {
-  positivo: 'O que a equipe fez bem essa semana? Ex: o time tá funcionando muito bem nos finais de semana…',
-  negativo: 'O que a equipe precisa melhorar? Ex: ninguém tá pegando as ligações no horário de pico…',
-  observacao: 'Algo a anotar sobre o coletivo? Ex: percebi que o clima tá pesado entre o time da tarde…',
-}
-
-const LABELS_ESTRELAS: Record<TipoFeedback, string[]> = {
-  positivo: [
-    '',
-    'Legal, vale registrar',
-    'Bom desempenho pontual',
-    'Acima do esperado',
-    'Excelente, exemplo pro time',
-    'Excepcional, marco do mês',
-  ],
-  negativo: [
-    '',
-    'Erro pequeno',
-    'Erro a corrigir, sem urgência',
-    'Erro relevante a tratar na reunião',
-    'Erro sério, falar individualmente',
-    'Erro grave, fere a cultura, ação imediata',
-  ],
-  observacao: ['', '', '', '', '', ''],
-}
-
-export function labelEstrelas(tipo: TipoFeedback, n: number): string {
-  return LABELS_ESTRELAS[tipo]?.[n] ?? ''
-}
-
-// Placar: positivos somam estrelas, negativos subtraem, observações não entram.
+// Placar: aposentado, retorna 0 pra qualquer entrada (mantido como noop
+// até as telas serem migradas).
 export function calcularPlacar(
-  feedbacks: { tipo: TipoFeedback; estrelas: number | null }[]
+  _feedbacks: { tipo: TipoFeedback | null; estrelas: number | null }[]
 ): number {
-  return feedbacks.reduce((acc, f) => {
-    const e = f.estrelas ?? 0
-    if (f.tipo === 'positivo') return acc + e
-    if (f.tipo === 'negativo') return acc - e
-    return acc
-  }, 0)
+  return 0
 }
 
 export type CorPlacar = 'verde' | 'amarelo' | 'vermelho'
 
-export function corPlacar(valor: number): CorPlacar {
-  if (valor > 5) return 'verde'
-  if (valor < -5) return 'vermelho'
+export function corPlacar(_valor: number): CorPlacar {
   return 'amarelo'
 }
 
-// Texto com sinal: +13 / -3 / 0
 export function comSinal(valor: number): string {
   return valor > 0 ? `+${valor}` : `${valor}`
 }
 
-// "há 2h", "ontem", "23 de mai"
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 
 export function tempoRelativo(iso: string): string {
@@ -145,7 +121,6 @@ export function tempoRelativo(iso: string): string {
   return `${d.getDate()} de ${MESES[d.getMonth()]}`
 }
 
-// "23 de maio"
 const MESES_LONGOS = [
   'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
   'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',

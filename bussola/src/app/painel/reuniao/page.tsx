@@ -51,7 +51,7 @@ export default async function PrepararReuniaoPage() {
 
   const { data: fbData } = await supabase
     .from('feedbacks')
-    .select('id, profissional_id, escopo, tipo, estrelas, texto, categoria, created_at, status, profissionais(nome, foto_url)')
+    .select('id, profissional_id, escopo, texto, categoria, created_at, status, profissionais(nome, foto_url)')
     .eq('estabelecimento_id', est.id)
     .is('deletado_em', null)
     .gte('created_at', semanaAnt.inicio.toISOString())

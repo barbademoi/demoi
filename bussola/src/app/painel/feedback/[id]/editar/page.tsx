@@ -49,9 +49,7 @@ export default async function EditarFeedbackPage({ params }: { params: { id: str
           id: fb.id,
           escopo: fb.escopo,
           profissional_id: fb.profissional_id,
-          tipo: fb.tipo,
           texto: fb.texto,
-          estrelas: fb.estrelas,
           categoria: fb.categoria,
         }}
       />

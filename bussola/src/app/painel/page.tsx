@@ -50,19 +50,15 @@ export default async function PainelPage() {
   const semana = intervalo('semana')
   const { data: semData } = await supabase
     .from('feedbacks')
-    .select('tipo, estrelas')
+    .select('id')
     .eq('estabelecimento_id', estabelecimento.id)
     .eq('escopo', 'individual')
     .is('deletado_em', null)
     .gte('created_at', semana.inicio.toISOString())
     .lte('created_at', semana.fim.toISOString())
 
-  const sem = (semData ?? []) as { tipo: TipoFeedback; estrelas: number | null }[]
-  const total = sem.length
-  const positivos = sem.filter((f) => f.tipo === 'positivo').length
-  const negativos = sem.filter((f) => f.tipo === 'negativo').length
-  const observacoes = sem.filter((f) => f.tipo === 'observacao').length
-  const graves = sem.filter((f) => f.tipo === 'negativo' && f.estrelas === 5).length
+  const total = (semData ?? []).length
+  const graves = 0
 
   // Últimos 5 feedbacks individuais.
   const { data: ultData } = await supabase
@@ -79,22 +75,18 @@ export default async function PainelPage() {
   const mes = intervalo('mes')
   const { data: eqData } = await supabase
     .from('feedbacks')
-    .select('tipo, estrelas, texto, created_at')
+    .select('texto, created_at')
     .eq('estabelecimento_id', estabelecimento.id)
     .eq('escopo', 'equipe')
     .is('deletado_em', null)
     .gte('created_at', mes.inicio.toISOString())
     .order('created_at', { ascending: false })
-  const eq = (eqData ?? []) as { tipo: TipoFeedback; estrelas: number | null; texto: string; created_at: string }[]
-  const eqSemana = eq.filter((f) => new Date(f.created_at).getTime() >= semana.inicio.getTime())
-  const placarEqSemana = calcularPlacar(eqSemana as Feedback[])
-  const placarEqMes = calcularPlacar(eq as Feedback[])
-  const corEq = (v: number) => (v > 0 ? 'text-verde-musgo' : v < 0 ? 'text-vinho' : 'text-chumbo')
+  const eq = (eqData ?? []) as { texto: string; created_at: string }[]
 
   // Atividade da equipe (leituras e respostas).
   const { data: atvData } = await supabase
     .from('feedbacks')
-    .select('id, tipo, texto, lido_em, resposta_profissional, resposta_em, profissionais(nome, foto_url)')
+    .select('id, texto, lido_em, resposta_profissional, resposta_em, profissionais(nome, foto_url)')
     .eq('estabelecimento_id', estabelecimento.id)
     .not('lido_em', 'is', null)
     .order('lido_em', { ascending: false })
@@ -139,16 +131,9 @@ export default async function PainelPage() {
         <div className="mt-4 pt-4 border-t border-border">
           <p className="text-sm text-text">
             {total === 0
-              ? 'Nenhum feedback registrado nesta semana ainda.'
-              : `${total} feedback${total > 1 ? 's' : ''} esta semana`}
+              ? 'Nenhuma observação registrada nesta semana ainda.'
+              : `${total} observa${total > 1 ? 'ções' : 'ção'} esta semana`}
           </p>
-          {total > 0 && (
-            <div className="flex items-center gap-3 text-xs text-grafite mt-1.5">
-              <span className="inline-flex items-center gap-1"><Sparkles size={14} strokeWidth={1.5} color="#5C7148" /> {positivos} positivos</span>
-              <span className="inline-flex items-center gap-1"><Sprout size={14} strokeWidth={1.5} color="#A56336" /> {negativos} a desenvolver</span>
-              <span className="inline-flex items-center gap-1"><Eye size={14} strokeWidth={1.5} color="#2D3E50" /> {observacoes} observações</span>
-            </div>
-          )}
         </div>
 
         <Link href="/painel/reuniao" className="btn-primary w-full mt-4">
@@ -160,7 +145,7 @@ export default async function PainelPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Link href="/painel/feedback/novo" className="btn-primary w-full py-4">
           <MessageSquarePlus size={20} strokeWidth={1.5} />
-          Registrar feedback
+          Registrar observação
         </Link>
         <Link href="/painel/feedback/novo?escopo=equipe" className="btn-secondary w-full py-4">
           <Users size={20} strokeWidth={1.5} />
@@ -168,40 +153,30 @@ export default async function PainelPage() {
         </Link>
       </div>
 
-      {/* PLACAR DA EQUIPE */}
-      <div className="card p-5">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <h2 className="font-semibold text-text inline-flex items-center gap-2">
-            <Users size={20} strokeWidth={1.5} color="#8B6F47" /> Equipe
-          </h2>
-          <Link href="/painel/feedbacks-equipe" className="text-sm text-marrom font-medium">Ver todos</Link>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-md border border-border p-3 text-center">
-            <p className="text-xs text-chumbo">Semana</p>
-            <p className={`text-3xl font-bold ${corEq(placarEqSemana)}`}>{comSinal(placarEqSemana)}</p>
+      {/* OBSERVAÇÕES DE EQUIPE (último mês) */}
+      {eq.length > 0 && (
+        <div className="card p-5">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <h2 className="font-semibold text-text inline-flex items-center gap-2">
+              <Users size={20} strokeWidth={1.5} color="#8B6F47" /> Sobre a equipe
+            </h2>
+            <Link href="/painel/feedbacks-equipe" className="text-sm text-marrom font-medium">Ver todas</Link>
           </div>
-          <div className="rounded-md border border-border p-3 text-center">
-            <p className="text-xs text-chumbo">Mês</p>
-            <p className={`text-3xl font-bold ${corEq(placarEqMes)}`}>{comSinal(placarEqMes)}</p>
-          </div>
-        </div>
-        {eq.length > 0 && (
-          <ul className="mt-3 space-y-1">
+          <ul className="space-y-1">
             {eq.slice(0, 3).map((f, i) => (
               <li key={i} className="text-xs text-grafite truncate">
-                • {f.texto.length > 50 ? `${f.texto.slice(0, 50)}…` : f.texto}
+                • {f.texto.length > 60 ? `${f.texto.slice(0, 60)}…` : f.texto}
               </li>
             ))}
           </ul>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* ÚLTIMOS FEEDBACKS */}
+      {/* ÚLTIMAS OBSERVAÇÕES */}
       <section>
-        <h2 className="text-sm font-semibold text-text mb-3">Últimos feedbacks</h2>
+        <h2 className="text-sm font-semibold text-text mb-3">Últimas observações</h2>
         {ultimos.length === 0 ? (
-          <p className="text-chumbo text-sm">Seus feedbacks vão aparecer aqui.</p>
+          <p className="text-chumbo text-sm">Suas observações vão aparecer aqui.</p>
         ) : (
           <div className="space-y-3">
             {ultimos.map((f) => (

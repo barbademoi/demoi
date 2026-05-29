@@ -30,7 +30,7 @@ export default async function ProfissionaisPage() {
   const mes = intervalo('mes')
   const { data: fbMes } = await supabase
     .from('feedbacks')
-    .select('profissional_id, tipo, estrelas')
+    .select('profissional_id')
     .eq('estabelecimento_id', estabelecimento.id)
     .eq('escopo', 'individual')
     .is('deletado_em', null)
