@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Bell, AlertTriangle, MessageSquarePlus, Users, Inbox } from 'lucide-react'
+import { Bell, AlertTriangle, MessageSquarePlus, Users, Inbox, Star } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
 import FeedbackItem from '@/components/FeedbackItem'
 import AtividadeItem, { type AtividadeFb } from '@/components/AtividadeItem'
@@ -16,12 +16,35 @@ export default async function PainelPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/entrar')
 
-  const { data: estabelecimento } = await supabase
+  // Tenta select completo; se feedback_cliente_ativo ainda não existir
+  // (migration 012 não rodada), cai pra mínimo sem feature.
+  let estabelecimento: { id: string; dia_reuniao: number | null; hora_reuniao: string | null; feedback_cliente_ativo: boolean }
+  const completo = await supabase
     .from('estabelecimentos')
-    .select('id, dia_reuniao, hora_reuniao')
+    .select('id, dia_reuniao, hora_reuniao, feedback_cliente_ativo')
     .eq('dono_id', user.id)
     .maybeSingle()
-  if (!estabelecimento) redirect('/onboarding')
+  if (completo.data) {
+    estabelecimento = {
+      id: completo.data.id as string,
+      dia_reuniao: completo.data.dia_reuniao as number | null,
+      hora_reuniao: completo.data.hora_reuniao as string | null,
+      feedback_cliente_ativo: !!completo.data.feedback_cliente_ativo,
+    }
+  } else {
+    const minimo = await supabase
+      .from('estabelecimentos')
+      .select('id, dia_reuniao, hora_reuniao')
+      .eq('dono_id', user.id)
+      .maybeSingle()
+    if (!minimo.data) redirect('/onboarding')
+    estabelecimento = {
+      id: minimo.data.id as string,
+      dia_reuniao: minimo.data.dia_reuniao as number | null,
+      hora_reuniao: minimo.data.hora_reuniao as string | null,
+      feedback_cliente_ativo: false,
+    }
+  }
 
   const reuniao = proximaReuniao(estabelecimento.dia_reuniao ?? 1, estabelecimento.hora_reuniao ?? '09:00')
 
@@ -99,6 +122,21 @@ export default async function PainelPage() {
     })
     .slice(0, 10)
 
+  // Resumo de feedbacks de cliente (se a feature está ativa).
+  let resumoCliente: { totalSemana: number; media: number; novos: number } | null = null
+  if (estabelecimento.feedback_cliente_ativo) {
+    const { data: fcData } = await supabase
+      .from('feedbacks_cliente')
+      .select('estrelas, status, created_at')
+      .eq('estabelecimento_id', estabelecimento.id)
+      .gte('created_at', semana.inicio.toISOString())
+      .lte('created_at', semana.fim.toISOString())
+    const fc = (fcData ?? []) as { estrelas: number; status: string }[]
+    const novos = fc.filter((f) => f.status === 'novo').length
+    const media = fc.length ? fc.reduce((s, f) => s + (f.estrelas ?? 0), 0) / fc.length : 0
+    resumoCliente = { totalSemana: fc.length, media, novos }
+  }
+
   return (
     <main className="max-w-3xl mx-auto px-4 py-6 space-y-6 animate-fade-in">
       {/* CARD PRÓXIMA REUNIÃO */}
@@ -140,6 +178,35 @@ export default async function PainelPage() {
           {pendente ? 'Resolver reunião' : dias === 0 ? 'Preparar agora' : 'Preparar reunião'}
         </Link>
       </div>
+
+      {/* FEEDBACK DE CLIENTES (se feature ativa) */}
+      {resumoCliente && (
+        <div className="card p-5">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <h2 className="font-semibold text-text inline-flex items-center gap-2">
+              <Star size={18} strokeWidth={1.5} color="#8B6F47" fill="#8B6F47" /> Feedback de clientes
+            </h2>
+            <Link href="/painel/feedbacks-cliente" className="text-sm text-marrom font-medium">Ver todos</Link>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center">
+              <p className="text-xs text-chumbo">Esta semana</p>
+              <p className="text-2xl font-semibold text-text">{resumoCliente.totalSemana}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-chumbo">Média</p>
+              <p className="text-2xl font-semibold text-text inline-flex items-center gap-1">
+                {resumoCliente.media.toFixed(1)}
+                <Star size={14} strokeWidth={1.5} fill="#8B6F47" color="#8B6F47" />
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-chumbo">Não lidos</p>
+              <p className={`text-2xl font-semibold ${resumoCliente.novos > 0 ? 'text-marrom' : 'text-text'}`}>{resumoCliente.novos}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* BOTÕES DE REGISTRO */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

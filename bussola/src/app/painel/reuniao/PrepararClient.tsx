@@ -10,6 +10,7 @@ import {
   Compass,
   PlayCircle,
   Loader2,
+  Star,
   type LucideIcon,
 } from 'lucide-react'
 import Avatar from '@/components/Avatar'
@@ -36,11 +37,21 @@ function profOf(o: ObsSemana): { nome: string; foto_url: string | null } | null 
   return o.profissionais
 }
 
+export interface FbClienteSemana {
+  id: string
+  profissional_id: string | null
+  estrelas: number
+  comentario: string | null
+  created_at: string
+  profissionais: { nome: string; foto_url: string | null } | { nome: string; foto_url: string | null }[] | null
+}
+
 interface Props {
   reuniaoId: string
   dataReuniaoLabel: string
   pautaInicial: PautaReuniao
   observacoes: ObsSemana[]
+  feedbacksCliente?: FbClienteSemana[]
   mostrarResumo: boolean
 }
 
@@ -53,7 +64,7 @@ const MOMENTO_META: Record<Momento, { titulo: string; icon: LucideIcon; cor: str
 
 const MOMENTOS_PAUTA: Momento[] = ['reconhecimento', 'equipe', 'ajuste', 'neutro']
 
-export default function PrepararClient({ reuniaoId, dataReuniaoLabel, observacoes, mostrarResumo }: Props) {
+export default function PrepararClient({ reuniaoId, dataReuniaoLabel, observacoes, feedbacksCliente, mostrarResumo }: Props) {
   const router = useRouter()
   const [obs, setObs] = useState<ObsSemana[]>(observacoes)
   const [classificando, setClassificando] = useState(false)
@@ -140,6 +151,44 @@ export default function PrepararClient({ reuniaoId, dataReuniaoLabel, observacoe
       </div>
 
       {mostrarResumo && <ResumoSemana />}
+
+      {/* FEEDBACK DE CLIENTES DA SEMANA (se houver) */}
+      {feedbacksCliente && feedbacksCliente.length > 0 && (
+        <section className="card p-4">
+          <h2 className="font-semibold text-text mb-1 inline-flex items-center gap-2">
+            <Star size={18} strokeWidth={1.5} color="#8B6F47" fill="#8B6F47" /> Feedback de clientes esta semana
+          </h2>
+          <p className="text-xs text-chumbo mb-3">
+            {feedbacksCliente.length} feedback{feedbacksCliente.length === 1 ? '' : 's'} ·
+            {' '}{(feedbacksCliente.reduce((s, f) => s + (f.estrelas ?? 0), 0) / feedbacksCliente.length).toFixed(1)} estrelas em média ·
+            {' '}{feedbacksCliente.filter((f) => f.comentario).length} com comentário
+          </p>
+          <ul className="space-y-2">
+            {feedbacksCliente
+              .filter((f) => f.comentario)
+              .slice(0, 5)
+              .map((f) => {
+                const p = f.profissionais
+                const prof = !p ? null : Array.isArray(p) ? p[0] ?? null : p
+                const trecho = f.comentario && f.comentario.length > 100 ? `${f.comentario.slice(0, 100)}…` : f.comentario
+                return (
+                  <li key={f.id} className="text-sm text-grafite">
+                    <span className="inline-flex items-center gap-1 mr-1 text-marrom">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <Star key={n} size={12} strokeWidth={1.5} color="#8B6F47" fill={n <= f.estrelas ? '#8B6F47' : 'transparent'} />
+                      ))}
+                    </span>
+                    {prof?.nome && <span className="text-text font-medium">{prof.nome}: </span>}
+                    “{trecho}”
+                  </li>
+                )
+              })}
+          </ul>
+          <p className="text-xs text-chumbo mt-3">
+            Estes feedbacks aparecem como contexto na pauta. Não são classificados automaticamente nos momentos.
+          </p>
+        </section>
+      )}
 
       {/* DISTRIBUIÇÃO PELOS MOMENTOS */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
