@@ -26,8 +26,8 @@ interface Item {
 
 const ITENS: Item[] = [
   { href: '/painel', label: 'Home', icon: Home, exato: true },
-  { href: '/painel/profissionais', label: 'Profissionais', icon: Users },
-  { href: '/painel/feedback/novo', label: 'Registrar Feedback', icon: MessageSquarePlus },
+  { href: '/painel/profissionais', label: 'Colaboradores', icon: Users },
+  { href: '/painel/feedback/novo', label: 'Registrar observação', icon: MessageSquarePlus },
   { href: '/painel/reuniao', label: 'Preparar Reunião', icon: ClipboardList },
   { href: '/painel/atividade', label: 'Atividade da Equipe', icon: Inbox },
   { href: '/painel/historico-reunioes', label: 'Histórico', icon: History },

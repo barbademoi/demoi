@@ -4,7 +4,7 @@ import { TIPO_VISUAL } from './tipoVisual'
 
 export interface AtividadeFb {
   id: string
-  tipo: TipoFeedback
+  tipo?: TipoFeedback | null
   texto: string
   lido_em: string | null
   resposta_profissional: string | null
@@ -23,9 +23,10 @@ export default function AtividadeItem({ a }: { a: AtividadeFb }) {
   const quando = a.resposta_em ?? a.lido_em
   const nome = a.profissionais?.nome ?? '—'
   const trecho = a.texto.length > 60 ? `${a.texto.slice(0, 60)}…` : a.texto
-  const v = TIPO_VISUAL[a.tipo]
+  const tipoFb = a.tipo ?? 'observacao'
+  const v = TIPO_VISUAL[tipoFb]
   const Icon = v.Icon
-  const acao = respondeu ? `respondeu a ${TIPO_LABEL[a.tipo]}` : `leu ${TIPO_LABEL[a.tipo]}`
+  const acao = respondeu ? `respondeu à ${TIPO_LABEL[tipoFb]}` : `leu ${TIPO_LABEL[tipoFb]}`
 
   return (
     <div className="card p-3 flex items-start gap-3">

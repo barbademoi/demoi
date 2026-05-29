@@ -66,7 +66,7 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
   const agora = new Date().toISOString()
   const { data: fbData } = await admin
     .from('feedbacks')
-    .select('id, tipo, texto, categoria, created_at, lido_em, resposta_profissional, resposta_em, visivel_profissional_em')
+    .select('id, texto, categoria, created_at, lido_em, resposta_profissional, resposta_em, visivel_profissional_em')
     .eq('profissional_id', prof.id)
     .eq('escopo', 'individual')
     .is('deletado_em', null)

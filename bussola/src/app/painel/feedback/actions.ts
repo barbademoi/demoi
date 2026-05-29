@@ -2,68 +2,46 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
-import { CATEGORIAS, TIPOS, type EscopoFeedback, type TipoFeedback } from '@/lib/feedbacks'
+import { CATEGORIAS as CATEGORIAS_PADRAO, type EscopoFeedback } from '@/lib/feedbacks'
 
 interface EntradaFeedback {
   escopo: EscopoFeedback
   profissional_id: string | null
-  tipo: TipoFeedback
   texto: string
-  estrelas: number
   categoria: string | null
 }
 
-async function getEstabConfig() {
+async function getEstabId(): Promise<{ id: string; categorias: string[] } | null> {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
   const { data } = await supabase
     .from('estabelecimentos')
-    .select('id, mostrar_negativos_profissional, mostrar_observacoes_profissional, atraso_negativo_minutos')
+    .select('id, categorias_customizadas')
     .eq('dono_id', user.id)
     .maybeSingle()
   if (data) {
-    return {
-      id: data.id as string,
-      mostrarNeg: data.mostrar_negativos_profissional !== false,
-      mostrarObs: data.mostrar_observacoes_profissional !== false,
-      atraso: typeof data.atraso_negativo_minutos === 'number' ? data.atraso_negativo_minutos : 5,
-    }
+    const cats = Array.isArray(data.categorias_customizadas) && (data.categorias_customizadas as string[]).length > 0
+      ? (data.categorias_customizadas as string[])
+      : CATEGORIAS_PADRAO
+    return { id: data.id as string, categorias: cats }
   }
-  // Fallback: migration de visibilidade ainda não rodada → usa padrões.
+  // Fallback se a migration ainda não rodou.
   const { data: base } = await supabase
     .from('estabelecimentos')
     .select('id')
     .eq('dono_id', user.id)
     .maybeSingle()
   if (!base) return null
-  return { id: base.id as string, mostrarNeg: true, mostrarObs: true, atraso: 5 }
-}
-
-// Quando o feedback fica visível pro profissional (null = nunca).
-function calcularVisivel(
-  escopo: EscopoFeedback,
-  tipo: TipoFeedback,
-  cfg: { mostrarNeg: boolean; mostrarObs: boolean; atraso: number }
-): string | null {
-  if (escopo !== 'individual') return null
-  if (tipo === 'positivo') return new Date().toISOString()
-  if (tipo === 'observacao') return cfg.mostrarObs ? new Date().toISOString() : null
-  // negativo
-  return cfg.mostrarNeg ? new Date(Date.now() + cfg.atraso * 60000).toISOString() : null
+  return { id: base.id as string, categorias: CATEGORIAS_PADRAO }
 }
 
 function validar(input: EntradaFeedback): string | null {
   if (input.escopo !== 'individual' && input.escopo !== 'equipe') return 'Escopo inválido.'
-  if (input.escopo === 'individual' && !input.profissional_id) return 'Escolha um profissional.'
-  if (!(input.tipo in TIPOS)) return 'Tipo inválido.'
+  if (input.escopo === 'individual' && !input.profissional_id) return 'Escolha um colaborador.'
   const texto = (input.texto ?? '').trim()
-  if (!texto) return 'Escreva o feedback.'
-  if (texto.length > 500) return 'Texto muito longo (máx. 500).'
-  if (!Number.isInteger(input.estrelas) || input.estrelas < 1 || input.estrelas > 5) {
-    return 'Escolha de 1 a 5 estrelas.'
-  }
-  if (input.categoria && !CATEGORIAS.includes(input.categoria)) return 'Categoria inválida.'
+  if (!texto) return 'Escreva a observação.'
+  if (texto.length > 2000) return 'Texto muito longo (máx. 2000).'
   return null
 }
 
@@ -73,12 +51,12 @@ export async function criarFeedback(input: EntradaFeedback) {
 
   try {
     const supabase = createClient()
-    const cfg = await getEstabConfig()
+    const cfg = await getEstabId()
     if (!cfg) return { error: 'Sessão expirada. Faça login novamente.' }
 
     const profId = input.escopo === 'equipe' ? null : input.profissional_id
+    const categoria = input.categoria && cfg.categorias.includes(input.categoria) ? input.categoria : null
 
-    // Para feedback individual, garante que o profissional pertence ao estabelecimento.
     if (input.escopo === 'individual') {
       const { data: prof } = await supabase
         .from('profissionais')
@@ -86,23 +64,21 @@ export async function criarFeedback(input: EntradaFeedback) {
         .eq('id', profId)
         .eq('estabelecimento_id', cfg.id)
         .maybeSingle()
-      if (!prof) return { error: 'Profissional inválido.' }
+      if (!prof) return { error: 'Colaborador inválido.' }
     }
 
-    const visivel = calcularVisivel(input.escopo, input.tipo, cfg)
-
+    const agora = new Date().toISOString()
     const { data: novo, error } = await supabase
       .from('feedbacks')
       .insert({
         escopo: input.escopo,
         profissional_id: profId,
         estabelecimento_id: cfg.id,
-        tipo: input.tipo,
         texto: input.texto.trim(),
-        estrelas: input.estrelas,
-        categoria: input.categoria,
+        categoria,
         status: 'pendente',
-        visivel_profissional_em: visivel,
+        visivel_profissional_em: input.escopo === 'individual' ? agora : null,
+        momento_reuniao: null,
       })
       .select('id')
       .single()
@@ -115,9 +91,7 @@ export async function criarFeedback(input: EntradaFeedback) {
     if (profId) revalidatePath(`/painel/profissionais/${profId}`)
     revalidatePath('/painel/profissionais')
     revalidatePath('/painel/feedbacks-equipe')
-    // Negativo individual entra em carência → cliente mostra o aviso.
-    const carencia = input.escopo === 'individual' && input.tipo === 'negativo' && cfg.mostrarNeg
-    return { ok: true, id: novo.id as string, atraso: cfg.atraso, carencia }
+    return { ok: true as const, id: novo.id as string }
   } catch (err) {
     console.error('[criarFeedback] erro inesperado:', err)
     return { error: 'Erro interno. Tente novamente.' }
@@ -136,9 +110,7 @@ export async function atualizarFeedback(id: string, input: EntradaFeedback) {
       .update({
         escopo: input.escopo,
         profissional_id: profId,
-        tipo: input.tipo,
         texto: input.texto.trim(),
-        estrelas: input.estrelas,
         categoria: input.categoria,
       })
       .eq('id', id)
@@ -148,7 +120,7 @@ export async function atualizarFeedback(id: string, input: EntradaFeedback) {
     revalidatePath('/painel/profissionais')
     revalidatePath('/painel/feedbacks-equipe')
     if (profId) revalidatePath(`/painel/profissionais/${profId}`)
-    return { ok: true }
+    return { ok: true as const }
   } catch (err) {
     console.error('[atualizarFeedback] erro inesperado:', err)
     return { error: 'Erro interno.' }
@@ -166,7 +138,7 @@ export async function excluirFeedback(id: string) {
 
     revalidatePath('/painel')
     revalidatePath('/painel/profissionais')
-    return { ok: true }
+    return { ok: true as const }
   } catch (err) {
     console.error('[excluirFeedback] erro inesperado:', err)
     return { error: 'Erro interno.' }

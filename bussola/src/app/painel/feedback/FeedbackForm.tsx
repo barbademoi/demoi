@@ -2,18 +2,13 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Sparkles, Sprout, User, Users } from 'lucide-react'
+import { Check, Sparkles, User, Users } from 'lucide-react'
 import Avatar from '@/components/Avatar'
-import Estrelas from '@/components/Estrelas'
-import { TIPO_VISUAL } from '@/components/tipoVisual'
 import {
-  TIPOS,
-  CATEGORIAS,
-  PLACEHOLDERS,
-  PLACEHOLDERS_EQUIPE,
-  labelEstrelas,
+  CATEGORIAS as CATEGORIAS_PADRAO,
+  PLACEHOLDER_EQUIPE,
+  PLACEHOLDER_INDIVIDUAL,
   type EscopoFeedback,
-  type TipoFeedback,
 } from '@/lib/feedbacks'
 import { criarFeedback, atualizarFeedback, excluirFeedback } from './actions'
 
@@ -27,9 +22,7 @@ interface Inicial {
   id: string
   escopo: EscopoFeedback
   profissional_id: string | null
-  tipo: TipoFeedback
   texto: string
-  estrelas: number | null
   categoria: string | null
 }
 
@@ -39,22 +32,21 @@ interface Props {
   inicial?: Inicial
   escopoInicial?: EscopoFeedback
   categorizacaoAuto?: boolean
+  categorias?: string[]
 }
 
-export default function FeedbackForm({ profissionais, modo, inicial, escopoInicial, categorizacaoAuto }: Props) {
+export default function FeedbackForm({ profissionais, modo, inicial, escopoInicial, categorizacaoAuto, categorias }: Props) {
+  const CATEGORIAS = categorias && categorias.length > 0 ? categorias : CATEGORIAS_PADRAO
   const router = useRouter()
   const [escopo, setEscopo] = useState<EscopoFeedback>(inicial?.escopo ?? escopoInicial ?? 'individual')
   const [profId, setProfId] = useState<string>(inicial?.profissional_id ?? '')
-  const [tipo, setTipo] = useState<TipoFeedback | ''>(inicial?.tipo ?? '')
   const [texto, setTexto] = useState(inicial?.texto ?? '')
-  const [estrelas, setEstrelas] = useState(inicial?.estrelas ?? 0)
   const [categoria, setCategoria] = useState<string | null>(inicial?.categoria ?? null)
   const [sugCat, setSugCat] = useState<string | null>(null)
   const [busca, setBusca] = useState('')
 
   const [error, setError] = useState<string | null>(null)
   const [salvo, setSalvo] = useState(false)
-  const [carencia, setCarencia] = useState<{ id: string; atraso: number; nome: string } | null>(null)
   const [confirmarExcluir, setConfirmarExcluir] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -79,12 +71,12 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Auto-focus no texto quando alvo + tipo já escolhidos.
+  // Auto-focus quando o alvo já foi escolhido.
   useEffect(() => {
-    if ((escopo === 'equipe' || profId) && tipo && modo === 'novo') textareaRef.current?.focus()
-  }, [escopo, profId, tipo, modo])
+    if ((escopo === 'equipe' || profId) && modo === 'novo') textareaRef.current?.focus()
+  }, [escopo, profId, modo])
 
-  // Auto-resize da textarea.
+  // Auto-resize.
   function ajustarAltura() {
     const el = textareaRef.current
     if (!el) return
@@ -95,7 +87,7 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
 
   // Sugestão de categoria pela IA (debounce 800ms).
   useEffect(() => {
-    if (!categorizacaoAuto || modo !== 'novo' || !tipo) {
+    if (!categorizacaoAuto || modo !== 'novo') {
       setSugCat(null)
       return
     }
@@ -109,7 +101,7 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
         const r = await fetch('/api/ia/sugerir-categoria', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ texto: t, tipo }),
+          body: JSON.stringify({ texto: t }),
         })
         const j = await r.json()
         if (r.ok && j.categoria) setSugCat(j.categoria)
@@ -118,24 +110,24 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
       }
     }, 800)
     return () => clearTimeout(timer)
-  }, [texto, tipo, categorizacaoAuto, modo])
+  }, [texto, categorizacaoAuto, modo])
 
   const profsFiltrados = busca.trim()
     ? profissionais.filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase()))
     : profissionais
 
+  const profSelecionado = profissionais.find((p) => p.id === profId)
+  const nomeAlvo = profSelecionado?.nome.split(' ')[0] ?? 'essa pessoa'
   const alvoOk = escopo === 'equipe' || !!profId
-  const podeSalvar = alvoOk && !!tipo && texto.trim().length > 0 && estrelas >= 1
+  const podeSalvar = alvoOk && texto.trim().length > 0
 
   function salvar() {
-    if (!podeSalvar || !tipo) return
+    if (!podeSalvar) return
     setError(null)
     const input = {
       escopo,
       profissional_id: escopo === 'equipe' ? null : profId,
-      tipo,
       texto,
-      estrelas,
       categoria,
     }
     startTransition(async () => {
@@ -143,12 +135,6 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
         const res = await criarFeedback(input)
         if (res?.error) {
           setError(res.error)
-          return
-        }
-        // Negativo individual → aviso de carência (pode editar/excluir antes de aparecer).
-        if (res?.carencia && res.id) {
-          const prof = profissionais.find((p) => p.id === profId)
-          setCarencia({ id: res.id, atraso: res.atraso ?? 5, nome: (prof?.nome ?? '').split(' ')[0] })
           return
         }
       } else {
@@ -193,18 +179,18 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
       {/* PASSO 1 — ALVO */}
       {escopo === 'individual' ? (
         <section>
-          <h2 className="text-sm font-semibold text-text mb-2">1. Quem?</h2>
+          <h2 className="text-sm font-semibold text-text mb-2">Quem?</h2>
           {profissionais.length > 6 && (
             <input
               type="text"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar profissional…"
+              placeholder="Buscar colaborador…"
               className="input mb-3"
             />
           )}
           {profissionais.length === 0 ? (
-            <p className="text-text-muted text-sm">Nenhum profissional ativo. Cadastre um primeiro.</p>
+            <p className="text-chumbo text-sm">Nenhum colaborador ativo. Cadastre um primeiro.</p>
           ) : (
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x">
               {profsFiltrados.map((p) => {
@@ -219,7 +205,7 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
                     <span
                       className={[
                         'rounded-full p-0.5 border-2 transition-colors relative',
-                        sel ? 'border-primary' : 'border-transparent',
+                        sel ? 'border-marrom' : 'border-transparent',
                       ].join(' ')}
                     >
                       <Avatar nome={p.nome} fotoUrl={p.foto_url} size={56} />
@@ -239,77 +225,33 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
           )}
         </section>
       ) : (
-        <p className="text-text-muted text-sm bg-primary-soft/50 rounded-xl p-3">
-          Este feedback é sobre a equipe como um todo. Aparecerá na pauta da reunião e no placar de
-          equipe da Home.
+        <p className="text-chumbo text-sm bg-linho/50 rounded-md p-3">
+          Esta observação é sobre a equipe como um todo. Aparece na pauta da reunião.
         </p>
       )}
 
-      {/* PASSO 2 — TIPO */}
+      {/* PASSO 2 — TEXTO */}
       <section>
-        <h2 className="text-sm font-semibold text-text mb-2">2. Que tipo?</h2>
-        <div className="grid grid-cols-3 gap-2">
-          {(Object.keys(TIPOS) as TipoFeedback[]).map((t) => {
-            const meta = TIPOS[t]
-            const v = TIPO_VISUAL[t]
-            const Icon = v.Icon
-            const sel = tipo === t
-            return (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTipo(t)}
-                className={[
-                  'flex flex-col items-center gap-1 py-3 rounded-md border text-sm font-medium transition-colors',
-                  sel ? meta.selecionado : 'border-border bg-white text-text hover:border-marrom/40',
-                ].join(' ')}
-              >
-                <Icon size={22} strokeWidth={1.5} color={sel ? '#FFFFFF' : v.cor} />
-                {meta.label}
-              </button>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* PASSO 3 — TEXTO */}
-      <section>
-        <h2 className="text-sm font-semibold text-text mb-2">3. O que aconteceu?</h2>
+        <h2 className="text-sm font-semibold text-text mb-2">O que você observou?</h2>
         <div className="relative">
           <textarea
             ref={textareaRef}
             value={texto}
-            onChange={(e) => setTexto(e.target.value.slice(0, 500))}
-            placeholder={tipo ? (escopo === 'equipe' ? PLACEHOLDERS_EQUIPE[tipo] : PLACEHOLDERS[tipo]) : 'Escolha o tipo acima…'}
-            rows={3}
-            className="input resize-none overflow-hidden min-h-[96px]"
+            onChange={(e) => setTexto(e.target.value.slice(0, 2000))}
+            placeholder={escopo === 'equipe' ? PLACEHOLDER_EQUIPE : PLACEHOLDER_INDIVIDUAL(nomeAlvo)}
+            rows={4}
+            className="input resize-none overflow-hidden min-h-[128px]"
           />
-          <span className="absolute bottom-2 right-3 text-xs text-text-muted/70">
-            {texto.length}/500
+          <span className="absolute bottom-2 right-3 text-xs text-chumbo">
+            {texto.length}/2000
           </span>
         </div>
       </section>
 
-      {/* PASSO 4 — ESTRELAS */}
-      <section>
-        <h2 className="text-sm font-semibold text-text mb-2">4. Intensidade</h2>
-        <div className="flex items-center gap-3">
-          <Estrelas
-            value={estrelas}
-            onChange={setEstrelas}
-            size={34}
-            cor={tipo ? TIPOS[tipo].estrela : '#F5B301'}
-          />
-          {tipo && estrelas > 0 && (
-            <span className="text-sm text-text-muted">{labelEstrelas(tipo, estrelas)}</span>
-          )}
-        </div>
-      </section>
-
-      {/* PASSO 5 — CATEGORIA */}
+      {/* PASSO 3 — CATEGORIA */}
       <section>
         <h2 className="text-sm font-semibold text-text mb-2">
-          5. Categoria <span className="text-text-muted font-normal">(opcional)</span>
+          Categoria <span className="text-chumbo font-normal">(opcional)</span>
         </h2>
         <div className="flex flex-wrap gap-2">
           {CATEGORIAS.map((c) => {
@@ -321,7 +263,7 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
                 onClick={() => setCategoria(sel ? null : c)}
                 className={[
                   'px-3 py-1.5 rounded-full text-sm border transition-colors',
-                  sel ? 'border-primary bg-primary text-white' : 'border-border bg-white text-text-muted hover:border-primary/40',
+                  sel ? 'border-marrom bg-marrom text-white' : 'border-border bg-white text-grafite hover:border-marrom/40',
                 ].join(' ')}
               >
                 {c}
@@ -349,7 +291,7 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
           onClick={() => setConfirmarExcluir(true)}
           className="text-vinho text-sm hover:underline"
         >
-          Excluir feedback
+          Excluir observação
         </button>
       )}
 
@@ -362,7 +304,7 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
             disabled={!podeSalvar || isPending}
             className="btn-primary flex-1"
           >
-            {isPending ? 'Salvando…' : modo === 'novo' ? 'Salvar feedback' : 'Salvar alterações'}
+            {isPending ? 'Salvando…' : modo === 'novo' ? 'Salvar observação' : 'Salvar alterações'}
           </button>
           <a href={cancelarHref()} className="text-grafite hover:text-text px-4 py-4 text-sm">
             Cancelar
@@ -373,14 +315,14 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
       {salvo && (
         <div className="fixed bottom-32 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 bg-verde-musgo text-white px-5 py-3 rounded-md shadow-media text-sm font-medium z-50">
           <Check size={16} strokeWidth={2} />
-          Feedback registrado!
+          Observação registrada
         </div>
       )}
 
       {confirmarExcluir && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={() => setConfirmarExcluir(false)}>
           <div className="bg-surface rounded-lg w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
-            <h4 className="font-semibold text-text mb-2">Excluir este feedback?</h4>
+            <h4 className="font-semibold text-text mb-2">Excluir esta observação?</h4>
             <p className="text-sm text-grafite mb-5">Essa ação não pode ser desfeita.</p>
             <div className="flex gap-2">
               <button
@@ -394,53 +336,6 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
               <button type="button" onClick={() => setConfirmarExcluir(false)} className="text-grafite hover:text-text px-4">
                 Cancelar
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* AVISO DE CARÊNCIA — negativo individual */}
-      {carencia && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4">
-          <div className="bg-surface rounded-lg w-full max-w-md p-5">
-            <Sprout size={32} strokeWidth={1.5} color="#A56336" className="mb-2" />
-            <h4 className="font-semibold text-text mb-2">Feedback registrado!</h4>
-            <p className="text-sm text-grafite mb-5">
-              Como é um ponto a desenvolver, ele só vai aparecer
-              {carencia.nome ? <> pra <span className="font-semibold text-text">{carencia.nome}</span></> : ' pro profissional'}{' '}
-              em <span className="font-semibold text-text">{carencia.atraso} {carencia.atraso === 1 ? 'minuto' : 'minutos'}</span>.
-              Até lá você pode editar ou excluir.
-            </p>
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => router.push('/painel')}
-                className="btn-primary w-full"
-              >
-                OK, entendi
-              </button>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => router.push(`/painel/feedback/${carencia.id}/editar`)}
-                  className="btn-secondary flex-1"
-                >
-                  Editar agora
-                </button>
-                <button
-                  type="button"
-                  disabled={isPending}
-                  onClick={() => {
-                    startTransition(async () => {
-                      await excluirFeedback(carencia.id)
-                      router.push('/painel')
-                    })
-                  }}
-                  className="flex-1 py-3 rounded-md border border-border bg-white text-vinho text-sm font-medium hover:bg-vinho/5 transition-colors disabled:opacity-60"
-                >
-                  {isPending ? 'Excluindo…' : 'Excluir'}
-                </button>
-              </div>
             </div>
           </div>
         </div>

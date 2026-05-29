@@ -16,7 +16,7 @@ export default async function NovoProfissionalPage() {
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-6 animate-fade-in">
-      <h1 className="text-xl font-bold text-text mb-5">Cadastrar profissional</h1>
+      <h1 className="text-xl font-semibold text-text mb-5">Cadastrar colaborador</h1>
       <ProfissionalForm estabelecimentoId={estabelecimento.id} modo="novo" />
     </main>
   )

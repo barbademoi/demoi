@@ -41,7 +41,7 @@ export async function POST(req: Request) {
   const semana = intervalo('semana')
   const { data } = await supabase
     .from('feedbacks')
-    .select('profissional_id, escopo, tipo, estrelas, categoria, texto, profissionais(nome)')
+    .select('profissional_id, escopo, categoria, texto, profissionais(nome)')
     .eq('estabelecimento_id', est.id)
     .is('deletado_em', null)
     .gte('created_at', semana.inicio.toISOString())

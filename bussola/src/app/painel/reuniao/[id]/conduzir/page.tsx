@@ -40,7 +40,7 @@ export default async function ConduzirPage({ params }: { params: { id: string } 
   // Feedbacks da semana (todos, não só os "incluir") com status e sugestão.
   const { data: fbData } = await supabase
     .from('feedbacks')
-    .select('id, profissional_id, escopo, tipo, estrelas, texto, categoria, status, sugestao_ia, profissionais(nome, foto_url)')
+    .select('id, profissional_id, escopo, texto, categoria, status, sugestao_ia, profissionais(nome, foto_url)')
     .eq('estabelecimento_id', est.id)
     .is('deletado_em', null)
     .gte('created_at', semana.inicio.toISOString())
@@ -72,7 +72,7 @@ export default async function ConduzirPage({ params }: { params: { id: string } 
   // Métricas: placar por profissional (semana e semana anterior).
   const { data: rangeData } = await supabase
     .from('feedbacks')
-    .select('profissional_id, tipo, estrelas, created_at')
+    .select('profissional_id, created_at')
     .eq('estabelecimento_id', est.id)
     .eq('escopo', 'individual')
     .is('deletado_em', null)

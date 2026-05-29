@@ -32,9 +32,12 @@ export default function FeedbackItem({
   const router = useRouter()
   const [confirmar, setConfirmar] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const meta = TIPOS[feedback.tipo]
-  const visual = TIPO_VISUAL[feedback.tipo]
+  // Registros antigos podem ter tipo; novos não. Trata null como observação.
+  const tipoFb = feedback.tipo ?? 'observacao'
+  const meta = TIPOS[tipoFb]
+  const visual = TIPO_VISUAL[tipoFb]
   const Icon = visual.Icon
+  const temEstrelas = (feedback.estrelas ?? 0) > 0
 
   // Visibilidade pro profissional: null = nunca compartilhado; futuro = em carência.
   const compartilhado = !!feedback.visivel_profissional_em
@@ -80,7 +83,7 @@ export default function FeedbackItem({
               <Icon size={14} strokeWidth={1.5} />
               {visual.label}
             </span>
-            <Estrelas value={feedback.estrelas ?? 0} readOnly size={14} cor={meta.estrela} />
+            {temEstrelas && <Estrelas value={feedback.estrelas ?? 0} readOnly size={14} cor={meta.estrela} />}
           </div>
 
           <p className={`text-sm text-text mt-1 ${variante === 'perfil' ? 'whitespace-pre-wrap' : ''}`}>

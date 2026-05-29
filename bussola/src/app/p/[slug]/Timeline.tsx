@@ -7,7 +7,7 @@ import { TIPO_VISUAL } from '@/components/tipoVisual'
 
 export interface ItemElogio {
   id: string
-  tipo: TipoFeedback
+  tipo?: TipoFeedback | null
   texto: string
   categoria: string | null
   created_at: string
@@ -32,7 +32,7 @@ function Card({ item, slug }: { item: ItemElogio; slug: string }) {
   const [respostaSalva, setRespostaSalva] = useState<string | null>(item.resposta_profissional)
   const [enviando, setEnviando] = useState(false)
 
-  const v = TIPO_VISUAL[item.tipo]
+  const v = TIPO_VISUAL[item.tipo ?? 'observacao']
   const Icon = v.Icon
 
   async function confirmar(respostaTexto?: string) {
@@ -99,7 +99,7 @@ function Card({ item, slug }: { item: ItemElogio; slug: string }) {
             value={resposta}
             onChange={(e) => setResposta(e.target.value)}
             rows={2}
-            placeholder={PLACEHOLDER[item.tipo]}
+            placeholder={PLACEHOLDER[item.tipo ?? 'observacao']}
             className="input text-sm"
             autoFocus
           />

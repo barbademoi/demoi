@@ -27,7 +27,7 @@ interface Item {
 
 const PRINCIPAIS: Item[] = [
   { href: '/painel', label: 'Início', icon: Home, exato: true },
-  { href: '/painel/profissionais', label: 'Equipe', icon: Users },
+  { href: '/painel/profissionais', label: 'Colaboradores', icon: Users },
 ]
 
 const SECUNDARIOS: Item[] = [
@@ -70,7 +70,7 @@ export default function BottomNav({ novas }: { novas: number }) {
         <div className="flex-1 flex items-start justify-center">
           <Link
             href="/painel/feedback/novo"
-            aria-label="Registrar feedback"
+            aria-label="Registrar observação"
             className="-mt-5 w-14 h-14 rounded-full bg-marrom text-white flex items-center justify-center shadow-media active:bg-marrom-escuro transition-colors"
           >
             <MessageSquarePlus size={28} strokeWidth={1.5} color="#FFFFFF" />
