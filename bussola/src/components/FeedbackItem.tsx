@@ -3,12 +3,9 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Pencil, Trash2, Clock, MessageCircle, CheckCircle2, Eye } from 'lucide-react'
+import { Pencil, Trash2, MessageCircle, CheckCircle2, Eye } from 'lucide-react'
 import Avatar from '@/components/Avatar'
-import Estrelas from '@/components/Estrelas'
-import { TIPO_VISUAL } from '@/components/tipoVisual'
 import {
-  TIPOS,
   tempoRelativo,
   dataLonga,
   type FeedbackComProfissional,
@@ -32,20 +29,6 @@ export default function FeedbackItem({
   const router = useRouter()
   const [confirmar, setConfirmar] = useState(false)
   const [isPending, startTransition] = useTransition()
-  // Registros antigos podem ter tipo; novos não. Trata null como observação.
-  const tipoFb = feedback.tipo ?? 'observacao'
-  const meta = TIPOS[tipoFb]
-  const visual = TIPO_VISUAL[tipoFb]
-  const Icon = visual.Icon
-  const temEstrelas = (feedback.estrelas ?? 0) > 0
-
-  // Visibilidade pro profissional: null = nunca compartilhado; futuro = em carência.
-  const compartilhado = !!feedback.visivel_profissional_em
-  const emCarencia =
-    compartilhado && new Date(feedback.visivel_profissional_em!).getTime() > Date.now()
-  const restanteMin = emCarencia
-    ? Math.max(1, Math.ceil((new Date(feedback.visivel_profissional_em!).getTime() - Date.now()) / 60000))
-    : 0
 
   function excluir() {
     startTransition(async () => {
@@ -61,7 +44,7 @@ export default function FeedbackItem({
     feedback.texto.length > 60 ? `${feedback.texto.slice(0, 60)}…` : feedback.texto
 
   return (
-    <div className={`card p-4 border-l-[3px] ${visual.bordaEsq}`}>
+    <div className="card p-4">
       <div className="flex items-start gap-3">
         {variante === 'home' && feedback.profissionais && (
           <Link href={`/painel/profissionais/${feedback.profissional_id}`} className="shrink-0">
@@ -70,21 +53,14 @@ export default function FeedbackItem({
         )}
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            {variante === 'home' && feedback.profissionais && (
-              <Link
-                href={`/painel/profissionais/${feedback.profissional_id}`}
-                className="font-medium text-text hover:text-marrom truncate"
-              >
-                {feedback.profissionais.nome}
-              </Link>
-            )}
-            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${visual.badge}`}>
-              <Icon size={14} strokeWidth={1.5} />
-              {visual.label}
-            </span>
-            {temEstrelas && <Estrelas value={feedback.estrelas ?? 0} readOnly size={14} cor={meta.estrela} />}
-          </div>
+          {variante === 'home' && feedback.profissionais && (
+            <Link
+              href={`/painel/profissionais/${feedback.profissional_id}`}
+              className="font-medium text-text hover:text-marrom truncate block"
+            >
+              {feedback.profissionais.nome}
+            </Link>
+          )}
 
           <p className={`text-sm text-text mt-1 ${variante === 'perfil' ? 'whitespace-pre-wrap' : ''}`}>
             {variante === 'home' ? textoHome : feedback.texto}
@@ -98,12 +74,7 @@ export default function FeedbackItem({
             {variante === 'perfil' && (
               <span>· {STATUS_LABEL[feedback.status] ?? feedback.status}</span>
             )}
-            {variante === 'perfil' && emCarencia && (
-              <span className="inline-flex items-center gap-1 text-ambar" title="Ainda não visível pro profissional. Você pode editar ou excluir.">
-                · <Clock size={13} strokeWidth={1.5} /> Em carência · {restanteMin} min
-              </span>
-            )}
-            {variante === 'perfil' && compartilhado && !emCarencia && (
+            {variante === 'perfil' && (
               feedback.resposta_profissional ? (
                 <span className="inline-flex items-center gap-1 text-azul-noite" title={feedback.resposta_profissional}>
                   · <MessageCircle size={13} strokeWidth={1.5} /> Respondeu
@@ -143,7 +114,7 @@ export default function FeedbackItem({
       {confirmar && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={() => setConfirmar(false)}>
           <div className="bg-surface rounded-lg w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
-            <h4 className="font-semibold text-text mb-2">Excluir este feedback?</h4>
+            <h4 className="font-semibold text-text mb-2">Excluir esta observação?</h4>
             <p className="text-sm text-grafite mb-5">Essa ação não pode ser desfeita.</p>
             <div className="flex gap-2">
               <button

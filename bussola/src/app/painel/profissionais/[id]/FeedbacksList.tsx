@@ -2,18 +2,10 @@
 
 import { useState } from 'react'
 import FeedbackItem from '@/components/FeedbackItem'
-import { CATEGORIAS, type FeedbackComProfissional, type TipoFeedback } from '@/lib/feedbacks'
+import { CATEGORIAS, type FeedbackComProfissional } from '@/lib/feedbacks'
 import { intervalo, type NomePeriodo } from '@/lib/periodos'
 
-type FiltroTipo = 'todos' | TipoFeedback
 type FiltroPeriodo = 'tudo' | NomePeriodo
-
-const TIPO_PILLS: { valor: FiltroTipo; label: string }[] = [
-  { valor: 'todos', label: 'Todos' },
-  { valor: 'positivo', label: 'Positivos' },
-  { valor: 'negativo', label: 'Negativos' },
-  { valor: 'observacao', label: 'Observações' },
-]
 
 const PERIODO_PILLS: { valor: FiltroPeriodo; label: string }[] = [
   { valor: 'semana', label: 'Esta semana' },
@@ -28,18 +20,14 @@ export default function FeedbacksList({
   feedbacks: FeedbackComProfissional[]
   nome: string
 }) {
-  const [tipo, setTipo] = useState<FiltroTipo>('todos')
   const [categoria, setCategoria] = useState<string>('todas')
   const [periodo, setPeriodo] = useState<FiltroPeriodo>('tudo')
-  const [leitura, setLeitura] = useState<'todos' | 'lidos' | 'respondidos' | 'carencia'>('todos')
+  const [leitura, setLeitura] = useState<'todos' | 'lidos' | 'respondidos'>('todos')
 
-  const agora = Date.now()
   const lista = feedbacks.filter((f) => {
-    if (tipo !== 'todos' && f.tipo !== tipo) return false
     if (categoria !== 'todas' && f.categoria !== categoria) return false
     if (leitura === 'lidos' && !f.lido_em) return false
     if (leitura === 'respondidos' && !f.resposta_profissional) return false
-    if (leitura === 'carencia' && !(f.visivel_profissional_em && new Date(f.visivel_profissional_em).getTime() > agora)) return false
     if (periodo !== 'tudo') {
       const { inicio, fim } = intervalo(periodo)
       const t = new Date(f.created_at).getTime()
@@ -48,35 +36,17 @@ export default function FeedbacksList({
     return true
   })
 
+  const pillCls = (on: boolean) =>
+    [
+      'px-3 py-1 rounded-full text-xs font-medium border transition-colors',
+      on ? 'border-marrom bg-marrom text-white' : 'border-border bg-white text-grafite',
+    ].join(' ')
+
   return (
     <div>
       <div className="flex flex-wrap gap-1.5 mb-2">
-        {TIPO_PILLS.map((p) => (
-          <button
-            key={p.valor}
-            type="button"
-            onClick={() => setTipo(p.valor)}
-            className={[
-              'px-3 py-1 rounded-full text-xs font-medium border transition-colors',
-              tipo === p.valor ? 'border-primary bg-primary text-white' : 'border-border bg-white text-text-muted',
-            ].join(' ')}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap gap-1.5 mb-2">
-        {([['todos', 'Todos'], ['lidos', 'Lidos'], ['respondidos', 'Respondidos'], ['carencia', 'Em carência']] as ['todos' | 'lidos' | 'respondidos' | 'carencia', string][]).map(([v, label]) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => setLeitura(v)}
-            className={[
-              'px-3 py-1 rounded-full text-xs font-medium border transition-colors',
-              leitura === v ? 'border-primary bg-primary text-white' : 'border-border bg-white text-text-muted',
-            ].join(' ')}
-          >
+        {([['todos', 'Todos'], ['lidos', 'Lidos'], ['respondidos', 'Respondidos']] as ['todos' | 'lidos' | 'respondidos', string][]).map(([v, label]) => (
+          <button key={v} type="button" onClick={() => setLeitura(v)} className={pillCls(leitura === v)}>
             {label}
           </button>
         ))}
@@ -85,15 +55,7 @@ export default function FeedbacksList({
       <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
         <div className="flex flex-wrap gap-1.5">
           {PERIODO_PILLS.map((p) => (
-            <button
-              key={p.valor}
-              type="button"
-              onClick={() => setPeriodo(p.valor)}
-              className={[
-                'px-3 py-1 rounded-full text-xs font-medium border transition-colors',
-                periodo === p.valor ? 'border-primary bg-primary text-white' : 'border-border bg-white text-text-muted',
-              ].join(' ')}
-            >
+            <button key={p.valor} type="button" onClick={() => setPeriodo(p.valor)} className={pillCls(periodo === p.valor)}>
               {p.label}
             </button>
           ))}
@@ -101,7 +63,7 @@ export default function FeedbacksList({
         <select
           value={categoria}
           onChange={(e) => setCategoria(e.target.value)}
-          className="text-xs rounded-lg border border-border bg-white px-2 py-1.5 text-text"
+          className="text-xs rounded-md border border-border bg-white px-2 py-1.5 text-text"
         >
           <option value="todas">Todas categorias</option>
           {CATEGORIAS.map((c) => (
@@ -111,10 +73,10 @@ export default function FeedbacksList({
       </div>
 
       {lista.length === 0 ? (
-        <p className="text-text-muted text-sm text-center py-8">
+        <p className="text-chumbo text-sm text-center py-8">
           {feedbacks.length === 0
-            ? `Nenhum feedback registrado ainda para ${nome}.`
-            : 'Nenhum feedback nesse filtro.'}
+            ? `Nenhuma observação registrada ainda para ${nome}.`
+            : 'Nenhuma observação nesse filtro.'}
         </p>
       ) : (
         <div className="space-y-3">

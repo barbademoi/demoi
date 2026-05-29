@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next'
 import { Lock } from 'lucide-react'
 import { createAdminClient } from '@/utils/supabase/admin'
 import Avatar from '@/components/Avatar'
-import { intervalo } from '@/lib/periodos'
 import Timeline, { type ItemElogio } from './Timeline'
 import AutoRefresh from './AutoRefresh'
 import RegistraSW from './RegistraSW'
@@ -10,23 +9,15 @@ import RegistraSW from './RegistraSW'
 export const dynamic = 'force-dynamic'
 
 export const viewport: Viewport = {
-  themeColor: '#1F3A52',
+  themeColor: '#8B6F47',
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   return {
-    title: 'Bússola — seus elogios',
+    title: 'Bússola — suas anotações',
     manifest: `/p/${params.slug}/manifest`,
     appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Bússola' },
   }
-}
-
-function fraseSemana(n: number): string {
-  if (n === 0) return 'Comece a semana com tudo. Cada bom atendimento será notado.'
-  if (n === 1) return 'Você foi elogiado uma vez esta semana. Continue assim.'
-  if (n <= 3) return `Você foi elogiado ${n} vezes esta semana. Boa semana!`
-  if (n <= 5) return `Você foi elogiado ${n} vezes esta semana. Está sendo um exemplo.`
-  return `Você foi elogiado ${n} vezes esta semana. Semana excepcional!`
 }
 
 function TelaInvalida() {
@@ -37,8 +28,7 @@ function TelaInvalida() {
         <Lock size={48} strokeWidth={1.5} color="#8A8A8A" className="mx-auto mb-3" />
         <p className="text-text font-semibold text-lg">Link não disponível</p>
         <p className="text-chumbo text-sm mt-2">
-          Este link não está ativo. Se você acha que é um erro, fale com o responsável pelo
-          estabelecimento.
+          Este link não está ativo. Se você acha que é um erro, fale com quem te enviou.
         </p>
       </div>
     </main>
@@ -62,7 +52,6 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
     .maybeSingle()
   if (!estab) return <TelaInvalida />
 
-  // Mensagens individuais deste profissional já visíveis (respeitando a carência).
   const agora = new Date().toISOString()
   const { data: fbData } = await admin
     .from('feedbacks')
@@ -74,27 +63,6 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
     .lte('visivel_profissional_em', agora)
     .order('created_at', { ascending: false })
   const itens = (fbData ?? []) as ItemElogio[]
-
-  const semana = intervalo('semana')
-  const mes = intervalo('mes')
-  const dentro = (iso: string, iv: { inicio: Date; fim: Date }) => {
-    const t = new Date(iso).getTime()
-    return t >= iv.inicio.getTime() && t <= iv.fim.getTime()
-  }
-
-  const positivos = itens.filter((e) => e.tipo === 'positivo')
-  const elogiosSemana = positivos.filter((e) => dentro(e.created_at, semana)).length
-
-  // Categoria mais elogiada no mês (empate → mais recente).
-  const elogiosMes = positivos.filter((e) => dentro(e.created_at, mes))
-  const contagem: Record<string, { n: number; idx: number }> = {}
-  elogiosMes.forEach((e, i) => {
-    if (!e.categoria) return
-    if (!contagem[e.categoria]) contagem[e.categoria] = { n: 0, idx: i }
-    contagem[e.categoria].n += 1
-  })
-  const ranked = Object.entries(contagem).sort((a, b) => b[1].n - a[1].n || a[1].idx - b[1].idx)
-  const categoriaTop = ranked.length ? ranked[0][0] : null
 
   const primeiroNome = prof.nome.split(' ')[0]
 
@@ -113,23 +81,9 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
           <p className="text-chumbo text-sm">{estab.nome}</p>
         </div>
 
-        {/* FRASE DA SEMANA */}
-        <div className="rounded-lg border border-border bg-surface p-4">
-          <p className="text-center text-grafite text-[15px] leading-relaxed">
-            {fraseSemana(elogiosSemana)}
-          </p>
-        </div>
-
-        {/* RESUMO MENSAL */}
-        {categoriaTop && (
-          <p className="text-center text-sm text-chumbo">
-            Sua categoria mais elogiada este mês: <span className="text-text font-medium">{categoriaTop}</span>
-          </p>
-        )}
-
         {/* TIMELINE */}
         <section>
-          <h2 className="font-semibold text-text mb-3">Suas mensagens</h2>
+          <h2 className="font-semibold text-text mb-3">Anotações</h2>
           <Timeline itens={itens} slug={params.slug} />
         </section>
 
