@@ -1,8 +1,11 @@
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { CONFIG_IA_PADRAO, type ConfigIA } from '@/lib/iaPrompts'
+import { MENSAGEM_POS_FEEDBACK_PADRAO } from '@/lib/feedbackCliente'
 import ConfiguracoesClient from './ConfiguracoesClient'
+import FeedbackClienteSection, { type BrindeUI } from './FeedbackClienteSection'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,19 +14,66 @@ export default async function ConfiguracoesPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/entrar')
 
-  const { data: est } = await supabase
+  // Tenta o select completo; se as colunas novas do PROMPT G ainda não
+  // existirem (migration 012), cai num mínimo pra não travar a página.
+  let estabId: string | null = null
+  let configIa: Partial<ConfigIA> | null = null
+  let feedbackClienteAtivo = false
+  let slug: string | null = null
+  let mensagem: string = MENSAGEM_POS_FEEDBACK_PADRAO
+
+  const completo = await supabase
     .from('estabelecimentos')
-    .select('config_ia')
+    .select('id, config_ia, feedback_cliente_ativo, link_feedback_cliente_slug, mensagem_pos_feedback')
     .eq('dono_id', user.id)
     .maybeSingle()
-  if (!est) redirect('/onboarding')
 
-  const config = { ...CONFIG_IA_PADRAO, ...((est.config_ia as Partial<ConfigIA> | null) ?? {}) }
+  if (completo.data) {
+    estabId = completo.data.id as string
+    configIa = completo.data.config_ia as Partial<ConfigIA> | null
+    feedbackClienteAtivo = !!completo.data.feedback_cliente_ativo
+    slug = (completo.data.link_feedback_cliente_slug as string | null) ?? null
+    mensagem = (completo.data.mensagem_pos_feedback as string | null) ?? MENSAGEM_POS_FEEDBACK_PADRAO
+  } else {
+    const minimo = await supabase
+      .from('estabelecimentos')
+      .select('id, config_ia')
+      .eq('dono_id', user.id)
+      .maybeSingle()
+    if (!minimo.data) redirect('/onboarding')
+    estabId = minimo.data.id as string
+    configIa = minimo.data.config_ia as Partial<ConfigIA> | null
+  }
+
+  const config = { ...CONFIG_IA_PADRAO, ...(configIa ?? {}) }
+
+  // Brindes — fallback pra array vazio se a tabela ainda não existir.
+  let brindes: BrindeUI[] = []
+  if (estabId) {
+    const { data: brindesData } = await supabase
+      .from('brindes')
+      .select('id, nome, descricao, peso, ativo')
+      .eq('estabelecimento_id', estabId)
+      .order('created_at', { ascending: true })
+    brindes = (brindesData ?? []) as BrindeUI[]
+  }
+
+  const h = headers()
+  const host = h.get('host') ?? ''
+  const proto = host.includes('localhost') ? 'http' : 'https'
+  const origem = `${proto}://${host}`
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-6 space-y-4 animate-fade-in">
       <h1 className="text-xl font-semibold text-text">Configurações</h1>
       <ConfiguracoesClient inicial={config} />
+      <FeedbackClienteSection
+        ativo={feedbackClienteAtivo}
+        slug={slug}
+        mensagem={mensagem}
+        brindes={brindes}
+        origem={origem}
+      />
       <Link href="/painel/configuracoes/uso-ia" className="block text-sm text-marrom text-center">
         Ver consumo de IA →
       </Link>
