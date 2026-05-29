@@ -1,0 +1,141 @@
+import { NextResponse } from 'next/server'
+import { createAdminClient } from '@/utils/supabase/admin'
+import { gerarCodigoResgate, sortearBrinde, type BrindeLite } from '@/lib/feedbackCliente'
+
+interface Body {
+  slug?: string
+  estrelas?: number
+  colaborador_id?: string | null
+  comentario?: string | null
+  nome_cliente?: string | null
+  contato_cliente?: string | null
+}
+
+const LIMITE_POR_HORA = 5
+
+function sanitizar(s: string | null | undefined, max = 500): string | null {
+  if (!s) return null
+  // Escape básico de < e > pra evitar HTML.
+  const limpo = s.replace(/[<>]/g, '').trim().slice(0, max)
+  return limpo || null
+}
+
+function pegarIp(req: Request): string {
+  const h = req.headers
+  const xff = h.get('x-forwarded-for')
+  if (xff) return xff.split(',')[0].trim()
+  return h.get('x-real-ip') ?? '0.0.0.0'
+}
+
+export async function POST(req: Request) {
+  const body = (await req.json().catch(() => ({}))) as Body
+
+  if (!body.slug) return NextResponse.json({ error: 'Link inválido.' }, { status: 400 })
+  const estrelas = Number(body.estrelas)
+  if (!Number.isInteger(estrelas) || estrelas < 1 || estrelas > 5) {
+    return NextResponse.json({ error: 'Avaliação inválida.' }, { status: 400 })
+  }
+
+  const comentario = sanitizar(body.comentario, 500)
+  const nomeCliente = sanitizar(body.nome_cliente, 80)
+  const contatoCliente = sanitizar(body.contato_cliente, 80)
+  const colabId = body.colaborador_id || null
+
+  const admin = createAdminClient()
+
+  const { data: est } = await admin
+    .from('estabelecimentos')
+    .select('id, feedback_cliente_ativo')
+    .eq('link_feedback_cliente_slug', body.slug)
+    .maybeSingle()
+  if (!est || !est.feedback_cliente_ativo) {
+    return NextResponse.json({ error: 'Link não disponível.' }, { status: 404 })
+  }
+
+  // Confere colaborador, se enviado.
+  if (colabId) {
+    const { data: c } = await admin
+      .from('profissionais')
+      .select('id')
+      .eq('id', colabId)
+      .eq('estabelecimento_id', est.id)
+      .eq('status', 'ativo')
+      .maybeSingle()
+    if (!c) return NextResponse.json({ error: 'Colaborador inválido.' }, { status: 400 })
+  }
+
+  // Rate limit por IP — 5/hora.
+  const ip = pegarIp(req)
+  const umaHoraAtras = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+  const { count } = await admin
+    .from('feedbacks_cliente')
+    .select('id', { count: 'exact', head: true })
+    .eq('ip_address', ip)
+    .gte('created_at', umaHoraAtras)
+  if ((count ?? 0) >= LIMITE_POR_HORA) {
+    return NextResponse.json({ error: 'Muitos envios deste dispositivo. Tente novamente mais tarde.' }, { status: 429 })
+  }
+
+  // Sorteio só rola se houve comentário.
+  let brindeSorteado: (BrindeLite & { descricao: string | null }) | null = null
+  let codigoResgate: string | null = null
+  if (comentario) {
+    const { data: brindesAtivos } = await admin
+      .from('brindes')
+      .select('id, nome, descricao, peso')
+      .eq('estabelecimento_id', est.id)
+      .eq('ativo', true)
+    const pool = (brindesAtivos ?? []) as (BrindeLite & { descricao: string | null })[]
+    const escolhido = sortearBrinde(pool)
+    if (escolhido) {
+      brindeSorteado = pool.find((b) => b.id === escolhido.id) ?? null
+      codigoResgate = await gerarCodigoUnico(admin)
+    }
+  }
+
+  const identificado = !!(nomeCliente || contatoCliente)
+
+  const { error } = await admin.from('feedbacks_cliente').insert({
+    estabelecimento_id: est.id,
+    profissional_id: colabId,
+    nome_cliente: nomeCliente,
+    contato_cliente: contatoCliente,
+    identificado,
+    estrelas,
+    comentario,
+    brinde_id: brindeSorteado?.id ?? null,
+    codigo_resgate: codigoResgate,
+    status: 'novo',
+    ip_address: ip,
+  })
+  if (error) {
+    console.error('[feedback-cliente] insert', error)
+    return NextResponse.json({ error: 'Não foi possível registrar.' }, { status: 500 })
+  }
+
+  return NextResponse.json({
+    sucesso: true,
+    ganhou_brinde: !!brindeSorteado,
+    brinde: brindeSorteado && codigoResgate
+      ? {
+          nome: brindeSorteado.nome,
+          descricao: brindeSorteado.descricao,
+          codigo_resgate: codigoResgate,
+        }
+      : null,
+  })
+}
+
+async function gerarCodigoUnico(admin: ReturnType<typeof createAdminClient>): Promise<string> {
+  for (let i = 0; i < 8; i++) {
+    const c = gerarCodigoResgate()
+    const { data } = await admin
+      .from('feedbacks_cliente')
+      .select('id')
+      .eq('codigo_resgate', c)
+      .maybeSingle()
+    if (!data) return c
+  }
+  // Fallback: tamanho 8 chars praticamente nunca colide.
+  return gerarCodigoResgate() + gerarCodigoResgate().slice(0, 2)
+}
