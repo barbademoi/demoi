@@ -6,25 +6,12 @@ import Avatar from '@/components/Avatar'
 import StatusBadge from '@/components/StatusBadge'
 import { tempoDeCasa } from '@/lib/tempoDeCasa'
 import type { Profissional } from '@/lib/profissionais'
-import { calcularPlacar, type Feedback, type FeedbackComProfissional } from '@/lib/feedbacks'
-import { intervalo, intervaloAnterior, type NomePeriodo } from '@/lib/periodos'
-import PlacarCards from '@/components/PlacarCards'
+import type { Feedback, FeedbackComProfissional } from '@/lib/feedbacks'
 import AcoesStatus from './AcoesStatus'
 import LinkProfissional from './LinkProfissional'
 import CompetenciasEditor from './CompetenciasEditor'
 import PerfilIAEditor from './PerfilIAEditor'
 import FeedbacksList from './FeedbacksList'
-
-function placarPeriodo(fbs: Feedback[], periodo: NomePeriodo) {
-  const dentro = (iv: { inicio: Date; fim: Date }) =>
-    fbs.filter((f) => {
-      const t = new Date(f.created_at).getTime()
-      return t >= iv.inicio.getTime() && t <= iv.fim.getTime()
-    })
-  const atual = calcularPlacar(dentro(intervalo(periodo)))
-  const anterior = calcularPlacar(dentro(intervaloAnterior(periodo)))
-  return { atual, delta: atual - anterior }
-}
 
 export default async function PerfilProfissionalPage({
   params,
@@ -61,12 +48,6 @@ export default async function PerfilProfissionalPage({
     .order('created_at', { ascending: false })
   const feedbacks = (fbData ?? []) as Feedback[]
   const feedbacksLista: FeedbackComProfissional[] = feedbacks.map((f) => ({ ...f, profissionais: null }))
-
-  const placar = {
-    semana: placarPeriodo(feedbacks, 'semana'),
-    mes: placarPeriodo(feedbacks, 'mes'),
-    ano: placarPeriodo(feedbacks, 'ano'),
-  }
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-6 space-y-5 animate-fade-in">
@@ -114,15 +95,9 @@ export default async function PerfilProfissionalPage({
         }}
       />
 
-      {/* PLACAR */}
+      {/* OBSERVAÇÕES */}
       <div>
-        <h3 className="font-semibold text-text mb-3">Placar</h3>
-        <PlacarCards semana={placar.semana} mes={placar.mes} ano={placar.ano} />
-      </div>
-
-      {/* FEEDBACKS */}
-      <div>
-        <h3 className="font-semibold text-text mb-3">Feedbacks</h3>
+        <h3 className="font-semibold text-text mb-3">Observações</h3>
         <FeedbacksList feedbacks={feedbacksLista} nome={p.nome} />
       </div>
     </main>

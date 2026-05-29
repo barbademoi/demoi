@@ -1,10 +1,9 @@
+import { MessageCircle, CheckCircle2 } from 'lucide-react'
 import Avatar from './Avatar'
-import { tempoRelativo, type TipoFeedback } from '@/lib/feedbacks'
-import { TIPO_VISUAL } from './tipoVisual'
+import { tempoRelativo } from '@/lib/feedbacks'
 
 export interface AtividadeFb {
   id: string
-  tipo?: TipoFeedback | null
   texto: string
   lido_em: string | null
   resposta_profissional: string | null
@@ -12,28 +11,20 @@ export interface AtividadeFb {
   profissionais: { nome: string; foto_url: string | null } | null
 }
 
-const TIPO_LABEL: Record<TipoFeedback, string> = {
-  positivo: 'um elogio',
-  negativo: 'um ponto a desenvolver',
-  observacao: 'uma observação',
-}
-
 export default function AtividadeItem({ a }: { a: AtividadeFb }) {
   const respondeu = !!a.resposta_profissional
   const quando = a.resposta_em ?? a.lido_em
   const nome = a.profissionais?.nome ?? '—'
   const trecho = a.texto.length > 60 ? `${a.texto.slice(0, 60)}…` : a.texto
-  const tipoFb = a.tipo ?? 'observacao'
-  const v = TIPO_VISUAL[tipoFb]
-  const Icon = v.Icon
-  const acao = respondeu ? `respondeu à ${TIPO_LABEL[tipoFb]}` : `leu ${TIPO_LABEL[tipoFb]}`
+  const Icon = respondeu ? MessageCircle : CheckCircle2
+  const acao = respondeu ? 'respondeu a uma observação' : 'leu uma observação'
 
   return (
     <div className="card p-3 flex items-start gap-3">
       <Avatar nome={nome} fotoUrl={a.profissionais?.foto_url} size={36} />
       <div className="min-w-0 flex-1">
         <p className="text-sm inline-flex items-center gap-1.5 flex-wrap">
-          <Icon size={16} strokeWidth={1.5} color={v.cor} />
+          <Icon size={16} strokeWidth={1.5} color="#8B6F47" />
           <span className="font-medium text-text">{nome}</span>{' '}
           <span className="text-grafite">{acao}</span>
         </p>

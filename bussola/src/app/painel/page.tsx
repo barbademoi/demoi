@@ -1,13 +1,13 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Bell, AlertTriangle, Sparkles, Sprout, Eye, MessageSquarePlus, Users, Inbox } from 'lucide-react'
+import { Bell, AlertTriangle, MessageSquarePlus, Users, Inbox } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
 import FeedbackItem from '@/components/FeedbackItem'
 import AtividadeItem, { type AtividadeFb } from '@/components/AtividadeItem'
 import MarcarVisto from './MarcarVisto'
 import { proximaReuniao } from '@/lib/reuniao'
 import { intervalo } from '@/lib/periodos'
-import { calcularPlacar, comSinal, type Feedback, type FeedbackComProfissional, type TipoFeedback } from '@/lib/feedbacks'
+import type { FeedbackComProfissional } from '@/lib/feedbacks'
 
 export const dynamic = 'force-dynamic'
 

@@ -2,12 +2,10 @@
 
 import { useState } from 'react'
 import { Check, CheckCircle2 } from 'lucide-react'
-import { tempoRelativo, dataLonga, type TipoFeedback } from '@/lib/feedbacks'
-import { TIPO_VISUAL } from '@/components/tipoVisual'
+import { tempoRelativo, dataLonga } from '@/lib/feedbacks'
 
 export interface ItemElogio {
   id: string
-  tipo?: TipoFeedback | null
   texto: string
   categoria: string | null
   created_at: string
@@ -19,21 +17,12 @@ export interface ItemElogio {
 
 const PAGINA = 20
 
-const PLACEHOLDER: Record<TipoFeedback, string> = {
-  positivo: 'Quer responder algo? Não é obrigatório. Ex: Obrigado, fico feliz que notou!',
-  negativo: 'Quer comentar? Não é obrigatório. Ex: Entendi, vou trabalhar nisso.',
-  observacao: 'Quer responder algo? Não é obrigatório.',
-}
-
 function Card({ item, slug }: { item: ItemElogio; slug: string }) {
   const [lidoEm, setLidoEm] = useState<string | null>(item.lido_em)
   const [mostrarResp, setMostrarResp] = useState(false)
   const [resposta, setResposta] = useState('')
   const [respostaSalva, setRespostaSalva] = useState<string | null>(item.resposta_profissional)
   const [enviando, setEnviando] = useState(false)
-
-  const v = TIPO_VISUAL[item.tipo ?? 'observacao']
-  const Icon = v.Icon
 
   async function confirmar(respostaTexto?: string) {
     setEnviando(true)
@@ -57,18 +46,14 @@ function Card({ item, slug }: { item: ItemElogio; slug: string }) {
   }
 
   return (
-    <article className={`rounded-lg border border-border bg-surface p-4 border-l-[3px] ${v.bordaEsq} animate-fade-in`}>
+    <article className="rounded-lg border border-border bg-surface p-4 animate-fade-in">
       <div className="flex items-center justify-between gap-2">
-        <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide ${v.texto}`}>
-          <Icon size={16} strokeWidth={1.5} />
-          {v.label}
-        </span>
         <span className="text-xs text-chumbo">{tempoRelativo(item.created_at)}</span>
+        {item.categoria && (
+          <span className="text-xs text-chumbo border border-border rounded-full px-2 py-0.5">{item.categoria}</span>
+        )}
       </div>
       <p className="text-text text-[15px] leading-relaxed mt-2 whitespace-pre-wrap">{item.texto}</p>
-      {item.categoria && (
-        <span className="inline-block mt-2 text-xs text-chumbo border border-border rounded-full px-2 py-0.5">{item.categoria}</span>
-      )}
 
       {respostaSalva && (
         <p className="text-sm text-grafite italic mt-3 border-l-2 border-border pl-3">Sua resposta: {respostaSalva}</p>
@@ -99,7 +84,7 @@ function Card({ item, slug }: { item: ItemElogio; slug: string }) {
             value={resposta}
             onChange={(e) => setResposta(e.target.value)}
             rows={2}
-            placeholder={PLACEHOLDER[item.tipo ?? 'observacao']}
+            placeholder="Quer responder algo? Não é obrigatório."
             className="input text-sm"
             autoFocus
           />
@@ -121,7 +106,7 @@ export default function Timeline({ itens, slug }: { itens: ItemElogio[]; slug: s
   if (itens.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-surface p-6 text-center">
-        <p className="text-grafite">Ainda não há mensagens registradas. Dê o seu melhor — cada atendimento é uma oportunidade.</p>
+        <p className="text-grafite">Ainda não há anotações. Continue dando o seu melhor — cada dia conta.</p>
       </div>
     )
   }
