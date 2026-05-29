@@ -9,7 +9,7 @@ export interface NovaMeta {
 // Estado da preparação/condução da reunião, salvo em reunioes.pauta (jsonb).
 export interface PautaReuniao {
   iniciada_em?: string | null
-  decisoes?: Record<string, DecisaoFeedback> // feedbackId -> decisão
+  decisoes?: Record<string, DecisaoFeedback> // feedbackId -> decisão (legacy)
   metricasNotas?: string
   metasPassadas?: Record<string, { avaliacao: AvaliacaoMeta; comentario?: string }>
   novasMetas?: NovaMeta[]
@@ -17,6 +17,10 @@ export interface PautaReuniao {
   anotacoes?: Record<string, string> // feedbackId -> nota durante a condução
   anotacaoGeral?: string
   metricasDiscutida?: boolean
+  // AJUSTE F — Modo Reunião com 6 momentos.
+  momentoAtual?: number // 1..6
+  aberturaChecks?: string[] // ids de itens do checklist de abertura concluídos
+  notaEquipe?: string
 }
 
 export interface Reuniao {

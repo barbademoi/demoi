@@ -4,29 +4,108 @@ import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Sparkles,
-  Users,
   Sprout,
-  Eye,
-  BarChart3,
-  Target,
+  Users,
   Compass,
+  ClipboardList,
+  PlayCircle,
   Check,
   CheckCircle2,
   AlertTriangle,
   XCircle,
-  Minus,
+  ChevronLeft,
+  ChevronRight,
   Plus,
+  Lightbulb,
+  RotateCw,
+  X,
   type LucideIcon,
 } from 'lucide-react'
 import Avatar from '@/components/Avatar'
-import Estrelas from '@/components/Estrelas'
-import { TIPO_VISUAL } from '@/components/tipoVisual'
-import { TIPOS, type TipoFeedback } from '@/lib/feedbacks'
 import type { AvaliacaoMeta, MetaSemanal, NovaMeta, PautaReuniao } from '@/lib/pauta'
+import type { Momento } from '@/lib/iaPrompts'
 import { salvarPauta, finalizarReuniao, marcarDiscutido } from '../../actions'
-import SugestaoFala from '../../SugestaoFala'
 
-// Checkbox customizado (sem o padrão do navegador).
+export interface ObsItem {
+  id: string
+  profissional_id: string | null
+  escopo: 'individual' | 'equipe'
+  texto: string
+  categoria: string | null
+  status: string
+  momento_reuniao: Momento | null
+  sugestao_ia: string | null
+  profissionais: { nome: string; foto_url: string | null } | null
+}
+
+interface ProfLite {
+  id: string
+  nome: string
+  foto_url: string | null
+}
+
+interface Props {
+  reuniaoId: string
+  estabId: string
+  dataLabel: string
+  pautaInicial: PautaReuniao
+  observacoes: ObsItem[]
+  ativos: ProfLite[]
+  metasPassadas: MetaSemanal[]
+  principios: Record<string, string> // momento -> texto
+}
+
+const ORDEM = ['abertura', 'revisao', 'reconhecimento', 'equipe', 'ajuste', 'encerramento'] as const
+type MomentoTela = (typeof ORDEM)[number]
+
+const META_TELAS: Record<MomentoTela, { titulo: string; instrucao: string; icon: LucideIcon; iaMomento?: Momento }> = {
+  abertura: {
+    titulo: 'Abertura',
+    icon: PlayCircle,
+    instrucao:
+      'Comece reconhecendo a presença da equipe. Olhe nos olhos antes de falar. A energia que você traz define o tom de toda a reunião.',
+  },
+  revisao: {
+    titulo: 'Revisão',
+    icon: ClipboardList,
+    instrucao:
+      'Recapitule as metas combinadas na reunião anterior. Mostrar que você lembra é o que separa reunião que muda algo de reunião que vira papo.',
+  },
+  reconhecimento: {
+    titulo: 'Reconhecimentos',
+    icon: Sparkles,
+    iaMomento: 'reconhecimento',
+    instrucao:
+      'Reconheça especificamente o que cada um fez bem. Comece pelo reconhecimento mais forte — ele define o tom de tudo o que vem depois.',
+  },
+  equipe: {
+    titulo: 'Equipe',
+    icon: Users,
+    iaMomento: 'equipe',
+    instrucao:
+      'Fale sobre a equipe como um todo. Padrões, ambiente, energia da semana. Reforce o coletivo.',
+  },
+  ajuste: {
+    titulo: 'Ajustes',
+    icon: Sprout,
+    iaMomento: 'ajuste',
+    instrucao:
+      'Aborde os pontos a ajustar com calma. Foco no comportamento observado, nunca no caráter da pessoa. Quem precisa de cobrança mais séria, considere conversar em particular.',
+  },
+  encerramento: {
+    titulo: 'Metas e Encerramento',
+    icon: Compass,
+    instrucao:
+      'Defina 1 a 3 metas pra próxima semana e encerre com clareza do que ficou decidido. A clareza é o presente final do líder.',
+  },
+}
+
+const ABERTURA_ITENS = [
+  { id: 'cumprimentei', label: 'Cumprimentei a equipe' },
+  { id: 'tempo', label: 'Comuniquei o tempo previsto' },
+  { id: 'tom', label: 'Estabeleci o tom (sereno, presente)' },
+]
+
 function Checkbox({ checked, onChange, size = 22 }: { checked: boolean; onChange: () => void; size?: number }) {
   return (
     <button
@@ -42,103 +121,174 @@ function Checkbox({ checked, onChange, size = 22 }: { checked: boolean; onChange
   )
 }
 
-export interface FbItem {
-  id: string
-  profissional_id: string | null
-  escopo: 'individual' | 'equipe'
-  tipo: TipoFeedback | null
-  estrelas: number | null
-  texto: string
-  categoria: string | null
-  status: string
-  sugestao_ia: string | null
-  profissionais: { nome: string; foto_url: string | null } | null
-}
-
-interface ProfLite {
-  id: string
-  nome: string
-  foto_url: string | null
-}
-
-interface Metricas {
-  total: number
-  positivos: number
-  negativos: number
-  observacoes: number
-  maiorPlacar: { nome: string; valor: number }
-  maisEvoluiu: { nome: string; delta: number }
-}
-
-interface Props {
-  reuniaoId: string
-  dataLabel: string
-  pautaInicial: PautaReuniao
-  positivos: FbItem[]
-  negativos: FbItem[]
-  observacoes: FbItem[]
-  equipe: FbItem[]
-  ativos: ProfLite[]
-  metasPassadas: MetaSemanal[]
-  metricas: Metricas
-  mostrarDicas: boolean
-}
-
-function Bloco({ titulo, icon: Icon, sub, children }: { titulo: string; icon: LucideIcon; sub?: string; children: React.ReactNode }) {
-  const [aberto, setAberto] = useState(true)
+function CardPrincipio({ texto }: { texto: string }) {
+  if (!texto) return null
   return (
-    <section className="card overflow-hidden">
-      <button type="button" onClick={() => setAberto((v) => !v)} className="w-full flex items-center justify-between p-4 text-left">
-        <span className="inline-flex items-center gap-2">
-          <Icon size={20} strokeWidth={1.5} color="#8B6F47" />
-          <span className="font-semibold text-text">{titulo}</span>
-          {sub && <span className="text-chumbo text-sm font-normal"> {sub}</span>}
-        </span>
-        {aberto ? <Minus size={20} strokeWidth={1.5} color="#8A8A8A" /> : <Plus size={20} strokeWidth={1.5} color="#8A8A8A" />}
-      </button>
-      <div className={aberto ? 'px-4 pb-4 space-y-3' : 'hidden'}>{children}</div>
-    </section>
+    <div className="rounded-md border-l-[3px] border-marrom bg-linho p-4 mt-4">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-marrom mb-1">Princípio do Mentor</p>
+      <p className="text-sm text-grafite italic leading-relaxed">{texto}</p>
+    </div>
+  )
+}
+
+function CardSugestaoFala({ momento, contexto }: { momento: Momento; contexto: string }) {
+  const [sug, setSug] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [oculto, setOculto] = useState(false)
+
+  async function carregar(regenerar = false) {
+    setLoading(true)
+    try {
+      const r = await fetch('/api/ia/sugestao-fala-momento', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ momento, contexto, regenerar }),
+      })
+      const j = await r.json()
+      if (r.ok) setSug(j.sugestao)
+      else setSug(null)
+    } catch {
+      setSug(null)
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    carregar(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [momento])
+
+  if (oculto) return null
+
+  return (
+    <div className="rounded-md border border-border bg-surface p-4 mt-4">
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-marrom">
+          <Lightbulb size={14} strokeWidth={1.5} /> Sugestão de fala
+        </p>
+        <div className="flex items-center gap-3 shrink-0">
+          <button type="button" onClick={() => carregar(true)} disabled={loading} className="inline-flex items-center gap-1 text-xs text-marrom disabled:opacity-50">
+            <RotateCw size={13} strokeWidth={1.5} /> Nova
+          </button>
+          <button type="button" onClick={() => setOculto(true)} className="text-chumbo" aria-label="Esconder">
+            <X size={16} strokeWidth={1.5} />
+          </button>
+        </div>
+      </div>
+      {loading ? (
+        <div className="space-y-1.5">
+          <div className="h-2.5 bg-marrom/10 rounded w-full animate-pulse" />
+          <div className="h-2.5 bg-marrom/10 rounded w-2/3 animate-pulse" />
+        </div>
+      ) : (
+        <p className="text-sm text-grafite italic leading-relaxed">{sug ?? 'Sugestão indisponível agora.'}</p>
+      )}
+    </div>
+  )
+}
+
+function ObsCard({
+  obs,
+  marcado,
+  toggle,
+  nota,
+  setNota,
+  momento,
+}: {
+  obs: ObsItem
+  marcado: boolean
+  toggle: () => void
+  nota: string
+  setNota: (v: string) => void
+  momento: Momento
+}) {
+  const [sug, setSug] = useState<string | null>(obs.sugestao_ia)
+  const [loadingSug, setLoadingSug] = useState(false)
+
+  async function gerarSug() {
+    setLoadingSug(true)
+    try {
+      const r = await fetch('/api/ia/sugerir-fala', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedbackId: obs.id, momento, regenerar: false }),
+      })
+      const j = await r.json()
+      if (r.ok) setSug(j.sugestao)
+    } catch { /* ignore */ }
+    setLoadingSug(false)
+  }
+
+  return (
+    <div className={`rounded-md border border-border p-3 bg-white transition-opacity ${marcado ? 'opacity-50' : ''}`}>
+      <div className="flex items-start gap-3">
+        <Checkbox checked={marcado} onChange={toggle} size={22} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            {obs.escopo === 'individual' && obs.profissionais ? (
+              <>
+                <Avatar nome={obs.profissionais.nome} fotoUrl={obs.profissionais.foto_url} size={28} />
+                <span className="text-sm font-medium text-text">{obs.profissionais.nome}</span>
+              </>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-sm font-medium text-text">
+                <Users size={16} strokeWidth={1.5} color="#8B6F47" /> Equipe
+              </span>
+            )}
+            {obs.categoria && (
+              <span className="text-xs bg-linho text-grafite rounded-full px-2 py-0.5">{obs.categoria}</span>
+            )}
+          </div>
+          <p className="text-sm text-text mt-1.5 whitespace-pre-wrap">{obs.texto}</p>
+
+          {sug ? (
+            <div className="mt-2 rounded-md bg-linho border border-border p-2.5">
+              <p className="text-sm text-grafite italic">{sug}</p>
+            </div>
+          ) : (
+            <button type="button" onClick={gerarSug} disabled={loadingSug} className="mt-2 inline-flex items-center gap-1 text-xs text-marrom font-medium disabled:opacity-50">
+              <Lightbulb size={13} strokeWidth={1.5} /> {loadingSug ? 'Gerando…' : 'Sugestão de fala'}
+            </button>
+          )}
+
+          <textarea
+            value={nota}
+            onChange={(e) => setNota(e.target.value)}
+            placeholder="Anotação…"
+            rows={1}
+            className="input mt-2 text-sm py-2 min-h-[40px]"
+          />
+        </div>
+      </div>
+    </div>
   )
 }
 
 export default function ConduzirClient(props: Props) {
-  const { reuniaoId, dataLabel, pautaInicial, positivos, negativos, observacoes, equipe, ativos, metasPassadas, metricas, mostrarDicas } = props
+  const { reuniaoId, dataLabel, pautaInicial, observacoes, ativos, metasPassadas, principios } = props
   const router = useRouter()
 
-  const todosFb = [...positivos, ...negativos, ...observacoes, ...equipe]
+  // Splits por momento.
+  const recs = observacoes.filter((o) => o.momento_reuniao === 'reconhecimento')
+  const ajustes = observacoes.filter((o) => o.momento_reuniao === 'ajuste')
+  const equipe = observacoes.filter((o) => o.escopo === 'equipe' || o.momento_reuniao === 'equipe')
+  // (neutros não aparecem na pauta)
 
-  // Contexto curto por bloco, para a "Dica da Bússola".
-  const freq = (vals: (string | null)[]) => {
-    const c: Record<string, number> = {}
-    vals.forEach((v) => { if (v) c[v] = (c[v] ?? 0) + 1 })
-    return Object.entries(c).sort((a, b) => b[1] - a[1]).map(([k]) => k).slice(0, 3).join(', ')
-  }
-  const nomesElogiados = (() => {
-    const c: Record<string, number> = {}
-    positivos.forEach((f) => { const n = f.profissionais?.nome; if (n) c[n] = (c[n] ?? 0) + 1 })
-    return Object.entries(c).map(([n, q]) => `${n} (${q})`).join(', ')
-  })()
-  const maisForte = positivos[0]
-  const placarEq = equipe.reduce((s, f) => s + (f.tipo === 'positivo' ? (f.estrelas ?? 0) : f.tipo === 'negativo' ? -(f.estrelas ?? 0) : 0), 0)
-  const graves = negativos.filter((f) => (f.estrelas ?? 0) >= 4)
-  const ctx: Record<string, string> = {
-    elogios: `${positivos.length} elogios na semana. Elogiados: ${nomesElogiados || '—'}. Mais forte: ${maisForte ? `${maisForte.estrelas ?? 0}★ — ${maisForte.texto.slice(0, 80)}` : '—'}. Categoria mais frequente: ${freq(positivos.map((f) => f.categoria)) || '—'}.`,
-    equipe: `${equipe.length} feedbacks de equipe. P/N/O: ${equipe.filter((f) => f.tipo === 'positivo').length}/${equipe.filter((f) => f.tipo === 'negativo').length}/${equipe.filter((f) => f.tipo === 'observacao').length}. Placar de equipe: ${placarEq}.`,
-    desenvolvimento: `${negativos.length} feedbacks negativos, ${graves.length} graves (4-5★). Com feedback grave: ${Array.from(new Set(graves.map((f) => f.profissionais?.nome).filter(Boolean))).join(', ') || '—'}. Categorias: ${freq(negativos.map((f) => f.categoria)) || '—'}.`,
-    observacoes: `${observacoes.length} observações. Temas: ${freq(observacoes.map((f) => f.categoria)) || observacoes.slice(0, 2).map((f) => f.texto.slice(0, 40)).join('; ') || '—'}.`,
-    metricas: `${metricas.total} feedbacks na semana. Destaque (maior placar): ${metricas.maiorPlacar.nome}. Mais evoluiu: ${metricas.maisEvoluiu.nome}.`,
-    metas_passadas: `${metasPassadas.length} metas da semana passada para revisar.`,
-    metas_novas: `Planejando novas metas. Categorias problemáticas da semana: ${freq(negativos.map((f) => f.categoria)) || 'nenhuma'}.`,
-  }
+  // Estado da reunião.
+  const inicialMomento = pautaInicial.momentoAtual && pautaInicial.momentoAtual >= 1 && pautaInicial.momentoAtual <= 6 ? pautaInicial.momentoAtual : 1
+  const [momento, setMomento] = useState<number>(inicialMomento)
+  const tela = ORDEM[momento - 1]
+  const metaTela = META_TELAS[tela]
 
   const [discutidos, setDiscutidos] = useState<Set<string>>(
-    new Set(todosFb.filter((f) => f.status.startsWith('discutido')).map((f) => f.id))
+    new Set(observacoes.filter((o) => o.status.startsWith('discutido')).map((o) => o.id))
   )
   const [notas, setNotas] = useState<Record<string, string>>(pautaInicial.anotacoes ?? {})
   const [avaliacoes, setAvaliacoes] = useState<Record<string, { avaliacao: AvaliacaoMeta; comentario?: string }>>(pautaInicial.metasPassadas ?? {})
   const [novasMetas, setNovasMetas] = useState<NovaMeta[]>(pautaInicial.novasMetas ?? [])
-  const [metricasNotas, setMetricasNotas] = useState(pautaInicial.metricasNotas ?? '')
-  const [metricasDiscutida, setMetricasDiscutida] = useState(!!pautaInicial.metricasDiscutida)
+  const [aberturaChecks, setAberturaChecks] = useState<Set<string>>(new Set(pautaInicial.aberturaChecks ?? []))
+  const [notaEquipe, setNotaEquipe] = useState(pautaInicial.notaEquipe ?? '')
+  const [anotacaoGeral, setAnotacaoGeral] = useState(pautaInicial.anotacaoGeral ?? '')
   const [confirmar, setConfirmar] = useState(false)
   const [finalizando, startFinalizar] = useTransition()
 
@@ -155,48 +305,43 @@ export default function ConduzirClient(props: Props) {
     return {
       ...pautaInicial,
       iniciada_em: inicioISO,
+      momentoAtual: momento,
+      aberturaChecks: Array.from(aberturaChecks),
+      notaEquipe,
       anotacoes: notas,
+      anotacaoGeral,
       metasPassadas: avaliacoes,
       novasMetas: novasMetas.filter((m) => m.texto.trim()),
-      metricasNotas,
-      metricasDiscutida,
     }
   }
 
-  // Salvamento da pauta com debounce de 1s (pula a 1ª renderização).
+  // Auto-save com debounce.
   const primeiraRef = useRef(true)
   useEffect(() => {
     if (primeiraRef.current) {
       primeiraRef.current = false
       return
     }
-    const t = setTimeout(() => {
-      salvarPauta(reuniaoId, montarPauta())
-    }, 1000)
+    const t = setTimeout(() => salvarPauta(reuniaoId, montarPauta()), 1000)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notas, avaliacoes, novasMetas, metricasNotas, metricasDiscutida])
+  }, [momento, notas, avaliacoes, novasMetas, aberturaChecks, notaEquipe, anotacaoGeral])
 
-  function toggle(f: FbItem) {
+  function toggle(obs: ObsItem) {
     setDiscutidos((prev) => {
       const n = new Set(prev)
-      const novo = !n.has(f.id)
-      if (novo) n.add(f.id)
-      else n.delete(f.id)
-      marcarDiscutido(f.id, novo)
+      const novo = !n.has(obs.id)
+      if (novo) n.add(obs.id)
+      else n.delete(obs.id)
+      marcarDiscutido(obs.id, novo)
       return n
     })
   }
 
-  const nomePorId = (id: string | null) => (id ? ativos.find((a) => a.id === id)?.nome ?? '—' : 'Equipe')
-
-  // Progresso.
-  const novasValidas = novasMetas.filter((m) => m.texto.trim())
-  const metasComAval = metasPassadas.filter((m) => avaliacoes[m.id]?.avaliacao).length
-  const total = todosFb.length + 1 + metasPassadas.length + novasValidas.length
-  const feitos = discutidos.size + (metricasDiscutida ? 1 : 0) + metasComAval + novasValidas.length
-  const pendentes = Math.max(0, total - feitos)
-  const pct = total ? Math.round((feitos / total) * 100) : 100
+  function nomePorId(id: string | null): string {
+    if (!id) return 'Equipe'
+    return ativos.find((a) => a.id === id)?.nome ?? '—'
+  }
 
   function finalizar() {
     startFinalizar(async () => {
@@ -205,209 +350,297 @@ export default function ConduzirClient(props: Props) {
     })
   }
 
-  const Card = ({ f }: { f: FbItem }) => {
-    const marcado = discutidos.has(f.id)
-    const grave = f.tipo === 'negativo' && (f.estrelas ?? 0) >= 4
-    const v = TIPO_VISUAL[f.tipo ?? 'observacao']
-    const TipoIcon = v.Icon
-    return (
-      <div className={`rounded-md border border-border p-3 border-l-[3px] ${v.bordaEsq} bg-white transition-opacity ${marcado ? 'opacity-50' : ''}`}>
-        <div className="flex items-start gap-3">
-          <Checkbox checked={marcado} onChange={() => toggle(f)} size={24} />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              {f.escopo === 'individual' && f.profissionais ? (
-                <>
-                  <Avatar nome={f.profissionais.nome} fotoUrl={f.profissionais.foto_url} size={28} />
-                  <span className="text-sm font-medium text-text">{f.profissionais.nome}</span>
-                </>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-sm font-medium text-text">
-                  <Users size={16} strokeWidth={1.5} color="#8B6F47" /> Equipe
-                </span>
-              )}
-              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${v.badge}`}>
-                <TipoIcon size={13} strokeWidth={1.5} /> {v.label}
-              </span>
-              {(f.estrelas ?? 0) > 0 && <Estrelas value={f.estrelas ?? 0} readOnly size={14} cor={TIPOS[f.tipo ?? 'observacao'].estrela} />}
-            </div>
-            {grave && <p className="text-ambar text-xs font-medium mt-1">Conversa individual sugerida</p>}
-            <p className="text-sm text-text mt-1.5">{f.texto}</p>
-            {f.categoria && <span className="inline-block mt-1 text-xs bg-linho text-grafite rounded-full px-2 py-0.5">{f.categoria}</span>}
-            {f.escopo === 'individual' && <SugestaoFala feedbackId={f.id} inicial={f.sugestao_ia} />}
-            <textarea
-              value={notas[f.id] ?? ''}
-              onChange={(e) => setNotas((n) => ({ ...n, [f.id]: e.target.value }))}
-              placeholder="Anotação…"
-              rows={1}
-              className="input mt-2 text-sm py-2 min-h-[40px]"
-            />
-          </div>
-        </div>
-      </div>
-    )
+  function sair() {
+    salvarPauta(reuniaoId, montarPauta())
+    router.push('/painel/reuniao')
   }
 
+  // Contexto pra sugestao-fala-momento (mantém prompt curto).
+  function contextoIA(): string {
+    if (tela === 'reconhecimento') {
+      const nomes = Array.from(new Set(recs.map((o) => o.profissionais?.nome).filter(Boolean))) as string[]
+      return `${recs.length} reconhecimentos. Pessoas: ${nomes.join(', ') || '—'}.`
+    }
+    if (tela === 'ajuste') {
+      const nomes = Array.from(new Set(ajustes.map((o) => o.profissionais?.nome).filter(Boolean))) as string[]
+      return `${ajustes.length} pontos a desenvolver. Pessoas: ${nomes.join(', ') || '—'}.`
+    }
+    if (tela === 'equipe') {
+      return `${equipe.length} observações sobre a equipe esta semana.`
+    }
+    return ''
+  }
+
+  const totalMomentos = 6
+  const proxLabel = momento < totalMomentos ? META_TELAS[ORDEM[momento]].titulo : 'Finalizar reunião'
+
   return (
-    <main className="max-w-2xl mx-auto px-4 py-4 space-y-4 pb-28 animate-fade-in">
-      {/* CABEÇALHO */}
-      <div className="sticky top-0 z-10 -mx-4 px-4 py-3 bg-background/95 backdrop-blur border-b border-border">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="font-semibold text-text">Reunião — {dataLabel}</p>
-            <p className="text-xs text-chumbo">Tempo: {minutos} min</p>
+    <div className="fixed inset-0 z-50 bg-background flex flex-col overflow-y-auto">
+      {/* HEADER FIXO */}
+      <header className="sticky top-0 z-30 bg-surface border-b border-border">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs text-chumbo truncate">Reunião — {dataLabel} · {minutos} min</p>
+            <p className="text-sm font-semibold text-text inline-flex items-center gap-1.5">
+              <metaTela.icon size={16} strokeWidth={1.5} color="#8B6F47" />
+              Momento {momento}/6 — {metaTela.titulo}
+            </p>
           </div>
-          <button type="button" onClick={() => (pendentes > 0 ? setConfirmar(true) : finalizar())} disabled={finalizando} className="btn-primary px-4 py-2 text-sm">
-            Finalizar
+          <button type="button" onClick={sair} className="btn-secondary px-3 py-2 text-xs">
+            Sair
           </button>
         </div>
-        <div className="mt-2">
-          <div className="h-1 rounded-sm bg-linho overflow-hidden">
-            <div className="h-full bg-marrom transition-all" style={{ width: `${pct}%` }} />
-          </div>
-          <p className="text-xs text-chumbo mt-1">Progresso: {feitos}/{total} itens</p>
+        <div className="h-1 bg-linho">
+          <div className="h-full bg-marrom transition-all" style={{ width: `${(momento / totalMomentos) * 100}%` }} />
         </div>
-      </div>
+      </header>
 
-      {positivos.length > 0 && (
-        <Bloco titulo="Elogios" icon={Sparkles} sub={`(${positivos.length} — ${positivos.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
-          {positivos.map((f) => <Card key={f.id} f={f} />)}
-        </Bloco>
-      )}
+      <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-6 pb-32">
+        <h1 className="text-2xl font-semibold text-text">{metaTela.titulo}</h1>
+        <p className="text-sm text-grafite mt-1 leading-relaxed">{metaTela.instrucao}</p>
 
-      {equipe.length > 0 && (
-        <Bloco titulo="Sobre a equipe" icon={Users} sub={`(${equipe.length} — ${equipe.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
-          {equipe.map((f) => <Card key={f.id} f={f} />)}
-        </Bloco>
-      )}
+        <CardPrincipio texto={principios[tela] ?? ''} />
 
-      {negativos.length > 0 && (
-        <Bloco titulo="Pontos a desenvolver" icon={Sprout} sub={`(${negativos.length} — ${negativos.filter((f) => discutidos.has(f.id)).length} discutidos)`}>
-          {negativos.map((f) => <Card key={f.id} f={f} />)}
-        </Bloco>
-      )}
+        {/* CONTEÚDO POR MOMENTO */}
+        {tela === 'abertura' && (
+          <div className="card p-4 mt-4 space-y-2">
+            {ABERTURA_ITENS.map((it) => {
+              const on = aberturaChecks.has(it.id)
+              return (
+                <label key={it.id} className="flex items-center gap-3 cursor-pointer">
+                  <Checkbox
+                    checked={on}
+                    onChange={() =>
+                      setAberturaChecks((prev) => {
+                        const n = new Set(prev)
+                        if (n.has(it.id)) n.delete(it.id)
+                        else n.add(it.id)
+                        return n
+                      })
+                    }
+                  />
+                  <span className="text-sm text-text">{it.label}</span>
+                </label>
+              )
+            })}
+          </div>
+        )}
 
-      {observacoes.length > 0 && (
-        <Bloco titulo="Observações" icon={Eye} sub={`(${observacoes.length})`}>
-          {observacoes.map((f) => <Card key={f.id} f={f} />)}
-        </Bloco>
-      )}
+        {tela === 'revisao' && (
+          <div className="space-y-3 mt-4">
+            {metasPassadas.length === 0 ? (
+              <p className="text-chumbo text-sm card p-4">
+                Esta é a primeira reunião. As próximas terão metas pra revisar aqui.
+              </p>
+            ) : (
+              metasPassadas.map((m) => {
+                const av = avaliacoes[m.id]
+                return (
+                  <div key={m.id} className="rounded-md border border-border p-3 bg-white">
+                    <p className="text-sm text-text font-medium">{m.texto}</p>
+                    <p className="text-xs text-chumbo">Responsável: {nomePorId(m.responsavel_id)}</p>
+                    <div className="flex gap-1.5 mt-2">
+                      {([['cumprida', CheckCircle2, 'Cumprida'], ['parcial', AlertTriangle, 'Parcial'], ['nao_cumprida', XCircle, 'Não cumprida']] as [AvaliacaoMeta, LucideIcon, string][]).map(([v, AvIcon, label]) => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setAvaliacoes((a) => ({ ...a, [m.id]: { ...a[m.id], avaliacao: v } }))}
+                          className={['inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium border', av?.avaliacao === v ? 'border-marrom bg-marrom text-white' : 'border-border bg-white text-grafite'].join(' ')}
+                        >
+                          <AvIcon size={14} strokeWidth={1.5} /> {label}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      type="text"
+                      value={av?.comentario ?? ''}
+                      onChange={(e) => setAvaliacoes((a) => ({ ...a, [m.id]: { avaliacao: a[m.id]?.avaliacao ?? 'parcial', comentario: e.target.value } }))}
+                      placeholder="Comentário (opcional)"
+                      className="input mt-2 text-sm py-2"
+                    />
+                  </div>
+                )
+              })
+            )}
+          </div>
+        )}
 
-      {/* MÉTRICAS */}
-      <Bloco titulo="Métricas da semana" icon={BarChart3}>
-        <ul className="text-sm text-text space-y-1">
-          <li className="inline-flex items-center gap-2 flex-wrap">
-            Total: <strong>{metricas.total}</strong>
-            <span className="inline-flex items-center gap-1 text-grafite">· <Sparkles size={14} strokeWidth={1.5} color="#5C7148" /> {metricas.positivos}</span>
-            <span className="inline-flex items-center gap-1 text-grafite"><Sprout size={14} strokeWidth={1.5} color="#A56336" /> {metricas.negativos}</span>
-            <span className="inline-flex items-center gap-1 text-grafite"><Eye size={14} strokeWidth={1.5} color="#2D3E50" /> {metricas.observacoes}</span>
-          </li>
-          <li>Maior placar: <strong>{metricas.maiorPlacar.nome}</strong> ({metricas.maiorPlacar.valor > 0 ? '+' : ''}{metricas.maiorPlacar.valor})</li>
-          <li>Mais evoluiu: <strong>{metricas.maisEvoluiu.nome}</strong> ({metricas.maisEvoluiu.delta > 0 ? '+' : ''}{metricas.maisEvoluiu.delta})</li>
-        </ul>
-        <textarea
-          value={metricasNotas}
-          onChange={(e) => setMetricasNotas(e.target.value)}
-          rows={2}
-          placeholder="Anotações de métricas externas (faturamento etc.)"
-          className="input"
-        />
-        <label className="flex items-center gap-3 mt-1 cursor-pointer">
-          <Checkbox checked={metricasDiscutida} onChange={() => setMetricasDiscutida((v) => !v)} />
-          <span className="text-sm text-text">Discuti as métricas</span>
-        </label>
-      </Bloco>
-
-      {/* METAS PASSADAS */}
-      {metasPassadas.length > 0 && (
-        <Bloco titulo="Metas da semana passada" icon={Target} sub={`(${metasComAval}/${metasPassadas.length})`}>
-          {metasPassadas.map((m) => {
-            const av = avaliacoes[m.id]
-            return (
-              <div key={m.id} className="rounded-md border border-border p-3">
-                <p className="text-sm text-text font-medium">{m.texto}</p>
-                <p className="text-xs text-chumbo">Responsável: {nomePorId(m.responsavel_id)}</p>
-                <div className="flex gap-1.5 mt-2">
-                  {([['cumprida', CheckCircle2, 'Cumprida'], ['parcial', AlertTriangle, 'Parcial'], ['nao_cumprida', XCircle, 'Não']] as [AvaliacaoMeta, LucideIcon, string][]).map(([v, AvIcon, label]) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setAvaliacoes((a) => ({ ...a, [m.id]: { ...a[m.id], avaliacao: v } }))}
-                      className={['inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium border', av?.avaliacao === v ? 'border-marrom bg-marrom text-white' : 'border-border bg-white text-grafite'].join(' ')}
-                    >
-                      <AvIcon size={14} strokeWidth={1.5} /> {label}
-                    </button>
-                  ))}
-                </div>
-                <input
-                  type="text"
-                  value={av?.comentario ?? ''}
-                  onChange={(e) => setAvaliacoes((a) => ({ ...a, [m.id]: { avaliacao: a[m.id]?.avaliacao ?? 'parcial', comentario: e.target.value } }))}
-                  placeholder="Comentário (opcional)"
-                  className="input mt-2 text-sm py-2"
+        {tela === 'reconhecimento' && (
+          <div className="space-y-3 mt-4">
+            {recs.length === 0 ? (
+              <p className="text-chumbo text-sm card p-4">
+                Nenhum reconhecimento classificado nesta semana. Use este momento mesmo assim — pense em algo positivo que viu acontecer.
+              </p>
+            ) : (
+              recs.map((o) => (
+                <ObsCard
+                  key={o.id}
+                  obs={o}
+                  marcado={discutidos.has(o.id)}
+                  toggle={() => toggle(o)}
+                  nota={notas[o.id] ?? ''}
+                  setNota={(v) => setNotas((n) => ({ ...n, [o.id]: v }))}
+                  momento="reconhecimento"
                 />
-              </div>
-            )
-          })}
-        </Bloco>
-      )}
+              ))
+            )}
+          </div>
+        )}
 
-      {/* NOVAS METAS */}
-      <Bloco titulo="Novas metas" icon={Compass} sub={`(${novasValidas.length})`}>
-        {novasMetas.map((m, i) => (
-          <div key={i} className="rounded-md border border-border p-3 space-y-2">
-            <input
-              type="text"
-              value={m.texto}
-              onChange={(e) => setNovasMetas((arr) => arr.map((x, j) => (j === i ? { ...x, texto: e.target.value } : x)))}
-              placeholder="Ex.: Cumprimentar todo cliente pelo nome"
-              className="input text-sm py-2.5"
-            />
-            <div className="flex items-center gap-2">
-              <select
-                value={m.responsavel_id ?? ''}
-                onChange={(e) => setNovasMetas((arr) => arr.map((x, j) => (j === i ? { ...x, responsavel_id: e.target.value || null } : x)))}
-                className="input text-sm py-2 flex-1"
-              >
-                <option value="">Equipe</option>
-                {ativos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-              </select>
-              <button type="button" onClick={() => setNovasMetas((arr) => arr.filter((_, j) => j !== i))} className="text-vinho text-sm px-2">Excluir</button>
+        {tela === 'equipe' && (
+          <div className="space-y-3 mt-4">
+            {equipe.length > 0 && (
+              <div className="space-y-3">
+                {equipe.map((o) => (
+                  <ObsCard
+                    key={o.id}
+                    obs={o}
+                    marcado={discutidos.has(o.id)}
+                    toggle={() => toggle(o)}
+                    nota={notas[o.id] ?? ''}
+                    setNota={(v) => setNotas((n) => ({ ...n, [o.id]: v }))}
+                    momento="equipe"
+                  />
+                ))}
+              </div>
+            )}
+            <div className="card p-4">
+              <p className="text-xs text-chumbo mb-2">Anotação livre sobre o coletivo</p>
+              <textarea
+                value={notaEquipe}
+                onChange={(e) => setNotaEquipe(e.target.value)}
+                rows={3}
+                placeholder="O que percebeu da equipe esta semana?"
+                className="input"
+              />
             </div>
           </div>
-        ))}
-        {novasMetas.length < 3 && (
-          <button type="button" onClick={() => setNovasMetas((m) => [...m, { texto: '', responsavel_id: null }])} className="btn-secondary w-full py-2.5 text-sm">
-            <Plus size={16} strokeWidth={1.5} /> Adicionar nova meta
-          </button>
         )}
-        <p className="text-xs text-chumbo">Mínimo 1 meta, máximo 3.</p>
-      </Bloco>
 
-      {/* AÇÕES */}
-      <div className="flex items-center gap-2">
-        <button type="button" onClick={() => (pendentes > 0 ? setConfirmar(true) : finalizar())} disabled={finalizando} className="btn-primary flex-1">
-          {finalizando ? 'Finalizando…' : 'Finalizar reunião'}
-        </button>
-        <button type="button" onClick={() => { salvarPauta(reuniaoId, montarPauta()); router.push('/painel/reuniao') }} className="btn-secondary text-sm px-3">
-          Salvar e depois
-        </button>
-      </div>
+        {tela === 'ajuste' && (
+          <div className="space-y-3 mt-4">
+            {(() => {
+              const porProf: Record<string, number> = {}
+              for (const o of ajustes) {
+                if (o.profissional_id) porProf[o.profissional_id] = (porProf[o.profissional_id] ?? 0) + 1
+              }
+              const repetidos = Object.entries(porProf).filter(([, n]) => n >= 2)
+              if (repetidos.length === 0) return null
+              return (
+                <div className="rounded-md border-l-[3px] border-ambar bg-ambar/5 p-3 text-sm text-grafite">
+                  <p className="font-medium text-text mb-1">Conversa em particular</p>
+                  <p>
+                    {repetidos.map(([id]) => nomePorId(id)).join(', ')} tem 2+ pontos de ajuste. Considere falar em
+                    particular antes ou depois da reunião.
+                  </p>
+                </div>
+              )
+            })()}
+            {ajustes.length === 0 ? (
+              <p className="text-chumbo text-sm card p-4">
+                Nenhum ajuste apontado nesta semana. Aproveite — não force ajustes que não existem.
+              </p>
+            ) : (
+              ajustes.map((o) => (
+                <ObsCard
+                  key={o.id}
+                  obs={o}
+                  marcado={discutidos.has(o.id)}
+                  toggle={() => toggle(o)}
+                  nota={notas[o.id] ?? ''}
+                  setNota={(v) => setNotas((n) => ({ ...n, [o.id]: v }))}
+                  momento="ajuste"
+                />
+              ))
+            )}
+          </div>
+        )}
+
+        {tela === 'encerramento' && (
+          <div className="space-y-3 mt-4">
+            {novasMetas.map((m, i) => (
+              <div key={i} className="rounded-md border border-border p-3 space-y-2">
+                <input
+                  type="text"
+                  value={m.texto}
+                  onChange={(e) => setNovasMetas((arr) => arr.map((x, j) => (j === i ? { ...x, texto: e.target.value } : x)))}
+                  placeholder="Ex.: Cumprimentar cada cliente pelo nome"
+                  className="input text-sm py-2.5"
+                />
+                <div className="flex items-center gap-2">
+                  <select
+                    value={m.responsavel_id ?? ''}
+                    onChange={(e) => setNovasMetas((arr) => arr.map((x, j) => (j === i ? { ...x, responsavel_id: e.target.value || null } : x)))}
+                    className="input text-sm py-2 flex-1"
+                  >
+                    <option value="">Equipe</option>
+                    {ativos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                  </select>
+                  <button type="button" onClick={() => setNovasMetas((arr) => arr.filter((_, j) => j !== i))} className="text-vinho text-sm px-2">
+                    Excluir
+                  </button>
+                </div>
+              </div>
+            ))}
+            {novasMetas.length < 3 && (
+              <button type="button" onClick={() => setNovasMetas((m) => [...m, { texto: '', responsavel_id: null }])} className="btn-secondary w-full py-2.5 text-sm">
+                <Plus size={16} strokeWidth={1.5} /> Adicionar meta
+              </button>
+            )}
+            <p className="text-xs text-chumbo">Mínimo 1 meta, máximo 3.</p>
+
+            <div className="card p-4">
+              <p className="text-xs text-chumbo mb-2">Anotação final</p>
+              <textarea
+                value={anotacaoGeral}
+                onChange={(e) => setAnotacaoGeral(e.target.value)}
+                rows={3}
+                placeholder="O que fica decidido pra próxima semana?"
+                className="input"
+              />
+            </div>
+          </div>
+        )}
+
+        {metaTela.iaMomento && <CardSugestaoFala momento={metaTela.iaMomento} contexto={contextoIA()} />}
+      </main>
+
+      {/* RODAPÉ FIXO COM NAVEGAÇÃO */}
+      <footer className="fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-border p-3">
+        <div className="max-w-3xl mx-auto flex items-center gap-2">
+          {momento > 1 && (
+            <button type="button" onClick={() => setMomento((n) => n - 1)} className="btn-secondary text-sm px-3">
+              <ChevronLeft size={16} strokeWidth={1.5} /> Anterior
+            </button>
+          )}
+          {momento < totalMomentos ? (
+            <button type="button" onClick={() => setMomento((n) => n + 1)} className="btn-primary flex-1">
+              {proxLabel} <ChevronRight size={16} strokeWidth={1.5} />
+            </button>
+          ) : (
+            <button type="button" onClick={() => setConfirmar(true)} disabled={finalizando} className="btn-primary flex-1">
+              {finalizando ? 'Finalizando…' : 'Finalizar reunião'}
+            </button>
+          )}
+        </div>
+      </footer>
 
       {confirmar && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={() => setConfirmar(false)}>
           <div className="bg-surface rounded-lg w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
             <h4 className="font-semibold text-text mb-2">Finalizar reunião?</h4>
-            <p className="text-sm text-grafite mb-5">Você tem {pendentes} {pendentes === 1 ? 'item' : 'itens'} sem discutir. Deseja mesmo finalizar?</p>
+            <p className="text-sm text-grafite mb-5">
+              Vamos registrar as metas, marcar os itens discutidos e abrir o resumo.
+            </p>
             <div className="flex gap-2">
               <button type="button" onClick={finalizar} disabled={finalizando} className="btn-primary flex-1">
-                {finalizando ? 'Finalizando…' : 'Finalizar mesmo assim'}
+                {finalizando ? 'Finalizando…' : 'Sim, finalizar'}
               </button>
               <button type="button" onClick={() => setConfirmar(false)} className="text-grafite hover:text-text px-4">Voltar</button>
             </div>
           </div>
         </div>
       )}
-    </main>
+    </div>
   )
 }
