@@ -4,6 +4,17 @@ import { motion } from 'framer-motion'
 
 const updates = [
   {
+    mes: 'Maio 2026 — pacote 2',
+    destaques: [
+      'Resumo da reunião com IA (texto pronto pro grupo no WhatsApp)',
+      'Regras gerais + combinados da barbearia na campanha',
+      'Meta coletiva com Bronze, Prata e Ouro',
+      'Configurar metas de meses futuros + botão "Copiar metas"',
+      'Recepcionistas só nas pontuações (separado das metas de comissão)',
+      'Aba "Regras" no link do barbeiro',
+    ],
+  },
+  {
     mes: 'Maio 2026',
     destaques: [
       'Lançamento diário com saldo inicial',
