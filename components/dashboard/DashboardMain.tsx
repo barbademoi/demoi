@@ -5,6 +5,7 @@ import CircularProgress from './CircularProgress'
 import CopiarLinkBtn from './CopiarLinkBtn'
 import EditarBarbeiroModal from './EditarBarbeiroModal'
 import ComunidadeCard from './ComunidadeCard'
+import NovidadesBanner from './NovidadesBanner'
 import LancamentosBarbeiroModal from './LancamentosBarbeiroModal'
 import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
 import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
@@ -121,6 +122,8 @@ export default function DashboardMain({
 
   return (
     <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+
+      <NovidadesBanner />
 
       {/* Filter pills (escondidos no modo autônomo) */}
       {!isAutonomo && (
