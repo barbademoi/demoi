@@ -10,7 +10,11 @@ import type { ModoPontos, CampanhaComDetalhes, MetaIndividual } from '@/types/da
 type MetaSimples = {
   id: string
   meta_coletiva: number
+  meta_coletiva_bronze?: number
+  meta_coletiva_prata?: number
   premio_coletivo: string | null
+  premio_coletivo_bronze?: string | null
+  premio_coletivo_prata?: string | null
   faturamento_acumulado: number
 }
 

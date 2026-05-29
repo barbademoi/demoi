@@ -23,7 +23,11 @@ type UsuarioComBarbearia = {
 type MetaSimples = {
   id: string
   meta_coletiva: number
+  meta_coletiva_bronze: number
+  meta_coletiva_prata: number
   premio_coletivo: string | null
+  premio_coletivo_bronze: string | null
+  premio_coletivo_prata: string | null
   faturamento_acumulado: number
   numero_atendimentos: number
 }
@@ -67,7 +71,7 @@ export default async function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
     .from('metas')
-    .select('id, meta_coletiva, premio_coletivo, faturamento_acumulado, numero_atendimentos')
+    .select('id, meta_coletiva, meta_coletiva_bronze, meta_coletiva_prata, premio_coletivo, premio_coletivo_bronze, premio_coletivo_prata, faturamento_acumulado, numero_atendimentos')
     .eq('barbearia_id', barbearia.id)
     .eq('mes', mes)
     .eq('ano', ano)
@@ -88,22 +92,30 @@ export default async function DashboardPage() {
   // Só leitura — nada é escrito até o dono clicar em Salvar (que cria registros
   // novos para o mês atual via app/dashboard/metas/actions.ts).
   let metasParaForm: MetaIndividual[] = metasIndividuais
-  let metaColetivaParaForm: number | undefined = meta?.meta_coletiva
-  let premioColetivoParaForm: string | undefined = meta?.premio_coletivo ?? undefined
+  let metaColetivaParaForm:       number | undefined = meta?.meta_coletiva
+  let metaColetivaBronzeParaForm: number | undefined = meta?.meta_coletiva_bronze
+  let metaColetivaPrataParaForm:  number | undefined = meta?.meta_coletiva_prata
+  let premioColetivoParaForm:       string | undefined = meta?.premio_coletivo        ?? undefined
+  let premioColetivoBronzeParaForm: string | undefined = meta?.premio_coletivo_bronze ?? undefined
+  let premioColetivoPrataParaForm:  string | undefined = meta?.premio_coletivo_prata  ?? undefined
   let herdadoDeMesAnterior = false
 
   if (!meta) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: metaAnteriorRaw } = await (supabase as any)
       .from('metas')
-      .select('id, meta_coletiva, premio_coletivo')
+      .select('id, meta_coletiva, meta_coletiva_bronze, meta_coletiva_prata, premio_coletivo, premio_coletivo_bronze, premio_coletivo_prata')
       .eq('barbearia_id', barbearia.id)
       .order('ano', { ascending: false })
       .order('mes', { ascending: false })
       .limit(1)
       .maybeSingle()
 
-    const metaAnterior = metaAnteriorRaw as { id: string; meta_coletiva: number; premio_coletivo: string | null } | null
+    const metaAnterior = metaAnteriorRaw as {
+      id: string
+      meta_coletiva: number; meta_coletiva_bronze: number; meta_coletiva_prata: number
+      premio_coletivo: string | null; premio_coletivo_bronze: string | null; premio_coletivo_prata: string | null
+    } | null
 
     if (metaAnterior) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -113,8 +125,12 @@ export default async function DashboardPage() {
         .eq('meta_id', metaAnterior.id)
 
       metasParaForm = (metasAntRaw ?? []) as MetaIndividual[]
-      metaColetivaParaForm = metaAnterior.meta_coletiva
-      premioColetivoParaForm = metaAnterior.premio_coletivo ?? undefined
+      metaColetivaParaForm       = metaAnterior.meta_coletiva
+      metaColetivaBronzeParaForm = metaAnterior.meta_coletiva_bronze
+      metaColetivaPrataParaForm  = metaAnterior.meta_coletiva_prata
+      premioColetivoParaForm       = metaAnterior.premio_coletivo        ?? undefined
+      premioColetivoBronzeParaForm = metaAnterior.premio_coletivo_bronze ?? undefined
+      premioColetivoPrataParaForm  = metaAnterior.premio_coletivo_prata  ?? undefined
       herdadoDeMesAnterior = true
     }
   }
@@ -270,8 +286,12 @@ export default async function DashboardPage() {
           barbeiros={barbeirosMetas}
           metasAtuais={metasParaForm}
           metaColetiva={metaColetivaParaForm}
+          metaColetivaBronze={metaColetivaBronzeParaForm}
+          metaColetivaPrata={metaColetivaPrataParaForm}
           faturamentoAcumulado={meta?.faturamento_acumulado}
           premioColetivo={premioColetivoParaForm}
+          premioColetivoBronze={premioColetivoBronzeParaForm}
+          premioColetivoPrata={premioColetivoPrataParaForm}
           mes={mes}
           ano={ano}
           herdadoDeMesAnterior={herdadoDeMesAnterior}

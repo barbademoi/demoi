@@ -36,7 +36,11 @@ interface Props {
   faturamentoColetivo: number
   progressoColetivo: number
   metaColetiva: number
+  metaColetivaBronze: number
+  metaColetivaPrata: number
   premioColetivo: string | null
+  premioColetivoBronze: string | null
+  premioColetivoPrata: string | null
   insights: { emoji: string; texto: string; destaque?: boolean }[]
   mensagemIA: string | null
   tiersJaCelebrados: string[]
@@ -59,7 +63,9 @@ interface Props {
 export default function BarbeiroClient({
   barbeiro, barbeariaName: _, mes, ano, diaAtual, diasRestantes, diasUteisCorridos, diasUteisRestantes,
   modo, metaInd, lancamento, progresso, ranking, posicaoRanking,
-  faturamentoColetivo, progressoColetivo, metaColetiva, premioColetivo,
+  faturamentoColetivo, progressoColetivo,
+  metaColetiva, metaColetivaBronze, metaColetivaPrata,
+  premioColetivo, premioColetivoBronze, premioColetivoPrata,
   insights, mensagemIA, tiersJaCelebrados, campanha, controlesDiario,
   pontosTotal, rankingPontos, pontosMap, controleHoje, historico,
   visibilidadeRanking, isAutonomo, comissaoMesAnterior, historicoMeses,
@@ -468,24 +474,49 @@ export default function BarbeiroClient({
             </div>
           )}
 
-          {/* Meta coletiva (oculta em modo autônomo) */}
-          {metaColetiva > 0 && mostraMetas && !isAutonomo && (
-            <div className="card-light p-6">
-              <h3 className="font-serif text-lg text-on-cream mb-1">Meta coletiva</h3>
-              {premioColetivo && <p className="text-on-cream-muted text-sm font-sans mb-4">{premioColetivo}</p>}
-              <div className="bar-track h-3">
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: progressoColetivo > 0 ? `${progressoColetivo}%` : '3px',
-                    background: `hsl(${Math.round(progressoColetivo * 1.2)}, 80%, 42%)`,
-                    boxShadow: `0 0 10px 3px hsla(${Math.round(progressoColetivo * 1.2)}, 80%, 42%, 0.45)`,
-                  }}
-                />
-              </div>
-              <p className="text-on-cream-muted text-xs font-sans mt-2 text-right">
-                {formatBRL(faturamentoColetivo)} de {formatBRL(metaColetiva)}
-              </p>
+          {/* Meta coletiva (oculta em modo autônomo) — 3 tiers: Bronze, Prata, Ouro */}
+          {(metaColetivaBronze > 0 || metaColetivaPrata > 0 || metaColetiva > 0) && mostraMetas && !isAutonomo && (
+            <div className="card-light p-6 space-y-5">
+              <h3 className="font-serif text-lg text-on-cream">Meta coletiva</h3>
+              {(['bronze', 'prata', 'ouro'] as const).map(tier => {
+                const metaVal =
+                  tier === 'bronze' ? metaColetivaBronze :
+                  tier === 'prata'  ? metaColetivaPrata  :
+                                      metaColetiva
+                const premio =
+                  tier === 'bronze' ? premioColetivoBronze :
+                  tier === 'prata'  ? premioColetivoPrata  :
+                                      premioColetivo
+                if (!metaVal || metaVal <= 0) return null
+                const pct = calcProgresso(faturamentoColetivo, metaVal)
+                return (
+                  <div key={tier}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-sm font-sans font-semibold ${TIER_CONFIG[tier].textClass}`}>
+                        {TIER_CONFIG[tier].label}
+                        {premio && <span className="text-on-cream-muted font-normal ml-2">· {premio}</span>}
+                      </span>
+                      <span className="text-on-cream-muted text-xs font-sans">
+                        {formatBRL(faturamentoColetivo)} / {formatBRL(metaVal)}
+                      </span>
+                    </div>
+                    <div className="bar-track h-2.5">
+                      <div
+                        className={`${TIER_CONFIG[tier].barClass} h-full rounded-full transition-all duration-700`}
+                        style={{ width: pct > 0 ? `${pct}%` : '3px' }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-on-cream-muted text-xs font-sans">{pct}%</span>
+                      {faturamentoColetivo < metaVal && (
+                        <span className="text-on-cream-muted text-xs font-sans">
+                          faltam {formatBRL(metaVal - faturamentoColetivo)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
