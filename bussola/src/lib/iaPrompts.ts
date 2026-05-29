@@ -12,15 +12,12 @@ export interface ConfigIA {
   tom: TomIA
   categorizacao_auto: boolean
   resumo_semana: boolean
-  // Mantido pra back-compat com configurações já salvas; sem uso ativo.
-  dicas_blocos: boolean
 }
 
 export const CONFIG_IA_PADRAO: ConfigIA = {
   tom: 'direto',
   categorizacao_auto: true,
   resumo_semana: true,
-  dicas_blocos: false,
 }
 
 function ajusteTom(tom: TomIA): string {
