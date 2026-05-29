@@ -270,6 +270,7 @@ export interface Campanha {
   bonus_assin_qtd: number
   bonus_assin_valor: number
   ativo: boolean
+  regras_personalizadas: string | null
   created_at: string
 }
 

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { salvarCampanha } from '@/app/dashboard/campanha/actions'
 import { formatBRL, nomeMes } from '@/lib/utils'
+import { REGRAS_FIXAS } from '@/lib/regras'
 import type { CampanhaComDetalhes } from '@/types/database'
 
 interface Props {
@@ -36,12 +37,13 @@ export default function CampanhaModal({ campanha, mes, ano }: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [erro, setErro] = useState<string | null>(null)
-  const [aba, setAba] = useState<'servicos' | 'premios' | 'config'>('servicos')
+  const [aba, setAba] = useState<'servicos' | 'premios' | 'config' | 'regras'>('servicos')
 
   const [minPontos,      setMinPontos]      = useState(campanha?.min_pontos       ?? 800)
   const [minPontosRecep, setMinPontosRecep] = useState(campanha?.min_pontos_recep ?? 400)
   const [bonusQtd,       setBonusQtd]       = useState(campanha?.bonus_assin_qtd  ?? 10)
   const [bonusValor,     setBonusValor]     = useState(campanha?.bonus_assin_valor ?? 200)
+  const [regrasPersonalizadas, setRegrasPersonalizadas] = useState(campanha?.regras_personalizadas ?? '')
 
   const [servicos, setServicos] = useState<ServicoState[]>(
     campanha?.campanha_servicos?.length
@@ -78,7 +80,7 @@ export default function CampanhaModal({ campanha, mes, ano }: Props) {
   function salvar() {
     setErro(null)
     startTransition(async () => {
-      const res = await salvarCampanha({ mes, ano, minPontos, minPontosRecep, bonusAssinQtd: bonusQtd, bonusAssinValor: bonusValor, servicos, premios })
+      const res = await salvarCampanha({ mes, ano, minPontos, minPontosRecep, bonusAssinQtd: bonusQtd, bonusAssinValor: bonusValor, regrasPersonalizadas, servicos, premios })
       if (res?.error) { setErro(res.error); return }
       setOpen(false)
     })
@@ -119,6 +121,7 @@ export default function CampanhaModal({ campanha, mes, ano }: Props) {
             { id: 'servicos', label: 'Serviços' },
             { id: 'premios',  label: 'Premiação' },
             { id: 'config',   label: 'Configurações' },
+            { id: 'regras',   label: 'Regras' },
           ] as const).map(t => (
             <button
               key={t.id}
@@ -258,6 +261,43 @@ export default function CampanhaModal({ campanha, mes, ano }: Props) {
                 <p className="text-text-muted text-xs font-sans mt-2">
                   Ao vender {bonusQtd}+ assinaturas, o barbeiro ganha {formatBRL(bonusValor)} de bônus.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Aba: Regras */}
+          {aba === 'regras' && (
+            <div className="space-y-5">
+              <div className="bg-surface-2 border border-border rounded-xl p-4 space-y-3">
+                <p className="font-sans font-semibold text-text text-sm flex items-center gap-2">
+                  <span aria-hidden>📋</span> Regras gerais da campanha
+                </p>
+                <p className="text-text-muted text-xs font-sans">
+                  Padrão do sistema — aplicadas a todas as campanhas e não editáveis.
+                </p>
+                <ul className="space-y-2">
+                  {REGRAS_FIXAS.map((r, i) => (
+                    <li key={i} className="text-sm font-sans text-text flex items-start gap-2 leading-relaxed">
+                      <span className="text-green-400 mt-0.5 shrink-0">✓</span>
+                      <span>{r}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <label className="label">+ Adicionar regras personalizadas</label>
+                <p className="text-text-muted text-xs font-sans mb-2">
+                  Combinados específicos da sua barbearia (opcional). Aparecem pros barbeiros junto com as regras gerais.
+                </p>
+                <textarea
+                  value={regrasPersonalizadas}
+                  onChange={e => setRegrasPersonalizadas(e.target.value)}
+                  rows={6}
+                  placeholder="Ex: Não vale lançar serviços antes de cobrar. Lançamentos têm que ser feitos até o fim do expediente."
+                  className="input w-full text-sm font-sans leading-relaxed"
+                  style={{ resize: 'vertical', minHeight: '120px' }}
+                />
               </div>
             </div>
           )}
