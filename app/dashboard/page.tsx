@@ -304,7 +304,7 @@ export default async function DashboardPage() {
       campanhaToggleSlot={modoAtual !== 'metas' && campanha ? (
         <CampanhaToggle campanhaId={campanha.id} ativo={campanha.ativo} />
       ) : null}
-      resumoReuniaoSlot={<ResumoReuniaoModal mes={mes} ano={ano} />}
+      resumoReuniaoSlot={<ResumoReuniaoModal mes={mes} ano={ano} diaFechamento={diaFechamento} />}
     />
   )
 }
