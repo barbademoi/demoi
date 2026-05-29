@@ -15,6 +15,7 @@ interface Props {
   nomeEmpresa: string
   colaboradores: ColaboradorLite[]
   mensagemPosFeedback: string
+  temBrindes: boolean
 }
 
 const LABELS_ESTRELAS = ['', 'Péssimo', 'Ruim', 'Regular', 'Bom', 'Excelente']
@@ -24,7 +25,7 @@ interface Resultado {
   brinde: { nome: string; descricao: string | null; codigo_resgate: string } | null
 }
 
-export default function FeedbackClienteCliente({ slug, nomeEmpresa, colaboradores, mensagemPosFeedback }: Props) {
+export default function FeedbackClienteCliente({ slug, nomeEmpresa, colaboradores, mensagemPosFeedback, temBrindes }: Props) {
   const [estrelas, setEstrelas] = useState<number>(0)
   const [colabId, setColabId] = useState<string | null>(null) // null = nenhum / vários
   const [colabEscolhido, setColabEscolhido] = useState(false) // marca que passou desse passo
@@ -157,6 +158,15 @@ export default function FeedbackClienteCliente({ slug, nomeEmpresa, colaboradore
         {/* PASSO 3 — COMENTÁRIO */}
         {mostrarComentario && (
           <section className="animate-fade-in">
+            {temBrindes && (
+              <div className="rounded-md border-l-[3px] border-marrom bg-linho p-3 mb-3 inline-flex items-start gap-2">
+                <Gift size={18} strokeWidth={1.5} color="#8B6F47" className="shrink-0 mt-0.5" />
+                <p className="text-sm text-grafite">
+                  <span className="font-semibold text-marrom">Quem deixa comentário ganha um brinde da empresa.</span>{' '}
+                  Conte sua experiência abaixo pra concorrer.
+                </p>
+              </div>
+            )}
             <p className="text-sm text-text mb-2">Quer deixar um comentário? <span className="text-chumbo font-normal">(opcional)</span></p>
             <textarea
               value={comentario}
