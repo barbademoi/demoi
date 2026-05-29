@@ -3,7 +3,7 @@ import { createClient } from '@/utils/supabase/server'
 import { intervalo } from '@/lib/periodos'
 import { proximaReuniao } from '@/lib/reuniao'
 import type { PautaReuniao, Reuniao } from '@/lib/pauta'
-import PrepararClient, { type ObsSemana } from './PrepararClient'
+import PrepararClient, { type FbClienteSemana, type ObsSemana } from './PrepararClient'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,6 +57,21 @@ export default async function PrepararReuniaoPage() {
     .order('created_at', { ascending: false })
   const observacoes = (fbData ?? []) as unknown as ObsSemana[]
 
+  // Feedbacks de cliente da semana — opcional, tolera ausência da tabela.
+  let fbCliente: FbClienteSemana[] = []
+  try {
+    const { data: fcData } = await supabase
+      .from('feedbacks_cliente')
+      .select('id, profissional_id, estrelas, comentario, created_at, profissionais(nome, foto_url)')
+      .eq('estabelecimento_id', est.id)
+      .gte('created_at', semana.inicio.toISOString())
+      .lte('created_at', semana.fim.toISOString())
+      .order('created_at', { ascending: false })
+    fbCliente = (fcData ?? []) as unknown as FbClienteSemana[]
+  } catch {
+    fbCliente = []
+  }
+
   const prox = proximaReuniao(est.dia_reuniao ?? 1, est.hora_reuniao ?? '09:00')
 
   return (
@@ -65,6 +80,7 @@ export default async function PrepararReuniaoPage() {
       dataReuniaoLabel={`${prox.diaLabel}, ${prox.horaLabel}`}
       pautaInicial={(reuniao!.pauta as PautaReuniao | null) ?? {}}
       observacoes={observacoes}
+      feedbacksCliente={fbCliente}
       mostrarResumo={mostrarResumo}
     />
   )
