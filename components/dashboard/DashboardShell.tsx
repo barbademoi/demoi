@@ -67,6 +67,7 @@ interface Props {
   metasSlot: React.ReactNode | null
   campanhaSlot: React.ReactNode | null
   campanhaToggleSlot: React.ReactNode | null
+  resumoReuniaoSlot: React.ReactNode | null
   // Platform stats
   statsBarbearias: number
   statsBarbeiros: number
@@ -85,6 +86,7 @@ export default function DashboardShell({
   logoUploadSlot, faturamentoEditSlot,
   modoMesSlot, novoBarbeiroSlot, novaRecepcionistaSlot,
   metasSlot, campanhaSlot, campanhaToggleSlot,
+  resumoReuniaoSlot,
   statsBarbearias, statsBarbeiros,
   barbeariaLogoUrl,
 }: Props) {
@@ -139,6 +141,7 @@ export default function DashboardShell({
             metasSlot={metasSlot}
             campanhaSlot={campanhaSlot}
             campanhaToggleSlot={campanhaToggleSlot}
+            resumoReuniaoSlot={resumoReuniaoSlot}
             modoAtual={modoAtual}
             onBack={() => setShowConfig(false)}
           />
@@ -188,6 +191,7 @@ interface ConfigPanelProps {
   metasSlot: React.ReactNode | null
   campanhaSlot: React.ReactNode | null
   campanhaToggleSlot: React.ReactNode | null
+  resumoReuniaoSlot: React.ReactNode | null
   modoAtual: ModoPontos
   onBack: () => void
 }
@@ -195,6 +199,7 @@ interface ConfigPanelProps {
 function ConfigPanel({
   modoMesSlot, novoBarbeiroSlot, novaRecepcionistaSlot,
   metasSlot, campanhaSlot, campanhaToggleSlot,
+  resumoReuniaoSlot,
   modoAtual, onBack,
 }: ConfigPanelProps) {
   return (
@@ -264,6 +269,19 @@ function ConfigPanel({
             {campanhaSlot}
             {campanhaToggleSlot}
           </div>
+        </section>
+      )}
+
+      {/* Resumo para reunião — junta metas + campanha + regras e gera texto com IA */}
+      {resumoReuniaoSlot && (
+        <section className="card p-5 space-y-3">
+          <div>
+            <h2 className="font-serif text-lg text-text">Resumo para reunião</h2>
+            <p className="text-text-muted text-xs font-sans mt-0.5">
+              Texto pronto pra apresentar pra equipe ou mandar no grupo do WhatsApp, gerado com IA a partir de tudo o que você configurou.
+            </p>
+          </div>
+          {resumoReuniaoSlot}
         </section>
       )}
     </main>
