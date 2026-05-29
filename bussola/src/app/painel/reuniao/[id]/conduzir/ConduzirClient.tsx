@@ -383,7 +383,7 @@ export default function ConduzirClient(props: Props) {
   const proxLabel = momento < totalMomentos ? META_TELAS[ORDEM[momento]].titulo : 'Finalizar reunião'
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col overflow-y-auto">
+    <div className="fixed inset-0 z-[60] bg-background flex flex-col overflow-y-auto">
       {/* HEADER FIXO */}
       <header className="sticky top-0 z-30 bg-surface border-b border-border">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
