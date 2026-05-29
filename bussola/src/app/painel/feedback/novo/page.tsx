@@ -11,23 +11,40 @@ export default async function NovoFeedbackPage({ searchParams }: { searchParams:
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/entrar')
 
-  const { data: estabelecimento } = await supabase
+  // Tenta com as colunas novas (migration 010); cai pro select mínimo se
+  // ainda não rodou.
+  let estabId: string | null = null
+  let configIa: { categorizacao_auto?: boolean } | null = null
+  let categoriasCustom: string[] | null = null
+  const completo = await supabase
     .from('estabelecimentos')
     .select('id, config_ia, categorias_customizadas')
     .eq('dono_id', user.id)
     .maybeSingle()
-  if (!estabelecimento) redirect('/onboarding')
+  if (completo.data) {
+    estabId = completo.data.id as string
+    configIa = (completo.data.config_ia as { categorizacao_auto?: boolean } | null) ?? null
+    categoriasCustom = Array.isArray(completo.data.categorias_customizadas)
+      ? (completo.data.categorias_customizadas as string[])
+      : null
+  } else {
+    const minimo = await supabase
+      .from('estabelecimentos')
+      .select('id, config_ia')
+      .eq('dono_id', user.id)
+      .maybeSingle()
+    if (!minimo.data) redirect('/onboarding')
+    estabId = minimo.data.id as string
+    configIa = (minimo.data.config_ia as { categorizacao_auto?: boolean } | null) ?? null
+  }
 
-  const categorizacaoAuto = (estabelecimento.config_ia as { categorizacao_auto?: boolean } | null)?.categorizacao_auto !== false
-  const categorias =
-    Array.isArray(estabelecimento.categorias_customizadas) && estabelecimento.categorias_customizadas.length > 0
-      ? (estabelecimento.categorias_customizadas as string[])
-      : CATEGORIAS
+  const categorizacaoAuto = configIa?.categorizacao_auto !== false
+  const categorias = categoriasCustom && categoriasCustom.length > 0 ? categoriasCustom : CATEGORIAS
 
   const { data } = await supabase
     .from('profissionais')
     .select('id, nome, foto_url')
-    .eq('estabelecimento_id', estabelecimento.id)
+    .eq('estabelecimento_id', estabId)
     .eq('status', 'ativo')
     .order('nome', { ascending: true })
 

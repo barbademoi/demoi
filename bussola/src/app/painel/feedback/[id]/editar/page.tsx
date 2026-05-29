@@ -10,17 +10,30 @@ export default async function EditarFeedbackPage({ params }: { params: { id: str
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/entrar')
 
-  const { data: estabelecimento } = await supabase
+  // Fallback se a migration 010 (categorias_customizadas) não rodou ainda.
+  let estabId: string | null = null
+  let categoriasCustom: string[] | null = null
+  const completo = await supabase
     .from('estabelecimentos')
     .select('id, categorias_customizadas')
     .eq('dono_id', user.id)
     .maybeSingle()
-  if (!estabelecimento) redirect('/onboarding')
+  if (completo.data) {
+    estabId = completo.data.id as string
+    categoriasCustom = Array.isArray(completo.data.categorias_customizadas)
+      ? (completo.data.categorias_customizadas as string[])
+      : null
+  } else {
+    const minimo = await supabase
+      .from('estabelecimentos')
+      .select('id')
+      .eq('dono_id', user.id)
+      .maybeSingle()
+    if (!minimo.data) redirect('/onboarding')
+    estabId = minimo.data.id as string
+  }
 
-  const categorias =
-    Array.isArray(estabelecimento.categorias_customizadas) && estabelecimento.categorias_customizadas.length > 0
-      ? (estabelecimento.categorias_customizadas as string[])
-      : CATEGORIAS
+  const categorias = categoriasCustom && categoriasCustom.length > 0 ? categoriasCustom : CATEGORIAS
 
   const { data: fbData } = await supabase
     .from('feedbacks')
@@ -34,7 +47,7 @@ export default async function EditarFeedbackPage({ params }: { params: { id: str
   const { data: profsData } = await supabase
     .from('profissionais')
     .select('id, nome, foto_url')
-    .eq('estabelecimento_id', estabelecimento.id)
+    .eq('estabelecimento_id', estabId)
     .eq('status', 'ativo')
     .order('nome', { ascending: true })
 
