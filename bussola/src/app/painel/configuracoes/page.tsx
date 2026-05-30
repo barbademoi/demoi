@@ -16,54 +16,52 @@ export default async function ConfiguracoesPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/entrar')
 
-  // Tenta o select completo; se as colunas novas do PROMPT G ainda não
-  // existirem (migration 012), cai num mínimo pra não travar a página.
-  let estabId: string | null = null
-  let nomeEmpresa: string = ''
-  let logoUrl: string | null = null
-  let configIa: Partial<ConfigIA> | null = null
+  // 1) Base — sempre existe. Sem isso, não tem como continuar.
+  const { data: base } = await supabase
+    .from('estabelecimentos')
+    .select('id, nome, config_ia')
+    .eq('dono_id', user.id)
+    .maybeSingle()
+  if (!base) redirect('/onboarding')
+
+  const estabId = base.id as string
+  const nomeEmpresa = (base.nome as string) ?? ''
+  const config = { ...CONFIG_IA_PADRAO, ...((base.config_ia as Partial<ConfigIA> | null) ?? {}) }
+
+  // 2) Feedback de Cliente (migration 012) — independente da 015.
   let feedbackClienteAtivo = false
   let slug: string | null = null
   let mensagem: string = MENSAGEM_POS_FEEDBACK_PADRAO
-
-  const completo = await supabase
+  const fc = await supabase
     .from('estabelecimentos')
-    .select('id, nome, logo_url, config_ia, feedback_cliente_ativo, link_feedback_cliente_slug, mensagem_pos_feedback')
-    .eq('dono_id', user.id)
+    .select('feedback_cliente_ativo, link_feedback_cliente_slug, mensagem_pos_feedback')
+    .eq('id', estabId)
     .maybeSingle()
-
-  if (completo.data) {
-    estabId = completo.data.id as string
-    nomeEmpresa = (completo.data.nome as string) ?? ''
-    logoUrl = (completo.data.logo_url as string | null) ?? null
-    configIa = completo.data.config_ia as Partial<ConfigIA> | null
-    feedbackClienteAtivo = !!completo.data.feedback_cliente_ativo
-    slug = (completo.data.link_feedback_cliente_slug as string | null) ?? null
-    mensagem = (completo.data.mensagem_pos_feedback as string | null) ?? MENSAGEM_POS_FEEDBACK_PADRAO
-  } else {
-    const minimo = await supabase
-      .from('estabelecimentos')
-      .select('id, nome, config_ia')
-      .eq('dono_id', user.id)
-      .maybeSingle()
-    if (!minimo.data) redirect('/onboarding')
-    estabId = minimo.data.id as string
-    nomeEmpresa = (minimo.data.nome as string) ?? ''
-    configIa = minimo.data.config_ia as Partial<ConfigIA> | null
+  if (fc.data) {
+    feedbackClienteAtivo = !!fc.data.feedback_cliente_ativo
+    slug = (fc.data.link_feedback_cliente_slug as string | null) ?? null
+    mensagem = (fc.data.mensagem_pos_feedback as string | null) ?? MENSAGEM_POS_FEEDBACK_PADRAO
   }
 
-  const config = { ...CONFIG_IA_PADRAO, ...(configIa ?? {}) }
+  // 3) Logo (migration 015) — independente da 012.
+  let logoUrl: string | null = null
+  const logo = await supabase
+    .from('estabelecimentos')
+    .select('logo_url')
+    .eq('id', estabId)
+    .maybeSingle()
+  if (logo.data) {
+    logoUrl = (logo.data.logo_url as string | null) ?? null
+  }
 
-  // Brindes — fallback pra array vazio se a tabela ainda não existir.
+  // 4) Brindes (migration 012) — fallback pra array vazio.
   let brindes: BrindeUI[] = []
-  if (estabId) {
-    const { data: brindesData } = await supabase
-      .from('brindes')
-      .select('id, nome, descricao, peso, ativo')
-      .eq('estabelecimento_id', estabId)
-      .order('created_at', { ascending: true })
-    brindes = (brindesData ?? []) as BrindeUI[]
-  }
+  const { data: brindesData } = await supabase
+    .from('brindes')
+    .select('id, nome, descricao, peso, ativo')
+    .eq('estabelecimento_id', estabId)
+    .order('created_at', { ascending: true })
+  if (brindesData) brindes = brindesData as BrindeUI[]
 
   const h = headers()
   const host = h.get('host') ?? ''
@@ -73,9 +71,7 @@ export default async function ConfiguracoesPage() {
   return (
     <main className="max-w-2xl mx-auto px-4 py-6 space-y-4 animate-fade-in">
       <h1 className="text-xl font-semibold text-text">Configurações</h1>
-      {estabId && (
-        <LogoSection estabelecimentoId={estabId} nomeEmpresa={nomeEmpresa} logoInicial={logoUrl} />
-      )}
+      <LogoSection estabelecimentoId={estabId} nomeEmpresa={nomeEmpresa} logoInicial={logoUrl} />
       <ConfiguracoesClient inicial={config} />
       <FeedbackClienteSection
         ativo={feedbackClienteAtivo}
