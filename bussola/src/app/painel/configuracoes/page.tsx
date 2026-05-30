@@ -6,6 +6,7 @@ import { CONFIG_IA_PADRAO, type ConfigIA } from '@/lib/iaPrompts'
 import { MENSAGEM_POS_FEEDBACK_PADRAO } from '@/lib/feedbackCliente'
 import ConfiguracoesClient from './ConfiguracoesClient'
 import FeedbackClienteSection, { type BrindeUI } from './FeedbackClienteSection'
+import LimpezaSection from './LimpezaSection'
 
 export const dynamic = 'force-dynamic'
 
@@ -74,6 +75,7 @@ export default async function ConfiguracoesPage() {
         brindes={brindes}
         origem={origem}
       />
+      <LimpezaSection />
       <Link href="/painel/configuracoes/uso-ia" className="block text-sm text-marrom text-center">
         Ver consumo de IA →
       </Link>
