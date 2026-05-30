@@ -16,8 +16,7 @@ interface Props {
 // - Briga de z-index (top layer ignora z-index das outras camadas)
 // - ESC pra fechar (nativo)
 // - Foco gerenciado (nativo)
-//
-// Funciona em todos os browsers modernos (iOS 15.4+, Chrome, Firefox, Edge).
+// - Funciona em iOS 15.4+, Chrome, Firefox, Edge.
 export default function Modal({ open, onClose, children, width = 'max-w-md' }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
 
