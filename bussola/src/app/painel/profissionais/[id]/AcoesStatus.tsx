@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { mudarStatus } from '../actions'
 import type { StatusProfissional } from '@/lib/profissionais'
+import { useBodyScrollLock } from '@/lib/hooks'
 
 export default function AcoesStatus({
   id,
@@ -16,6 +17,7 @@ export default function AcoesStatus({
 }) {
   const router = useRouter()
   const [confirmarDesligar, setConfirmarDesligar] = useState(false)
+  useBodyScrollLock(confirmarDesligar)
   const [isPending, startTransition] = useTransition()
 
   function aplicar(novo: StatusProfissional) {
