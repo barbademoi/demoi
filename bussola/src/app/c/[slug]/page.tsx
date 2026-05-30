@@ -34,12 +34,37 @@ function LinkInvalido() {
 export default async function FeedbackClientePage({ params }: { params: { slug: string } }) {
   const admin = createAdminClient()
 
-  const { data: est } = await admin
+  // Tenta com logo_url; cai pro select básico se a migration 015 não rodou.
+  let est: { id: string; nome: string; feedback_cliente_ativo: boolean; mensagem_pos_feedback: string | null; logo_url: string | null } | null = null
+  const completo = await admin
     .from('estabelecimentos')
-    .select('id, nome, feedback_cliente_ativo, mensagem_pos_feedback')
+    .select('id, nome, feedback_cliente_ativo, mensagem_pos_feedback, logo_url')
     .eq('link_feedback_cliente_slug', params.slug)
     .maybeSingle()
-  if (!est || !est.feedback_cliente_ativo) return <LinkInvalido />
+  if (completo.data) {
+    est = {
+      id: completo.data.id as string,
+      nome: completo.data.nome as string,
+      feedback_cliente_ativo: !!completo.data.feedback_cliente_ativo,
+      mensagem_pos_feedback: (completo.data.mensagem_pos_feedback as string | null) ?? null,
+      logo_url: (completo.data.logo_url as string | null) ?? null,
+    }
+  } else {
+    const minimo = await admin
+      .from('estabelecimentos')
+      .select('id, nome, feedback_cliente_ativo, mensagem_pos_feedback')
+      .eq('link_feedback_cliente_slug', params.slug)
+      .maybeSingle()
+    if (!minimo.data) return <LinkInvalido />
+    est = {
+      id: minimo.data.id as string,
+      nome: minimo.data.nome as string,
+      feedback_cliente_ativo: !!minimo.data.feedback_cliente_ativo,
+      mensagem_pos_feedback: (minimo.data.mensagem_pos_feedback as string | null) ?? null,
+      logo_url: null,
+    }
+  }
+  if (!est.feedback_cliente_ativo) return <LinkInvalido />
 
   const { data: ativos } = await admin
     .from('profissionais')
@@ -61,9 +86,10 @@ export default async function FeedbackClientePage({ params }: { params: { slug: 
   return (
     <FeedbackClienteCliente
       slug={params.slug}
-      nomeEmpresa={est.nome as string}
+      nomeEmpresa={est.nome}
+      logoUrl={est.logo_url}
       colaboradores={colaboradores}
-      mensagemPosFeedback={(est.mensagem_pos_feedback as string | null) ?? ''}
+      mensagemPosFeedback={est.mensagem_pos_feedback ?? ''}
       temBrindes={(brindesAtivos ?? 0) > 0}
     />
   )

@@ -13,6 +13,7 @@ export interface ColaboradorLite {
 interface Props {
   slug: string
   nomeEmpresa: string
+  logoUrl?: string | null
   colaboradores: ColaboradorLite[]
   mensagemPosFeedback: string
   temBrindes: boolean
@@ -25,7 +26,7 @@ interface Resultado {
   brinde: { nome: string; descricao: string | null; codigo_resgate: string } | null
 }
 
-export default function FeedbackClienteCliente({ slug, nomeEmpresa, colaboradores, mensagemPosFeedback, temBrindes }: Props) {
+export default function FeedbackClienteCliente({ slug, nomeEmpresa, logoUrl, colaboradores, mensagemPosFeedback, temBrindes }: Props) {
   const [estrelas, setEstrelas] = useState<number>(0)
   const [colabId, setColabId] = useState<string | null>(null) // null = nenhum / vários
   const [colabEscolhido, setColabEscolhido] = useState(false) // marca que passou desse passo
@@ -88,7 +89,16 @@ export default function FeedbackClienteCliente({ slug, nomeEmpresa, colaboradore
     <main className="min-h-screen bg-background pb-12">
       <div className="max-w-md mx-auto px-4 py-8 space-y-6">
         {/* TOPO */}
-        <header className="text-center">
+        <header className="text-center flex flex-col items-center">
+          {logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt={nomeEmpresa}
+              loading="eager"
+              className="w-20 h-20 rounded-full object-cover bg-linho border border-border mb-3"
+            />
+          )}
           <p className="font-serif text-2xl text-preto">{nomeEmpresa}</p>
           <p className="text-chumbo text-sm mt-1">Como foi seu atendimento?</p>
         </header>

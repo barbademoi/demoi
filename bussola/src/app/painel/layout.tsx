@@ -12,14 +12,33 @@ export default async function PainelLayout({ children }: { children: React.React
     redirect('/entrar')
   }
 
-  const { data: estabelecimento } = await supabase
+  // Tenta com logo_url (migration 015); cai pro select básico se ainda não rodou.
+  let estabelecimento: { id: string; nome: string; ultima_visita_home: string | null; logo_url: string | null }
+  const completo = await supabase
     .from('estabelecimentos')
-    .select('id, nome, ultima_visita_home')
+    .select('id, nome, ultima_visita_home, logo_url')
     .eq('dono_id', user.id)
     .maybeSingle()
-
-  if (!estabelecimento) {
-    redirect('/onboarding')
+  if (completo.data) {
+    estabelecimento = {
+      id: completo.data.id as string,
+      nome: completo.data.nome as string,
+      ultima_visita_home: (completo.data.ultima_visita_home as string | null) ?? null,
+      logo_url: (completo.data.logo_url as string | null) ?? null,
+    }
+  } else {
+    const minimo = await supabase
+      .from('estabelecimentos')
+      .select('id, nome, ultima_visita_home')
+      .eq('dono_id', user.id)
+      .maybeSingle()
+    if (!minimo.data) redirect('/onboarding')
+    estabelecimento = {
+      id: minimo.data.id as string,
+      nome: minimo.data.nome as string,
+      ultima_visita_home: (minimo.data.ultima_visita_home as string | null) ?? null,
+      logo_url: null,
+    }
   }
 
   // Badge de novidades (leituras/respostas desde a última visita à Home).
@@ -33,14 +52,24 @@ export default async function PainelLayout({ children }: { children: React.React
 
   return (
     <div className="min-h-screen lg:flex">
-      <Sidebar nomeEstab={estabelecimento.nome} email={user.email ?? ''} novas={novas} />
+      <Sidebar nomeEstab={estabelecimento.nome} email={user.email ?? ''} logoUrl={estabelecimento.logo_url} novas={novas} />
 
       <div className="flex-1 min-w-0">
         {/* Header só no mobile (no desktop o logo fica na sidebar) */}
         <header className="lg:hidden bg-surface border-b border-border sticky top-0 z-20 px-4 py-3">
-          <Link href="/painel" className="block min-w-0">
-            <span className="block font-serif text-xl text-preto leading-tight">Bússola</span>
-            <span className="block text-xs text-chumbo truncate">{estabelecimento.nome}</span>
+          <Link href="/painel" className="flex items-center gap-2.5 min-w-0">
+            {estabelecimento.logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={estabelecimento.logo_url}
+                alt=""
+                className="w-9 h-9 rounded-full object-cover bg-linho shrink-0"
+              />
+            )}
+            <span className="min-w-0">
+              <span className="block font-serif text-xl text-preto leading-tight">Bússola</span>
+              <span className="block text-xs text-chumbo truncate">{estabelecimento.nome}</span>
+            </span>
           </Link>
         </header>
 

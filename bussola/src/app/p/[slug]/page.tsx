@@ -45,12 +45,27 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
     .maybeSingle()
   if (!prof || prof.status === 'desligado') return <TelaInvalida />
 
-  const { data: estab } = await admin
+  // Tenta com logo_url; cai pro select básico se a migration 015 não rodou.
+  let estab: { nome: string; logo_url: string | null } | null = null
+  const estCompleto = await admin
     .from('estabelecimentos')
-    .select('nome')
+    .select('nome, logo_url')
     .eq('id', prof.estabelecimento_id)
     .maybeSingle()
-  if (!estab) return <TelaInvalida />
+  if (estCompleto.data) {
+    estab = {
+      nome: estCompleto.data.nome as string,
+      logo_url: (estCompleto.data.logo_url as string | null) ?? null,
+    }
+  } else {
+    const estMin = await admin
+      .from('estabelecimentos')
+      .select('nome')
+      .eq('id', prof.estabelecimento_id)
+      .maybeSingle()
+    if (!estMin.data) return <TelaInvalida />
+    estab = { nome: estMin.data.nome as string, logo_url: null }
+  }
 
   const agora = new Date().toISOString()
   const { data: fbData } = await admin
@@ -72,13 +87,27 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
       <AutoRefresh />
 
       <main className="max-w-md mx-auto px-4 py-8 space-y-6">
+        {/* LOGO DA EMPRESA */}
+        {estab.logo_url && (
+          <div className="flex flex-col items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={estab.logo_url}
+              alt={estab.nome}
+              loading="eager"
+              className="w-16 h-16 rounded-full object-cover bg-linho border border-border"
+            />
+            <p className="text-sm text-grafite mt-2">{estab.nome}</p>
+          </div>
+        )}
+
         {/* IDENTIFICAÇÃO */}
         <div className="flex flex-col items-center text-center">
           <span className="rounded-full border-2 border-border p-0.5">
             <Avatar nome={prof.nome} fotoUrl={prof.foto_url} size={64} />
           </span>
           <h1 className="text-xl font-semibold text-preto mt-3">Olá, {primeiroNome}</h1>
-          <p className="text-chumbo text-sm">{estab.nome}</p>
+          {!estab.logo_url && <p className="text-chumbo text-sm">{estab.nome}</p>}
         </div>
 
         {/* TIMELINE */}

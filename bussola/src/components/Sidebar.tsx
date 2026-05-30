@@ -43,10 +43,12 @@ function iniciais(nome: string): string {
 export default function Sidebar({
   nomeEstab,
   email,
+  logoUrl,
   novas,
 }: {
   nomeEstab: string
   email: string
+  logoUrl?: string | null
   novas: number
 }) {
   const pathname = usePathname()
@@ -63,8 +65,23 @@ export default function Sidebar({
   return (
     <aside className="hidden lg:flex lg:flex-col w-60 shrink-0 border-r border-border bg-surface sticky top-0 h-screen p-4">
       {/* Logo */}
-      <Link href="/painel" className="block px-1 pb-4">
-        <span className="font-serif text-2xl text-preto leading-none">Bússola</span>
+      <Link href="/painel" className="flex items-center gap-2.5 px-1 pb-4 min-w-0">
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={logoUrl}
+            alt=""
+            className="w-10 h-10 rounded-full object-cover bg-linho shrink-0"
+          />
+        ) : (
+          <span className="w-10 h-10 rounded-full bg-linho text-marrom font-semibold flex items-center justify-center shrink-0 text-sm">
+            {iniciais(nomeEstab)}
+          </span>
+        )}
+        <span className="min-w-0">
+          <span className="block font-serif text-xl text-preto leading-tight">Bússola</span>
+          <span className="block text-xs text-chumbo truncate">{nomeEstab}</span>
+        </span>
       </Link>
       <div className="border-t border-border -mx-4 mb-4" />
 
