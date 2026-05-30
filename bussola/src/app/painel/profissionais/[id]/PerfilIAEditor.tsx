@@ -154,7 +154,7 @@ function ModalEdicao({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 overflow-y-auto" onClick={onClose}>
       <div
         className="bg-surface rounded-2xl w-full max-w-md p-5 max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
