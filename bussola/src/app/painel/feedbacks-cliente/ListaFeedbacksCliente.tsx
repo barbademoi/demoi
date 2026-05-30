@@ -387,7 +387,7 @@ function CardFeedback({
 
       {/* MODAL: Compartilhar com colaborador */}
       {modal === 'compartilhar' && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setModal(null)}>
+        <div className="fixed top-0 left-0 right-0 h-[100dvh] z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setModal(null)}>
           <div className="bg-surface rounded-lg w-full max-w-md max-h-[90dvh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="overflow-y-auto p-5">
               <h4 className="font-semibold text-text mb-2">Compartilhar com {profNome}?</h4>
@@ -421,7 +421,7 @@ function CardFeedback({
 
       {/* MODAL: Observação interna */}
       {modal === 'observacao' && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setModal(null)}>
+        <div className="fixed top-0 left-0 right-0 h-[100dvh] z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setModal(null)}>
           <div className="bg-surface rounded-lg w-full max-w-md max-h-[90dvh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="overflow-y-auto p-5">
               <h4 className="font-semibold text-text mb-2">Criar observação interna</h4>
