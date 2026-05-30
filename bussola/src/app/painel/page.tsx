@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/server'
 import FeedbackItem from '@/components/FeedbackItem'
 import AtividadeItem, { type AtividadeFb } from '@/components/AtividadeItem'
 import MarcarVisto from './MarcarVisto'
+import BotaoInstalarPWA from '@/components/BotaoInstalarPWA'
 import { proximaReuniao } from '@/lib/reuniao'
 import { intervalo } from '@/lib/periodos'
 import type { FeedbackComProfissional } from '@/lib/feedbacks'
@@ -271,6 +272,11 @@ export default async function PainelPage() {
           </div>
         )}
       </section>
+
+      {/* INSTALAR PWA (só aparece se o navegador suporta e ainda não instalado) */}
+      <div className="flex justify-center pt-2">
+        <BotaoInstalarPWA />
+      </div>
 
       <MarcarVisto />
     </main>

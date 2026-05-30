@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Lock } from 'lucide-react'
 import { createAdminClient } from '@/utils/supabase/admin'
 import Avatar from '@/components/Avatar'
+import BotaoInstalarPWA from '@/components/BotaoInstalarPWA'
 import Timeline, { type ItemElogio } from './Timeline'
 import AutoRefresh from './AutoRefresh'
 import RegistraSW from './RegistraSW'
@@ -115,6 +116,12 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
           <h2 className="font-semibold text-text mb-3">Anotações</h2>
           <Timeline itens={itens} slug={params.slug} />
         </section>
+
+        {/* INSTALAR PWA */}
+        <div className="flex flex-col items-center gap-2 pt-2">
+          <p className="text-xs text-chumbo">Quer acessar rapidinho? Salva como atalho:</p>
+          <BotaoInstalarPWA />
+        </div>
 
         {/* RODAPÉ */}
         <footer className="pt-4 text-center space-y-1">
