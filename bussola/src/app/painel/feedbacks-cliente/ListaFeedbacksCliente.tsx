@@ -11,6 +11,7 @@ import {
   Share2,
   Pencil,
   Settings,
+  Trash2,
 } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import Modal from '@/components/Modal'
@@ -246,7 +247,8 @@ function CardFeedback({
   onChange: () => void
 }) {
   const [isPending, startTransition] = useTransition()
-  const [modal, setModal] = useState<null | 'compartilhar' | 'observacao'>(null)
+  const [modal, setModal] = useState<null | 'compartilhar' | 'observacao' | 'excluir'>(null)
+  const [removendo, setRemovendo] = useState(false) // fade-out ao excluir
   const [textoObs, setTextoObs] = useState('')
   const [escopoObs, setEscopoObs] = useState<'individual' | 'equipe'>('individual')
   const [profObs, setProfObs] = useState<string>(fb.profissional_id ?? '')
@@ -271,7 +273,7 @@ function CardFeedback({
   }
 
   return (
-    <div className="card p-4">
+    <div className={`card p-4 transition-opacity duration-300 ${removendo ? 'opacity-0' : 'opacity-100'}`}>
       {/* TOPO */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="inline-flex items-center gap-1">
@@ -381,6 +383,14 @@ function CardFeedback({
             <Archive size={13} strokeWidth={1.5} /> Arquivar
           </button>
         )}
+        <button
+          type="button"
+          onClick={() => setModal('excluir')}
+          className="inline-flex items-center gap-1 text-xs text-vinho"
+          disabled={isPending}
+        >
+          <Trash2 size={13} strokeWidth={1.5} /> Excluir
+        </button>
         <span className="ml-auto text-[11px] text-chumbo">{dataLonga(fb.created_at)}</span>
       </div>
 
@@ -475,6 +485,72 @@ function CardFeedback({
               className="btn-primary flex-1"
             >
               {isPending ? 'Salvando…' : 'Criar observação'}
+            </button>
+            <button type="button" onClick={() => setModal(null)} className="text-grafite hover:text-text px-4">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL: Excluir definitivamente */}
+      <Modal open={modal === 'excluir'} onClose={() => setModal(null)}>
+        <div className="p-5">
+          <h4 className="font-semibold text-text mb-2">Excluir este feedback?</h4>
+          <p className="text-sm text-grafite mb-4">
+            Esta ação é definitiva. O feedback será removido permanentemente e não pode ser recuperado.
+          </p>
+
+          {/* Resumo do feedback a excluir */}
+          <div className="rounded-md border border-border bg-linho/50 p-3 mb-5 text-sm">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="inline-flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <Star
+                    key={n}
+                    size={14}
+                    strokeWidth={1.5}
+                    color="#8B6F47"
+                    fill={n <= fb.estrelas ? '#8B6F47' : 'transparent'}
+                  />
+                ))}
+              </span>
+              <span className="text-xs text-chumbo">{dataLonga(fb.created_at)}</span>
+            </div>
+            <p className="text-xs text-chumbo mb-1">
+              {fb.identificado && fb.nome_cliente ? fb.nome_cliente : 'Anônimo'}
+            </p>
+            {fb.comentario && (
+              <p className="text-sm text-grafite italic">
+                “{fb.comentario.length > 80 ? `${fb.comentario.slice(0, 80)}…` : fb.comentario}”
+              </p>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => {
+                startTransition(async () => {
+                  try {
+                    const r = await fetch(`/api/feedback-cliente/${fb.id}`, { method: 'DELETE' })
+                    const j = await r.json().catch(() => ({}))
+                    if (!r.ok) {
+                      alert(j?.error ?? 'Não foi possível excluir.')
+                      return
+                    }
+                    setModal(null)
+                    setRemovendo(true)
+                    setTimeout(() => onChange(), 300)
+                  } catch {
+                    alert('Sem conexão. Tente novamente.')
+                  }
+                })
+              }}
+              className="btn-destrutivo flex-1"
+            >
+              {isPending ? 'Excluindo…' : 'Excluir definitivamente'}
             </button>
             <button type="button" onClick={() => setModal(null)} className="text-grafite hover:text-text px-4">
               Cancelar
