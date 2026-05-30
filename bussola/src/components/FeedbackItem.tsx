@@ -114,8 +114,8 @@ export default function FeedbackItem({
       </div>
 
       {confirmar && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 overflow-y-auto" onClick={() => setConfirmar(false)}>
-          <div className="bg-surface rounded-lg w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 sm:p-4" onClick={() => setConfirmar(false)}>
+          <div className="bg-surface sm:rounded-lg rounded-t-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]" onClick={(e) => e.stopPropagation()}>
             <h4 className="font-semibold text-text mb-2">Excluir esta observação?</h4>
             <p className="text-sm text-grafite mb-5">Essa ação não pode ser desfeita.</p>
             <div className="flex gap-2">
