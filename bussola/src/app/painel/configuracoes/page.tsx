@@ -7,6 +7,7 @@ import { MENSAGEM_POS_FEEDBACK_PADRAO } from '@/lib/feedbackCliente'
 import ConfiguracoesClient from './ConfiguracoesClient'
 import FeedbackClienteSection, { type BrindeUI } from './FeedbackClienteSection'
 import LimpezaSection from './LimpezaSection'
+import LogoSection from './LogoSection'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +19,8 @@ export default async function ConfiguracoesPage() {
   // Tenta o select completo; se as colunas novas do PROMPT G ainda não
   // existirem (migration 012), cai num mínimo pra não travar a página.
   let estabId: string | null = null
+  let nomeEmpresa: string = ''
+  let logoUrl: string | null = null
   let configIa: Partial<ConfigIA> | null = null
   let feedbackClienteAtivo = false
   let slug: string | null = null
@@ -25,12 +28,14 @@ export default async function ConfiguracoesPage() {
 
   const completo = await supabase
     .from('estabelecimentos')
-    .select('id, config_ia, feedback_cliente_ativo, link_feedback_cliente_slug, mensagem_pos_feedback')
+    .select('id, nome, logo_url, config_ia, feedback_cliente_ativo, link_feedback_cliente_slug, mensagem_pos_feedback')
     .eq('dono_id', user.id)
     .maybeSingle()
 
   if (completo.data) {
     estabId = completo.data.id as string
+    nomeEmpresa = (completo.data.nome as string) ?? ''
+    logoUrl = (completo.data.logo_url as string | null) ?? null
     configIa = completo.data.config_ia as Partial<ConfigIA> | null
     feedbackClienteAtivo = !!completo.data.feedback_cliente_ativo
     slug = (completo.data.link_feedback_cliente_slug as string | null) ?? null
@@ -38,11 +43,12 @@ export default async function ConfiguracoesPage() {
   } else {
     const minimo = await supabase
       .from('estabelecimentos')
-      .select('id, config_ia')
+      .select('id, nome, config_ia')
       .eq('dono_id', user.id)
       .maybeSingle()
     if (!minimo.data) redirect('/onboarding')
     estabId = minimo.data.id as string
+    nomeEmpresa = (minimo.data.nome as string) ?? ''
     configIa = minimo.data.config_ia as Partial<ConfigIA> | null
   }
 
@@ -67,6 +73,9 @@ export default async function ConfiguracoesPage() {
   return (
     <main className="max-w-2xl mx-auto px-4 py-6 space-y-4 animate-fade-in">
       <h1 className="text-xl font-semibold text-text">Configurações</h1>
+      {estabId && (
+        <LogoSection estabelecimentoId={estabId} nomeEmpresa={nomeEmpresa} logoInicial={logoUrl} />
+      )}
       <ConfiguracoesClient inicial={config} />
       <FeedbackClienteSection
         ativo={feedbackClienteAtivo}
