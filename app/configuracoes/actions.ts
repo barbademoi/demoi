@@ -75,12 +75,15 @@ export async function salvarOperacaoConfig(formData: FormData) {
   const diaFechRaw = parseInt((formData.get('dia_fechamento') as string) || '1', 10)
   const dia_fechamento = Math.min(28, Math.max(1, isNaN(diaFechRaw) ? 1 : diaFechRaw))
 
-  console.log('[salvarOperacaoConfig]', { barbeariaId, visibilidade_ranking, modalidade, dia_fechamento })
+  const mostrar_ticket_medio = formData.get('mostrar_ticket_medio') === 'true'
+
+  console.log('[salvarOperacaoConfig]', { barbeariaId, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from('barbearias')
     .update({
+      mostrar_ticket_medio,
       dias_trabalhados, horario_abertura, horario_fechamento, modalidade, tem_assinatura,
       visibilidade_ranking, dia_fechamento,
     })

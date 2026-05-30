@@ -77,6 +77,8 @@ interface Props {
   statsBarbeiros: number
   // Watermark
   barbeariaLogoUrl: string | null
+  // Toggle ticket médio
+  mostrarTicketMedio: boolean
 }
 
 export default function DashboardShell({
@@ -93,6 +95,7 @@ export default function DashboardShell({
   resumoReuniaoSlot,
   statsBarbearias, statsBarbeiros,
   barbeariaLogoUrl,
+  mostrarTicketMedio,
 }: Props) {
   const [showConfig, setShowConfig] = useState(false)
 
@@ -178,6 +181,7 @@ export default function DashboardShell({
             diasUteisCorridos={diasUteisCorridos}
             diasUteisRestantes={diasUteisRestantes}
             faturamentoEditSlot={faturamentoEditSlot}
+            mostrarTicketMedio={mostrarTicketMedio}
           />
           </>
         )}

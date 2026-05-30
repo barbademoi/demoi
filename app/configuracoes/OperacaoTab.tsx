@@ -21,6 +21,7 @@ interface BarbeariaData {
   tem_assinatura: boolean | null
   visibilidade_ranking: 'completo' | 'posicoes' | 'proprio' | null
   dia_fechamento: number | null
+  mostrar_ticket_medio: boolean | null
 }
 
 type VisibilidadeRanking = 'completo' | 'posicoes' | 'proprio'
@@ -54,6 +55,7 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
     barbearia.visibilidade_ranking ?? 'completo'
   )
   const [diaFechamento, setDiaFechamento] = useState<string>(String(barbearia.dia_fechamento ?? 1))
+  const [mostrarTicket, setMostrarTicket] = useState<boolean>(barbearia.mostrar_ticket_medio ?? false)
   const [sucesso, setSucesso] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -70,6 +72,7 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
       if (diasAtivos.has(key)) formData.set(`dia_${key}`, 'on')
       else formData.delete(`dia_${key}`)
     })
+    formData.set('mostrar_ticket_medio', mostrarTicket ? 'true' : 'false')
     startTransition(async () => {
       const result = await salvarOperacaoConfig(formData)
       if (result?.error) setErro(result.error)
@@ -192,6 +195,47 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
             </label>
           ))}
         </div>
+      </div>
+
+      <div>
+        <label className="label">Exibição de ticket médio</label>
+        <p className="text-text-muted text-xs font-sans mb-3 leading-relaxed">
+          Mostrar o ticket médio (faturamento ÷ atendimentos) no dashboard, na tela do barbeiro e nos cards. Quem não quiser, deixa desligado.
+        </p>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={mostrarTicket}
+          onClick={() => setMostrarTicket(v => !v)}
+          className={[
+            'flex items-center gap-3 w-full p-3.5 rounded-xl border cursor-pointer transition-all text-left',
+            mostrarTicket ? 'border-primary bg-primary/5' : 'border-border bg-surface-2 hover:border-primary/40',
+          ].join(' ')}
+        >
+          <span
+            className={[
+              'relative w-10 h-6 rounded-full transition-colors shrink-0',
+              mostrarTicket ? 'bg-primary' : 'bg-surface',
+            ].join(' ')}
+          >
+            <span
+              className={[
+                'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform',
+                mostrarTicket ? 'translate-x-4' : 'translate-x-0',
+              ].join(' ')}
+            />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-sans font-semibold text-text leading-snug">
+              {mostrarTicket ? 'Mostrar ticket médio' : 'Não mostrar ticket médio'}
+            </p>
+            <p className="text-xs font-sans text-text-muted leading-relaxed mt-0.5">
+              {mostrarTicket
+                ? 'Aparece no dashboard, no card do barbeiro, na tela individual e nos cards PNG.'
+                : 'Fica oculto pra você e pros barbeiros.'}
+            </p>
+          </div>
+        </button>
       </div>
 
       {erro && <p className="text-red-400 text-sm font-sans">{erro}</p>}
