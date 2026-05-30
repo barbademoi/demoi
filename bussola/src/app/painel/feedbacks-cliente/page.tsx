@@ -30,7 +30,7 @@ export default async function FeedbacksClientePage() {
 
   const { data: fbData } = await supabase
     .from('feedbacks_cliente')
-    .select('id, profissional_id, nome_cliente, contato_cliente, identificado, estrelas, comentario, brinde_id, codigo_resgate, brinde_usado, status, created_at, profissionais(nome, foto_url), brindes(nome)')
+    .select('id, profissional_id, nome_cliente, identificado, estrelas, comentario, brinde_id, codigo_resgate, brinde_usado, status, created_at, profissionais(nome, foto_url), brindes(nome)')
     .eq('estabelecimento_id', est.id)
     .order('created_at', { ascending: false })
   const lista = (fbData ?? []) as unknown as FeedbackClienteUI[]

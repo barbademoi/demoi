@@ -8,7 +8,6 @@ interface Body {
   colaborador_id?: string | null
   comentario?: string | null
   nome_cliente?: string | null
-  contato_cliente?: string | null
 }
 
 const LIMITE_POR_HORA = 5
@@ -38,7 +37,6 @@ export async function POST(req: Request) {
 
   const comentario = sanitizar(body.comentario, 500)
   const nomeCliente = sanitizar(body.nome_cliente, 80)
-  const contatoCliente = sanitizar(body.contato_cliente, 80)
   const colabId = body.colaborador_id || null
 
   const admin = createAdminClient()
@@ -93,13 +91,12 @@ export async function POST(req: Request) {
     }
   }
 
-  const identificado = !!(nomeCliente || contatoCliente)
+  const identificado = !!nomeCliente
 
   const { error } = await admin.from('feedbacks_cliente').insert({
     estabelecimento_id: est.id,
     profissional_id: colabId,
     nome_cliente: nomeCliente,
-    contato_cliente: contatoCliente,
     identificado,
     estrelas,
     comentario,
