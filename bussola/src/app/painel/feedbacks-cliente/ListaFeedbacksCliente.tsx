@@ -387,8 +387,8 @@ function CardFeedback({
 
       {/* MODAL: Compartilhar com colaborador */}
       {modal === 'compartilhar' && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 sm:p-4" onClick={() => setModal(null)}>
-          <div className="bg-surface sm:rounded-lg rounded-t-2xl w-full max-w-md max-h-[90dvh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setModal(null)}>
+          <div className="bg-surface rounded-lg w-full max-w-md max-h-[90dvh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="overflow-y-auto p-5">
               <h4 className="font-semibold text-text mb-2">Compartilhar com {profNome}?</h4>
               <p className="text-sm text-grafite">
@@ -396,7 +396,7 @@ function CardFeedback({
                 visível imediatamente.
               </p>
             </div>
-            <div className="flex gap-2 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-border">
+            <div className="flex gap-2 p-4 pb-4 border-t border-border">
               <button
                 type="button"
                 disabled={isPending}
@@ -421,8 +421,8 @@ function CardFeedback({
 
       {/* MODAL: Observação interna */}
       {modal === 'observacao' && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 sm:p-4" onClick={() => setModal(null)}>
-          <div className="bg-surface sm:rounded-lg rounded-t-2xl w-full max-w-md max-h-[90dvh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setModal(null)}>
+          <div className="bg-surface rounded-lg w-full max-w-md max-h-[90dvh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="overflow-y-auto p-5">
               <h4 className="font-semibold text-text mb-2">Criar observação interna</h4>
               <p className="text-sm text-chumbo mb-3">
@@ -465,7 +465,7 @@ function CardFeedback({
                 />
               </div>
             </div>
-            <div className="flex gap-2 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-border">
+            <div className="flex gap-2 p-4 pb-4 border-t border-border">
               <button
                 type="button"
                 disabled={isPending}
