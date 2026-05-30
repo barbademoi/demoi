@@ -636,7 +636,7 @@ export default function ConduzirClient(props: Props) {
       </footer>
 
       {confirmar && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setConfirmar(false)}>
+        <div className="fixed top-0 left-0 right-0 h-[100dvh] z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setConfirmar(false)}>
           <div className="bg-surface rounded-lg w-full max-w-md max-h-[90dvh] overflow-y-auto p-5 pb-5" onClick={(e) => e.stopPropagation()}>
             <h4 className="font-semibold text-text mb-2">Finalizar reunião?</h4>
             <p className="text-sm text-grafite mb-5">
