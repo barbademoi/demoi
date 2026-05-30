@@ -22,6 +22,7 @@ export interface BarbeariaConfig {
   tem_assinatura: boolean | null
   visibilidade_ranking: 'completo' | 'posicoes' | 'proprio' | null
   dia_fechamento: number | null
+  mostrar_ticket_medio: boolean | null
 }
 
 interface Props {

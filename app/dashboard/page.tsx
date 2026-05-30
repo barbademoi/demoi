@@ -17,7 +17,7 @@ import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetal
 type UsuarioComBarbearia = {
   barbearia_id: string
   senha_temporaria: boolean
-  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null; dia_fechamento: number | null }
+  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null; dia_fechamento: number | null; mostrar_ticket_medio: boolean | null }
 }
 
 type MetaSimples = {
@@ -40,7 +40,7 @@ export default async function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade, dia_fechamento)')
+    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade, dia_fechamento, mostrar_ticket_medio)')
     .eq('id', user.id)
     .single()
 
@@ -60,6 +60,7 @@ export default async function DashboardPage() {
   }
   const hoje = new Date()
   const diaFechamento = barbearia.dia_fechamento ?? 1
+  const mostrarTicketMedio = barbearia.mostrar_ticket_medio ?? false
   const ciclo = cicloAtual(diaFechamento, hoje)
   // (mes, ano) das tabelas = início do ciclo
   const mes = ciclo.mesRef
@@ -259,6 +260,7 @@ export default async function DashboardPage() {
       statsBarbearias={platformStats.barbearias}
       statsBarbeiros={platformStats.barbeiros}
       barbeariaLogoUrl={barbearia.logo_url}
+      mostrarTicketMedio={mostrarTicketMedio}
       mes={mes}
       ano={ano}
       meta={meta}

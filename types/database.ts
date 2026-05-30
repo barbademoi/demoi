@@ -9,6 +9,7 @@ export interface Database {
           nome: string
           logo_url: string | null
           cor_principal: string
+          mostrar_ticket_medio: boolean
           created_at: string
         }
         Insert: {
@@ -16,12 +17,14 @@ export interface Database {
           nome: string
           logo_url?: string | null
           cor_principal?: string
+          mostrar_ticket_medio?: boolean
           created_at?: string
         }
         Update: {
           nome?: string
           logo_url?: string | null
           cor_principal?: string
+          mostrar_ticket_medio?: boolean
         }
         Relationships: []
       }

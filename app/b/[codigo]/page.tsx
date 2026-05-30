@@ -37,7 +37,7 @@ export default async function BarbeiroPage({ params }: Props) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barbeariaRaw } = await (supabase as any)
-    .from('barbearias').select('nome, cor_principal, visibilidade_ranking, modalidade, dia_fechamento')
+    .from('barbearias').select('nome, cor_principal, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio')
     .eq('id', barbeiro.barbearia_id).single()
   const barbearia = barbeariaRaw as {
     nome: string
@@ -45,7 +45,9 @@ export default async function BarbeiroPage({ params }: Props) {
     visibilidade_ranking: 'completo' | 'posicoes' | 'proprio' | null
     modalidade: string | null
     dia_fechamento: number | null
+    mostrar_ticket_medio: boolean | null
   } | null
+  const mostrarTicketMedio = barbearia?.mostrar_ticket_medio ?? false
 
   const visibilidadeRanking: 'completo' | 'posicoes' | 'proprio' =
     barbearia?.visibilidade_ranking ?? 'completo'
@@ -274,6 +276,7 @@ export default async function BarbeiroPage({ params }: Props) {
           historicoMeses={historicoMeses}
           cicloLabel={ciclo.label}
           diaFechamento={diaFechamento}
+          mostrarTicketMedio={mostrarTicketMedio}
         />
       </main>
     </div>

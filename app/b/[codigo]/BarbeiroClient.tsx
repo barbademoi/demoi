@@ -58,6 +58,7 @@ interface Props {
   historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
   cicloLabel: string
   diaFechamento: number
+  mostrarTicketMedio: boolean
 }
 
 export default function BarbeiroClient({
@@ -69,7 +70,7 @@ export default function BarbeiroClient({
   insights, mensagemIA, tiersJaCelebrados, campanha, controlesDiario,
   pontosTotal, rankingPontos, pontosMap, controleHoje, historico,
   visibilidadeRanking, isAutonomo, comissaoMesAnterior, historicoMeses,
-  cicloLabel, diaFechamento,
+  cicloLabel, diaFechamento, mostrarTicketMedio,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
   // Recepcionista participa só das pontuações — esconde tudo de comissão/metas.
@@ -229,8 +230,8 @@ export default function BarbeiroClient({
             <HistoricoMeses historico={historicoMeses} variant="light" />
           )}
 
-          {/* Ticket médio (qualquer modalidade, modo metas) */}
-          {mostraMetas && historicoMeses.length > 0 && (
+          {/* Ticket médio (qualquer modalidade, modo metas) — só se o dono ativou */}
+          {mostraMetas && mostrarTicketMedio && historicoMeses.length > 0 && (
             <TicketMedio historico={historicoMeses} variant="light" />
           )}
 

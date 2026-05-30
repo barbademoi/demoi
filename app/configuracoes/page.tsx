@@ -20,7 +20,7 @@ export default async function ConfiguracoesPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barbeariaRaw } = await (supabase as any)
     .from('barbearias')
-    .select('nome, cidade, logo_url, cor_principal, dias_trabalhados, horario_abertura, horario_fechamento, modalidade, tem_assinatura, visibilidade_ranking, dia_fechamento')
+    .select('nome, cidade, logo_url, cor_principal, dias_trabalhados, horario_abertura, horario_fechamento, modalidade, tem_assinatura, visibilidade_ranking, dia_fechamento, mostrar_ticket_medio')
     .eq('id', usuarioRaw.barbearia_id)
     .single()
 
@@ -36,6 +36,7 @@ export default async function ConfiguracoesPage() {
     tem_assinatura: barbeariaRaw?.tem_assinatura ?? null,
     visibilidade_ranking: (barbeariaRaw?.visibilidade_ranking ?? null) as 'completo' | 'posicoes' | 'proprio' | null,
     dia_fechamento: (barbeariaRaw?.dia_fechamento as number | null) ?? null,
+    mostrar_ticket_medio: (barbeariaRaw?.mostrar_ticket_medio as boolean | null) ?? null,
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -66,6 +66,7 @@ interface Props {
   diasUteisCorridos: number
   diasUteisRestantes: number
   faturamentoEditSlot: React.ReactNode
+  mostrarTicketMedio: boolean
 }
 
 function tierBorderClass(tier: string | null) {
@@ -108,6 +109,7 @@ export default function DashboardMain({
   diasUteisCorridos,
   diasUteisRestantes,
   faturamentoEditSlot,
+  mostrarTicketMedio,
 }: Props) {
   const todos = [...rankingBarbeiros, ...rankingRecepcionistas]
   // Em modo autônomo, força filtro no único barbeiro (não mostra pills nem ranking)
@@ -167,6 +169,7 @@ export default function DashboardMain({
           diasUteisCorridos={diasUteisCorridos}
           diasUteisRestantes={diasUteisRestantes}
           faturamentoEditSlot={faturamentoEditSlot}
+          mostrarTicketMedio={mostrarTicketMedio}
           historicoBarbearia={historicoBarbearia}
           faturamentoMesAnterior={faturamentoMesAnterior}
         />
@@ -196,6 +199,7 @@ export default function DashboardMain({
               ? historicoMeses
               : (historicoPorBarbeiro[barbeiroSel.id] ?? [])
           }
+          mostrarTicketMedio={mostrarTicketMedio}
         />
       ) : null}
 
@@ -226,6 +230,7 @@ interface TodosProps {
   diasUteisCorridos: number
   diasUteisRestantes: number
   faturamentoEditSlot: React.ReactNode
+  mostrarTicketMedio: boolean
   historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
   faturamentoMesAnterior: number
 }
@@ -250,6 +255,7 @@ function TodosView({
   diasUteisCorridos,
   diasUteisRestantes,
   faturamentoEditSlot,
+  mostrarTicketMedio,
   historicoBarbearia,
   faturamentoMesAnterior,
 }: TodosProps) {
@@ -394,7 +400,7 @@ function TodosView({
       {modoAtual !== 'pontos' && historicoBarbearia.length > 0 && (
         <HistoricoMeses historico={historicoBarbearia} variant="dark" escopo="coletivo" />
       )}
-      {modoAtual !== 'pontos' && historicoBarbearia.length > 0 && (
+      {modoAtual !== 'pontos' && mostrarTicketMedio && historicoBarbearia.length > 0 && (
         <TicketMedio historico={historicoBarbearia} variant="dark" escopo="coletivo" />
       )}
 
@@ -693,9 +699,10 @@ interface BarbeiroViewProps {
   mes: number
   comissaoMesAnterior: number
   historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
+  mostrarTicketMedio: boolean
 }
 
-function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontosBarb, rankingPontosRecep, isAutonomo, cicloLabel, mes, comissaoMesAnterior, historicoMeses }: BarbeiroViewProps) {
+function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontosBarb, rankingPontosRecep, isAutonomo, cicloLabel, mes, comissaoMesAnterior, historicoMeses, mostrarTicketMedio }: BarbeiroViewProps) {
   const tier = barbeiro.metaInd
     ? calcTier(barbeiro.comissao, barbeiro.metaInd.bronze_comm, barbeiro.metaInd.prata_comm, barbeiro.metaInd.ouro_comm)
     : null
@@ -773,7 +780,7 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
       )}
 
       {/* Ticket médio (qualquer modalidade, modo metas) */}
-      {modoAtual !== 'pontos' && historicoMeses.length > 0 && (
+      {modoAtual !== 'pontos' && mostrarTicketMedio && historicoMeses.length > 0 && (
         <TicketMedio historico={historicoMeses} variant="dark" />
       )}
 
