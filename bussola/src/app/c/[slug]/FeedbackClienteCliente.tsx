@@ -30,9 +30,8 @@ export default function FeedbackClienteCliente({ slug, nomeEmpresa, colaboradore
   const [colabId, setColabId] = useState<string | null>(null) // null = nenhum / vários
   const [colabEscolhido, setColabEscolhido] = useState(false) // marca que passou desse passo
   const [comentario, setComentario] = useState('')
-  const [anonimo, setAnonimo] = useState(true)
+  const [anonimo, setAnonimo] = useState(false)
   const [nome, setNome] = useState('')
-  const [contato, setContato] = useState('')
 
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -40,6 +39,11 @@ export default function FeedbackClienteCliente({ slug, nomeEmpresa, colaboradore
 
   async function enviar() {
     if (!estrelas) return
+    // Identificação só é exigida se o usuário escreveu um comentário.
+    if (comentario.trim() && !anonimo && !nome.trim()) {
+      setErro('Informe seu nome ou marque "Prefiro deixar anônimo".')
+      return
+    }
     setErro(null)
     setEnviando(true)
     try {
@@ -52,7 +56,6 @@ export default function FeedbackClienteCliente({ slug, nomeEmpresa, colaboradore
           colaborador_id: colabId,
           comentario: comentario.trim() || null,
           nome_cliente: !anonimo && nome.trim() ? nome.trim() : null,
-          contato_cliente: !anonimo && contato.trim() ? contato.trim() : null,
         }),
       })
       const j = await r.json()
@@ -182,7 +185,15 @@ export default function FeedbackClienteCliente({ slug, nomeEmpresa, colaboradore
         {/* PASSO 4 — IDENTIFICAÇÃO */}
         {mostrarIdentificacao && (
           <section className="animate-fade-in space-y-2">
-            <p className="text-sm text-text">Quer se identificar? <span className="text-chumbo font-normal">(opcional)</span></p>
+            <label htmlFor="nome-cliente" className="block text-sm text-text">Como podemos te chamar?</label>
+            <input
+              id="nome-cliente"
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value.slice(0, 80))}
+              disabled={anonimo}
+              className="input text-sm"
+            />
             <label className="flex items-center gap-2 text-sm text-grafite">
               <input
                 type="checkbox"
@@ -190,26 +201,8 @@ export default function FeedbackClienteCliente({ slug, nomeEmpresa, colaboradore
                 onChange={(e) => setAnonimo(e.target.checked)}
                 className="accent-marrom w-4 h-4"
               />
-              Prefiro permanecer anônimo
+              Prefiro deixar anônimo
             </label>
-            {!anonimo && (
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value.slice(0, 80))}
-                  placeholder="Seu nome"
-                  className="input text-sm"
-                />
-                <input
-                  type="text"
-                  value={contato}
-                  onChange={(e) => setContato(e.target.value.slice(0, 80))}
-                  placeholder="WhatsApp ou email"
-                  className="input text-sm"
-                />
-              </div>
-            )}
           </section>
         )}
 

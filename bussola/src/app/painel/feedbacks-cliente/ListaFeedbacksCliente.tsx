@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import {
   Star,
   Gift,
-  MessageCircle,
   CheckCircle2,
   Archive,
   Share2,
@@ -37,7 +36,6 @@ export interface FeedbackClienteUI {
   id: string
   profissional_id: string | null
   nome_cliente: string | null
-  contato_cliente: string | null
   identificado: boolean
   estrelas: number
   comentario: string | null
@@ -271,10 +269,6 @@ function CardFeedback({
     })
   }
 
-  const whatsHref = fb.contato_cliente?.match(/\d/)
-    ? `https://wa.me/${fb.contato_cliente.replace(/\D/g, '')}`
-    : null
-
   return (
     <div className="card p-4">
       {/* TOPO */}
@@ -300,18 +294,8 @@ function CardFeedback({
 
       {/* IDENTIFICAÇÃO */}
       <div className="mt-2 text-sm text-text">
-        {fb.identificado && (fb.nome_cliente || fb.contato_cliente) ? (
-          <span className="inline-flex items-center gap-2 flex-wrap">
-            <span className="font-medium">{fb.nome_cliente ?? 'Cliente'}</span>
-            {whatsHref && (
-              <a href={whatsHref} target="_blank" rel="noopener noreferrer" className="text-marrom inline-flex items-center gap-1 text-xs">
-                <MessageCircle size={13} strokeWidth={1.5} /> WhatsApp
-              </a>
-            )}
-            {!whatsHref && fb.contato_cliente && (
-              <span className="text-xs text-chumbo">{fb.contato_cliente}</span>
-            )}
-          </span>
+        {fb.identificado && fb.nome_cliente ? (
+          <span className="font-medium">{fb.nome_cliente}</span>
         ) : (
           <span className="italic text-chumbo">Cliente anônimo</span>
         )}
