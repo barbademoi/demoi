@@ -9,6 +9,7 @@ import {
   type Profissional,
 } from '@/lib/profissionais'
 import { salvarPerfilIA } from '../actions'
+import { useBodyScrollLock } from '@/lib/hooks'
 
 type CampoTexto = 'pontos_fortes' | 'pontos_desenvolvimento' | 'notas_livres'
 type Campo = 'motivadores' | 'estilo_comunicacao' | CampoTexto
@@ -29,6 +30,7 @@ type Estado = Pick<
 export default function PerfilIAEditor({ id, inicial }: { id: string; inicial: Estado }) {
   const [dados, setDados] = useState<Estado>(inicial)
   const [editando, setEditando] = useState<Campo | null>(null)
+  useBodyScrollLock(editando !== null)
 
   return (
     <div className="card p-5">

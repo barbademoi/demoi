@@ -11,6 +11,7 @@ import {
   type EscopoFeedback,
 } from '@/lib/feedbacks'
 import { criarFeedback, atualizarFeedback, excluirFeedback } from './actions'
+import { useBodyScrollLock } from '@/lib/hooks'
 
 interface ProfItem {
   id: string
@@ -48,6 +49,7 @@ export default function FeedbackForm({ profissionais, modo, inicial, escopoInici
   const [error, setError] = useState<string | null>(null)
   const [salvo, setSalvo] = useState(false)
   const [confirmarExcluir, setConfirmarExcluir] = useState(false)
+  useBodyScrollLock(confirmarExcluir)
   const [isPending, startTransition] = useTransition()
 
   const destinoPos = () =>

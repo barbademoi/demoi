@@ -25,6 +25,7 @@ import Avatar from '@/components/Avatar'
 import type { AvaliacaoMeta, MetaSemanal, NovaMeta, PautaReuniao } from '@/lib/pauta'
 import type { Momento } from '@/lib/iaPrompts'
 import { salvarPauta, finalizarReuniao, marcarDiscutido } from '../../actions'
+import { useBodyScrollLock } from '@/lib/hooks'
 
 export interface ObsItem {
   id: string
@@ -298,6 +299,7 @@ export default function ConduzirClient(props: Props) {
   const [notaEquipe, setNotaEquipe] = useState(pautaInicial.notaEquipe ?? '')
   const [anotacaoGeral, setAnotacaoGeral] = useState(pautaInicial.anotacaoGeral ?? '')
   const [confirmar, setConfirmar] = useState(false)
+  useBodyScrollLock(confirmar)
   const [finalizando, startFinalizar] = useTransition()
 
   const inicioMs = useRef(pautaInicial.iniciada_em ? Date.parse(pautaInicial.iniciada_em) : Date.now())

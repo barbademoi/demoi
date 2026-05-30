@@ -11,6 +11,7 @@ import {
   type FeedbackComProfissional,
 } from '@/lib/feedbacks'
 import { excluirFeedback } from '@/app/painel/feedback/actions'
+import { useBodyScrollLock } from '@/lib/hooks'
 
 const STATUS_LABEL: Record<string, string> = {
   pendente: 'Pendente',
@@ -28,6 +29,7 @@ export default function FeedbackItem({
 }) {
   const router = useRouter()
   const [confirmar, setConfirmar] = useState(false)
+  useBodyScrollLock(confirmar)
   const [isPending, startTransition] = useTransition()
 
   function excluir() {

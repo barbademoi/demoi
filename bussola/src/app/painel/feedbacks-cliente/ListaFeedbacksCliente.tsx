@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import { tempoRelativo, dataLonga } from '@/lib/feedbacks'
+import { useBodyScrollLock } from '@/lib/hooks'
 import {
   marcarLido,
   arquivar,
@@ -246,6 +247,7 @@ function CardFeedback({
 }) {
   const [isPending, startTransition] = useTransition()
   const [modal, setModal] = useState<null | 'compartilhar' | 'observacao'>(null)
+  useBodyScrollLock(modal !== null)
   const [textoObs, setTextoObs] = useState('')
   const [escopoObs, setEscopoObs] = useState<'individual' | 'equipe'>('individual')
   const [profObs, setProfObs] = useState<string>(fb.profissional_id ?? '')
@@ -385,14 +387,16 @@ function CardFeedback({
 
       {/* MODAL: Compartilhar com colaborador */}
       {modal === 'compartilhar' && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 overflow-y-auto" onClick={() => setModal(null)}>
-          <div className="bg-surface rounded-lg w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
-            <h4 className="font-semibold text-text mb-2">Compartilhar com {profNome}?</h4>
-            <p className="text-sm text-grafite mb-5">
-              Vamos criar uma observação no link de {profNome} com o comentário do cliente,
-              visível imediatamente.
-            </p>
-            <div className="flex gap-2">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setModal(null)}>
+          <div className="bg-surface rounded-lg w-full max-w-md max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="overflow-y-auto p-5">
+              <h4 className="font-semibold text-text mb-2">Compartilhar com {profNome}?</h4>
+              <p className="text-sm text-grafite">
+                Vamos criar uma observação no link de {profNome} com o comentário do cliente,
+                visível imediatamente.
+              </p>
+            </div>
+            <div className="flex gap-2 p-4 border-t border-border">
               <button
                 type="button"
                 disabled={isPending}
@@ -417,49 +421,51 @@ function CardFeedback({
 
       {/* MODAL: Observação interna */}
       {modal === 'observacao' && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 overflow-y-auto" onClick={() => setModal(null)}>
-          <div className="bg-surface rounded-lg w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
-            <h4 className="font-semibold text-text mb-2">Criar observação interna</h4>
-            <p className="text-sm text-chumbo mb-3">
-              Vai entrar na próxima reunião. Pode editar o texto antes de salvar.
-            </p>
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                {(['individual', 'equipe'] as const).map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => setEscopoObs(v)}
-                    className={[
-                      'flex-1 py-2 rounded-md border text-sm font-medium',
-                      escopoObs === v ? 'border-marrom bg-marrom text-white' : 'border-border bg-white text-text',
-                    ].join(' ')}
-                  >
-                    {v === 'individual' ? 'Para colaborador' : 'Para a equipe'}
-                  </button>
-                ))}
-              </div>
-              {escopoObs === 'individual' && (
-                <select
-                  value={profObs}
-                  onChange={(e) => setProfObs(e.target.value)}
-                  className="input text-sm"
-                >
-                  <option value="">Selecione colaborador…</option>
-                  {ativos.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nome}</option>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setModal(null)}>
+          <div className="bg-surface rounded-lg w-full max-w-md max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="overflow-y-auto p-5">
+              <h4 className="font-semibold text-text mb-2">Criar observação interna</h4>
+              <p className="text-sm text-chumbo mb-3">
+                Vai entrar na próxima reunião. Pode editar o texto antes de salvar.
+              </p>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  {(['individual', 'equipe'] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setEscopoObs(v)}
+                      className={[
+                        'flex-1 py-2 rounded-md border text-sm font-medium',
+                        escopoObs === v ? 'border-marrom bg-marrom text-white' : 'border-border bg-white text-text',
+                      ].join(' ')}
+                    >
+                      {v === 'individual' ? 'Para colaborador' : 'Para a equipe'}
+                    </button>
                   ))}
-                </select>
-              )}
-              <textarea
-                value={textoObs}
-                onChange={(e) => setTextoObs(e.target.value.slice(0, 2000))}
-                rows={4}
-                placeholder="Texto da observação"
-                className="input text-sm"
-              />
+                </div>
+                {escopoObs === 'individual' && (
+                  <select
+                    value={profObs}
+                    onChange={(e) => setProfObs(e.target.value)}
+                    className="input text-sm"
+                  >
+                    <option value="">Selecione colaborador…</option>
+                    {ativos.map((c) => (
+                      <option key={c.id} value={c.id}>{c.nome}</option>
+                    ))}
+                  </select>
+                )}
+                <textarea
+                  value={textoObs}
+                  onChange={(e) => setTextoObs(e.target.value.slice(0, 2000))}
+                  rows={4}
+                  placeholder="Texto da observação"
+                  className="input text-sm"
+                />
+              </div>
             </div>
-            <div className="flex gap-2 mt-4">
+            <div className="flex gap-2 p-4 border-t border-border">
               <button
                 type="button"
                 disabled={isPending}
