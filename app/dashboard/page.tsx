@@ -345,7 +345,7 @@ export default async function DashboardPage({
       modoMesSlot={<ModoMesSelector modoAtual={modoAtual} mes={mes} ano={ano} />}
       novoBarbeiroSlot={<NovoBarbeiroModal />}
       novaRecepcionistaSlot={<NovoBarbeiroModal tipo="recepcionista" />}
-      metasSlot={modoAtual !== 'pontos' && !ehPeriodoPassado ? (
+      metasSlot={modoAtual !== 'pontos' ? (
         <MetasModal
           barbeiros={barbeirosMetas}
           metasAtuais={metasParaForm}
@@ -362,10 +362,10 @@ export default async function DashboardPage({
           diaFechamento={diaFechamento}
         />
       ) : null}
-      campanhaSlot={modoAtual !== 'metas' && !ehPeriodoPassado ? (
+      campanhaSlot={modoAtual !== 'metas' ? (
         <CampanhaModal campanha={campanha} mes={mes} ano={ano} />
       ) : null}
-      campanhaToggleSlot={modoAtual !== 'metas' && !ehPeriodoPassado && campanha ? (
+      campanhaToggleSlot={modoAtual !== 'metas' && campanha ? (
         <CampanhaToggle campanhaId={campanha.id} ativo={campanha.ativo} />
       ) : null}
       resumoReuniaoSlot={<ResumoReuniaoModal mes={mes} ano={ano} diaFechamento={diaFechamento} />}

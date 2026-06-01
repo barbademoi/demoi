@@ -163,14 +163,14 @@ export default function DashboardShell({
               {monthNavigatorSlot}
               {ehPeriodoPassado && (
                 <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                  <p className="text-amber-200 text-xs font-sans">
-                    🕒 Você está vendo o <span className="font-semibold capitalize">{cicloLabel}</span>. Tudo aqui é somente leitura.
+                  <p className="text-amber-200 text-xs font-sans leading-relaxed">
+                    ⚠️ Você está editando <span className="font-semibold capitalize">{cicloLabel}</span>. As alterações afetam o histórico deste período.
                   </p>
                   <a
                     href="/dashboard"
-                    className="text-amber-200 hover:text-amber-100 text-xs font-sans underline whitespace-nowrap"
+                    className="text-amber-200 hover:text-amber-100 text-xs font-sans underline whitespace-nowrap shrink-0"
                   >
-                    Voltar pro mês atual
+                    Voltar ao atual
                   </a>
                 </div>
               )}
