@@ -14,7 +14,7 @@ interface Props {
   categoria: CategoriaTutorial
   passos: PassoTutorial[]
   jaConcluido: boolean
-  proximos: { id: string; titulo: string }[]
+  proximo: { id: string; titulo: string } | null
 }
 
 const SWIPE_MIN = 60
@@ -25,7 +25,7 @@ export default function TutorialClient({
   categoriaNome,
   passos,
   jaConcluido,
-  proximos,
+  proximo,
 }: Props) {
   const router = useRouter()
   const [indice, setIndice] = useState(0)
@@ -94,22 +94,23 @@ export default function TutorialClient({
         <h1 className="text-2xl font-semibold text-text mt-4">Tutorial concluído!</h1>
         <p className="text-chumbo mt-2">{titulo}</p>
 
-        {proximos.length > 0 ? (
+        {proximo ? (
           <div className="mt-8 space-y-3">
-            <p className="text-sm text-grafite">Continue pela mesma categoria:</p>
-            {proximos.slice(0, 1).map((p) => (
-              <Link key={p.id} href={`/painel/tutoriais/${p.id}`} className="btn-primary w-full justify-center">
-                Próximo tutorial: {p.titulo}
-              </Link>
-            ))}
+            <p className="text-sm text-grafite">Continue por aqui:</p>
+            <Link href={`/painel/tutoriais/${proximo.id}`} className="btn-primary w-full justify-center">
+              Próximo tutorial: {proximo.titulo}
+            </Link>
             <Link href="/painel/tutoriais" className="block text-sm text-grafite mt-2">
               Voltar pra lista
             </Link>
           </div>
         ) : (
-          <Link href="/painel/tutoriais" className="btn-primary inline-flex mt-8">
-            Voltar pra lista
-          </Link>
+          <div className="mt-8 space-y-3">
+            <p className="text-sm text-marrom font-medium">Você concluiu todos os tutoriais!</p>
+            <Link href="/painel/tutoriais" className="btn-primary inline-flex">
+              Voltar pra lista
+            </Link>
+          </div>
         )}
       </main>
     )

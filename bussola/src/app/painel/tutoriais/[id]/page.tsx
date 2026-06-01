@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { categoriaPorKey, type PassoTutorial, type CategoriaTutorial } from '@/lib/tutoriais'
+import { categoriaPorKey, CATEGORIAS_TUTORIAL, type PassoTutorial, type CategoriaTutorial } from '@/lib/tutoriais'
 import TutorialClient from './TutorialClient'
 
 export const dynamic = 'force-dynamic'
@@ -19,7 +19,7 @@ export default async function TutorialPage({ params }: { params: { id: string } 
 
   const { data: t } = await supabase
     .from('tutoriais')
-    .select('id, categoria, titulo, descricao_curta, ativo')
+    .select('id, categoria, titulo, descricao_curta, ativo, ordem')
     .eq('id', params.id)
     .maybeSingle()
   if (!t || !t.ativo) notFound()
@@ -45,29 +45,57 @@ export default async function TutorialPage({ params }: { params: { id: string } 
     .eq('tutorial_id', params.id)
     .maybeSingle()
 
-  // Próximo tutorial da mesma categoria pra sugerir ao concluir.
-  const { data: proximo } = await supabase
+  // Próximo tutorial: primeiro NÃO LIDO depois do atual na ordem global
+  // (categoria → ordem). Se não houver nenhum à frente, volta procurando
+  // do começo até o atual. Se nenhum não-lido sobrou, retorna null e o
+  // cliente mostra "concluiu todos".
+  const { data: todosTuts } = await supabase
     .from('tutoriais')
-    .select('id, titulo, ordem')
+    .select('id, titulo, categoria, ordem')
     .eq('ativo', true)
-    .eq('categoria', t.categoria)
-    .gt('ordem', 0)
-    .neq('id', t.id)
-    .order('ordem', { ascending: true })
-    .limit(50)
-  const proxLista = (proximo ?? []) as { id: string; titulo: string; ordem: number }[]
+  const { data: lidosAll } = await supabase
+    .from('tutoriais_lidos')
+    .select('tutorial_id')
+    .eq('estabelecimento_id', est.id)
+  const lidosSet = new Set((lidosAll ?? []).map((l) => l.tutorial_id as string))
+
+  const ordemCategorias = CATEGORIAS_TUTORIAL.map((c) => c.key as string)
+  const ordenados = [...(todosTuts ?? [])].sort((a, b) => {
+    const ca = ordemCategorias.indexOf(a.categoria as string)
+    const cb = ordemCategorias.indexOf(b.categoria as string)
+    if (ca !== cb) return ca - cb
+    return (a.ordem as number) - (b.ordem as number)
+  })
+  const idxAtual = ordenados.findIndex((c) => c.id === t.id)
+
+  let proximo: { id: string; titulo: string } | null = null
+  for (let i = idxAtual + 1; i < ordenados.length; i++) {
+    if (!lidosSet.has(ordenados[i].id as string)) {
+      proximo = { id: ordenados[i].id as string, titulo: ordenados[i].titulo as string }
+      break
+    }
+  }
+  if (!proximo) {
+    for (let i = 0; i < idxAtual; i++) {
+      if (!lidosSet.has(ordenados[i].id as string)) {
+        proximo = { id: ordenados[i].id as string, titulo: ordenados[i].titulo as string }
+        break
+      }
+    }
+  }
 
   const cat = categoriaPorKey(t.categoria as string)
 
   return (
     <TutorialClient
+      key={t.id as string}
       id={t.id as string}
       titulo={t.titulo as string}
       categoriaNome={cat?.nome ?? '—'}
       categoria={t.categoria as CategoriaTutorial}
       passos={passos}
       jaConcluido={!!lido}
-      proximos={proxLista.map((p) => ({ id: p.id, titulo: p.titulo }))}
+      proximo={proximo}
     />
   )
 }
