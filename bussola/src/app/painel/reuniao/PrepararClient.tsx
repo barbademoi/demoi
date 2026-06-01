@@ -54,6 +54,7 @@ interface Props {
   feedbacksCliente?: FbClienteSemana[]
   mostrarResumo: boolean
   periodoLabel?: string
+  primeiraReuniao?: boolean
 }
 
 const MOMENTO_META: Record<Momento, { titulo: string; icon: LucideIcon; cor: string }> = {
@@ -65,7 +66,7 @@ const MOMENTO_META: Record<Momento, { titulo: string; icon: LucideIcon; cor: str
 
 const MOMENTOS_PAUTA: Momento[] = ['reconhecimento', 'equipe', 'ajuste', 'neutro']
 
-export default function PrepararClient({ reuniaoId, dataReuniaoLabel, observacoes, feedbacksCliente, mostrarResumo, periodoLabel = 'esta semana' }: Props) {
+export default function PrepararClient({ reuniaoId, dataReuniaoLabel, observacoes, feedbacksCliente, mostrarResumo, periodoLabel = 'pendentes', primeiraReuniao = false }: Props) {
   const router = useRouter()
   const [obs, setObs] = useState<ObsSemana[]>(observacoes)
   const [classificando, setClassificando] = useState(false)
@@ -157,7 +158,7 @@ export default function PrepararClient({ reuniaoId, dataReuniaoLabel, observacoe
       {feedbacksCliente && feedbacksCliente.length > 0 && (
         <section className="card p-4">
           <h2 className="font-semibold text-text mb-1 inline-flex items-center gap-2">
-            <Star size={18} strokeWidth={1.5} color="#8B6F47" fill="#8B6F47" /> Feedback de clientes {periodoLabel}
+            <Star size={18} strokeWidth={1.5} color="#8B6F47" fill="#8B6F47" /> Feedback de clientes ainda não tratados
           </h2>
           <p className="text-xs text-chumbo mb-3">
             {feedbacksCliente.length} feedback{feedbacksCliente.length === 1 ? '' : 's'} ·
@@ -266,7 +267,9 @@ export default function PrepararClient({ reuniaoId, dataReuniaoLabel, observacoe
 
       {obs.length === 0 && (
         <div className="card p-6 text-center text-chumbo text-sm">
-          Nenhuma observação registrada {periodoLabel}. Você pode conduzir a reunião mesmo assim — vai entrar nos
+          {primeiraReuniao
+            ? 'Nenhuma observação pendente. Esta é sua primeira reunião — você pode conduzir mesmo assim, vai entrar nos'
+            : 'Nenhuma observação pendente desde a última reunião. Você pode conduzir a reunião mesmo assim — vai entrar nos'}
           momentos que não dependem de observações.
         </div>
       )}

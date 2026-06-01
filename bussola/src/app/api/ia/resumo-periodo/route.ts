@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { temChaveIA, gerarTexto } from '@/utils/anthropic'
 import { systemResumo } from '@/lib/iaPrompts'
-import { intervalo } from '@/lib/periodos'
+import { ultimaReuniaoConcluidaIso } from '@/lib/loadCadencia'
 import { donoEstab } from '../helpers'
 
 interface FbResumo {
@@ -12,6 +12,8 @@ interface FbResumo {
   profissionais: { nome: string } | null
 }
 
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+
 export async function POST(req: Request) {
   if (!temChaveIA()) return NextResponse.json({ error: 'IA não configurada.' }, { status: 503 })
 
@@ -20,9 +22,7 @@ export async function POST(req: Request) {
   const { supabase, est } = await donoEstab()
   if (!est) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
-  const periodoLabel = 'esta semana'
-
-  // Cache de 1 hora (mesmo tipo do antigo pra dividir cache).
+  // Cache de 1 hora (mesma chave do antigo).
   if (!regenerar) {
     const umaHoraAtras = new Date(Date.now() - 60 * 60 * 1000).toISOString()
     const { data: cache } = await supabase
@@ -37,18 +37,35 @@ export async function POST(req: Request) {
     if (cache) return NextResponse.json({ resumo: cache.conteudo, cached: true })
   }
 
-  const semana = intervalo('semana')
+  // Observações PENDENTES (pauta a discutir), sem filtro de data.
   const { data } = await supabase
     .from('feedbacks')
     .select('profissional_id, escopo, categoria, texto, profissionais(nome)')
     .eq('estabelecimento_id', est.id)
+    .eq('status', 'pendente')
     .is('deletado_em', null)
-    .gte('created_at', semana.inicio.toISOString())
-    .lte('created_at', semana.fim.toISOString())
   const fbs = (data ?? []) as unknown as FbResumo[]
 
+  // Contexto temporal pro prompt: desde a última reunião ou desde o início.
+  const ultIso = await ultimaReuniaoConcluidaIso(supabase, est.id)
+  let contextoPeriodo: string
+  let contextoLabel: string
+  if (ultIso) {
+    const d = new Date(ultIso)
+    contextoPeriodo = `Desde a última reunião em ${d.getDate()} de ${MESES[d.getMonth()]}`
+    contextoLabel = 'desde a última reunião'
+  } else {
+    contextoPeriodo = 'Desde o início do uso da Bússola — esta é a primeira reunião'
+    contextoLabel = 'desde que você começou'
+  }
+
   if (fbs.length === 0) {
-    return NextResponse.json({ resumo: `Nenhuma observação registrada ${periodoLabel} ainda.`, cached: false })
+    return NextResponse.json({
+      resumo: ultIso
+        ? 'Nenhuma observação pendente desde a última reunião.'
+        : 'Nenhuma observação registrada ainda. Quando você começar a registrar, o resumo aparece aqui.',
+      cached: false,
+    })
   }
 
   const ind = fbs.filter((f) => f.escopo === 'individual')
@@ -67,7 +84,8 @@ export async function POST(req: Request) {
   const cats = Object.entries(catFreq).sort((a, b) => b[1] - a[1]).slice(0, 3)
 
   const linhas: string[] = []
-  linhas.push(`Total de observações ${periodoLabel}: ${fbs.length} (${ind.length} individuais, ${eq.length} sobre a equipe).`)
+  linhas.push(`Período: ${contextoPeriodo}.`)
+  linhas.push(`Total de observações ${contextoLabel}: ${fbs.length} (${ind.length} individuais, ${eq.length} sobre a equipe).`)
   if (top.length) linhas.push(`Volume por colaborador: ${top.map(([n, c]) => `${n} (${c})`).join(', ')}.`)
   if (cats.length) linhas.push(`Categorias mais frequentes: ${cats.map(([c, n]) => `${c} (${n})`).join(', ')}.`)
   linhas.push('')
@@ -81,10 +99,13 @@ export async function POST(req: Request) {
     for (const f of eq.slice(0, 15)) linhas.push(`- ${f.texto}`)
   }
   linhas.push('')
-  linhas.push(`Gere o resumo do período (referência: "${periodoLabel}").`)
+  if (!ultIso) {
+    linhas.push('Como esta é a primeira reunião, abra o resumo mencionando isso de forma natural.')
+  }
+  linhas.push('Gere o resumo do período.')
 
   try {
-    const res = await gerarTexto(systemResumo(est.config.tom), linhas.join('\n'), 200)
+    const res = await gerarTexto(systemResumo(est.config.tom), linhas.join('\n'), 220)
     const resumo = res.texto
       .replace(/\*+/g, '')
       .replace(/^\s*resumo[:\s-]*/i, '')

@@ -3,7 +3,6 @@ import { createClient } from '@/utils/supabase/server'
 import { semanaRef } from '@/lib/periodos'
 import { proximaReuniao, labelPeriodo, labelProximoPeriodo, labelPeriodoAnterior } from '@/lib/cadencia'
 import { loadCadenciaConfig, ultimaReuniaoConcluidaIso } from '@/lib/loadCadencia'
-import { janelaObservacoesAtual } from '@/lib/janelaObservacoes'
 import type { MetaSemanal, PautaReuniao, Reuniao } from '@/lib/pauta'
 import { principioDaSemana } from '@/lib/principios'
 import ConduzirClient, { type ObsItem } from './ConduzirClient'
@@ -42,17 +41,17 @@ export default async function ConduzirPage({ params }: { params: { id: string } 
   const proximoLabel = labelProximoPeriodo(cadCfg.cadencia)
   const anteriorLabel = labelPeriodoAnterior(cadCfg.cadencia)
 
-  // Janela dinâmica: desde a última reunião concluída.
-  const janela = await janelaObservacoesAtual(supabase, est.id as string)
-
-  const { data: fbData } = await supabase
+  // Observações pendentes + as que já foram marcadas pra esta reunião em
+  // andamento (caso a página recarregue, não some o que foi marcado).
+  const idsNaPauta = Object.keys((pauta.decisoes ?? {}))
+  const queryFb = supabase
     .from('feedbacks')
     .select('id, profissional_id, escopo, texto, categoria, status, momento_reuniao, sugestao_ia, profissionais(nome, foto_url)')
     .eq('estabelecimento_id', est.id)
     .is('deletado_em', null)
-    .gte('created_at', janela.inicio.toISOString())
-    .lte('created_at', janela.fim.toISOString())
-    .order('created_at', { ascending: false })
+  const { data: fbData } = idsNaPauta.length > 0
+    ? await queryFb.or(`status.eq.pendente,id.in.(${idsNaPauta.join(',')})`).order('created_at', { ascending: true })
+    : await queryFb.eq('status', 'pendente').order('created_at', { ascending: true })
   const observacoes = (fbData ?? []) as unknown as ObsItem[]
 
   const { data: ativosData } = await supabase

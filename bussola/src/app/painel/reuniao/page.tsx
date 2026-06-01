@@ -1,12 +1,13 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { intervalo } from '@/lib/periodos'
 import { proximaReuniao } from '@/lib/cadencia'
 import { loadCadenciaConfig, ultimaReuniaoConcluidaIso } from '@/lib/loadCadencia'
 import type { PautaReuniao, Reuniao } from '@/lib/pauta'
 import PrepararClient, { type FbClienteSemana, type ObsSemana } from './PrepararClient'
 
 export const dynamic = 'force-dynamic'
+
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 
 export default async function PrepararReuniaoPage() {
   const supabase = createClient()
@@ -25,9 +26,6 @@ export default async function PrepararReuniaoPage() {
   const cadCfg = await loadCadenciaConfig(supabase, est.id as string)
   const ultIso = await ultimaReuniaoConcluidaIso(supabase, est.id as string)
   const prox = proximaReuniao(cadCfg, ultIso)
-  // Pauta da reunião usa semana corrente (comportamento clássico) — evita
-  // esconder observações registradas antes da última reunião concluída.
-  const periodoLabel = 'esta semana'
 
   // Reunião planejada mais próxima; cria se não existir.
   let reuniao: Reuniao | null = null
@@ -52,30 +50,36 @@ export default async function PrepararReuniaoPage() {
     reuniao = nova as Reuniao
   }
 
-  const semana = intervalo('semana')
-
+  // Observações pendentes (status='pendente'), sem filtro de data — mais
+  // antigas primeiro pra dono lembrar do contexto.
   const { data: fbData } = await supabase
     .from('feedbacks')
     .select('id, profissional_id, escopo, texto, categoria, momento_reuniao, created_at, profissionais(nome, foto_url)')
     .eq('estabelecimento_id', est.id)
+    .eq('status', 'pendente')
     .is('deletado_em', null)
-    .gte('created_at', semana.inicio.toISOString())
-    .lte('created_at', semana.fim.toISOString())
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: true })
   const observacoes = (fbData ?? []) as unknown as ObsSemana[]
 
+  // Feedbacks de cliente ainda não compartilhados/arquivados, sem filtro de data.
   let fbCliente: FbClienteSemana[] = []
   try {
     const { data: fcData } = await supabase
       .from('feedbacks_cliente')
-      .select('id, profissional_id, estrelas, comentario, created_at, profissionais(nome, foto_url)')
+      .select('id, profissional_id, estrelas, comentario, created_at, profissionais(nome, foto_url), status')
       .eq('estabelecimento_id', est.id)
-      .gte('created_at', semana.inicio.toISOString())
-      .lte('created_at', semana.fim.toISOString())
-      .order('created_at', { ascending: false })
+      .in('status', ['novo', 'lido'])
+      .order('created_at', { ascending: true })
     fbCliente = (fcData ?? []) as unknown as FbClienteSemana[]
   } catch {
     fbCliente = []
+  }
+
+  // Contexto pro label: desde a última reunião concluída ou desde o início.
+  let contextoLabel = 'pendentes'
+  if (ultIso) {
+    const d = new Date(ultIso)
+    contextoLabel = `desde a última reunião (${d.getDate()} de ${MESES[d.getMonth()]})`
   }
 
   return (
@@ -86,7 +90,8 @@ export default async function PrepararReuniaoPage() {
       observacoes={observacoes}
       feedbacksCliente={fbCliente}
       mostrarResumo={mostrarResumo}
-      periodoLabel={periodoLabel}
+      periodoLabel={contextoLabel}
+      primeiraReuniao={!ultIso}
     />
   )
 }
