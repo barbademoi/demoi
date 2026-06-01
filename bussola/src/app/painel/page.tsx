@@ -6,6 +6,7 @@ import FeedbackItem from '@/components/FeedbackItem'
 import AtividadeItem, { type AtividadeFb } from '@/components/AtividadeItem'
 import MarcarVisto from './MarcarVisto'
 import BotaoInstalarPWA from '@/components/BotaoInstalarPWA'
+import CardAprendaBussola from './CardAprendaBussola'
 import { proximaReuniao } from '@/lib/reuniao'
 import { intervalo } from '@/lib/periodos'
 import type { FeedbackComProfissional } from '@/lib/feedbacks'
@@ -123,6 +124,28 @@ export default async function PainelPage() {
     })
     .slice(0, 10)
 
+  // Progresso de tutoriais "Primeiros Passos" — pra decidir se mostra card na Home.
+  let mostrarCardTutoriais = false
+  try {
+    const { data: pp } = await supabase
+      .from('tutoriais')
+      .select('id')
+      .eq('ativo', true)
+      .eq('categoria', 'primeiros_passos')
+    const idsPP = (pp ?? []).map((t) => t.id as string)
+    if (idsPP.length > 0) {
+      const { data: lidosPP } = await supabase
+        .from('tutoriais_lidos')
+        .select('tutorial_id')
+        .eq('estabelecimento_id', estabelecimento.id)
+        .in('tutorial_id', idsPP)
+      const concluidos = (lidosPP ?? []).length
+      mostrarCardTutoriais = concluidos / idsPP.length < 0.5
+    }
+  } catch {
+    /* Migration 016 não rodada — não mostra o card. */
+  }
+
   // Resumo de feedbacks de cliente (se a feature está ativa).
   let resumoCliente: { totalSemana: number; media: number; novos: number } | null = null
   if (estabelecimento.feedback_cliente_ativo) {
@@ -140,6 +163,8 @@ export default async function PainelPage() {
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-6 space-y-6 animate-fade-in">
+      {mostrarCardTutoriais && <CardAprendaBussola />}
+
       {/* CARD PRÓXIMA REUNIÃO */}
       <div className={`rounded-lg border p-5 bg-surface shadow-suave ${cardClasse}`}>
         <div className="flex items-start justify-between gap-3">
