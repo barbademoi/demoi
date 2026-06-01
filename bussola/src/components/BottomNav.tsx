@@ -15,6 +15,7 @@ import {
   LogOut,
   Star,
   X,
+  BookOpen,
   type LucideIcon,
 } from 'lucide-react'
 import { sair } from '@/app/painel/actions'
@@ -35,6 +36,7 @@ const SECUNDARIOS: Item[] = [
   { href: '/painel/reuniao', label: 'Preparar Reunião', icon: ClipboardList },
   { href: '/painel/feedbacks-cliente', label: 'Feedback de Clientes', icon: Star },
   { href: '/painel/historico-reunioes', label: 'Histórico', icon: History },
+  { href: '/painel/tutoriais', label: 'Tutoriais', icon: BookOpen },
   { href: '/painel/configuracoes', label: 'Configurações', icon: Settings },
 ]
 

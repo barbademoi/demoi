@@ -14,6 +14,7 @@ import {
   ChevronUp,
   LogOut,
   Star,
+  BookOpen,
   type LucideIcon,
 } from 'lucide-react'
 import { sair } from '@/app/painel/actions'
@@ -33,6 +34,7 @@ const ITENS: Item[] = [
   { href: '/painel/atividade', label: 'Atividade da Equipe', icon: Inbox },
   { href: '/painel/feedbacks-cliente', label: 'Feedback de Clientes', icon: Star },
   { href: '/painel/historico-reunioes', label: 'Histórico', icon: History },
+  { href: '/painel/tutoriais', label: 'Tutoriais', icon: BookOpen },
 ]
 
 function iniciais(nome: string): string {
