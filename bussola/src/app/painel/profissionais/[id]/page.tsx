@@ -12,6 +12,7 @@ import LinkProfissional from './LinkProfissional'
 import CompetenciasEditor from './CompetenciasEditor'
 import PerfilIAEditor from './PerfilIAEditor'
 import FeedbacksList from './FeedbacksList'
+import { appUrlFromHost } from '@/lib/urlBase'
 
 export default async function PerfilProfissionalPage({
   params,
@@ -33,9 +34,7 @@ export default async function PerfilProfissionalPage({
   if (!data) notFound()
   const p = data as Profissional
 
-  const host = headers().get('host') ?? ''
-  const proto = host.includes('localhost') ? 'http' : 'https'
-  const urlPublica = `${proto}://${host}/p/${p.slug}`
+  const urlPublica = `${appUrlFromHost(headers().get('host'))}/p/${p.slug}`
 
   const tempo = tempoDeCasa(p.data_entrada)
   const destaque = searchParams.novo === '1'

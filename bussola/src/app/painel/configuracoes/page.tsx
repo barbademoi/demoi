@@ -10,6 +10,7 @@ import LimpezaSection from './LimpezaSection'
 import LogoSection from './LogoSection'
 import CadenciaSection from './CadenciaSection'
 import type { Cadencia } from '@/lib/cadencia'
+import { appUrlFromHost } from '@/lib/urlBase'
 
 export const dynamic = 'force-dynamic'
 
@@ -93,9 +94,7 @@ export default async function ConfiguracoesPage() {
   if (brindesData) brindes = brindesData as BrindeUI[]
 
   const h = headers()
-  const host = h.get('host') ?? ''
-  const proto = host.includes('localhost') ? 'http' : 'https'
-  const origem = `${proto}://${host}`
+  const origem = appUrlFromHost(h.get('host'))
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-6 space-y-4 animate-fade-in">

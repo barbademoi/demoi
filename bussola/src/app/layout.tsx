@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import '@fontsource/dm-serif-display'
 import './globals.css'
+import { APP_URL } from '@/lib/urlBase'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -11,8 +12,25 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Bússola',
-  description: 'Mentor de reuniões com IA para gestores de equipe',
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: 'Bússola — Reuniões com clareza',
+    template: '%s | Bússola',
+  },
+  description: 'Mentor de reuniões semanais com IA pra empresas pequenas e médias.',
+  openGraph: {
+    title: 'Bússola',
+    description: 'Mentor de reuniões semanais com IA',
+    url: APP_URL,
+    siteName: 'Bússola',
+    locale: 'pt_BR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Bússola',
+    description: 'Mentor de reuniões semanais com IA',
+  },
 }
 
 export const viewport: Viewport = {

@@ -4,8 +4,9 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Bússola',
     short_name: 'Bússola',
-    description: 'Mentor de reuniões com IA para gestores de equipe',
+    description: 'Mentor de reuniões semanais com IA',
     start_url: '/',
+    scope: '/',
     display: 'standalone',
     background_color: '#F5F1EA',
     theme_color: '#8B6F47',

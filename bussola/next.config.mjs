@@ -8,6 +8,26 @@ const nextConfig = {
       },
     ],
   },
+  // Em produção (Vercel), força tráfego que chega pelo subdomínio
+  // *.vercel.app pro domínio canônico bussolameet.com.br. Em deploys
+  // preview (VERCEL_ENV === 'preview') NÃO redireciona — assim os
+  // PR previews continuam acessíveis pela URL .vercel.app deles.
+  async redirects() {
+    if (process.env.VERCEL_ENV !== 'production') return []
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: '(?<sub>.*)\\.vercel\\.app',
+          },
+        ],
+        destination: 'https://bussolameet.com.br/:path*',
+        permanent: true,
+      },
+    ]
+  },
   // Rotas autenticadas não devem ser cacheadas pelo navegador.
   async headers() {
     const NO_CACHE = [

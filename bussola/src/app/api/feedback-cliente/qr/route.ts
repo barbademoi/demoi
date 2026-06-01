@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import QRCode from 'qrcode'
 import { createClient } from '@/utils/supabase/server'
+import { appUrlFromHost } from '@/lib/urlBase'
 
 // Gera o QR Code do link público da empresa em PNG. Só dono autenticado da
 // empresa pode baixar.
@@ -18,8 +19,8 @@ export async function GET(req: Request) {
     return new NextResponse('Slug indisponível', { status: 404 })
   }
 
-  const url = new URL(req.url)
-  const base = `${url.protocol}//${url.host}`
+  const reqUrl = new URL(req.url)
+  const base = appUrlFromHost(reqUrl.host)
   const alvo = `${base}/c/${est.link_feedback_cliente_slug}`
 
   const png = await QRCode.toBuffer(alvo, {
