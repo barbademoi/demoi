@@ -17,7 +17,7 @@ export default function AtividadeItem({ a }: { a: AtividadeFb }) {
   const nome = a.profissionais?.nome ?? '—'
   const trecho = a.texto.length > 60 ? `${a.texto.slice(0, 60)}…` : a.texto
   const Icon = respondeu ? MessageCircle : CheckCircle2
-  const acao = respondeu ? 'respondeu a uma observação' : 'leu uma observação'
+  const acao = respondeu ? 'respondeu a uma observação' : 'visualizou uma observação'
 
   return (
     <div className="card p-3 flex items-start gap-3">

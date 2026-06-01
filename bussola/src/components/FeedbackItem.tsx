@@ -83,11 +83,11 @@ export default function FeedbackItem({
                 </span>
               ) : feedback.lido_em ? (
                 <span className="inline-flex items-center gap-1 text-verde-musgo">
-                  · <CheckCircle2 size={13} strokeWidth={1.5} /> Lido
+                  · <CheckCircle2 size={13} strokeWidth={1.5} /> Visto
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-chumbo">
-                  · <Eye size={13} strokeWidth={1.5} /> Não leu
+                  · <Eye size={13} strokeWidth={1.5} /> Não visualizou
                 </span>
               )
             )}

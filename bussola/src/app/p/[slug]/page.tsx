@@ -4,6 +4,7 @@ import { createAdminClient } from '@/utils/supabase/admin'
 import Avatar from '@/components/Avatar'
 import BotaoInstalarPWA from '@/components/BotaoInstalarPWA'
 import Timeline, { type ItemElogio } from './Timeline'
+import FeedbacksCliente, { type ItemFeedbackCliente } from './FeedbacksCliente'
 import AutoRefresh from './AutoRefresh'
 import RegistraSW from './RegistraSW'
 
@@ -46,29 +47,52 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
     .maybeSingle()
   if (!prof || prof.status === 'desligado') return <TelaInvalida />
 
-  // Tenta com logo_url; cai pro select básico se a migration 015 não rodou.
-  let estab: { nome: string; logo_url: string | null } | null = null
+  // Tenta com logo_url/dono_id; cai pro select básico se a migration 015 não rodou.
+  let estab: { nome: string; logo_url: string | null; dono_id: string | null } | null = null
   const estCompleto = await admin
     .from('estabelecimentos')
-    .select('nome, logo_url')
+    .select('nome, logo_url, dono_id')
     .eq('id', prof.estabelecimento_id)
     .maybeSingle()
   if (estCompleto.data) {
     estab = {
       nome: estCompleto.data.nome as string,
       logo_url: (estCompleto.data.logo_url as string | null) ?? null,
+      dono_id: (estCompleto.data.dono_id as string | null) ?? null,
     }
   } else {
     const estMin = await admin
       .from('estabelecimentos')
-      .select('nome')
+      .select('nome, dono_id')
       .eq('id', prof.estabelecimento_id)
       .maybeSingle()
     if (!estMin.data) return <TelaInvalida />
-    estab = { nome: estMin.data.nome as string, logo_url: null }
+    estab = {
+      nome: estMin.data.nome as string,
+      logo_url: null,
+      dono_id: (estMin.data.dono_id as string | null) ?? null,
+    }
   }
 
+  // Nome do gestor (best-effort via auth admin). Fallback: nome da empresa.
+  let nomeGestor: string | null = null
+  if (estab.dono_id) {
+    try {
+      const { data: userResp } = await admin.auth.admin.getUserById(estab.dono_id)
+      const meta = (userResp?.user?.user_metadata ?? {}) as Record<string, unknown>
+      const candidato = (meta.nome ?? meta.full_name ?? meta.name) as unknown
+      if (typeof candidato === 'string' && candidato.trim()) {
+        nomeGestor = candidato.trim().split(/\s+/)[0]
+      }
+    } catch {
+      /* segue com fallback */
+    }
+  }
+  const tituloAnotacoes = nomeGestor ? `Anotações do ${nomeGestor}` : `Anotações da ${estab.nome}`
+
   const agora = new Date().toISOString()
+
+  // Todos os feedbacks visíveis do profissional.
   const { data: fbData } = await admin
     .from('feedbacks')
     .select('id, texto, categoria, created_at, lido_em, resposta_profissional, resposta_em, visivel_profissional_em')
@@ -78,7 +102,37 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
     .not('visivel_profissional_em', 'is', null)
     .lte('visivel_profissional_em', agora)
     .order('created_at', { ascending: false })
-  const itens = (fbData ?? []) as ItemElogio[]
+  const todos = (fbData ?? []) as ItemElogio[]
+
+  // Feedbacks de cliente compartilhados com este colaborador.
+  // Cada um aponta pra uma observação gerada (feedback_gerado_id) — usamos esse
+  // id pra remover a observação correspondente da lista do gestor.
+  let feedbacksCliente: ItemFeedbackCliente[] = []
+  let idsGerados = new Set<string>()
+  try {
+    const { data: fcData } = await admin
+      .from('feedbacks_cliente')
+      .select('id, nome_cliente, identificado, estrelas, comentario, created_at, feedback_gerado_id')
+      .eq('profissional_id', prof.id)
+      .eq('status', 'compartilhado_colaborador')
+      .not('feedback_gerado_id', 'is', null)
+      .order('created_at', { ascending: false })
+    if (fcData) {
+      idsGerados = new Set(fcData.map((f) => f.feedback_gerado_id as string).filter(Boolean))
+      feedbacksCliente = fcData.map((f) => ({
+        id: f.id as string,
+        nome_cliente: (f.nome_cliente as string | null) ?? null,
+        identificado: !!f.identificado,
+        estrelas: f.estrelas as number,
+        comentario: (f.comentario as string | null) ?? null,
+        created_at: f.created_at as string,
+      }))
+    }
+  } catch {
+    /* Migration 012 ausente — sem feedbacks de cliente. */
+  }
+
+  const anotacoes = todos.filter((f) => !idsGerados.has(f.id))
 
   const primeiroNome = prof.nome.split(' ')[0]
 
@@ -111,11 +165,19 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
           {!estab.logo_url && <p className="text-chumbo text-sm">{estab.nome}</p>}
         </div>
 
-        {/* TIMELINE */}
+        {/* SEÇÃO 1 — ANOTAÇÕES DO GESTOR */}
         <section>
-          <h2 className="font-semibold text-text mb-3">Anotações</h2>
-          <Timeline itens={itens} slug={params.slug} />
+          <h2 className="font-semibold text-text mb-3">{tituloAnotacoes}</h2>
+          <Timeline itens={anotacoes} slug={params.slug} />
         </section>
+
+        {/* SEÇÃO 2 — FEEDBACKS DE CLIENTES */}
+        {feedbacksCliente.length > 0 && (
+          <section className="pt-4 border-t border-border">
+            <h2 className="font-semibold text-text mb-3 mt-4">O que os clientes disseram</h2>
+            <FeedbacksCliente itens={feedbacksCliente} />
+          </section>
+        )}
 
         {/* INSTALAR PWA */}
         <div className="flex flex-col items-center gap-2 pt-2">

@@ -67,14 +67,14 @@ function Card({ item, slug }: { item: ItemElogio; slug: string }) {
           className="btn-secondary w-full mt-3 disabled:opacity-60"
         >
           <Check size={18} strokeWidth={1.5} />
-          {enviando ? 'Confirmando…' : 'Recebi'}
+          {enviando ? 'Confirmando…' : 'Visto'}
         </button>
       )}
 
       {lidoEm && !respostaSalva && !mostrarResp && (
         <p className="inline-flex items-center gap-1.5 text-xs text-verde-musgo mt-3">
           <CheckCircle2 size={14} strokeWidth={1.5} />
-          Você confirmou leitura em {dataLonga(lidoEm)}.
+          Você visualizou em {dataLonga(lidoEm)}.
         </p>
       )}
 
