@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { calcProgresso, calcTier } from '@/lib/utils'
-import { cicloAtual, calcDiasUteisCiclo } from '@/lib/ciclo'
+import { cicloAtual, calcDiasUteisCiclo, cicloDeData } from '@/lib/ciclo'
+import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import { gerarInsightsBarbeiro } from '@/lib/insights'
 import { obterMensagemDiaria } from '@/lib/ia-mensagem'
 import { buscarHistoricoMeses } from '@/lib/historicoMeses'
@@ -15,6 +16,7 @@ import type {
 
 interface Props {
   params: { codigo: string }
+  searchParams?: { mes?: string; ano?: string }
 }
 
 // Tela do barbeiro precisa estar sempre em tempo real: comissão, ranking,
@@ -25,7 +27,7 @@ export const dynamic = 'force-dynamic'
 
 type LancamentoComNome = Lancamento & { barbeiros: { nome: string } | null }
 
-export default async function BarbeiroPage({ params }: Props) {
+export default async function BarbeiroPage({ params, searchParams }: Props) {
   const supabase = createClient()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,10 +59,42 @@ export default async function BarbeiroPage({ params }: Props) {
   const diaFechamento = barbearia?.dia_fechamento ?? 1
 
   const hoje = new Date()
-  const ciclo = cicloAtual(diaFechamento, hoje)
-  const mes = ciclo.mesRef
-  const ano = ciclo.anoRef
+  const cicloHoje = cicloAtual(diaFechamento, hoje)
+  const mesAtual = cicloHoje.mesRef
+  const anoAtual = cicloHoje.anoRef
+
+  // Período selecionado via ?mes=X&ano=Y (default = ciclo atual). Floor 2024-01.
+  const mesParam = parseInt(searchParams?.mes ?? '', 10)
+  const anoParam = parseInt(searchParams?.ano ?? '', 10)
+  let mes = mesAtual
+  let ano = anoAtual
+  if (Number.isFinite(mesParam) && Number.isFinite(anoParam)
+      && mesParam >= 1 && mesParam <= 12 && anoParam >= 2024) {
+    mes = mesParam
+    ano = anoParam
+  }
+  const ehPeriodoAtual = mes === mesAtual && ano === anoAtual
+  const ehPeriodoPassado = ano < anoAtual || (ano === anoAtual && mes < mesAtual)
+
+  const ciclo = ehPeriodoAtual
+    ? cicloHoje
+    : cicloDeData(new Date(ano, mes - 1, diaFechamento), diaFechamento)
   const diaAtual = hoje.getDate()
+
+  // Navegação entre meses: piso 2024-01; futuro só se metas existem.
+  const podeVoltar = !(ano === 2024 && mes === 1)
+  let nextMes = mes + 1, nextAno = ano
+  if (nextMes > 12) { nextMes = 1; nextAno += 1 }
+  const nextEhFuturo = nextAno > anoAtual || (nextAno === anoAtual && nextMes > mesAtual)
+  let podeAvancar = !nextEhFuturo
+  if (nextEhFuturo) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: nextMeta } = await (supabase as any)
+      .from('metas').select('id')
+      .eq('barbearia_id', barbeiro.barbearia_id).eq('mes', nextMes).eq('ano', nextAno)
+      .maybeSingle()
+    podeAvancar = !!nextMeta
+  }
 
   // ── Metas ─────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -200,7 +234,9 @@ export default async function BarbeiroPage({ params }: Props) {
     : []
 
   // ── Mensagem IA ────────────────────────────────────────
-  const { diasUteisCorridos, diasUteisRestantes, diasTotaisCiclo, diasRestantesCiclo } = calcDiasUteisCiclo(ciclo.inicio, ciclo.fim, hoje)
+  // Em mês fechado, usa o fim do ciclo como "hoje" pra dias úteis fazerem sentido.
+  const refHoje = ehPeriodoAtual ? hoje : ciclo.fim
+  const { diasUteisCorridos, diasUteisRestantes, diasTotaisCiclo, diasRestantesCiclo } = calcDiasUteisCiclo(ciclo.inicio, ciclo.fim, refHoje)
   const diasCorridos = diasTotaisCiclo - diasRestantesCiclo
   const diasRestantes = diasRestantesCiclo
 
@@ -236,7 +272,30 @@ export default async function BarbeiroPage({ params }: Props) {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6">
+      <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
+        <MonthNavigator
+          mesSel={mes}
+          anoSel={ano}
+          mesAtual={mesAtual}
+          anoAtual={anoAtual}
+          diaFechamento={diaFechamento}
+          podeVoltar={podeVoltar}
+          podeAvancar={podeAvancar}
+          hrefBase={`/b/${params.codigo}`}
+        />
+        {ehPeriodoPassado && (
+          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+            <p className="text-amber-200 text-xs font-sans leading-relaxed">
+              🕒 Histórico de <span className="font-semibold capitalize">{ciclo.label}</span>.
+            </p>
+            <a
+              href={`/b/${params.codigo}`}
+              className="text-amber-200 hover:text-amber-100 text-xs font-sans underline whitespace-nowrap shrink-0"
+            >
+              Voltar ao atual
+            </a>
+          </div>
+        )}
         <BarbeiroClient
           barbeiro={barbeiro}
           barbeariaName={barbearia?.nome ?? ''}
