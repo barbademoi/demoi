@@ -145,6 +145,38 @@ export async function salvarComandasDia(
   return { ok: true }
 }
 
+/**
+ * Busca as comandas (número de atendimentos) de uma data específica, por
+ * barbeiro. Usado pelo seletor de data quando o dono pula pra um dia fora
+ * do ciclo carregado pelo servidor — pra pré-preencher o form.
+ */
+export async function buscarComandasDia(data: string): Promise<
+  { porBarbeiro: Record<string, number> } | { error: string }
+> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: usuario } = await (supabase as any)
+    .from('usuarios').select('barbearia_id').eq('id', user.id).single() as
+    { data: { barbearia_id: string } | null }
+  if (!usuario) return { error: 'Barbearia não encontrada.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: rows } = await (supabase as any)
+    .from('lancamentos_diarios')
+    .select('barbeiro_id, numero_atendimentos')
+    .eq('barbearia_id', usuario.barbearia_id)
+    .eq('data', data)
+
+  const porBarbeiro: Record<string, number> = {}
+  for (const r of (rows ?? []) as { barbeiro_id: string; numero_atendimentos: number }[]) {
+    porBarbeiro[r.barbeiro_id] = Number(r.numero_atendimentos) || 0
+  }
+  return { porBarbeiro }
+}
+
 interface AcumuladoItem {
   barbeiro_id: string
   comissao_acumulada: number
