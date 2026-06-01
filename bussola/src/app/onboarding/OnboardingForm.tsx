@@ -91,12 +91,48 @@ export default function OnboardingForm() {
       </div>
 
       <div>
-        <label htmlFor="dia_reuniao" className="label">Dia da reunião semanal</label>
+        <label className="label">Cadência das reuniões</label>
+        <div className="grid grid-cols-2 gap-2">
+          {([
+            { v: 'diaria', label: 'Diária' },
+            { v: 'semanal', label: 'Semanal' },
+            { v: 'quinzenal', label: 'Quinzenal' },
+            { v: 'mensal', label: 'Mensal' },
+          ] as { v: string; label: string }[]).map((c) => (
+            <label key={c.v} className="flex items-center gap-2 rounded-md border border-border p-3 cursor-pointer has-[:checked]:border-marrom has-[:checked]:bg-linho/40">
+              <input
+                type="radio"
+                name="cadencia_reuniao"
+                value={c.v}
+                defaultChecked={c.v === 'semanal'}
+                className="accent-marrom"
+              />
+              <span className="text-sm text-text">{c.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="dia_reuniao" className="label">Dia da semana <span className="text-chumbo font-normal">(semanal / quinzenal)</span></label>
         <select id="dia_reuniao" name="dia_reuniao" defaultValue={1} className="input">
           {DIAS.map((d) => (
             <option key={d.valor} value={d.valor}>{d.label}</option>
           ))}
         </select>
+      </div>
+
+      <div>
+        <label htmlFor="dia_mes_reuniao" className="label">Dia do mês <span className="text-chumbo font-normal">(apenas mensal, 1-31)</span></label>
+        <input
+          id="dia_mes_reuniao"
+          name="dia_mes_reuniao"
+          type="number"
+          min={1}
+          max={31}
+          defaultValue={1}
+          className="input"
+        />
       </div>
 
       <div>

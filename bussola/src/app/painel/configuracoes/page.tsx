@@ -8,6 +8,8 @@ import ConfiguracoesClient from './ConfiguracoesClient'
 import FeedbackClienteSection, { type BrindeUI } from './FeedbackClienteSection'
 import LimpezaSection from './LimpezaSection'
 import LogoSection from './LogoSection'
+import CadenciaSection from './CadenciaSection'
+import type { Cadencia } from '@/lib/cadencia'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,6 +56,33 @@ export default async function ConfiguracoesPage() {
     logoUrl = (logo.data.logo_url as string | null) ?? null
   }
 
+  // 3.5) Cadência (migration 017) — resiliente se ainda não rodou.
+  let cadInicial = {
+    cadencia: 'semanal' as Cadencia,
+    dia_reuniao: 1 as number | null,
+    hora_reuniao: '09:00',
+    dia_mes_reuniao: null as number | null,
+    incluir_domingos: false,
+  }
+  try {
+    const cd = await supabase
+      .from('estabelecimentos')
+      .select('cadencia_reuniao, dia_reuniao, hora_reuniao, dia_mes_reuniao, incluir_domingos')
+      .eq('id', estabId)
+      .maybeSingle()
+    if (cd.data) {
+      cadInicial = {
+        cadencia: ((cd.data.cadencia_reuniao as string) ?? 'semanal') as Cadencia,
+        dia_reuniao: (cd.data.dia_reuniao as number | null) ?? 1,
+        hora_reuniao: (cd.data.hora_reuniao as string | null) ?? '09:00',
+        dia_mes_reuniao: (cd.data.dia_mes_reuniao as number | null) ?? null,
+        incluir_domingos: !!cd.data.incluir_domingos,
+      }
+    }
+  } catch {
+    /* migration 017 ainda não rodou — usa defaults */
+  }
+
   // 4) Brindes (migration 012) — fallback pra array vazio.
   let brindes: BrindeUI[] = []
   const { data: brindesData } = await supabase
@@ -72,6 +101,7 @@ export default async function ConfiguracoesPage() {
     <main className="max-w-2xl mx-auto px-4 py-6 space-y-4 animate-fade-in">
       <h1 className="text-xl font-semibold text-text">Configurações</h1>
       <LogoSection estabelecimentoId={estabId} nomeEmpresa={nomeEmpresa} logoInicial={logoUrl} />
+      <CadenciaSection inicial={cadInicial} />
       <ConfiguracoesClient inicial={config} />
       <FeedbackClienteSection
         ativo={feedbackClienteAtivo}

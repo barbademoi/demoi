@@ -11,6 +11,10 @@ export async function criarEstabelecimento(formData: FormData) {
   const tamanhoEquipe = (formData.get('tamanho_equipe') as string)?.trim() || null
   const diaReuniao = parseInt(formData.get('dia_reuniao') as string, 10)
   const horaReuniao = (formData.get('hora_reuniao') as string) || '09:00'
+  const cadenciaIn = (formData.get('cadencia_reuniao') as string) || 'semanal'
+  const cadencia = ['diaria', 'semanal', 'quinzenal', 'mensal'].includes(cadenciaIn) ? cadenciaIn : 'semanal'
+  const diaMesRaw = parseInt(formData.get('dia_mes_reuniao') as string, 10)
+  const diaMes = !Number.isNaN(diaMesRaw) && diaMesRaw >= 1 && diaMesRaw <= 31 ? diaMesRaw : 1
 
   if (!nome) {
     return { error: 'Informe o nome da empresa.' }
@@ -33,7 +37,14 @@ export async function criarEstabelecimento(formData: FormData) {
       dia_reuniao: Number.isNaN(diaReuniao) ? 1 : diaReuniao,
       hora_reuniao: horaReuniao,
     }
-    let { error } = await supabase.from('estabelecimentos').insert({ ...base, setor, tamanho_equipe: tamanhoEquipe })
+    // Tenta inserir tudo (com cadência + setor). Se cadencia_reuniao não existe
+    // (migration 017 não rodada), tenta sem ela. Mesmo padrão pra setor (migration 010).
+    const completo = { ...base, setor, tamanho_equipe: tamanhoEquipe, cadencia_reuniao: cadencia, dia_mes_reuniao: cadencia === 'mensal' ? diaMes : null }
+    let { error } = await supabase.from('estabelecimentos').insert(completo)
+    if (error) {
+      const semCad = await supabase.from('estabelecimentos').insert({ ...base, setor, tamanho_equipe: tamanhoEquipe })
+      error = semCad.error
+    }
     if (error) {
       const tentativa = await supabase.from('estabelecimentos').insert(base)
       error = tentativa.error
