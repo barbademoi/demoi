@@ -83,6 +83,10 @@ interface Props {
   ehPeriodoAtual: boolean
   ehPeriodoPassado: boolean
   monthNavigatorSlot: React.ReactNode
+  // Travamento "Mês fechado"
+  mesFechado: boolean
+  mesFechadoEm: string | null
+  fecharMesSlot: React.ReactNode
 }
 
 export default function DashboardShell({
@@ -101,6 +105,7 @@ export default function DashboardShell({
   barbeariaLogoUrl,
   mostrarTicketMedio,
   ehPeriodoAtual, ehPeriodoPassado, monthNavigatorSlot,
+  mesFechado, mesFechadoEm, fecharMesSlot,
 }: Props) {
   const [showConfig, setShowConfig] = useState(false)
 
@@ -161,17 +166,30 @@ export default function DashboardShell({
           <>
             <div className="max-w-5xl mx-auto px-4 pt-6 pb-2 space-y-3">
               {monthNavigatorSlot}
-              {ehPeriodoPassado && (
-                <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+
+              {mesFechado && (
+                <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/40">
+                  <p className="text-amber-200 text-xs font-sans leading-relaxed">
+                    🔒 <span className="font-semibold capitalize">{cicloLabel}</span> está fechado{mesFechadoEm ? ` desde ${new Date(mesFechadoEm).toLocaleDateString('pt-BR')}` : ''}. Edições bloqueadas.
+                  </p>
+                  {fecharMesSlot}
+                </div>
+              )}
+
+              {!mesFechado && ehPeriodoPassado && (
+                <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex-wrap">
                   <p className="text-amber-200 text-xs font-sans leading-relaxed">
                     ⚠️ Você está editando <span className="font-semibold capitalize">{cicloLabel}</span>. As alterações afetam o histórico deste período.
                   </p>
-                  <a
-                    href="/dashboard"
-                    className="text-amber-200 hover:text-amber-100 text-xs font-sans underline whitespace-nowrap shrink-0"
-                  >
-                    Voltar ao atual
-                  </a>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {fecharMesSlot}
+                    <a
+                      href="/dashboard"
+                      className="text-amber-200 hover:text-amber-100 text-xs font-sans underline whitespace-nowrap"
+                    >
+                      Voltar ao atual
+                    </a>
+                  </div>
                 </div>
               )}
             </div>

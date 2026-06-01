@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { estaFechado } from '@/lib/mesFechado'
 
 interface ComandaItem {
   barbeiro_id: string
@@ -41,6 +42,9 @@ export async function salvarComandasDia(
   const [anoStr, mesStr] = data.split('-')
   const mes = parseInt(mesStr)
   const ano = parseInt(anoStr)
+
+  const trava = await estaFechado(supabase, barbearia_id, mes, ano)
+  if (trava.fechado) return { error: 'Mês fechado. Reabra antes de lançar.' }
 
   // ── 1. Comandas anteriores do dia (pra calcular delta) ────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -215,6 +219,9 @@ export async function definirAcumuladoMes(
   if (!usuario) return { error: 'Barbearia não encontrada.' }
 
   const { barbearia_id } = usuario
+
+  const trava = await estaFechado(supabase, barbearia_id, mes, ano)
+  if (trava.fechado) return { error: 'Mês fechado. Reabra antes de editar.' }
 
   // 1. Upsert comissão + atendimentos acumulados por barbeiro
   const rowsLanc = itens.map(it => ({

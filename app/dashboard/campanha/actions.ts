@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { estaFechado } from '@/lib/mesFechado'
 import type { ModoPontos } from '@/types/database'
 
 export async function salvarModoMes(modo: ModoPontos, mes: number, ano: number) {
@@ -13,6 +14,9 @@ export async function salvarModoMes(modo: ModoPontos, mes: number, ano: number) 
   const { data: usuario } = await (supabase as any)
     .from('usuarios').select('barbearia_id').eq('id', user.id).single() as { data: { barbearia_id: string } | null }
   if (!usuario) return { error: 'Barbearia não encontrada.' }
+
+  const trava = await estaFechado(supabase, usuario.barbearia_id, mes, ano)
+  if (trava.fechado) return { error: 'Mês fechado. Reabra antes de editar.' }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
@@ -46,6 +50,9 @@ export async function salvarCampanha(params: {
   const { data: usuario } = await (supabase as any)
     .from('usuarios').select('barbearia_id').eq('id', user.id).single() as { data: { barbearia_id: string } | null }
   if (!usuario) return { error: 'Barbearia não encontrada.' }
+
+  const trava = await estaFechado(supabase, usuario.barbearia_id, params.mes, params.ano)
+  if (trava.fechado) return { error: 'Mês fechado. Reabra antes de editar.' }
 
   // Upsert campanha
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
