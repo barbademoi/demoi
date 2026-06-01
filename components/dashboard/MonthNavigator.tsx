@@ -10,6 +10,20 @@ interface Props {
   podeVoltar: boolean
   podeAvancar: boolean
   hrefBase: string  // ex: '/dashboard' ou '/b/abc'
+  /** Query params extras a preservar (ex: { tipo: 'resultado' }). */
+  extra?: Record<string, string | undefined>
+}
+
+function buildHref(base: string, mes: number, ano: number, extra?: Record<string, string | undefined>): string {
+  const params = new URLSearchParams()
+  params.set('mes', String(mes))
+  params.set('ano', String(ano))
+  if (extra) {
+    for (const [k, v] of Object.entries(extra)) {
+      if (v) params.set(k, v)
+    }
+  }
+  return `${base}?${params.toString()}`
 }
 
 /**
@@ -19,7 +33,7 @@ interface Props {
  */
 export default function MonthNavigator({
   mesSel, anoSel, mesAtual, anoAtual, diaFechamento,
-  podeVoltar, podeAvancar, hrefBase,
+  podeVoltar, podeAvancar, hrefBase, extra,
 }: Props) {
   const label = cicloDeData(new Date(anoSel, mesSel - 1, diaFechamento), diaFechamento).label
   const ehAtual = mesSel === mesAtual && anoSel === anoAtual
@@ -47,7 +61,7 @@ export default function MonthNavigator({
     <div className="flex items-center justify-between gap-3 p-2 rounded-xl bg-surface-2 border border-border">
       {podeVoltar ? (
         <Link
-          href={`${hrefBase}?mes=${pm}&ano=${pa}`}
+          href={buildHref(hrefBase, pm, pa, extra)}
           aria-label="Mês anterior"
           className={arrowBtn}
         >
@@ -70,7 +84,7 @@ export default function MonthNavigator({
 
       {podeAvancar ? (
         <Link
-          href={`${hrefBase}?mes=${nm}&ano=${na}`}
+          href={buildHref(hrefBase, nm, na, extra)}
           aria-label="Próximo mês"
           className={arrowBtn}
         >
