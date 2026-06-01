@@ -53,6 +53,7 @@ interface Props {
   observacoes: ObsSemana[]
   feedbacksCliente?: FbClienteSemana[]
   mostrarResumo: boolean
+  periodoLabel?: string
 }
 
 const MOMENTO_META: Record<Momento, { titulo: string; icon: LucideIcon; cor: string }> = {
@@ -64,7 +65,7 @@ const MOMENTO_META: Record<Momento, { titulo: string; icon: LucideIcon; cor: str
 
 const MOMENTOS_PAUTA: Momento[] = ['reconhecimento', 'equipe', 'ajuste', 'neutro']
 
-export default function PrepararClient({ reuniaoId, dataReuniaoLabel, observacoes, feedbacksCliente, mostrarResumo }: Props) {
+export default function PrepararClient({ reuniaoId, dataReuniaoLabel, observacoes, feedbacksCliente, mostrarResumo, periodoLabel = 'esta semana' }: Props) {
   const router = useRouter()
   const [obs, setObs] = useState<ObsSemana[]>(observacoes)
   const [classificando, setClassificando] = useState(false)
@@ -141,7 +142,7 @@ export default function PrepararClient({ reuniaoId, dataReuniaoLabel, observacoe
         <h1 className="text-xl font-semibold text-text">Preparar reunião</h1>
         <p className="text-chumbo text-sm">{dataReuniaoLabel}</p>
         <p className="text-2xl font-bold text-marrom mt-3">
-          {obs.length} observa{obs.length === 1 ? 'ção' : 'ções'} esta semana
+          {obs.length} observa{obs.length === 1 ? 'ção' : 'ções'} {periodoLabel}
         </p>
         {classificando && (
           <p className="text-xs text-chumbo mt-1 inline-flex items-center gap-1">
@@ -156,7 +157,7 @@ export default function PrepararClient({ reuniaoId, dataReuniaoLabel, observacoe
       {feedbacksCliente && feedbacksCliente.length > 0 && (
         <section className="card p-4">
           <h2 className="font-semibold text-text mb-1 inline-flex items-center gap-2">
-            <Star size={18} strokeWidth={1.5} color="#8B6F47" fill="#8B6F47" /> Feedback de clientes esta semana
+            <Star size={18} strokeWidth={1.5} color="#8B6F47" fill="#8B6F47" /> Feedback de clientes {periodoLabel}
           </h2>
           <p className="text-xs text-chumbo mb-3">
             {feedbacksCliente.length} feedback{feedbacksCliente.length === 1 ? '' : 's'} ·
@@ -265,7 +266,7 @@ export default function PrepararClient({ reuniaoId, dataReuniaoLabel, observacoe
 
       {obs.length === 0 && (
         <div className="card p-6 text-center text-chumbo text-sm">
-          Nenhuma observação registrada nesta semana. Você pode conduzir a reunião mesmo assim — vai entrar nos
+          Nenhuma observação registrada {periodoLabel}. Você pode conduzir a reunião mesmo assim — vai entrar nos
           momentos que não dependem de observações.
         </div>
       )}

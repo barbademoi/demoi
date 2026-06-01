@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
-import { proximaReuniao } from '@/lib/reuniao'
+import { proximaReuniao } from '@/lib/cadencia'
+import { loadCadenciaConfig, ultimaReuniaoConcluidaIso } from '@/lib/loadCadencia'
 import { semanaRef } from '@/lib/periodos'
 import type { PautaReuniao } from '@/lib/pauta'
 
@@ -117,13 +118,10 @@ export async function finalizarReuniao(reuniaoId: string, pauta: PautaReuniao) {
       .eq('id', reuniaoId)
     if (error) return { error: 'Não foi possível finalizar.' }
 
-    // Garante a próxima reunião planejada.
-    const { data: est } = await supabase
-      .from('estabelecimentos')
-      .select('dia_reuniao, hora_reuniao')
-      .eq('id', estabelecimentoId)
-      .maybeSingle()
-    const prox = proximaReuniao(est?.dia_reuniao ?? 1, est?.hora_reuniao ?? '09:00')
+    // Garante a próxima reunião planejada conforme cadência configurada.
+    const cadCfg = await loadCadenciaConfig(supabase, estabelecimentoId)
+    const ultIso = await ultimaReuniaoConcluidaIso(supabase, estabelecimentoId)
+    const prox = proximaReuniao(cadCfg, ultIso)
     const { data: jaTem } = await supabase
       .from('reunioes')
       .select('id')

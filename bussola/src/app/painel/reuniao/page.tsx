@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { intervalo } from '@/lib/periodos'
-import { proximaReuniao } from '@/lib/reuniao'
+import { proximaReuniao, labelPeriodo } from '@/lib/cadencia'
+import { loadCadenciaConfig, ultimaReuniaoConcluidaIso } from '@/lib/loadCadencia'
+import { janelaObservacoesAtual } from '@/lib/janelaObservacoes'
 import type { PautaReuniao, Reuniao } from '@/lib/pauta'
 import PrepararClient, { type FbClienteSemana, type ObsSemana } from './PrepararClient'
 
@@ -14,12 +15,17 @@ export default async function PrepararReuniaoPage() {
 
   const { data: est } = await supabase
     .from('estabelecimentos')
-    .select('id, nome, dia_reuniao, hora_reuniao, config_ia')
+    .select('id, nome, config_ia')
     .eq('dono_id', user.id)
     .maybeSingle()
   if (!est) redirect('/onboarding')
 
   const mostrarResumo = (est.config_ia as { resumo_semana?: boolean } | null)?.resumo_semana !== false
+
+  const cadCfg = await loadCadenciaConfig(supabase, est.id as string)
+  const ultIso = await ultimaReuniaoConcluidaIso(supabase, est.id as string)
+  const prox = proximaReuniao(cadCfg, ultIso)
+  const periodoLabel = labelPeriodo(cadCfg.cadencia)
 
   // Reunião planejada mais próxima; cria se não existir.
   let reuniao: Reuniao | null = null
@@ -36,7 +42,6 @@ export default async function PrepararReuniaoPage() {
   if (planejada) {
     reuniao = planejada as Reuniao
   } else {
-    const prox = proximaReuniao(est.dia_reuniao ?? 1, est.hora_reuniao ?? '09:00')
     const { data: nova } = await supabase
       .from('reunioes')
       .insert({ estabelecimento_id: est.id, data_reuniao: prox.data.toISOString(), status: 'planejada' })
@@ -45,34 +50,32 @@ export default async function PrepararReuniaoPage() {
     reuniao = nova as Reuniao
   }
 
-  const semana = intervalo('semana')
+  // Janela de observações dinâmica: desde a última reunião concluída.
+  const janela = await janelaObservacoesAtual(supabase, est.id as string)
 
   const { data: fbData } = await supabase
     .from('feedbacks')
     .select('id, profissional_id, escopo, texto, categoria, momento_reuniao, created_at, profissionais(nome, foto_url)')
     .eq('estabelecimento_id', est.id)
     .is('deletado_em', null)
-    .gte('created_at', semana.inicio.toISOString())
-    .lte('created_at', semana.fim.toISOString())
+    .gte('created_at', janela.inicio.toISOString())
+    .lte('created_at', janela.fim.toISOString())
     .order('created_at', { ascending: false })
   const observacoes = (fbData ?? []) as unknown as ObsSemana[]
 
-  // Feedbacks de cliente da semana — opcional, tolera ausência da tabela.
   let fbCliente: FbClienteSemana[] = []
   try {
     const { data: fcData } = await supabase
       .from('feedbacks_cliente')
       .select('id, profissional_id, estrelas, comentario, created_at, profissionais(nome, foto_url)')
       .eq('estabelecimento_id', est.id)
-      .gte('created_at', semana.inicio.toISOString())
-      .lte('created_at', semana.fim.toISOString())
+      .gte('created_at', janela.inicio.toISOString())
+      .lte('created_at', janela.fim.toISOString())
       .order('created_at', { ascending: false })
     fbCliente = (fcData ?? []) as unknown as FbClienteSemana[]
   } catch {
     fbCliente = []
   }
-
-  const prox = proximaReuniao(est.dia_reuniao ?? 1, est.hora_reuniao ?? '09:00')
 
   return (
     <PrepararClient
@@ -82,6 +85,7 @@ export default async function PrepararReuniaoPage() {
       observacoes={observacoes}
       feedbacksCliente={fbCliente}
       mostrarResumo={mostrarResumo}
+      periodoLabel={periodoLabel}
     />
   )
 }

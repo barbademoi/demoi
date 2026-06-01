@@ -7,7 +7,9 @@ import AtividadeItem, { type AtividadeFb } from '@/components/AtividadeItem'
 import MarcarVisto from './MarcarVisto'
 import BotaoInstalarPWA from '@/components/BotaoInstalarPWA'
 import CardAprendaBussola from './CardAprendaBussola'
-import { proximaReuniao } from '@/lib/reuniao'
+import { proximaReuniao, labelPeriodo } from '@/lib/cadencia'
+import { loadCadenciaConfig, ultimaReuniaoConcluidaIso } from '@/lib/loadCadencia'
+import { janelaObservacoesAtual } from '@/lib/janelaObservacoes'
 import { intervalo } from '@/lib/periodos'
 import type { FeedbackComProfissional } from '@/lib/feedbacks'
 
@@ -18,37 +20,35 @@ export default async function PainelPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/entrar')
 
-  // Tenta select completo; se feedback_cliente_ativo ainda não existir
-  // (migration 012 não rodada), cai pra mínimo sem feature.
-  let estabelecimento: { id: string; dia_reuniao: number | null; hora_reuniao: string | null; feedback_cliente_ativo: boolean }
+  // Tenta select completo; cai pra mínimo se feedback_cliente_ativo não existir.
+  let estabelecimento: { id: string; feedback_cliente_ativo: boolean }
   const completo = await supabase
     .from('estabelecimentos')
-    .select('id, dia_reuniao, hora_reuniao, feedback_cliente_ativo')
+    .select('id, feedback_cliente_ativo')
     .eq('dono_id', user.id)
     .maybeSingle()
   if (completo.data) {
     estabelecimento = {
       id: completo.data.id as string,
-      dia_reuniao: completo.data.dia_reuniao as number | null,
-      hora_reuniao: completo.data.hora_reuniao as string | null,
       feedback_cliente_ativo: !!completo.data.feedback_cliente_ativo,
     }
   } else {
     const minimo = await supabase
       .from('estabelecimentos')
-      .select('id, dia_reuniao, hora_reuniao')
+      .select('id')
       .eq('dono_id', user.id)
       .maybeSingle()
     if (!minimo.data) redirect('/onboarding')
     estabelecimento = {
       id: minimo.data.id as string,
-      dia_reuniao: minimo.data.dia_reuniao as number | null,
-      hora_reuniao: minimo.data.hora_reuniao as string | null,
       feedback_cliente_ativo: false,
     }
   }
 
-  const reuniao = proximaReuniao(estabelecimento.dia_reuniao ?? 1, estabelecimento.hora_reuniao ?? '09:00')
+  const cadCfg = await loadCadenciaConfig(supabase, estabelecimento.id)
+  const ultIso = await ultimaReuniaoConcluidaIso(supabase, estabelecimento.id)
+  const reuniao = proximaReuniao(cadCfg, ultIso)
+  const periodoLabel = labelPeriodo(cadCfg.cadencia)
 
   // Reunião pendente (planejada e já passou da data).
   const { data: pendente } = await supabase
@@ -62,7 +62,11 @@ export default async function PainelPage() {
     .maybeSingle()
 
   // Proximidade → acento na borda esquerda do card (sem fundos saturados).
-  const dias = reuniao.contagem === 'Hoje!' ? 0 : reuniao.contagem === 'Amanhã' ? 1 : parseInt(reuniao.contagem.replace(/\D/g, ''), 10) || 9
+  const dias = /^hoje/i.test(reuniao.contagem) || /^em\s+\d+h/i.test(reuniao.contagem) || /menos de 1h/i.test(reuniao.contagem)
+    ? 0
+    : /^amanhã/i.test(reuniao.contagem)
+      ? 1
+      : parseInt(reuniao.contagem.replace(/\D/g, ''), 10) || 9
   const cardClasse = pendente
     ? 'border-border border-l-[3px] border-l-vinho'
     : dias === 0
@@ -71,16 +75,16 @@ export default async function PainelPage() {
         ? 'border-border border-l-[3px] border-l-marrom'
         : 'border-border'
 
-  // Feedbacks da semana (resumo + alertas).
-  const semana = intervalo('semana')
+  // Observações desde a última reunião concluída (janela dinâmica).
+  const janela = await janelaObservacoesAtual(supabase, estabelecimento.id)
   const { data: semData } = await supabase
     .from('feedbacks')
     .select('id')
     .eq('estabelecimento_id', estabelecimento.id)
     .eq('escopo', 'individual')
     .is('deletado_em', null)
-    .gte('created_at', semana.inicio.toISOString())
-    .lte('created_at', semana.fim.toISOString())
+    .gte('created_at', janela.inicio.toISOString())
+    .lte('created_at', janela.fim.toISOString())
 
   const total = (semData ?? []).length
   const graves = 0
@@ -146,15 +150,15 @@ export default async function PainelPage() {
     /* Migration 016 não rodada — não mostra o card. */
   }
 
-  // Resumo de feedbacks de cliente (se a feature está ativa).
+  // Resumo de feedbacks de cliente (se a feature está ativa) — usa janela dinâmica.
   let resumoCliente: { totalSemana: number; media: number; novos: number } | null = null
   if (estabelecimento.feedback_cliente_ativo) {
     const { data: fcData } = await supabase
       .from('feedbacks_cliente')
       .select('estrelas, status, created_at')
       .eq('estabelecimento_id', estabelecimento.id)
-      .gte('created_at', semana.inicio.toISOString())
-      .lte('created_at', semana.fim.toISOString())
+      .gte('created_at', janela.inicio.toISOString())
+      .lte('created_at', janela.fim.toISOString())
     const fc = (fcData ?? []) as { estrelas: number; status: string }[]
     const novos = fc.filter((f) => f.status === 'novo').length
     const media = fc.length ? fc.reduce((s, f) => s + (f.estrelas ?? 0), 0) / fc.length : 0
@@ -195,8 +199,8 @@ export default async function PainelPage() {
         <div className="mt-4 pt-4 border-t border-border">
           <p className="text-sm text-text">
             {total === 0
-              ? 'Nenhuma observação registrada nesta semana ainda.'
-              : `${total} observa${total > 1 ? 'ções' : 'ção'} esta semana`}
+              ? `Nenhuma observação registrada ${periodoLabel} ainda.`
+              : `${total} observa${total > 1 ? 'ções' : 'ção'} ${periodoLabel}`}
           </p>
         </div>
 
@@ -216,7 +220,7 @@ export default async function PainelPage() {
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center">
-              <p className="text-xs text-chumbo">Esta semana</p>
+              <p className="text-xs text-chumbo capitalize">{periodoLabel}</p>
               <p className="text-2xl font-semibold text-text">{resumoCliente.totalSemana}</p>
             </div>
             <div className="text-center">
