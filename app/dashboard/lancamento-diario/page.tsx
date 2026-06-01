@@ -1,13 +1,18 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { cicloAtual } from '@/lib/ciclo'
+import { cicloAtual, cicloDeData } from '@/lib/ciclo'
 import LancamentoDiarioClient from './LancamentoDiarioClient'
 import Sidebar from '@/components/dashboard/Sidebar'
+import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import type { Barbeiro } from '@/types/database'
 
 type UsuarioRow = { barbearia_id: string; barbearias: { id: string; nome: string; dia_fechamento: number | null } }
 
-export default async function LancamentoDiarioPage() {
+export default async function LancamentoDiarioPage({
+  searchParams,
+}: {
+  searchParams?: { mes?: string; ano?: string }
+}) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -25,9 +30,42 @@ export default async function LancamentoDiarioPage() {
 
   const hoje = new Date()
   const diaFechamento = barbearia.dia_fechamento ?? 1
-  const ciclo = cicloAtual(diaFechamento, hoje)
-  const mes = ciclo.mesRef
-  const ano = ciclo.anoRef
+  const cicloHoje = cicloAtual(diaFechamento, hoje)
+  const mesAtual = cicloHoje.mesRef
+  const anoAtual = cicloHoje.anoRef
+
+  // Período selecionado via ?mes=X&ano=Y (default = ciclo atual). Floor 2024-01.
+  const mesParam = parseInt(searchParams?.mes ?? '', 10)
+  const anoParam = parseInt(searchParams?.ano ?? '', 10)
+  let mes = mesAtual
+  let ano = anoAtual
+  if (Number.isFinite(mesParam) && Number.isFinite(anoParam)
+      && mesParam >= 1 && mesParam <= 12 && anoParam >= 2024) {
+    mes = mesParam
+    ano = anoParam
+  }
+  const ehPeriodoAtual = mes === mesAtual && ano === anoAtual
+  const ehPeriodoPassado = ano < anoAtual || (ano === anoAtual && mes < mesAtual)
+
+  // Ciclo selecionado (datas reais do ciclo desejado).
+  const ciclo = ehPeriodoAtual
+    ? cicloHoje
+    : cicloDeData(new Date(ano, mes - 1, diaFechamento), diaFechamento)
+
+  // Navegação: piso 2024-01; futuro só se metas configuradas no próximo período.
+  const podeVoltar = !(ano === 2024 && mes === 1)
+  let nextMes = mes + 1, nextAno = ano
+  if (nextMes > 12) { nextMes = 1; nextAno += 1 }
+  const nextEhFuturo = nextAno > anoAtual || (nextAno === anoAtual && nextMes > mesAtual)
+  let podeAvancar = !nextEhFuturo
+  if (nextEhFuturo) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: nextMeta } = await (supabase as any)
+      .from('metas').select('id')
+      .eq('barbearia_id', barbearia.id).eq('mes', nextMes).eq('ano', nextAno)
+      .maybeSingle()
+    podeAvancar = !!nextMeta
+  }
 
   // Barbeiros ativos
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,6 +134,31 @@ export default async function LancamentoDiarioPage() {
               {ciclo.label}
             </p>
           </header>
+
+          <MonthNavigator
+            mesSel={mes}
+            anoSel={ano}
+            mesAtual={mesAtual}
+            anoAtual={anoAtual}
+            diaFechamento={diaFechamento}
+            podeVoltar={podeVoltar}
+            podeAvancar={podeAvancar}
+            hrefBase="/dashboard/lancamento-diario"
+          />
+
+          {ehPeriodoPassado && (
+            <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex-wrap">
+              <p className="text-amber-200 text-xs font-sans leading-relaxed">
+                ⚠️ Você está editando <span className="font-semibold capitalize">{ciclo.label}</span>. As alterações afetam o histórico deste período.
+              </p>
+              <a
+                href="/dashboard/lancamento-diario"
+                className="text-amber-200 hover:text-amber-100 text-xs font-sans underline whitespace-nowrap shrink-0"
+              >
+                Voltar ao atual
+              </a>
+            </div>
+          )}
 
           <LancamentoDiarioClient
             barbeiros={barbeiros}
