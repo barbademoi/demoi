@@ -13,6 +13,7 @@ import CampanhaToggle from '@/components/dashboard/CampanhaToggle'
 import ResumoReuniaoModal from '@/components/dashboard/ResumoReuniaoModal'
 import DashboardShell from '@/components/dashboard/DashboardShell'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
+import FecharMesButton from '@/components/dashboard/FecharMesButton'
 import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario } from '@/types/database'
 
 type UsuarioComBarbearia = {
@@ -101,6 +102,15 @@ export default async function DashboardPage({
       .maybeSingle()
     podeAvancar = !!nextMeta
   }
+
+  // Status do "mês fechado" — bloqueia edições via save-actions; UI esconde botões.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: mesFechRaw } = await (supabase as any)
+    .from('meses_fechados').select('fechado_em')
+    .eq('barbearia_id', barbearia.id).eq('mes', mes).eq('ano', ano)
+    .maybeSingle() as { data: { fechado_em: string } | null }
+  const mesFechado = !!mesFechRaw
+  const mesFechadoEm = mesFechRaw?.fechado_em ?? null
 
   // Pra o ciclo selecionado, usa o início desse mês/ano com o dia de fechamento
   // — assim cicloDeData devolve as datas do ciclo certo (não só o label).
@@ -345,7 +355,7 @@ export default async function DashboardPage({
       modoMesSlot={<ModoMesSelector modoAtual={modoAtual} mes={mes} ano={ano} />}
       novoBarbeiroSlot={<NovoBarbeiroModal />}
       novaRecepcionistaSlot={<NovoBarbeiroModal tipo="recepcionista" />}
-      metasSlot={modoAtual !== 'pontos' ? (
+      metasSlot={modoAtual !== 'pontos' && !mesFechado ? (
         <MetasModal
           barbeiros={barbeirosMetas}
           metasAtuais={metasParaForm}
@@ -362,12 +372,17 @@ export default async function DashboardPage({
           diaFechamento={diaFechamento}
         />
       ) : null}
-      campanhaSlot={modoAtual !== 'metas' ? (
+      campanhaSlot={modoAtual !== 'metas' && !mesFechado ? (
         <CampanhaModal campanha={campanha} mes={mes} ano={ano} />
       ) : null}
-      campanhaToggleSlot={modoAtual !== 'metas' && campanha ? (
+      campanhaToggleSlot={modoAtual !== 'metas' && !mesFechado && campanha ? (
         <CampanhaToggle campanhaId={campanha.id} ativo={campanha.ativo} />
       ) : null}
+      mesFechado={mesFechado}
+      mesFechadoEm={mesFechadoEm}
+      fecharMesSlot={
+        <FecharMesButton mes={mes} ano={ano} fechado={mesFechado} />
+      }
       resumoReuniaoSlot={<ResumoReuniaoModal mes={mes} ano={ano} diaFechamento={diaFechamento} />}
     />
   )

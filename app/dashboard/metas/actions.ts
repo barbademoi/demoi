@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { estaFechado } from '@/lib/mesFechado'
 import type { MetaIndividual } from '@/types/database'
 
 /**
@@ -143,6 +144,11 @@ export async function salvarMetas(formData: FormData) {
 
   const mes = parseInt(formData.get('mes') as string)
   const ano = parseInt(formData.get('ano') as string)
+
+  // Trava de mês fechado
+  const trava = await estaFechado(supabase, usuario.barbearia_id, mes, ano)
+  if (trava.fechado) return { error: 'Mês fechado. Reabra antes de editar.' }
+
   const meta_coletiva = parseFloat(formData.get('meta_coletiva') as string) || 0
   const meta_coletiva_bronze = parseFloat(formData.get('meta_coletiva_bronze') as string) || 0
   const meta_coletiva_prata = parseFloat(formData.get('meta_coletiva_prata') as string) || 0
