@@ -61,6 +61,9 @@ interface Props {
   ativos: ProfLite[]
   metasPassadas: MetaSemanal[]
   principios: Record<string, string> // momento -> texto
+  periodoLabel?: string
+  proximoLabel?: string
+  anteriorLabel?: string
 }
 
 const ORDEM = ['abertura', 'revisao', 'reconhecimento', 'equipe', 'ajuste', 'encerramento'] as const
@@ -275,6 +278,7 @@ function ObsCard({
 
 export default function ConduzirClient(props: Props) {
   const { reuniaoId, dataLabel, pautaInicial, observacoes, ativos, metasPassadas, principios } = props
+  const periodoLabel = props.periodoLabel ?? 'esta semana'
   const router = useRouter()
 
   // Splits por momento.
@@ -376,7 +380,7 @@ export default function ConduzirClient(props: Props) {
       return `${ajustes.length} pontos a desenvolver. Pessoas: ${nomes.join(', ') || '—'}.`
     }
     if (tela === 'equipe') {
-      return `${equipe.length} observações sobre a equipe esta semana.`
+      return `${equipe.length} observações sobre a equipe ${periodoLabel}.`
     }
     return ''
   }
@@ -479,7 +483,7 @@ export default function ConduzirClient(props: Props) {
           <div className="space-y-3 mt-4">
             {recs.length === 0 ? (
               <p className="text-chumbo text-sm card p-4">
-                Nenhum reconhecimento classificado nesta semana. Use este momento mesmo assim — pense em algo positivo que viu acontecer.
+                Nenhum reconhecimento classificado {periodoLabel}. Use este momento mesmo assim — pense em algo positivo que viu acontecer.
               </p>
             ) : (
               recs.map((o) => (
@@ -520,7 +524,7 @@ export default function ConduzirClient(props: Props) {
                 value={notaEquipe}
                 onChange={(e) => setNotaEquipe(e.target.value)}
                 rows={3}
-                placeholder="O que percebeu da equipe esta semana?"
+                placeholder={`O que percebeu da equipe ${periodoLabel}?`}
                 className="input"
               />
             </div>
@@ -548,7 +552,7 @@ export default function ConduzirClient(props: Props) {
             })()}
             {ajustes.length === 0 ? (
               <p className="text-chumbo text-sm card p-4">
-                Nenhum ajuste apontado nesta semana. Aproveite — não force ajustes que não existem.
+                Nenhum ajuste apontado {periodoLabel}. Aproveite — não force ajustes que não existem.
               </p>
             ) : (
               ajustes.map((o) => (

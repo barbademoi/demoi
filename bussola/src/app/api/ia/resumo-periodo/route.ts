@@ -1,0 +1,111 @@
+import { NextResponse } from 'next/server'
+import { temChaveIA, gerarTexto } from '@/utils/anthropic'
+import { systemResumo } from '@/lib/iaPrompts'
+import { labelPeriodo } from '@/lib/cadencia'
+import { loadCadenciaConfig } from '@/lib/loadCadencia'
+import { janelaObservacoesAtual } from '@/lib/janelaObservacoes'
+import { donoEstab } from '../helpers'
+
+interface FbResumo {
+  profissional_id: string | null
+  escopo: 'individual' | 'equipe'
+  categoria: string | null
+  texto: string
+  profissionais: { nome: string } | null
+}
+
+export async function POST(req: Request) {
+  if (!temChaveIA()) return NextResponse.json({ error: 'IA não configurada.' }, { status: 503 })
+
+  const { regenerar } = await req.json().catch(() => ({}))
+
+  const { supabase, est } = await donoEstab()
+  if (!est) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
+
+  const cadCfg = await loadCadenciaConfig(supabase, est.id)
+  const periodoLabel = labelPeriodo(cadCfg.cadencia)
+
+  // Cache de 1 hora (mesmo tipo do antigo pra dividir cache).
+  if (!regenerar) {
+    const umaHoraAtras = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    const { data: cache } = await supabase
+      .from('sugestoes_ia')
+      .select('conteudo')
+      .eq('estabelecimento_id', est.id)
+      .eq('tipo', 'resumo_semana')
+      .gte('created_at', umaHoraAtras)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (cache) return NextResponse.json({ resumo: cache.conteudo, cached: true })
+  }
+
+  // Janela dinâmica: desde a última reunião concluída.
+  const janela = await janelaObservacoesAtual(supabase, est.id)
+  const { data } = await supabase
+    .from('feedbacks')
+    .select('profissional_id, escopo, categoria, texto, profissionais(nome)')
+    .eq('estabelecimento_id', est.id)
+    .is('deletado_em', null)
+    .gte('created_at', janela.inicio.toISOString())
+    .lte('created_at', janela.fim.toISOString())
+  const fbs = (data ?? []) as unknown as FbResumo[]
+
+  if (fbs.length === 0) {
+    return NextResponse.json({ resumo: `Nenhuma observação registrada ${periodoLabel} ainda.`, cached: false })
+  }
+
+  const ind = fbs.filter((f) => f.escopo === 'individual')
+  const eq = fbs.filter((f) => f.escopo === 'equipe')
+
+  const porProf: Record<string, number> = {}
+  for (const f of ind) {
+    if (f.profissionais) porProf[f.profissionais.nome] = (porProf[f.profissionais.nome] ?? 0) + 1
+  }
+  const top = Object.entries(porProf).sort((a, b) => b[1] - a[1]).slice(0, 5)
+
+  const catFreq: Record<string, number> = {}
+  for (const f of fbs) {
+    if (f.categoria) catFreq[f.categoria] = (catFreq[f.categoria] ?? 0) + 1
+  }
+  const cats = Object.entries(catFreq).sort((a, b) => b[1] - a[1]).slice(0, 3)
+
+  const linhas: string[] = []
+  linhas.push(`Cadência da empresa: ${cadCfg.cadencia}. Use linguagem adequada ao período ("${periodoLabel}").`)
+  linhas.push(`Total de observações ${periodoLabel}: ${fbs.length} (${ind.length} individuais, ${eq.length} sobre a equipe).`)
+  if (top.length) linhas.push(`Volume por colaborador: ${top.map(([n, c]) => `${n} (${c})`).join(', ')}.`)
+  if (cats.length) linhas.push(`Categorias mais frequentes: ${cats.map(([c, n]) => `${c} (${n})`).join(', ')}.`)
+  linhas.push('')
+  linhas.push('Observações individuais (até 30):')
+  for (const f of ind.slice(0, 30)) {
+    linhas.push(`- ${f.profissionais?.nome ?? '—'}${f.categoria ? ` [${f.categoria}]` : ''}: ${f.texto}`)
+  }
+  if (eq.length) {
+    linhas.push('')
+    linhas.push('Observações sobre a equipe:')
+    for (const f of eq.slice(0, 15)) linhas.push(`- ${f.texto}`)
+  }
+  linhas.push('')
+  linhas.push(`Gere o resumo do período (referência: "${periodoLabel}").`)
+
+  try {
+    const res = await gerarTexto(systemResumo(est.config.tom), linhas.join('\n'), 200)
+    const resumo = res.texto
+      .replace(/\*+/g, '')
+      .replace(/^\s*resumo[:\s-]*/i, '')
+      .trim()
+    await supabase.from('sugestoes_ia').insert({
+      tipo: 'resumo_semana',
+      feedback_id: null,
+      estabelecimento_id: est.id,
+      conteudo: resumo,
+      prompt_tokens: res.inputTokens,
+      completion_tokens: res.outputTokens,
+      modelo: res.modelo,
+    })
+    return NextResponse.json({ resumo, cached: false })
+  } catch (err) {
+    console.error('[resumo-periodo]', err)
+    return NextResponse.json({ error: 'Não foi possível gerar o resumo.' }, { status: 502 })
+  }
+}
