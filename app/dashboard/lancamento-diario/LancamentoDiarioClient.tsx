@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { formatBRL } from '@/lib/utils'
-import { salvarComandasDia, definirAcumuladoMes } from './actions'
+import { salvarComandasDia, definirAcumuladoMes, buscarComandasDia } from './actions'
 
 type BarbeiroLite = { id: string; nome: string; foto_url: string | null; tipo: 'barbeiro' | 'recepcionista' }
 
@@ -116,19 +116,42 @@ export default function LancamentoDiarioClient({
     [comandasPorData],
   )
 
-  // Pré-preenche comandas ao trocar a data
+  // Pré-preenche comandas ao trocar a data. Se a data está dentro do ciclo
+  // carregado, usa o cache local; senão, busca do servidor.
   function selecionarData(novaData: string) {
+    if (!novaData) return
+    // Não permite data futura.
+    if (novaData > todayIso()) return
     setDataSel(novaData)
     setErroDia(null)
     setSucessoDia(false)
     const ja = comandasPorData[novaData]
-    const v: Record<string, string> = {}
     if (ja) {
+      const v: Record<string, string> = {}
       for (const [bid, qtd] of Object.entries(ja.porBarbeiro)) {
         v[bid] = (qtd as number) > 0 ? String(qtd) : ''
       }
+      setComandas(v)
+      return
     }
-    setComandas(v)
+    // Fora do ciclo carregado: limpa enquanto busca + carrega via action.
+    setComandas({})
+    buscarComandasDia(novaData).then(res => {
+      if ('error' in res) { setErroDia(res.error); return }
+      const v: Record<string, string> = {}
+      for (const [bid, qtd] of Object.entries(res.porBarbeiro)) {
+        v[bid] = (qtd as number) > 0 ? String(qtd) : ''
+      }
+      setComandas(v)
+    }).catch(() => { /* ignore */ })
+  }
+
+  function navegarDia(delta: number) {
+    const [a, m, d] = dataSel.split('-').map(Number)
+    const dt = new Date(a, m - 1, d)
+    dt.setDate(dt.getDate() + delta)
+    const novo = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+    selecionarData(novo)
   }
 
   // Inicializa comandas com o dia de hoje (1a render)
@@ -314,7 +337,10 @@ export default function LancamentoDiarioClient({
       </div>
 
       {/* ── SEÇÃO SECUNDÁRIA: Comandas do dia ───────────────── */}
-      <div className="card p-5 sm:p-6 space-y-4">
+      <div className={[
+        'card p-5 sm:p-6 space-y-4 transition-colors',
+        !ehHoje ? 'border-amber-500/40 bg-amber-500/[0.04]' : '',
+      ].join(' ')}>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <h2 className="font-serif text-lg text-text">Comandas do dia</h2>
@@ -322,15 +348,46 @@ export default function LancamentoDiarioClient({
               Quantas comandas cada barbeiro fez. Soma no total de atendimentos do mês.
             </p>
           </div>
-          <input
-            type="date"
-            value={dataSel}
-            min={cicloInicioIso}
-            max={cicloFimIso}
-            onChange={e => selecionarData(e.target.value)}
-            className="input py-2 text-sm"
-          />
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => navegarDia(-1)}
+              aria-label="Dia anterior"
+              className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface transition-colors"
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <input
+              type="date"
+              value={dataSel}
+              max={todayIso()}
+              onChange={e => selecionarData(e.target.value)}
+              className="input py-2 text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => navegarDia(1)}
+              disabled={dataSel >= todayIso()}
+              aria-label="Próximo dia"
+              className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
         </div>
+
+        {/* Alerta quando data está fora do ciclo atual */}
+        {(dataSel < cicloInicioIso || dataSel > cicloFimIso) && (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+            <p className="text-amber-200 text-xs font-sans leading-relaxed">
+              ⚠️ Você está lançando em <span className="font-semibold capitalize">{formatDataLabel(dataSel)}</span>, fora do ciclo atual. Confirme antes de salvar.
+            </p>
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           <p className="font-serif text-base text-text capitalize">
