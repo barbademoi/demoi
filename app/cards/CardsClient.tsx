@@ -5,6 +5,7 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { nomeMes } from '@/lib/utils'
 import BrandLogo from '@/components/BrandLogo'
+import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
 const CardTemplate = dynamic(() => import('@/components/cards/CardTemplate'), { ssr: false })
@@ -26,13 +27,18 @@ interface Props {
   barbeariaName: string
   mes: number
   ano: number
+  mesCorrente: number
+  anoCorrente: number
+  ehPeriodoPassado: boolean
+  podeVoltar: boolean
+  podeAvancar: boolean
   tipo: 'inicio' | 'resultado'
   deltaMap: Record<string, number | null>
   cicloLabel: string
   diaFechamento: number
 }
 
-export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe, faturamentoAcumulado, barbeariaName, mes, ano, tipo, deltaMap, cicloLabel, diaFechamento }: Props) {
+export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe, faturamentoAcumulado, barbeariaName, mes, ano, mesCorrente, anoCorrente, ehPeriodoPassado, podeVoltar, podeAvancar, tipo, deltaMap, cicloLabel, diaFechamento }: Props) {
   const canvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map())
   const rankingCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [baixando, setBaixando] = useState(false)
@@ -95,9 +101,6 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
     a.click()
   }
 
-  const meses = [1,2,3,4,5,6,7,8,9,10,11,12]
-  const anos = [2024, 2025, 2026]
-
   return (
     <div className="min-h-screen">
       <header className="border-b border-border bg-surface sticky top-0 z-40">
@@ -128,20 +131,6 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
                 Resultado
               </button>
             </div>
-            <select
-              value={mesAtual}
-              onChange={e => setMesAtual(parseInt(e.target.value))}
-              className="bg-surface-2 border border-border text-text text-sm rounded-xl px-3 py-2 font-sans focus:outline-none focus:border-primary"
-            >
-              {meses.map(m => <option key={m} value={m}>{String(m).padStart(2,'0')}</option>)}
-            </select>
-            <select
-              value={anoAtual}
-              onChange={e => setAnoAtual(parseInt(e.target.value))}
-              className="bg-surface-2 border border-border text-text text-sm rounded-xl px-3 py-2 font-sans focus:outline-none focus:border-primary"
-            >
-              {anos.map(a => <option key={a} value={a}>{a}</option>)}
-            </select>
             <button
               onClick={baixarTodos}
               disabled={baixando || barbeiros.length === 0}
@@ -153,7 +142,34 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8 space-y-10">
+      <main className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+        <div className="space-y-3">
+          <MonthNavigator
+            mesSel={mes}
+            anoSel={ano}
+            mesAtual={mesCorrente}
+            anoAtual={anoCorrente}
+            diaFechamento={diaFechamento}
+            podeVoltar={podeVoltar}
+            podeAvancar={podeAvancar}
+            hrefBase="/cards"
+            extra={{ tipo: tipoAtual }}
+          />
+          {ehPeriodoPassado && (
+            <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+              <p className="text-amber-200 text-xs font-sans leading-relaxed">
+                🕒 Gerando cards de <span className="font-semibold capitalize">{cicloLabel}</span>.
+              </p>
+              <Link
+                href="/cards"
+                className="text-amber-200 hover:text-amber-100 text-xs font-sans underline whitespace-nowrap shrink-0"
+              >
+                Voltar ao atual
+              </Link>
+            </div>
+          )}
+        </div>
+
 
         {/* Card Ranking da Barbearia */}
         <div>

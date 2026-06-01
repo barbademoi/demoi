@@ -36,14 +36,38 @@ export default async function CardsPage({
   const diaFechamento = barbearia.dia_fechamento ?? 1
   const hoje = new Date()
   // (mes, ano) = início do ciclo (do searchParam ou do hoje)
+  const cicloHoje = cicloDeData(hoje, diaFechamento)
+  const mesAtual = cicloHoje.mesRef
+  const anoAtual = cicloHoje.anoRef
   const mesParam = searchParams.mes ? parseInt(searchParams.mes) : 0
   const anoParam = searchParams.ano ? parseInt(searchParams.ano) : 0
-  const cicloHoje = cicloDeData(hoje, diaFechamento)
-  const mes = mesParam || cicloHoje.mesRef
-  const ano = anoParam || cicloHoje.anoRef
+  // Validação leve + piso 2024-01.
+  let mes = mesAtual
+  let ano = anoAtual
+  if (mesParam >= 1 && mesParam <= 12 && anoParam >= 2024) {
+    mes = mesParam
+    ano = anoParam
+  }
+  const ehPeriodoAtual = mes === mesAtual && ano === anoAtual
+  const ehPeriodoPassado = ano < anoAtual || (ano === anoAtual && mes < mesAtual)
   // Ciclo selecionado (a partir do mes/ano de início)
   const ciclo = cicloDeData(new Date(ano, mes - 1, diaFechamento), diaFechamento)
   const tipo = (searchParams.tipo ?? 'resultado') as 'inicio' | 'resultado'
+
+  // Navegação: piso 2024-01; futuro só se metas configuradas no próximo período.
+  const podeVoltar = !(ano === 2024 && mes === 1)
+  let nextMes = mes + 1, nextAno = ano
+  if (nextMes > 12) { nextMes = 1; nextAno += 1 }
+  const nextEhFuturo = nextAno > anoAtual || (nextAno === anoAtual && nextMes > mesAtual)
+  let podeAvancar = !nextEhFuturo
+  if (nextEhFuturo) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: nextMeta } = await (supabase as any)
+      .from('metas').select('id')
+      .eq('barbearia_id', barbearia.id).eq('mes', nextMes).eq('ano', nextAno)
+      .maybeSingle()
+    podeAvancar = !!nextMeta
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
@@ -125,6 +149,11 @@ export default async function CardsPage({
       barbeariaName={barbearia.nome}
       mes={mes}
       ano={ano}
+      mesCorrente={mesAtual}
+      anoCorrente={anoAtual}
+      ehPeriodoPassado={ehPeriodoPassado}
+      podeVoltar={podeVoltar}
+      podeAvancar={podeAvancar}
       tipo={tipo}
       deltaMap={deltaMap}
       cicloLabel={ciclo.label}
