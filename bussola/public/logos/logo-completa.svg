@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 600" width="1800" height="600">
+  <!-- Logo completa: símbolo + texto "Bússola" em serif preto. Fundo transparente. -->
+  <g transform="translate(60, 60)">
+    <circle cx="240" cy="240" r="180" fill="none" stroke="#8B6F47" stroke-width="20"/>
+    <path d="M 240 84 L 294 240 L 240 240 Z" fill="#5C4A30"/>
+    <path d="M 240 84 L 186 240 L 240 240 Z" fill="#8B6F47"/>
+    <path d="M 240 396 L 294 240 L 240 240 Z" fill="#8B6F47"/>
+    <path d="M 240 396 L 186 240 L 240 240 Z" fill="#A88A5E"/>
+    <circle cx="240" cy="240" r="14" fill="#FFFFFF"/>
+  </g>
+  <text x="600" y="430" font-family="'DM Serif Display', 'Times New Roman', serif" font-size="380" font-weight="400" fill="#0F0F0F">Bússola</text>
+</svg>

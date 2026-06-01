@@ -230,6 +230,19 @@ export default function FeedbackClienteCliente({ slug, nomeEmpresa, logoUrl, col
         >
           {enviando ? 'Enviando…' : 'Enviar feedback'}
         </button>
+
+        <footer className="pt-4 text-center">
+          <a
+            href="https://bussolameet.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 opacity-70 hover:opacity-100 transition-opacity"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logos/logo-simbolo-transparente.svg" alt="" width={14} height={14} />
+            <span className="text-xs text-chumbo">Powered by Bússola</span>
+          </a>
+        </footer>
       </div>
     </main>
   )

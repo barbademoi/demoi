@@ -186,8 +186,17 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
         </div>
 
         {/* RODAPÉ */}
-        <footer className="pt-4 text-center space-y-1">
-          <p className="font-serif text-base text-marrom">Bússola</p>
+        <footer className="pt-4 text-center space-y-2">
+          <a
+            href="https://bussolameet.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 opacity-70 hover:opacity-100 transition-opacity"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logos/logo-simbolo-transparente.svg" alt="" width={16} height={16} />
+            <span className="text-xs text-chumbo">Powered by Bússola</span>
+          </a>
           <p className="text-xs text-chumbo">Salve este link no celular pra acompanhar sempre.</p>
         </footer>
       </main>

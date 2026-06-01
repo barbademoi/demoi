@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Símbolo Bússola com fundo bege quadrado arredondado (para favicon/PWA). -->
   <rect width="512" height="512" rx="96" fill="#F5F1EA"/>
   <circle cx="256" cy="256" r="170" fill="none" stroke="#8B6F47" stroke-width="20"/>
   <path d="M 256 110 L 304 256 L 256 256 Z" fill="#5C4A30"/>

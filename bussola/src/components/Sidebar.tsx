@@ -76,9 +76,12 @@ export default function Sidebar({
             className="w-10 h-10 rounded-full object-cover bg-linho shrink-0"
           />
         ) : (
-          <span className="w-10 h-10 rounded-full bg-linho text-marrom font-semibold flex items-center justify-center shrink-0 text-sm">
-            {iniciais(nomeEstab)}
-          </span>
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src="/logos/logo-simbolo.svg"
+            alt="Bússola"
+            className="w-10 h-10 rounded-full shrink-0"
+          />
         )}
         <span className="min-w-0">
           <span className="block font-serif text-xl text-preto leading-tight">Bússola</span>

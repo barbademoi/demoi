@@ -41,8 +41,10 @@ export default function CadastroPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm animate-fade-in">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">Criar conta</h1>
+        <div className="flex flex-col items-center mb-8">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logos/logo-completa.svg" alt="Bússola" className="h-12 w-auto mb-3" />
+          <h1 className="text-2xl font-bold text-primary mb-1">Criar conta</h1>
           <p className="text-text-muted text-sm">Comece a usar a Bússola</p>
         </div>
 

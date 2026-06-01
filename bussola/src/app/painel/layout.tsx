@@ -58,12 +58,19 @@ export default async function PainelLayout({ children }: { children: React.React
         {/* Header só no mobile (no desktop o logo fica na sidebar) */}
         <header className="lg:hidden bg-surface border-b border-border sticky top-0 z-20 px-4 py-3">
           <Link href="/painel" className="flex items-center gap-2.5 min-w-0">
-            {estabelecimento.logo_url && (
+            {estabelecimento.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={estabelecimento.logo_url}
                 alt=""
                 className="w-9 h-9 rounded-full object-cover bg-linho shrink-0"
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src="/logos/logo-simbolo.svg"
+                alt="Bússola"
+                className="w-9 h-9 rounded-full shrink-0"
               />
             )}
             <span className="min-w-0">

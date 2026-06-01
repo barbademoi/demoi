@@ -40,8 +40,10 @@ export default function EsqueciSenhaPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm animate-fade-in">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-primary mb-2">Esqueci minha senha</h1>
+        <div className="flex flex-col items-center mb-8">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logos/logo-simbolo-transparente.svg" alt="Bússola" className="h-12 w-auto mb-3" />
+          <h1 className="text-2xl font-bold text-primary mb-1">Esqueci minha senha</h1>
           <p className="text-text-muted text-sm">
             Informe seu email e enviaremos um link para redefinir.
           </p>

@@ -22,8 +22,9 @@ export default function EntrarPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm animate-fade-in">
-        <div className="text-center mb-8">
-          <h1 className="font-serif text-4xl text-preto mb-2">Bússola</h1>
+        <div className="flex flex-col items-center mb-8">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logos/logo-completa.svg" alt="Bússola" className="h-16 w-auto mb-2" />
           <p className="text-chumbo text-sm">Acesso do gestor</p>
         </div>
 

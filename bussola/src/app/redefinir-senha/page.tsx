@@ -21,8 +21,10 @@ export default function RedefinirSenhaPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm animate-fade-in">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-primary mb-2">Definir nova senha</h1>
+        <div className="flex flex-col items-center mb-8">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logos/logo-simbolo-transparente.svg" alt="Bússola" className="h-12 w-auto mb-3" />
+          <h1 className="text-2xl font-bold text-primary mb-1">Definir nova senha</h1>
           <p className="text-text-muted text-sm">Escolha uma nova senha de acesso.</p>
         </div>
 
