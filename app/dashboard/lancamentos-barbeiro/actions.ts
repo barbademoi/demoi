@@ -2,12 +2,13 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { cicloDeData, cicloAtual } from '@/lib/ciclo'
 
 interface ServicoLancado { servico_id: string; quantidade: number }
 
 /**
  * Confere se o dono logado pode mexer no barbeiro alvo (mesma barbearia).
- * Retorna `{ barbeariaId, barbeiroId }` ou `{ error }`.
+ * Retorna `{ barbeariaId, barbeiroId, diaFechamento }` ou `{ error }`.
  */
 async function autorizarDono(barbeiroId: string) {
   const supabase = createClient()
@@ -16,8 +17,8 @@ async function autorizarDono(barbeiroId: string) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuario } = await (supabase as any)
-    .from('usuarios').select('barbearia_id').eq('id', user.id).single() as
-    { data: { barbearia_id: string } | null }
+    .from('usuarios').select('barbearia_id, barbearias(dia_fechamento)').eq('id', user.id).single() as
+    { data: { barbearia_id: string; barbearias: { dia_fechamento: number | null } | null } | null }
   if (!usuario) return { error: 'Barbearia não encontrada.' as const }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,7 +28,13 @@ async function autorizarDono(barbeiroId: string) {
   if (!barbeiro) return { error: 'Barbeiro não encontrado.' as const }
   if (barbeiro.barbearia_id !== usuario.barbearia_id) return { error: 'Sem permissão.' as const }
 
-  return { supabase, barbeariaId: usuario.barbearia_id, linkCodigo: barbeiro.link_codigo }
+  const diaFechamento = usuario.barbearias?.dia_fechamento ?? 1
+  return {
+    supabase,
+    barbeariaId: usuario.barbearia_id,
+    linkCodigo: barbeiro.link_codigo,
+    diaFechamento,
+  }
 }
 
 /**
@@ -46,11 +53,15 @@ export async function lancarDiaComoDono(params: {
 }) {
   const auth = await autorizarDono(params.barbeiroId)
   if ('error' in auth) return { error: auth.error }
-  const { supabase, barbeariaId, linkCodigo } = auth
+  const { supabase, barbeariaId, linkCodigo, diaFechamento } = auth
 
-  const d = new Date(params.data + 'T12:00:00')
-  const mes = d.getMonth() + 1
-  const ano = d.getFullYear()
+  // mes/ano = início do ciclo que contém a data, respeitando dia_fechamento.
+  // NÃO usar getMonth() direto — quebra em barbearias com ciclo cruzando meses
+  // (ex: 26→25): a campanha está salva em mesRef, e o lookup por mês calendário
+  // erra ~75% dos dias.
+  const ciclo = cicloDeData(new Date(params.data + 'T12:00:00'), diaFechamento)
+  const mes = ciclo.mesRef
+  const ano = ciclo.anoRef
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: campRaw } = await (supabase as any)
@@ -145,7 +156,7 @@ export interface LancamentoDia {
 export async function buscarLancamentosBarbeiro30Dias(barbeiroId: string) {
   const auth = await autorizarDono(barbeiroId)
   if ('error' in auth) return { error: auth.error }
-  const { supabase, barbeariaId } = auth
+  const { supabase, barbeariaId, diaFechamento } = auth
 
   const hoje = new Date()
   const ha30 = new Date(hoje)
@@ -153,9 +164,12 @@ export async function buscarLancamentosBarbeiro30Dias(barbeiroId: string) {
   const pad = (n: number) => String(n).padStart(2, '0')
   const toIso = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 
-  // Campanha do mês atual (pra resolver serviços + permitir adicionar lançamento novo)
-  const mes = hoje.getMonth() + 1
-  const ano = hoje.getFullYear()
+  // Campanha do ciclo atual (pra resolver serviços + permitir adicionar lançamento novo).
+  // NÃO usar getMonth() direto — em barbearia com ciclo 26→25, o form abriria
+  // sem serviços nos dias 1-25 (campanha está em mesRef, não no mês calendário).
+  const ciclo = cicloAtual(diaFechamento, hoje)
+  const mes = ciclo.mesRef
+  const ano = ciclo.anoRef
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: campRaw } = await (supabase as any)
     .from('campanha').select('id, ativo')

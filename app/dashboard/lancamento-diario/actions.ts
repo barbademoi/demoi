@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { estaFechado } from '@/lib/mesFechado'
+import { cicloDeData } from '@/lib/ciclo'
 
 interface ComandaItem {
   barbeiro_id: string
@@ -31,17 +32,22 @@ export async function salvarComandasDia(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuario } = await (supabase as any)
-    .from('usuarios').select('barbearia_id').eq('id', user.id).single() as
-    { data: { barbearia_id: string } | null }
+    .from('usuarios').select('barbearia_id, barbearias(dia_fechamento)').eq('id', user.id).single() as
+    { data: { barbearia_id: string; barbearias: { dia_fechamento: number | null } | null } | null }
   if (!usuario) return { error: 'Barbearia não encontrada.' }
 
   const { barbearia_id } = usuario
   const agora = new Date().toISOString()
   const barbeirosIds = comandas.map(l => l.barbeiro_id)
 
-  const [anoStr, mesStr] = data.split('-')
-  const mes = parseInt(mesStr)
-  const ano = parseInt(anoStr)
+  // mes/ano = INÍCIO do ciclo que contém a data, respeitando dia_fechamento.
+  // NÃO usar data.split('-') direto — quebra em barbearias com ciclo cruzando
+  // meses (ex: dia 26 ao 25): comandas iriam pra (mes, ano) errado em
+  // lancamentos e metas, desalinhando do dashboard.
+  const diaFechamento = usuario.barbearias?.dia_fechamento ?? 1
+  const ciclo = cicloDeData(new Date(data + 'T12:00:00'), diaFechamento)
+  const mes = ciclo.mesRef
+  const ano = ciclo.anoRef
 
   const trava = await estaFechado(supabase, barbearia_id, mes, ano)
   if (trava.fechado) return { error: 'Mês fechado. Reabra antes de lançar.' }
