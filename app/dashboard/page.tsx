@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { calcProgresso } from '@/lib/utils'
-import { cicloAtual, calcDiasUteisCiclo } from '@/lib/ciclo'
+import { cicloAtual, calcDiasUteisCiclo, cicloDeData } from '@/lib/ciclo'
 import { getPlatformStats } from '@/lib/stats'
 import { buscarHistoricoMesesPorBarbeiros, buscarHistoricoBarbearia, type HistoricoMes } from '@/lib/historicoMeses'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
@@ -12,6 +12,7 @@ import CampanhaModal from '@/components/dashboard/CampanhaModal'
 import CampanhaToggle from '@/components/dashboard/CampanhaToggle'
 import ResumoReuniaoModal from '@/components/dashboard/ResumoReuniaoModal'
 import DashboardShell from '@/components/dashboard/DashboardShell'
+import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario } from '@/types/database'
 
 type UsuarioComBarbearia = {
@@ -32,7 +33,11 @@ type MetaSimples = {
   numero_atendimentos: number
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: { mes?: string; ano?: string }
+}) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -61,12 +66,55 @@ export default async function DashboardPage() {
   const hoje = new Date()
   const diaFechamento = barbearia.dia_fechamento ?? 1
   const mostrarTicketMedio = barbearia.mostrar_ticket_medio ?? false
-  const ciclo = cicloAtual(diaFechamento, hoje)
-  // (mes, ano) das tabelas = início do ciclo
-  const mes = ciclo.mesRef
-  const ano = ciclo.anoRef
+  const cicloHoje = cicloAtual(diaFechamento, hoje)
+  const mesAtual = cicloHoje.mesRef
+  const anoAtual = cicloHoje.anoRef
+
+  // Período selecionado pelo dono via ?mes=X&ano=Y (default = ciclo atual).
+  // Floor 2024-01 (constraint da tabela metas).
+  const mesParam = parseInt(searchParams?.mes ?? '', 10)
+  const anoParam = parseInt(searchParams?.ano ?? '', 10)
+  let mes = mesAtual
+  let ano = anoAtual
+  if (Number.isFinite(mesParam) && Number.isFinite(anoParam)
+      && mesParam >= 1 && mesParam <= 12 && anoParam >= 2024) {
+    mes = mesParam
+    ano = anoParam
+  }
+
+  const ehPeriodoAtual = mes === mesAtual && ano === anoAtual
+  const ehPeriodoPassado = ano < anoAtual || (ano === anoAtual && mes < mesAtual)
+
+  // Navegação: piso é 2024-01 (constraint do schema metas); avançar pra futuro
+  // só se metas configuradas pra o próximo período (UX: não navegar pra
+  // meses vazios sem propósito).
+  const podeVoltar = !(ano === 2024 && mes === 1)
+  let nextMes = mes + 1, nextAno = ano
+  if (nextMes > 12) { nextMes = 1; nextAno += 1 }
+  const nextEhFuturo = nextAno > anoAtual || (nextAno === anoAtual && nextMes > mesAtual)
+  let podeAvancar = !nextEhFuturo
+  if (nextEhFuturo) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: nextMeta } = await (supabase as any)
+      .from('metas').select('id')
+      .eq('barbearia_id', barbearia.id).eq('mes', nextMes).eq('ano', nextAno)
+      .maybeSingle()
+    podeAvancar = !!nextMeta
+  }
+
+  // Pra o ciclo selecionado, usa o início desse mês/ano com o dia de fechamento
+  // — assim cicloDeData devolve as datas do ciclo certo (não só o label).
+  const ciclo = ehPeriodoAtual
+    ? cicloHoje
+    // Usa o dia de fechamento como ponto que CAI dentro do ciclo desejado.
+    : cicloDeData(new Date(ano, mes - 1, diaFechamento), diaFechamento)
+
   const diaAtual = hoje.getDate()
-  const { diasUteisCorridos, diasUteisRestantes, diasRestantesCiclo } = calcDiasUteisCiclo(ciclo.inicio, ciclo.fim, hoje)
+  const { diasUteisCorridos, diasUteisRestantes, diasRestantesCiclo } =
+    ehPeriodoAtual
+      ? calcDiasUteisCiclo(ciclo.inicio, ciclo.fim, hoje)
+      // Mês fechado/futuro: usa as datas-limite como se "hoje" fosse o fim do ciclo
+      : calcDiasUteisCiclo(ciclo.inicio, ciclo.fim, ciclo.fim)
   const diasRestantes = diasRestantesCiclo
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -261,6 +309,20 @@ export default async function DashboardPage() {
       statsBarbeiros={platformStats.barbeiros}
       barbeariaLogoUrl={barbearia.logo_url}
       mostrarTicketMedio={mostrarTicketMedio}
+      ehPeriodoAtual={ehPeriodoAtual}
+      ehPeriodoPassado={ehPeriodoPassado}
+      monthNavigatorSlot={
+        <MonthNavigator
+          mesSel={mes}
+          anoSel={ano}
+          mesAtual={mesAtual}
+          anoAtual={anoAtual}
+          diaFechamento={diaFechamento}
+          podeVoltar={podeVoltar}
+          podeAvancar={podeAvancar}
+          hrefBase="/dashboard"
+        />
+      }
       mes={mes}
       ano={ano}
       meta={meta}
@@ -283,7 +345,7 @@ export default async function DashboardPage() {
       modoMesSlot={<ModoMesSelector modoAtual={modoAtual} mes={mes} ano={ano} />}
       novoBarbeiroSlot={<NovoBarbeiroModal />}
       novaRecepcionistaSlot={<NovoBarbeiroModal tipo="recepcionista" />}
-      metasSlot={modoAtual !== 'pontos' ? (
+      metasSlot={modoAtual !== 'pontos' && !ehPeriodoPassado ? (
         <MetasModal
           barbeiros={barbeirosMetas}
           metasAtuais={metasParaForm}
@@ -300,10 +362,10 @@ export default async function DashboardPage() {
           diaFechamento={diaFechamento}
         />
       ) : null}
-      campanhaSlot={modoAtual !== 'metas' ? (
+      campanhaSlot={modoAtual !== 'metas' && !ehPeriodoPassado ? (
         <CampanhaModal campanha={campanha} mes={mes} ano={ano} />
       ) : null}
-      campanhaToggleSlot={modoAtual !== 'metas' && campanha ? (
+      campanhaToggleSlot={modoAtual !== 'metas' && !ehPeriodoPassado && campanha ? (
         <CampanhaToggle campanhaId={campanha.id} ativo={campanha.ativo} />
       ) : null}
       resumoReuniaoSlot={<ResumoReuniaoModal mes={mes} ano={ano} diaFechamento={diaFechamento} />}

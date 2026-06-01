@@ -79,6 +79,10 @@ interface Props {
   barbeariaLogoUrl: string | null
   // Toggle ticket médio
   mostrarTicketMedio: boolean
+  // Navegação entre meses
+  ehPeriodoAtual: boolean
+  ehPeriodoPassado: boolean
+  monthNavigatorSlot: React.ReactNode
 }
 
 export default function DashboardShell({
@@ -96,6 +100,7 @@ export default function DashboardShell({
   statsBarbearias, statsBarbeiros,
   barbeariaLogoUrl,
   mostrarTicketMedio,
+  ehPeriodoAtual, ehPeriodoPassado, monthNavigatorSlot,
 }: Props) {
   const [showConfig, setShowConfig] = useState(false)
 
@@ -154,6 +159,22 @@ export default function DashboardShell({
           />
         ) : (
           <>
+            <div className="max-w-5xl mx-auto px-4 pt-6 pb-2 space-y-3">
+              {monthNavigatorSlot}
+              {ehPeriodoPassado && (
+                <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                  <p className="text-amber-200 text-xs font-sans">
+                    🕒 Você está vendo o <span className="font-semibold capitalize">{cicloLabel}</span>. Tudo aqui é somente leitura.
+                  </p>
+                  <a
+                    href="/dashboard"
+                    className="text-amber-200 hover:text-amber-100 text-xs font-sans underline whitespace-nowrap"
+                  >
+                    Voltar pro mês atual
+                  </a>
+                </div>
+              )}
+            </div>
             <AvisoSimplificacao />
             <DashboardMain
             isAutonomo={isAutonomo}
