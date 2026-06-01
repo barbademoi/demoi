@@ -84,6 +84,9 @@ export default async function ConfiguracoesPage() {
       <Link href="/painel/configuracoes/uso-ia" className="block text-sm text-marrom text-center">
         Ver consumo de IA →
       </Link>
+      <Link href="/painel/configuracoes/tutoriais" className="block text-sm text-marrom text-center">
+        Editar tutoriais (admin) →
+      </Link>
     </main>
   )
 }
