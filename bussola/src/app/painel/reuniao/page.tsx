@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { proximaReuniao, labelPeriodo } from '@/lib/cadencia'
+import { intervalo } from '@/lib/periodos'
+import { proximaReuniao } from '@/lib/cadencia'
 import { loadCadenciaConfig, ultimaReuniaoConcluidaIso } from '@/lib/loadCadencia'
-import { janelaObservacoesAtual } from '@/lib/janelaObservacoes'
 import type { PautaReuniao, Reuniao } from '@/lib/pauta'
 import PrepararClient, { type FbClienteSemana, type ObsSemana } from './PrepararClient'
 
@@ -25,7 +25,9 @@ export default async function PrepararReuniaoPage() {
   const cadCfg = await loadCadenciaConfig(supabase, est.id as string)
   const ultIso = await ultimaReuniaoConcluidaIso(supabase, est.id as string)
   const prox = proximaReuniao(cadCfg, ultIso)
-  const periodoLabel = labelPeriodo(cadCfg.cadencia)
+  // Pauta da reunião usa semana corrente (comportamento clássico) — evita
+  // esconder observações registradas antes da última reunião concluída.
+  const periodoLabel = 'esta semana'
 
   // Reunião planejada mais próxima; cria se não existir.
   let reuniao: Reuniao | null = null
@@ -50,16 +52,15 @@ export default async function PrepararReuniaoPage() {
     reuniao = nova as Reuniao
   }
 
-  // Janela de observações dinâmica: desde a última reunião concluída.
-  const janela = await janelaObservacoesAtual(supabase, est.id as string)
+  const semana = intervalo('semana')
 
   const { data: fbData } = await supabase
     .from('feedbacks')
     .select('id, profissional_id, escopo, texto, categoria, momento_reuniao, created_at, profissionais(nome, foto_url)')
     .eq('estabelecimento_id', est.id)
     .is('deletado_em', null)
-    .gte('created_at', janela.inicio.toISOString())
-    .lte('created_at', janela.fim.toISOString())
+    .gte('created_at', semana.inicio.toISOString())
+    .lte('created_at', semana.fim.toISOString())
     .order('created_at', { ascending: false })
   const observacoes = (fbData ?? []) as unknown as ObsSemana[]
 
@@ -69,8 +70,8 @@ export default async function PrepararReuniaoPage() {
       .from('feedbacks_cliente')
       .select('id, profissional_id, estrelas, comentario, created_at, profissionais(nome, foto_url)')
       .eq('estabelecimento_id', est.id)
-      .gte('created_at', janela.inicio.toISOString())
-      .lte('created_at', janela.fim.toISOString())
+      .gte('created_at', semana.inicio.toISOString())
+      .lte('created_at', semana.fim.toISOString())
       .order('created_at', { ascending: false })
     fbCliente = (fcData ?? []) as unknown as FbClienteSemana[]
   } catch {

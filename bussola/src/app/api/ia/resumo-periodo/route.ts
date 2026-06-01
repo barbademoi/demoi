@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
 import { temChaveIA, gerarTexto } from '@/utils/anthropic'
 import { systemResumo } from '@/lib/iaPrompts'
-import { labelPeriodo } from '@/lib/cadencia'
-import { loadCadenciaConfig } from '@/lib/loadCadencia'
-import { janelaObservacoesAtual } from '@/lib/janelaObservacoes'
+import { intervalo } from '@/lib/periodos'
 import { donoEstab } from '../helpers'
 
 interface FbResumo {
@@ -22,8 +20,7 @@ export async function POST(req: Request) {
   const { supabase, est } = await donoEstab()
   if (!est) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
-  const cadCfg = await loadCadenciaConfig(supabase, est.id)
-  const periodoLabel = labelPeriodo(cadCfg.cadencia)
+  const periodoLabel = 'esta semana'
 
   // Cache de 1 hora (mesmo tipo do antigo pra dividir cache).
   if (!regenerar) {
@@ -40,15 +37,14 @@ export async function POST(req: Request) {
     if (cache) return NextResponse.json({ resumo: cache.conteudo, cached: true })
   }
 
-  // Janela dinâmica: desde a última reunião concluída.
-  const janela = await janelaObservacoesAtual(supabase, est.id)
+  const semana = intervalo('semana')
   const { data } = await supabase
     .from('feedbacks')
     .select('profissional_id, escopo, categoria, texto, profissionais(nome)')
     .eq('estabelecimento_id', est.id)
     .is('deletado_em', null)
-    .gte('created_at', janela.inicio.toISOString())
-    .lte('created_at', janela.fim.toISOString())
+    .gte('created_at', semana.inicio.toISOString())
+    .lte('created_at', semana.fim.toISOString())
   const fbs = (data ?? []) as unknown as FbResumo[]
 
   if (fbs.length === 0) {
@@ -71,7 +67,6 @@ export async function POST(req: Request) {
   const cats = Object.entries(catFreq).sort((a, b) => b[1] - a[1]).slice(0, 3)
 
   const linhas: string[] = []
-  linhas.push(`Cadência da empresa: ${cadCfg.cadencia}. Use linguagem adequada ao período ("${periodoLabel}").`)
   linhas.push(`Total de observações ${periodoLabel}: ${fbs.length} (${ind.length} individuais, ${eq.length} sobre a equipe).`)
   if (top.length) linhas.push(`Volume por colaborador: ${top.map(([n, c]) => `${n} (${c})`).join(', ')}.`)
   if (cats.length) linhas.push(`Categorias mais frequentes: ${cats.map(([c, n]) => `${c} (${n})`).join(', ')}.`)

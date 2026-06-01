@@ -7,9 +7,8 @@ import AtividadeItem, { type AtividadeFb } from '@/components/AtividadeItem'
 import MarcarVisto from './MarcarVisto'
 import BotaoInstalarPWA from '@/components/BotaoInstalarPWA'
 import CardAprendaBussola from './CardAprendaBussola'
-import { proximaReuniao, labelPeriodo } from '@/lib/cadencia'
+import { proximaReuniao } from '@/lib/cadencia'
 import { loadCadenciaConfig, ultimaReuniaoConcluidaIso } from '@/lib/loadCadencia'
-import { janelaObservacoesAtual } from '@/lib/janelaObservacoes'
 import { intervalo } from '@/lib/periodos'
 import type { FeedbackComProfissional } from '@/lib/feedbacks'
 
@@ -48,7 +47,9 @@ export default async function PainelPage() {
   const cadCfg = await loadCadenciaConfig(supabase, estabelecimento.id)
   const ultIso = await ultimaReuniaoConcluidaIso(supabase, estabelecimento.id)
   const reuniao = proximaReuniao(cadCfg, ultIso)
-  const periodoLabel = labelPeriodo(cadCfg.cadencia)
+  // Contadores da Home seguem comportamento clássico (semana corrente), pra
+  // não esconder observações registradas antes da última reunião concluída.
+  const periodoLabel = 'esta semana'
 
   // Reunião pendente (planejada e já passou da data).
   const { data: pendente } = await supabase
@@ -75,16 +76,16 @@ export default async function PainelPage() {
         ? 'border-border border-l-[3px] border-l-marrom'
         : 'border-border'
 
-  // Observações desde a última reunião concluída (janela dinâmica).
-  const janela = await janelaObservacoesAtual(supabase, estabelecimento.id)
+  // Feedbacks da semana corrente (resumo + alertas).
+  const semana = intervalo('semana')
   const { data: semData } = await supabase
     .from('feedbacks')
     .select('id')
     .eq('estabelecimento_id', estabelecimento.id)
     .eq('escopo', 'individual')
     .is('deletado_em', null)
-    .gte('created_at', janela.inicio.toISOString())
-    .lte('created_at', janela.fim.toISOString())
+    .gte('created_at', semana.inicio.toISOString())
+    .lte('created_at', semana.fim.toISOString())
 
   const total = (semData ?? []).length
   const graves = 0
@@ -150,15 +151,15 @@ export default async function PainelPage() {
     /* Migration 016 não rodada — não mostra o card. */
   }
 
-  // Resumo de feedbacks de cliente (se a feature está ativa) — usa janela dinâmica.
+  // Resumo de feedbacks de cliente (se a feature está ativa) — semana corrente.
   let resumoCliente: { totalSemana: number; media: number; novos: number } | null = null
   if (estabelecimento.feedback_cliente_ativo) {
     const { data: fcData } = await supabase
       .from('feedbacks_cliente')
       .select('estrelas, status, created_at')
       .eq('estabelecimento_id', estabelecimento.id)
-      .gte('created_at', janela.inicio.toISOString())
-      .lte('created_at', janela.fim.toISOString())
+      .gte('created_at', semana.inicio.toISOString())
+      .lte('created_at', semana.fim.toISOString())
     const fc = (fcData ?? []) as { estrelas: number; status: string }[]
     const novos = fc.filter((f) => f.status === 'novo').length
     const media = fc.length ? fc.reduce((s, f) => s + (f.estrelas ?? 0), 0) / fc.length : 0
