@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { cicloDeData } from '@/lib/ciclo'
 
 export async function marcarCelebracaoExibida(
   barbeiro_id: string,
@@ -29,13 +30,18 @@ export async function lancarDiaBarbeiro(params: {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barbeiroRaw } = await (supabase as any)
-    .from('barbeiros').select('id, barbearia_id')
+    .from('barbeiros').select('id, barbearia_id, barbearias(dia_fechamento)')
     .eq('link_codigo', params.linkCodigo).eq('ativo', true).single()
   if (!barbeiroRaw) return { error: 'Barbeiro não encontrado.' }
 
-  const d = new Date(params.data + 'T12:00:00')
-  const mes = d.getMonth() + 1
-  const ano = d.getFullYear()
+  // mes/ano = início do ciclo que contém a data, respeitando o dia_fechamento
+  // personalizado da barbearia. NÃO usar getMonth() direto — quebra em barbearias
+  // com ciclo cruzando meses calendário (ex: dia 26 ao 25).
+  const diaFechamento = (barbeiroRaw as { barbearias?: { dia_fechamento: number | null } | null })
+    .barbearias?.dia_fechamento ?? 1
+  const ciclo = cicloDeData(new Date(params.data + 'T12:00:00'), diaFechamento)
+  const mes = ciclo.mesRef
+  const ano = ciclo.anoRef
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: campRaw } = await (supabase as any)
