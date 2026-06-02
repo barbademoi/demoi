@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useMemo } from 'react'
 import { lancarDiaBarbeiro } from './actions'
+import { dataLocalStr } from '@/lib/utils'
 import type { CampanhaServico } from '@/types/database'
 
 interface Props {
@@ -12,13 +13,9 @@ interface Props {
   minPontos: number
 }
 
-function toDateStr(d: Date) {
-  return d.toISOString().split('T')[0]
-}
-
 function labelData(iso: string): string {
-  const hoje = toDateStr(new Date())
-  const ontem = toDateStr(new Date(Date.now() - 86400000))
+  const hoje = dataLocalStr()
+  const ontem = dataLocalStr(new Date(Date.now() - 86400000))
   if (iso === hoje) return 'Hoje'
   if (iso === ontem) return 'Ontem'
   const [, m, d] = iso.split('-')
@@ -35,7 +32,7 @@ export default function LancarDiaForm({ linkCodigo, servicos, controleHoje, hist
   const [sucesso, setSucesso] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
-  const dataHoje = toDateStr(new Date())
+  const dataHoje = dataLocalStr()
 
   const totalPontos = useMemo(
     () => servicos.reduce((sum, s) => sum + (contadores[s.id] ?? 0) * s.pontos, 0),

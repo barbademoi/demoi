@@ -1,8 +1,9 @@
 import type { CampanhaServico, ControleDiario } from '@/types/database'
+import { dataLocalStr } from '@/lib/utils'
 
 function labelData(iso: string): string {
-  const hoje = new Date().toISOString().split('T')[0]
-  const ontem = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+  const hoje = dataLocalStr()
+  const ontem = dataLocalStr(new Date(Date.now() - 86400000))
   if (iso === hoje) return 'Hoje'
   if (iso === ontem) return 'Ontem'
   const [, m, d] = iso.split('-')

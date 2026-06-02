@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { calcProgresso, calcTier } from '@/lib/utils'
+import { calcProgresso, calcTier, dataLocalStr } from '@/lib/utils'
 import { cicloAtual, calcDiasUteisCiclo, cicloDeData } from '@/lib/ciclo'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import { gerarInsightsBarbeiro } from '@/lib/insights'
@@ -235,7 +235,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     }
   }
 
-  const dataHojeStr = hoje.toISOString().split('T')[0]
+  const dataHojeStr = dataLocalStr(hoje)
   const controleHoje = controlesDiario
     .filter(cd => cd.data === dataHojeStr)
     .reduce((acc, cd) => { acc[cd.servico_id] = cd.quantidade; return acc }, {} as Record<string, number>)
