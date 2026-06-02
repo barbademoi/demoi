@@ -210,13 +210,34 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
         campanha_premios:  (premiosRaw  ?? []) as CampanhaPremio[],
       }
 
+      // Controles do ciclo: filtra por DATA + campanhas da barbearia (NÃO por
+      // campanha_id específico). Lançamentos antigos podem ter campanha_id
+      // apontando pra campanha do mês errado (bug histórico pré-PR #85) —
+      // filtrar por campanha_id deixava esses lançamentos de fora.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: todosControlesRaw } = await (supabase as any)
+      const { data: todasCampRaw } = await (supabase as any)
+        .from('campanha').select('id').eq('barbearia_id', barbeiro.barbearia_id)
+      const todasCampIds = ((todasCampRaw ?? []) as { id: string }[]).map(c => c.id)
+
+      // Pontos por serviço cobrindo TODAS as campanhas da barbearia
+      // (um controle pode referenciar servico_id de campanha diferente).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: todosServRaw } = todasCampIds.length > 0 ? await (supabase as any)
+        .from('campanha_servicos').select('id, pontos').in('campanha_id', todasCampIds) : { data: [] }
+      const pontosPorServico = new Map<string, number>()
+      for (const s of (todosServRaw ?? []) as { id: string; pontos: number }[]) {
+        pontosPorServico.set(s.id, Number(s.pontos) || 0)
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: todosControlesRaw } = todasCampIds.length > 0 ? await (supabase as any)
         .from('controle_diario').select('barbeiro_id, servico_id, quantidade')
-        .eq('campanha_id', campRaw.id)
+        .in('campanha_id', todasCampIds)
+        .gte('data', ciclo.inicioIso)
+        .lte('data', ciclo.fimIso) : { data: [] }
 
       for (const cd of ((todosControlesRaw ?? []) as Pick<ControleDiario, 'barbeiro_id' | 'servico_id' | 'quantidade'>[])) {
-        const pts = campanha!.campanha_servicos.find(s => s.id === cd.servico_id)?.pontos ?? 0
+        const pts = pontosPorServico.get(cd.servico_id) ?? 0
         pontosMap[cd.barbeiro_id] = (pontosMap[cd.barbeiro_id] ?? 0) + cd.quantidade * pts
       }
 
@@ -224,11 +245,16 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
         .map(([barbeiro_id, pontos]) => ({ barbeiro_id, pontos }))
         .sort((a, b) => b.pontos - a.pontos)
 
+      // Meus controles do ciclo (pra histórico/detalhe): mesma lógica —
+      // filtra por barbeiro + data, não por campanha_id.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: meusControlesRaw } = await (supabase as any)
+      const { data: meusControlesRaw } = todasCampIds.length > 0 ? await (supabase as any)
         .from('controle_diario').select('*')
-        .eq('barbeiro_id', barbeiro.id).eq('campanha_id', campRaw.id)
-        .order('data', { ascending: false })
+        .eq('barbeiro_id', barbeiro.id)
+        .in('campanha_id', todasCampIds)
+        .gte('data', ciclo.inicioIso)
+        .lte('data', ciclo.fimIso)
+        .order('data', { ascending: false }) : { data: [] }
 
       controlesDiario = (meusControlesRaw ?? []) as ControleDiario[]
       pontosTotal = pontosMap[barbeiro.id] ?? 0
