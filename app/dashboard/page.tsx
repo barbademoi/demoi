@@ -263,23 +263,51 @@ export default async function DashboardPage({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: premiosRaw } = await (supabase as any)
         .from('campanha_premios').select('*').eq('campanha_id', campRaw.id).order('posicao')
+
+      // Controles do ciclo: filtra por DATA do ciclo + campanhas da barbearia
+      // (NÃO por campanha_id específico). Lançamentos antigos podem ter
+      // campanha_id apontando pra campanha do mês errado — bug histórico
+      // de pré-PR #85 (lookup usava getMonth() em vez de cicloDeData.mesRef).
+      // Filtrar pelo campanha_id selecionado deixava esses lançamentos de
+      // fora, fazendo o card mostrar total menor que o "Ver lançamentos".
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: controlesRaw } = await (supabase as any)
-        .from('controle_diario').select('barbeiro_id, servico_id, quantidade, data').eq('campanha_id', campRaw.id)
+      const { data: todasCampRaw } = await (supabase as any)
+        .from('campanha').select('id').eq('barbearia_id', barbearia.id)
+      const todasCampIds = ((todasCampRaw ?? []) as { id: string }[]).map(c => c.id)
+
+      // Pontos por serviço: cobre TODAS as campanhas da barbearia, porque um
+      // controle pode referenciar servico_id de campanha diferente da do mês.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: todosServRaw } = todasCampIds.length > 0 ? await (supabase as any)
+        .from('campanha_servicos').select('id, pontos').in('campanha_id', todasCampIds) : { data: [] }
+      const pontosPorServico = new Map<string, number>()
+      for (const s of (todosServRaw ?? []) as { id: string; pontos: number }[]) {
+        pontosPorServico.set(s.id, Number(s.pontos) || 0)
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: controlesRaw } = todasCampIds.length > 0 ? await (supabase as any)
+        .from('controle_diario')
+        .select('barbeiro_id, servico_id, quantidade, data')
+        .in('campanha_id', todasCampIds)
+        .gte('data', ciclo.inicioIso)
+        .lte('data', ciclo.fimIso) : { data: [] }
+
       campanha = {
         ...campRaw,
         campanha_servicos: (servicosRaw ?? []) as CampanhaServico[],
         campanha_premios:  (premiosRaw  ?? []) as CampanhaPremio[],
       }
-      const servicos = campanha!.campanha_servicos
+
       // dataHojeStr = data REAL de hoje (calendário). NÃO usar `mes`/`ano` do
       // ciclo aqui — em barbearias com dia_fechamento != 1, o mesRef do ciclo
       // não bate com o mês calendário atual (ex: dia_fechamento=26, hoje=02/06,
       // mesRef=5, diaAtual=2 → '2026-05-02' = um mês atrás).
       // Pra ciclos passados/futuros, fica string vazia (não existe "hoje" neles).
       const dataHojeStr = ehPeriodoAtual ? dataLocalStr(hoje) : ''
+
       for (const cd of ((controlesRaw ?? []) as Pick<ControleDiario, 'barbeiro_id' | 'servico_id' | 'quantidade' | 'data'>[])) {
-        const pts = servicos.find(s => s.id === cd.servico_id)?.pontos ?? 0
+        const pts = pontosPorServico.get(cd.servico_id) ?? 0
         pontosMap[cd.barbeiro_id] = (pontosMap[cd.barbeiro_id] ?? 0) + cd.quantidade * pts
         if (dataHojeStr && cd.data === dataHojeStr) {
           pontosHojePorBarbeiro[cd.barbeiro_id] = (pontosHojePorBarbeiro[cd.barbeiro_id] ?? 0) + cd.quantidade * pts
