@@ -26,6 +26,7 @@ interface Props {
   cicloInicioIso: string
   cicloFimIso: string
   diaFechamento: number
+  mostrarFaturamentoGeral: boolean
 }
 
 function pad2(n: number) { return String(n).padStart(2, '0') }
@@ -58,6 +59,7 @@ export default function LancamentoDiarioClient({
   cicloInicioIso,
   cicloFimIso,
   diaFechamento,
+  mostrarFaturamentoGeral,
 }: Props) {
   // ── Estado: ACUMULADO (principal) ───────────────────────
   const [comissoes, setComissoes] = useState<Record<string, string>>(() =>
@@ -207,12 +209,16 @@ export default function LancamentoDiarioClient({
   return (
     <div className="space-y-6">
 
-      {/* Resumo do mês */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="card p-4">
-          <p className="text-text-muted text-[10px] sm:text-xs font-sans uppercase tracking-wide">Faturamento</p>
-          <p className="font-serif text-lg sm:text-2xl text-text mt-1">{formatBRL(faturamentoMes)}</p>
-        </div>
+      {/* Resumo do mês — card "Faturamento" some quando o toggle "Mostrar
+          faturamento geral" está OFF. O FORM de edição abaixo ("Total da
+          barbearia") permanece, é onde o dono lança o número oficial. */}
+      <div className={mostrarFaturamentoGeral ? 'grid grid-cols-3 gap-3' : 'grid grid-cols-2 gap-3'}>
+        {mostrarFaturamentoGeral && (
+          <div className="card p-4">
+            <p className="text-text-muted text-[10px] sm:text-xs font-sans uppercase tracking-wide">Faturamento</p>
+            <p className="font-serif text-lg sm:text-2xl text-text mt-1">{formatBRL(faturamentoMes)}</p>
+          </div>
+        )}
         <div className="card p-4">
           <p className="text-text-muted text-[10px] sm:text-xs font-sans uppercase tracking-wide">Comissões</p>
           <p className="font-serif text-lg sm:text-2xl text-text mt-1">{formatBRL(totalComissoesMes)}</p>

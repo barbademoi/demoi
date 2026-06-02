@@ -19,7 +19,7 @@ import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetal
 type UsuarioComBarbearia = {
   barbearia_id: string
   senha_temporaria: boolean
-  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null; dia_fechamento: number | null; mostrar_ticket_medio: boolean | null }
+  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null; dia_fechamento: number | null; mostrar_ticket_medio: boolean | null; mostrar_faturamento_geral: boolean | null }
 }
 
 type MetaSimples = {
@@ -46,7 +46,7 @@ export default async function DashboardPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade, dia_fechamento, mostrar_ticket_medio)')
+    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral)')
     .eq('id', user.id)
     .single()
 
@@ -67,6 +67,7 @@ export default async function DashboardPage({
   const hoje = new Date()
   const diaFechamento = barbearia.dia_fechamento ?? 1
   const mostrarTicketMedio = barbearia.mostrar_ticket_medio ?? false
+  const mostrarFaturamentoGeral = barbearia.mostrar_faturamento_geral ?? true
   const cicloHoje = cicloAtual(diaFechamento, hoje)
   const mesAtual = cicloHoje.mesRef
   const anoAtual = cicloHoje.anoRef
@@ -214,8 +215,13 @@ export default async function DashboardPage({
   const lancamentos = (lancamentosRaw ?? []) as Lancamento[]
 
   const totalComissoes = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
-  const faturamentoExibido = (meta?.faturamento_acumulado ?? 0) > 0 ? meta!.faturamento_acumulado : totalComissoes
-  const progressoColetivo = meta ? calcProgresso(faturamentoExibido, meta.meta_coletiva) : 0
+  const faturamentoReal = (meta?.faturamento_acumulado ?? 0) > 0 ? meta!.faturamento_acumulado : totalComissoes
+  // % calculado a partir do faturamento real — preservado mesmo quando
+  // o R$ é ocultado, pra alimentar o anel/barra de progresso da UI.
+  const progressoColetivo = meta ? calcProgresso(faturamentoReal, meta.meta_coletiva) : 0
+  // Quando o dono desliga "Mostrar faturamento geral", zera o valor que vai
+  // pro client — UI/cards/anel ficam só com %.
+  const faturamentoExibido = mostrarFaturamentoGeral ? faturamentoReal : 0
 
   const ranking = [...barbeiros]
     .map(b => {
@@ -303,7 +309,11 @@ export default async function DashboardPage({
     ? (historicoPorBarbeiro[rankingBarbeiros[0].id] ?? [])
     : []
   const comissaoMesAnterior = historicoMeses[historicoMeses.length - 2]?.comissao ?? 0
-  const faturamentoMesAnterior = historicoBarbearia[historicoBarbearia.length - 2]?.comissao ?? 0
+  const faturamentoMesAnteriorReal = historicoBarbearia[historicoBarbearia.length - 2]?.comissao ?? 0
+  // Mesmo critério: zera o coletivo + histórico da barbearia quando o
+  // toggle está off. Histórico individual (de cada barbeiro) NÃO é afetado.
+  const faturamentoMesAnterior = mostrarFaturamentoGeral ? faturamentoMesAnteriorReal : 0
+  const historicoBarbeariaExibido = mostrarFaturamentoGeral ? historicoBarbearia : []
 
   return (
     <DashboardShell
@@ -313,8 +323,9 @@ export default async function DashboardPage({
       comissaoMesAnterior={comissaoMesAnterior}
       historicoMeses={historicoMeses}
       historicoPorBarbeiro={historicoPorBarbeiro}
-      historicoBarbearia={historicoBarbearia}
+      historicoBarbearia={historicoBarbeariaExibido}
       faturamentoMesAnterior={faturamentoMesAnterior}
+      mostrarFaturamentoGeral={mostrarFaturamentoGeral}
       statsBarbearias={platformStats.barbearias}
       statsBarbeiros={platformStats.barbeiros}
       barbeariaLogoUrl={barbearia.logo_url}

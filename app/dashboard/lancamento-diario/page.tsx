@@ -6,7 +6,7 @@ import Sidebar from '@/components/dashboard/Sidebar'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import type { Barbeiro } from '@/types/database'
 
-type UsuarioRow = { barbearia_id: string; barbearias: { id: string; nome: string; dia_fechamento: number | null } }
+type UsuarioRow = { barbearia_id: string; barbearias: { id: string; nome: string; dia_fechamento: number | null; mostrar_faturamento_geral: boolean | null } }
 
 export default async function LancamentoDiarioPage({
   searchParams,
@@ -20,7 +20,7 @@ export default async function LancamentoDiarioPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, barbearias(id, nome, dia_fechamento)')
+    .select('barbearia_id, barbearias(id, nome, dia_fechamento, mostrar_faturamento_geral)')
     .eq('id', user.id)
     .single()
   const usuario = usuarioRaw as unknown as UsuarioRow | null
@@ -30,6 +30,7 @@ export default async function LancamentoDiarioPage({
 
   const hoje = new Date()
   const diaFechamento = barbearia.dia_fechamento ?? 1
+  const mostrarFaturamentoGeral = barbearia.mostrar_faturamento_geral ?? true
   const cicloHoje = cicloAtual(diaFechamento, hoje)
   const mesAtual = cicloHoje.mesRef
   const anoAtual = cicloHoje.anoRef
@@ -174,6 +175,7 @@ export default async function LancamentoDiarioPage({
             cicloInicioIso={ciclo.inicioIso}
             cicloFimIso={ciclo.fimIso}
             diaFechamento={diaFechamento}
+            mostrarFaturamentoGeral={mostrarFaturamentoGeral}
           />
         </main>
       </div>

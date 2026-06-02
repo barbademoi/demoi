@@ -76,14 +76,16 @@ export async function salvarOperacaoConfig(formData: FormData) {
   const dia_fechamento = Math.min(28, Math.max(1, isNaN(diaFechRaw) ? 1 : diaFechRaw))
 
   const mostrar_ticket_medio = formData.get('mostrar_ticket_medio') === 'true'
+  const mostrar_faturamento_geral = formData.get('mostrar_faturamento_geral') === 'true'
 
-  console.log('[salvarOperacaoConfig]', { barbeariaId, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio })
+  console.log('[salvarOperacaoConfig]', { barbeariaId, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from('barbearias')
     .update({
       mostrar_ticket_medio,
+      mostrar_faturamento_geral,
       dias_trabalhados, horario_abertura, horario_fechamento, modalidade, tem_assinatura,
       visibilidade_ranking, dia_fechamento,
     })

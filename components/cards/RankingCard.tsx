@@ -9,6 +9,8 @@ interface Props {
   meta: { id: string; meta_coletiva: number; premio_coletivo: string | null; metas_individuais: MetaIndividual[] } | null
   lancamentos: Lancamento[]
   faturamentoAcumulado: number
+  progressoColetivo?: number
+  mostrarFaturamentoGeral?: boolean
   barbeariaName: string
   mes: number
   ano: number
@@ -33,7 +35,7 @@ function makeMetalGrad(ctx: CanvasRenderingContext2D, tier: 'bronze' | 'prata' |
   return g
 }
 
-export default function RankingCard({ barbeiros, meta, lancamentos, faturamentoAcumulado, barbeariaName, mes, ano, cicloLabel, onCanvas }: Props) {
+export default function RankingCard({ barbeiros, meta, lancamentos, faturamentoAcumulado, progressoColetivo, mostrarFaturamentoGeral = true, barbeariaName, mes, ano, cicloLabel, onCanvas }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -182,11 +184,15 @@ export default function RankingCard({ barbeiros, meta, lancamentos, faturamentoA
       ctx.fillText(formatBRL(b.comissao), W - 80, y + 56)
     })
 
-    // Meta coletiva section
+    // Meta coletiva section. Quando faturamento geral OFF, R$ vem 0 do server
+    // e usamos `progressoColetivo` pré-calculado pra barra/%, sem desenhar
+    // o "R$ X de R$ Y" no canvas.
     const colY = H - 200
     const totalEquipe = ranking.reduce((s, b) => s + b.comissao, 0)
     const faturamentoExibido = faturamentoAcumulado > 0 ? faturamentoAcumulado : totalEquipe
-    const colPct = meta ? calcProgresso(faturamentoExibido, meta.meta_coletiva) : 0
+    const colPct = mostrarFaturamentoGeral
+      ? (meta ? calcProgresso(faturamentoExibido, meta.meta_coletiva) : 0)
+      : (progressoColetivo ?? 0)
 
     ctx.fillStyle = '#1E2028'
     ctx.fillRect(80, colY - 20, W - 160, 2)
@@ -202,10 +208,12 @@ export default function RankingCard({ barbeiros, meta, lancamentos, faturamentoA
       ctx.fillText(meta.premio_coletivo, 80, colY + 52)
     }
 
-    ctx.font = `400 28px ${FONT_SANS}`
-    ctx.fillStyle = '#8B8FA8'
-    ctx.textAlign = 'right'
-    ctx.fillText(`${formatBRL(faturamentoExibido)} de ${formatBRL(meta?.meta_coletiva ?? 0)}`, W - 80, colY + 24)
+    if (mostrarFaturamentoGeral) {
+      ctx.font = `400 28px ${FONT_SANS}`
+      ctx.fillStyle = '#8B8FA8'
+      ctx.textAlign = 'right'
+      ctx.fillText(`${formatBRL(faturamentoExibido)} de ${formatBRL(meta?.meta_coletiva ?? 0)}`, W - 80, colY + 24)
+    }
 
     // Bar
     const bY = colY + 68
@@ -240,7 +248,7 @@ export default function RankingCard({ barbeiros, meta, lancamentos, faturamentoA
 
     onCanvas?.(canvas)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [barbeiros.map(b => b.id).join(','), lancamentos.map(l => l.comissao_acumulada).join(','), mes, ano, cicloLabel])
+  }, [barbeiros.map(b => b.id).join(','), lancamentos.map(l => l.comissao_acumulada).join(','), mes, ano, cicloLabel, mostrarFaturamentoGeral, progressoColetivo])
 
   return (
     <canvas

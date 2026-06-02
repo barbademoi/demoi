@@ -14,6 +14,8 @@ interface Props {
   premioColetivo: string | null
   totalEquipe: number
   faturamentoAcumulado: number
+  progressoColetivo?: number
+  mostrarFaturamentoGeral?: boolean
   mes: number
   ano: number
   cicloLabel?: string
@@ -81,7 +83,7 @@ function drawMetallicBar(
 }
 
 export default function CardTemplate({
-  tipo, barbeiro, metaInd, lancamento, metaColetiva, premioColetivo, totalEquipe, faturamentoAcumulado, mes, ano, cicloLabel, delta, onCanvas
+  tipo, barbeiro, metaInd, lancamento, metaColetiva, premioColetivo, totalEquipe, faturamentoAcumulado, progressoColetivo, mostrarFaturamentoGeral = true, mes, ano, cicloLabel, delta, onCanvas
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -246,10 +248,15 @@ export default function CardTemplate({
       })
     }
 
-    // Meta coletiva section — usa faturamentoAcumulado se disponível (igual ao dashboard)
+    // Meta coletiva section. Quando o faturamento geral está OFF, o R$ vem
+    // 0 do server e usamos o `progressoColetivo` pré-calculado (já com base
+    // no valor real) pra desenhar a barra de progresso e o % atingido —
+    // sem desenhar o "R$ X de R$ Y" no canvas.
     const faturamentoExibido = faturamentoAcumulado > 0 ? faturamentoAcumulado : totalEquipe
     const colY = tipo === 'resultado' ? 1200 : 780
-    const colPct = calcProgresso(faturamentoExibido, metaColetiva)
+    const colPct = mostrarFaturamentoGeral
+      ? calcProgresso(faturamentoExibido, metaColetiva)
+      : (progressoColetivo ?? 0)
 
     ctx.fillStyle = '#1E2028'
     ctx.fillRect(80, colY, W - 160, 2)
@@ -265,10 +272,12 @@ export default function CardTemplate({
       ctx.fillText(premioColetivo, 80, colY + 96)
     }
 
-    ctx.font = `300 30px ${FONT_SANS}`
-    ctx.fillStyle = '#8B8FA8'
-    ctx.textAlign = 'right'
-    ctx.fillText(`${formatBRL(faturamentoExibido)} de ${formatBRL(metaColetiva)}`, W - 80, colY + 56)
+    if (mostrarFaturamentoGeral) {
+      ctx.font = `300 30px ${FONT_SANS}`
+      ctx.fillStyle = '#8B8FA8'
+      ctx.textAlign = 'right'
+      ctx.fillText(`${formatBRL(faturamentoExibido)} de ${formatBRL(metaColetiva)}`, W - 80, colY + 56)
+    }
 
     drawMetallicBar(ctx, 80, colY + 120, W - 160, 28, 'ouro', colPct, colPct >= 100)
 
@@ -342,7 +351,7 @@ export default function CardTemplate({
 
     onCanvas?.(canvas, barbeiro.nome)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [barbeiro.id, tipo, lancamento?.comissao_acumulada, mes, ano, delta, cicloLabel])
+  }, [barbeiro.id, tipo, lancamento?.comissao_acumulada, mes, ano, delta, cicloLabel, mostrarFaturamentoGeral, progressoColetivo])
 
   return (
     <canvas

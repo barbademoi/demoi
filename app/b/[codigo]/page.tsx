@@ -39,7 +39,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barbeariaRaw } = await (supabase as any)
-    .from('barbearias').select('nome, cor_principal, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio')
+    .from('barbearias').select('nome, cor_principal, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral')
     .eq('id', barbeiro.barbearia_id).single()
   const barbearia = barbeariaRaw as {
     nome: string
@@ -48,8 +48,10 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     modalidade: string | null
     dia_fechamento: number | null
     mostrar_ticket_medio: boolean | null
+    mostrar_faturamento_geral: boolean | null
   } | null
   const mostrarTicketMedio = barbearia?.mostrar_ticket_medio ?? false
+  const mostrarFaturamentoGeral = barbearia?.mostrar_faturamento_geral ?? true
 
   const visibilidadeRanking: 'completo' | 'posicoes' | 'proprio' =
     barbearia?.visibilidade_ranking ?? 'completo'
@@ -154,8 +156,17 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
 
   const posicaoRanking = ranking.findIndex(l => l.barbeiro_id === barbeiro.id) + 1
   const totalEquipe = ranking.reduce((s, l) => s + l.comissao_acumulada, 0)
-  const faturamentoColetivo = (meta?.faturamento_acumulado ?? 0) > 0 ? meta!.faturamento_acumulado : totalEquipe
-  const progressoColetivo = meta ? calcProgresso(faturamentoColetivo, meta.meta_coletiva) : 0
+  const faturamentoColetivoReal = (meta?.faturamento_acumulado ?? 0) > 0 ? meta!.faturamento_acumulado : totalEquipe
+  // % calculado a partir do real, por tier — preservados mesmo quando o R$ vira 0.
+  // Mantém a barra+% funcionando no client sem precisar do valor R$ exposto.
+  const progressoColetivo = meta ? calcProgresso(faturamentoColetivoReal, meta.meta_coletiva) : 0
+  const progressoColetivoBronze = meta?.meta_coletiva_bronze
+    ? calcProgresso(faturamentoColetivoReal, meta.meta_coletiva_bronze) : 0
+  const progressoColetivoPrata = meta?.meta_coletiva_prata
+    ? calcProgresso(faturamentoColetivoReal, meta.meta_coletiva_prata) : 0
+  // Quando o dono desligou "Mostrar faturamento geral", zera o R$ ANTES
+  // de mandar pro client — não vaza nem via network/devtools.
+  const faturamentoColetivo = mostrarFaturamentoGeral ? faturamentoColetivoReal : 0
 
   const insights = gerarInsightsBarbeiro({
     comissao,
@@ -313,6 +324,8 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
           posicaoRanking={posicaoRanking}
           faturamentoColetivo={faturamentoColetivo}
           progressoColetivo={progressoColetivo}
+          progressoColetivoBronze={progressoColetivoBronze}
+          progressoColetivoPrata={progressoColetivoPrata}
           metaColetiva={meta?.meta_coletiva ?? 0}
           metaColetivaBronze={meta?.meta_coletiva_bronze ?? 0}
           metaColetivaPrata={meta?.meta_coletiva_prata ?? 0}
@@ -336,6 +349,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
           cicloLabel={ciclo.label}
           diaFechamento={diaFechamento}
           mostrarTicketMedio={mostrarTicketMedio}
+          mostrarFaturamentoGeral={mostrarFaturamentoGeral}
         />
       </main>
     </div>
