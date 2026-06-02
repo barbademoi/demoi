@@ -22,6 +22,7 @@ interface BarbeariaData {
   visibilidade_ranking: 'completo' | 'posicoes' | 'proprio' | null
   dia_fechamento: number | null
   mostrar_ticket_medio: boolean | null
+  mostrar_faturamento_geral: boolean | null
 }
 
 type VisibilidadeRanking = 'completo' | 'posicoes' | 'proprio'
@@ -56,6 +57,7 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
   )
   const [diaFechamento, setDiaFechamento] = useState<string>(String(barbearia.dia_fechamento ?? 1))
   const [mostrarTicket, setMostrarTicket] = useState<boolean>(barbearia.mostrar_ticket_medio ?? false)
+  const [mostrarFatGeral, setMostrarFatGeral] = useState<boolean>(barbearia.mostrar_faturamento_geral ?? true)
   const [sucesso, setSucesso] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -73,6 +75,7 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
       else formData.delete(`dia_${key}`)
     })
     formData.set('mostrar_ticket_medio', mostrarTicket ? 'true' : 'false')
+    formData.set('mostrar_faturamento_geral', mostrarFatGeral ? 'true' : 'false')
     startTransition(async () => {
       const result = await salvarOperacaoConfig(formData)
       if (result?.error) setErro(result.error)
@@ -233,6 +236,47 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
               {mostrarTicket
                 ? 'Aparece no dashboard, no card do barbeiro, na tela individual e nos cards PNG.'
                 : 'Fica oculto pra você e pros barbeiros.'}
+            </p>
+          </div>
+        </button>
+      </div>
+
+      <div>
+        <label className="label">Exibição do faturamento geral</label>
+        <p className="text-text-muted text-xs font-sans mb-3 leading-relaxed">
+          Mostrar o faturamento total da barbearia (R$) no dashboard, na tela do barbeiro e nos cards. Desligado, a equipe vê só a barra de progresso e o % — sem o valor em reais.
+        </p>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={mostrarFatGeral}
+          onClick={() => setMostrarFatGeral(v => !v)}
+          className={[
+            'flex items-center gap-3 w-full p-3.5 rounded-xl border cursor-pointer transition-all text-left',
+            mostrarFatGeral ? 'border-primary bg-primary/5' : 'border-border bg-surface-2 hover:border-primary/40',
+          ].join(' ')}
+        >
+          <span
+            className={[
+              'relative w-10 h-6 rounded-full transition-colors shrink-0',
+              mostrarFatGeral ? 'bg-primary' : 'bg-surface',
+            ].join(' ')}
+          >
+            <span
+              className={[
+                'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform',
+                mostrarFatGeral ? 'translate-x-4' : 'translate-x-0',
+              ].join(' ')}
+            />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-sans font-semibold text-text leading-snug">
+              {mostrarFatGeral ? 'Mostrar faturamento geral' : 'Ocultar faturamento geral'}
+            </p>
+            <p className="text-xs font-sans text-text-muted leading-relaxed mt-0.5">
+              {mostrarFatGeral
+                ? 'Faturamento total da barbearia aparece em todas as telas.'
+                : 'Equipe só vê barra + %. Você continua editando normal em Lançamento diário e Metas.'}
             </p>
           </div>
         </button>

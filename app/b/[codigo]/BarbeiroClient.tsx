@@ -35,6 +35,8 @@ interface Props {
   posicaoRanking: number
   faturamentoColetivo: number
   progressoColetivo: number
+  progressoColetivoBronze: number
+  progressoColetivoPrata: number
   metaColetiva: number
   metaColetivaBronze: number
   metaColetivaPrata: number
@@ -59,18 +61,19 @@ interface Props {
   cicloLabel: string
   diaFechamento: number
   mostrarTicketMedio: boolean
+  mostrarFaturamentoGeral: boolean
 }
 
 export default function BarbeiroClient({
   barbeiro, barbeariaName: _, mes, ano, diaAtual, diasRestantes, diasUteisCorridos, diasUteisRestantes,
   modo, metaInd, lancamento, progresso, ranking, posicaoRanking,
-  faturamentoColetivo, progressoColetivo,
+  faturamentoColetivo, progressoColetivo, progressoColetivoBronze, progressoColetivoPrata,
   metaColetiva, metaColetivaBronze, metaColetivaPrata,
   premioColetivo, premioColetivoBronze, premioColetivoPrata,
   insights, mensagemIA, tiersJaCelebrados, campanha, controlesDiario,
   pontosTotal, rankingPontos, pontosMap, controleHoje, historico,
   visibilidadeRanking, isAutonomo, comissaoMesAnterior, historicoMeses,
-  cicloLabel, diaFechamento, mostrarTicketMedio,
+  cicloLabel, diaFechamento, mostrarTicketMedio, mostrarFaturamentoGeral,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
   // Recepcionista participa só das pontuações — esconde tudo de comissão/metas.
@@ -489,7 +492,13 @@ export default function BarbeiroClient({
                   tier === 'prata'  ? premioColetivoPrata  :
                                       premioColetivo
                 if (!metaVal || metaVal <= 0) return null
-                const pct = calcProgresso(faturamentoColetivo, metaVal)
+                // Com faturamento geral OFF, o R$ vem 0 do server — usa o % pré-
+                // calculado por tier (mantém barra + % funcionando sem vazar o R$).
+                const pct = mostrarFaturamentoGeral
+                  ? calcProgresso(faturamentoColetivo, metaVal)
+                  : tier === 'bronze' ? progressoColetivoBronze
+                  : tier === 'prata'  ? progressoColetivoPrata
+                                       : progressoColetivo
                 return (
                   <div key={tier}>
                     <div className="flex items-center justify-between mb-2">
@@ -497,9 +506,11 @@ export default function BarbeiroClient({
                         {TIER_CONFIG[tier].label}
                         {premio && <span className="text-on-cream-muted font-normal ml-2">· {premio}</span>}
                       </span>
-                      <span className="text-on-cream-muted text-xs font-sans">
-                        {formatBRL(faturamentoColetivo)} / {formatBRL(metaVal)}
-                      </span>
+                      {mostrarFaturamentoGeral && (
+                        <span className="text-on-cream-muted text-xs font-sans">
+                          {formatBRL(faturamentoColetivo)} / {formatBRL(metaVal)}
+                        </span>
+                      )}
                     </div>
                     <div className="bar-track h-2.5">
                       <div
@@ -509,7 +520,7 @@ export default function BarbeiroClient({
                     </div>
                     <div className="flex justify-between mt-1">
                       <span className="text-on-cream-muted text-xs font-sans">{pct}%</span>
-                      {faturamentoColetivo < metaVal && (
+                      {mostrarFaturamentoGeral && faturamentoColetivo < metaVal && (
                         <span className="text-on-cream-muted text-xs font-sans">
                           faltam {formatBRL(metaVal - faturamentoColetivo)}
                         </span>

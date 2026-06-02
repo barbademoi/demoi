@@ -10,6 +10,7 @@ export interface Database {
           logo_url: string | null
           cor_principal: string
           mostrar_ticket_medio: boolean
+          mostrar_faturamento_geral: boolean
           created_at: string
         }
         Insert: {
@@ -18,6 +19,7 @@ export interface Database {
           logo_url?: string | null
           cor_principal?: string
           mostrar_ticket_medio?: boolean
+          mostrar_faturamento_geral?: boolean
           created_at?: string
         }
         Update: {
@@ -25,6 +27,7 @@ export interface Database {
           logo_url?: string | null
           cor_principal?: string
           mostrar_ticket_medio?: boolean
+          mostrar_faturamento_geral?: boolean
         }
         Relationships: []
       }

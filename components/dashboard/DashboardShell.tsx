@@ -79,6 +79,8 @@ interface Props {
   barbeariaLogoUrl: string | null
   // Toggle ticket médio
   mostrarTicketMedio: boolean
+  // Toggle faturamento geral (R$ da barbearia inteira)
+  mostrarFaturamentoGeral: boolean
   // Navegação entre meses
   ehPeriodoAtual: boolean
   ehPeriodoPassado: boolean
@@ -104,6 +106,7 @@ export default function DashboardShell({
   statsBarbearias, statsBarbeiros,
   barbeariaLogoUrl,
   mostrarTicketMedio,
+  mostrarFaturamentoGeral,
   ehPeriodoAtual, ehPeriodoPassado, monthNavigatorSlot,
   mesFechado, mesFechadoEm, fecharMesSlot,
 }: Props) {
@@ -221,6 +224,7 @@ export default function DashboardShell({
             diasUteisRestantes={diasUteisRestantes}
             faturamentoEditSlot={faturamentoEditSlot}
             mostrarTicketMedio={mostrarTicketMedio}
+            mostrarFaturamentoGeral={mostrarFaturamentoGeral}
           />
           </>
         )}

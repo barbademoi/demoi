@@ -4,7 +4,7 @@ import CardsClient from './CardsClient'
 import { cicloDeData } from '@/lib/ciclo'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
-type UsuarioComBarbearia = { barbearia_id: string; barbearias: { id: string; nome: string; dia_fechamento: number | null } }
+type UsuarioComBarbearia = { barbearia_id: string; barbearias: { id: string; nome: string; dia_fechamento: number | null; mostrar_faturamento_geral: boolean | null } }
 type MetaComIndividuais = {
   id: string
   meta_coletiva: number
@@ -25,7 +25,7 @@ export default async function CardsPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, barbearias(id, nome, dia_fechamento)')
+    .select('barbearia_id, barbearias(id, nome, dia_fechamento, mostrar_faturamento_geral)')
     .eq('id', user.id)
     .single()
 
@@ -34,6 +34,7 @@ export default async function CardsPage({
 
   const barbearia = usuario.barbearias
   const diaFechamento = barbearia.dia_fechamento ?? 1
+  const mostrarFaturamentoGeral = barbearia.mostrar_faturamento_geral ?? true
   const hoje = new Date()
   // (mes, ano) = início do ciclo (do searchParam ou do hoje)
   const cicloHoje = cicloDeData(hoje, diaFechamento)
@@ -98,8 +99,16 @@ export default async function CardsPage({
 
   const barbeiros = (barbeirosRaw ?? []) as Barbeiro[]
   const lancamentos = (lancamentosRaw ?? []) as Lancamento[]
-  const totalEquipe = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
-  const faturamentoAcumulado = (meta as unknown as { faturamento_acumulado?: number })?.faturamento_acumulado ?? 0
+  const totalEquipeReal = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
+  const faturamentoAcumuladoReal = (meta as unknown as { faturamento_acumulado?: number })?.faturamento_acumulado ?? 0
+  // Faturamento da casa = manual (meta.faturamento_acumulado) > 0 senão soma das comissões.
+  // % calculado a partir do real, preservado mesmo quando R$ é zerado abaixo.
+  const faturamentoCasaReal = faturamentoAcumuladoReal > 0 ? faturamentoAcumuladoReal : totalEquipeReal
+  const progressoColetivo = meta?.meta_coletiva ? Math.min(100, Math.round((faturamentoCasaReal / meta.meta_coletiva) * 100)) : 0
+  // Quando o dono desligou "Mostrar faturamento geral", zera o R$ ANTES
+  // de mandar pro client — cards renderizados no canvas não recebem o valor.
+  const totalEquipe = mostrarFaturamentoGeral ? totalEquipeReal : 0
+  const faturamentoAcumulado = mostrarFaturamentoGeral ? faturamentoAcumuladoReal : 0
 
   // ── Lançamentos diários — delta por barbeiro (dentro do ciclo) ──
   // Ciclo anterior pra comparar (mesmo dia de fechamento, mês antes)
@@ -146,6 +155,8 @@ export default async function CardsPage({
       lancamentos={lancamentos}
       totalEquipe={totalEquipe}
       faturamentoAcumulado={faturamentoAcumulado}
+      progressoColetivo={progressoColetivo}
+      mostrarFaturamentoGeral={mostrarFaturamentoGeral}
       barbeariaName={barbearia.nome}
       mes={mes}
       ano={ano}

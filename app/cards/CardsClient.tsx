@@ -24,6 +24,8 @@ interface Props {
   lancamentos: Lancamento[]
   totalEquipe: number
   faturamentoAcumulado: number
+  progressoColetivo: number
+  mostrarFaturamentoGeral: boolean
   barbeariaName: string
   mes: number
   ano: number
@@ -38,7 +40,7 @@ interface Props {
   diaFechamento: number
 }
 
-export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe, faturamentoAcumulado, barbeariaName, mes, ano, mesCorrente, anoCorrente, ehPeriodoPassado, podeVoltar, podeAvancar, tipo, deltaMap, cicloLabel, diaFechamento }: Props) {
+export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe, faturamentoAcumulado, progressoColetivo, mostrarFaturamentoGeral, barbeariaName, mes, ano, mesCorrente, anoCorrente, ehPeriodoPassado, podeVoltar, podeAvancar, tipo, deltaMap, cicloLabel, diaFechamento }: Props) {
   const canvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map())
   const rankingCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [baixando, setBaixando] = useState(false)
@@ -182,6 +184,8 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
               meta={meta}
               lancamentos={lancamentos}
               faturamentoAcumulado={faturamentoAcumulado}
+              progressoColetivo={progressoColetivo}
+              mostrarFaturamentoGeral={mostrarFaturamentoGeral}
               barbeariaName={barbeariaName}
               mes={mesAtual}
               ano={anoAtual}
@@ -222,6 +226,8 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
                       premioColetivo={meta?.premio_coletivo ?? null}
                       totalEquipe={totalEquipe}
                       faturamentoAcumulado={faturamentoAcumulado}
+                      progressoColetivo={progressoColetivo}
+                      mostrarFaturamentoGeral={mostrarFaturamentoGeral}
                       mes={mesAtual}
                       ano={anoAtual}
                       cicloLabel={mesAtual === mes && anoAtual === ano ? cicloLabel : undefined}

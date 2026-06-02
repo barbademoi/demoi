@@ -67,6 +67,7 @@ interface Props {
   diasUteisRestantes: number
   faturamentoEditSlot: React.ReactNode
   mostrarTicketMedio: boolean
+  mostrarFaturamentoGeral: boolean
 }
 
 function tierBorderClass(tier: string | null) {
@@ -110,6 +111,7 @@ export default function DashboardMain({
   diasUteisRestantes,
   faturamentoEditSlot,
   mostrarTicketMedio,
+  mostrarFaturamentoGeral,
 }: Props) {
   const todos = [...rankingBarbeiros, ...rankingRecepcionistas]
   // Em modo autônomo, força filtro no único barbeiro (não mostra pills nem ranking)
@@ -170,6 +172,7 @@ export default function DashboardMain({
           diasUteisRestantes={diasUteisRestantes}
           faturamentoEditSlot={faturamentoEditSlot}
           mostrarTicketMedio={mostrarTicketMedio}
+          mostrarFaturamentoGeral={mostrarFaturamentoGeral}
           historicoBarbearia={historicoBarbearia}
           faturamentoMesAnterior={faturamentoMesAnterior}
         />
@@ -231,6 +234,7 @@ interface TodosProps {
   diasUteisRestantes: number
   faturamentoEditSlot: React.ReactNode
   mostrarTicketMedio: boolean
+  mostrarFaturamentoGeral: boolean
   historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
   faturamentoMesAnterior: number
 }
@@ -256,6 +260,7 @@ function TodosView({
   diasUteisRestantes,
   faturamentoEditSlot,
   mostrarTicketMedio,
+  mostrarFaturamentoGeral,
   historicoBarbearia,
   faturamentoMesAnterior,
 }: TodosProps) {
@@ -302,30 +307,40 @@ function TodosView({
                 size={210}
                 strokeWidth={18}
                 centerLabel={`${progressoColetivo}%`}
-                centerSub={`de ${formatBRL(meta.meta_coletiva)}`}
+                centerSub={mostrarFaturamentoGeral ? `de ${formatBRL(meta.meta_coletiva)}` : 'da meta'}
               />
             </div>
 
             {/* Right panel */}
             <div className="flex-1 w-full space-y-5">
               <div>
-                <p className="text-text-muted text-xs font-sans mb-1">Faturado no mês</p>
-                <p className="font-serif text-4xl text-text">{formatBRL(faturamentoExibido)}</p>
-                {falta > 0 && (
-                  <p className="text-text-muted text-sm font-sans mt-1">
-                    faltam <span className="text-text font-semibold">{formatBRL(falta)}</span>
-                  </p>
-                )}
-                {temTiers && (
-                  <p className="text-text-muted text-xs font-sans mt-2">
-                    {tierAtingido
-                      ? `${tierAtingido.emoji} ${tierAtingido.label} atingido`
-                      : 'Nenhum tier atingido ainda'}
-                    {proximoTier && (
-                      <> · Faltam <span className="text-text font-semibold">{formatBRL(proximoTier.valor - faturamentoExibido)}</span> pra {proximoTier.emoji} {proximoTier.label}</>
+                {mostrarFaturamentoGeral ? (
+                  <>
+                    <p className="text-text-muted text-xs font-sans mb-1">Faturado no mês</p>
+                    <p className="font-serif text-4xl text-text">{formatBRL(faturamentoExibido)}</p>
+                    {falta > 0 && (
+                      <p className="text-text-muted text-sm font-sans mt-1">
+                        faltam <span className="text-text font-semibold">{formatBRL(falta)}</span>
+                      </p>
                     )}
-                    {!proximoTier && tierAtingido && ' · 🎉 Equipe arrasou!'}
-                  </p>
+                    {temTiers && (
+                      <p className="text-text-muted text-xs font-sans mt-2">
+                        {tierAtingido
+                          ? `${tierAtingido.emoji} ${tierAtingido.label} atingido`
+                          : 'Nenhum tier atingido ainda'}
+                        {proximoTier && (
+                          <> · Faltam <span className="text-text font-semibold">{formatBRL(proximoTier.valor - faturamentoExibido)}</span> pra {proximoTier.emoji} {proximoTier.label}</>
+                        )}
+                        {!proximoTier && tierAtingido && ' · 🎉 Equipe arrasou!'}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-text-muted text-xs font-sans mb-1">Progresso do mês</p>
+                    <p className="font-serif text-4xl text-text">{progressoColetivo}%</p>
+                    <p className="text-text-muted text-xs font-sans mt-2">Faturamento geral oculto nas configurações.</p>
+                  </>
                 )}
               </div>
 
@@ -340,8 +355,8 @@ function TodosView({
                 Editar em Lançamento diário →
               </a>
 
-              {/* Countdown */}
-              {diasUteisRestantes > 0 && falta > 0 && (
+              {/* Countdown — mostra ritmo R$/dia, então esconde quando faturamento geral está off */}
+              {mostrarFaturamentoGeral && diasUteisRestantes > 0 && falta > 0 && (
                 <div className={`rounded-2xl border p-4 ${ritmoOk ? 'border-green-500/30 bg-green-500/5' : 'border-amber-500/30 bg-amber-500/5'}`}>
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-text-muted text-xs font-sans">
@@ -385,8 +400,10 @@ function TodosView({
         </div>
       )}
 
-      {/* Métricas da barbearia inteira (qualquer modalidade, modo metas) */}
-      {modoAtual !== 'pontos' && (
+      {/* Métricas da barbearia inteira (qualquer modalidade, modo metas).
+          Comparativo + histórico + ticket coletivo são todos em R$ — somem
+          quando o faturamento geral está oculto. */}
+      {modoAtual !== 'pontos' && mostrarFaturamentoGeral && (
         <ComparativoMesAnterior
           comissaoAtual={faturamentoExibido}
           comissaoMesAnterior={faturamentoMesAnterior}
