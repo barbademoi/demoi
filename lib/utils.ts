@@ -115,6 +115,19 @@ export function nomeMes(mes: number): string {
   return new Date(2024, mes - 1, 1).toLocaleString('pt-BR', { month: 'long' })
 }
 
+/**
+ * 'YYYY-MM-DD' no fuso LOCAL (servidor: BRT via TZ env; cliente: TZ do navegador).
+ * NÃO usar `toISOString().split('T')[0]` pra isso — toISOString() sempre
+ * serializa em UTC, então das 21h BRT em diante devolve o dia seguinte
+ * mesmo com a Date construída no fuso certo.
+ */
+export function dataLocalStr(d: Date = new Date()): string {
+  const ano = d.getFullYear()
+  const mes = String(d.getMonth() + 1).padStart(2, '0')
+  const dia = String(d.getDate()).padStart(2, '0')
+  return `${ano}-${mes}-${dia}`
+}
+
 /** Retorna label e classe CSS de cada tier */
 export const TIER_CONFIG = {
   bronze: { label: 'Bronze', barClass: 'bar-bronze', textClass: 'metal-text-bronze', shadow: 'shadow-bronze' },

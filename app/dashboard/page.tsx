@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { calcProgresso } from '@/lib/utils'
+import { calcProgresso, dataLocalStr } from '@/lib/utils'
 import { cicloAtual, calcDiasUteisCiclo, cicloDeData } from '@/lib/ciclo'
 import { getPlatformStats } from '@/lib/stats'
 import { buscarHistoricoMesesPorBarbeiros, buscarHistoricoBarbearia, type HistoricoMes } from '@/lib/historicoMeses'
@@ -266,11 +266,16 @@ export default async function DashboardPage({
         campanha_premios:  (premiosRaw  ?? []) as CampanhaPremio[],
       }
       const servicos = campanha!.campanha_servicos
-      const dataHojeStr = `${ano}-${String(mes).padStart(2, '0')}-${String(diaAtual).padStart(2, '0')}`
+      // dataHojeStr = data REAL de hoje (calendário). NÃO usar `mes`/`ano` do
+      // ciclo aqui — em barbearias com dia_fechamento != 1, o mesRef do ciclo
+      // não bate com o mês calendário atual (ex: dia_fechamento=26, hoje=02/06,
+      // mesRef=5, diaAtual=2 → '2026-05-02' = um mês atrás).
+      // Pra ciclos passados/futuros, fica string vazia (não existe "hoje" neles).
+      const dataHojeStr = ehPeriodoAtual ? dataLocalStr(hoje) : ''
       for (const cd of ((controlesRaw ?? []) as Pick<ControleDiario, 'barbeiro_id' | 'servico_id' | 'quantidade' | 'data'>[])) {
         const pts = servicos.find(s => s.id === cd.servico_id)?.pontos ?? 0
         pontosMap[cd.barbeiro_id] = (pontosMap[cd.barbeiro_id] ?? 0) + cd.quantidade * pts
-        if (cd.data === dataHojeStr) {
+        if (dataHojeStr && cd.data === dataHojeStr) {
           pontosHojePorBarbeiro[cd.barbeiro_id] = (pontosHojePorBarbeiro[cd.barbeiro_id] ?? 0) + cd.quantidade * pts
         }
       }

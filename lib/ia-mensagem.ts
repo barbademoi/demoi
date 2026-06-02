@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createAdminClient } from './supabase/admin'
+import { dataLocalStr } from './utils'
 import type { MetaIndividual } from '@/types/database'
 
 interface Params {
@@ -16,7 +17,7 @@ interface Params {
 }
 
 export async function obterMensagemDiaria(params: Params): Promise<string | null> {
-  const hoje = new Date().toISOString().split('T')[0]
+  const hoje = dataLocalStr()
   const supabase = createAdminClient()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
