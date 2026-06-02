@@ -7,6 +7,8 @@ import {
   lancarDiaComoDono,
   type LancamentoDia,
 } from '@/app/dashboard/lancamentos-barbeiro/actions'
+import { dataLocalStr } from '@/lib/utils'
+import DiaEditForm, { type ServicoCampanha } from './DiaEditForm'
 
 interface Props {
   barbeiroId: string
@@ -15,13 +17,6 @@ interface Props {
 }
 
 const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
-
-function pad2(n: number): string { return String(n).padStart(2, '0') }
-
-function todayIso(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
-}
 
 function formatDataLabel(iso: string): string {
   const [a, m, d] = iso.split('-').map(Number)
@@ -36,11 +31,9 @@ function formatDataLabel(iso: string): string {
   return `${dias[dia.getDay()]}, ${d}/${meses[m - 1]}`
 }
 
-type ServicoAtual = { id: string; nome: string; pontos: number }
-
 export default function LancamentosBarbeiroModal({ barbeiroId, barbeiroNome, onClose }: Props) {
   const [dias, setDias] = useState<LancamentoDia[] | null>(null)
-  const [servicosCampanha, setServicosCampanha] = useState<ServicoAtual[]>([])
+  const [servicosCampanha, setServicosCampanha] = useState<ServicoCampanha[]>([])
   const [campanhaAtiva, setCampanhaAtiva] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [excluindoData, setExcluindoData] = useState<string | null>(null)
@@ -49,10 +42,9 @@ export default function LancamentosBarbeiroModal({ barbeiroId, barbeiroNome, onC
   // 'lista' = visualização padrão; string ISO = editando o dia X; 'novo' = adicionando novo lançamento
   const [view, setView] = useState<'lista' | 'novo' | string>('lista')
 
-  // Estado do form (data + valores por serviço)
-  const [formData, setFormData] = useState<string>(todayIso())
-  const [formValores, setFormValores] = useState<Record<string, string>>({})
-  const [formSucesso, setFormSucesso] = useState(false)
+  // Estado inicial do form (data + valores) — só lido pelo DiaEditForm na abertura.
+  const [formDataInicial, setFormDataInicial] = useState<string>(dataLocalStr())
+  const [formValoresIniciais, setFormValoresIniciais] = useState<Record<string, string>>({})
 
   async function recarregar() {
     setErro(null)
@@ -69,16 +61,14 @@ export default function LancamentosBarbeiroModal({ barbeiroId, barbeiroNome, onC
   }, [])
 
   function abrirFormNovo() {
-    setView('novo')
-    setFormData(todayIso())
-    setFormValores({})
+    setFormDataInicial(dataLocalStr())
+    setFormValoresIniciais({})
     setErro(null)
-    setFormSucesso(false)
+    setView('novo')
   }
 
   function abrirFormEdita(data: string) {
-    setView(data)
-    setFormData(data)
+    setFormDataInicial(data)
     const dia = dias?.find(d => d.data === data)
     const valores: Record<string, string> = {}
     if (dia) {
@@ -86,15 +76,14 @@ export default function LancamentosBarbeiroModal({ barbeiroId, barbeiroNome, onC
         valores[s.servico_id] = String(s.quantidade)
       }
     }
-    setFormValores(valores)
+    setFormValoresIniciais(valores)
     setErro(null)
-    setFormSucesso(false)
+    setView(data)
   }
 
   function voltarParaLista() {
     setView('lista')
     setErro(null)
-    setFormSucesso(false)
   }
 
   function handleExcluirDia(data: string) {
@@ -108,32 +97,15 @@ export default function LancamentosBarbeiroModal({ barbeiroId, barbeiroNome, onC
     })
   }
 
-  function handleSalvarForm() {
-    setErro(null)
-    setFormSucesso(false)
-    // Inclui TODOS os serviços da campanha — quantidade 0 dispara DELETE
-    // (necessário pra remover serviços que estavam no dia mas foram zerados).
-    const servicos = servicosCampanha.map(s => ({
-      servico_id: s.id,
-      quantidade: parseInt(formValores[s.id] || '0', 10) || 0,
-    }))
-    startTransition(async () => {
-      const res = await lancarDiaComoDono({ barbeiroId, data: formData, servicos })
-      if (res?.error) { setErro(res.error); return }
-      setFormSucesso(true)
-      await recarregar()
-      setTimeout(() => {
-        setFormSucesso(false)
-        voltarParaLista()
-      }, 1000)
-    })
+  async function handleSalvarFormDia(
+    data: string,
+    servicos: { servico_id: string; quantidade: number }[],
+  ) {
+    const res = await lancarDiaComoDono({ barbeiroId, data, servicos })
+    if (res?.error) return { error: res.error }
+    await recarregar()
+    return { ok: true as const }
   }
-
-  // Preview do total de pontos enquanto digita
-  const totalPreview = servicosCampanha.reduce((s, sv) => {
-    const qtd = parseInt(formValores[sv.id] || '0', 10) || 0
-    return s + qtd * sv.pontos
-  }, 0)
 
   const headerTitulo = view === 'lista'
     ? 'Lançamentos'
@@ -273,88 +245,14 @@ export default function LancamentosBarbeiroModal({ barbeiroId, barbeiroNome, onC
 
           {/* ── FORM (novo ou editar) ───────────────────────── */}
           {view !== 'lista' && (
-            <div className="space-y-4">
-              {/* Data */}
-              <div>
-                <label className="label">Data</label>
-                <input
-                  type="date"
-                  value={formData}
-                  onChange={e => setFormData(e.target.value)}
-                  max={todayIso()}
-                  className="input w-full"
-                  disabled={view !== 'novo'}
-                  // Quando editando, a data é fixa (não dá pra "mover" um lançamento de dia)
-                />
-                {view !== 'novo' && (
-                  <p className="text-text-muted text-[11px] font-sans mt-1">
-                    Pra mudar de dia, apague esse e crie um novo.
-                  </p>
-                )}
-              </div>
-
-              {/* Serviços da campanha */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="label !mb-0">Serviços</label>
-                  <p className="text-text-muted text-xs font-sans">
-                    Total: <span className="text-primary font-semibold tabular-nums">{totalPreview} pts</span>
-                  </p>
-                </div>
-                {servicosCampanha.length === 0 ? (
-                  <p className="text-text-muted text-sm font-sans italic">
-                    Sem serviços configurados na campanha deste mês.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {servicosCampanha.map(s => {
-                      const qtd = parseInt(formValores[s.id] || '0', 10) || 0
-                      const subtotal = qtd * s.pontos
-                      return (
-                        <div key={s.id} className="bg-surface-2 rounded-xl px-3 py-2.5 flex items-center gap-3">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-sans text-sm text-text truncate">{s.nome}</p>
-                            <p className="text-text-muted text-[11px] font-sans">{s.pontos} pts/un</p>
-                          </div>
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            placeholder="0"
-                            value={formValores[s.id] ?? ''}
-                            onChange={e => setFormValores(v => ({ ...v, [s.id]: e.target.value }))}
-                            className="input w-16 py-1.5 text-sm text-center"
-                          />
-                          <span className="text-text-muted text-xs font-sans tabular-nums w-14 text-right shrink-0">
-                            {subtotal} pts
-                          </span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {erro && <p className="text-red-400 text-sm font-sans">{erro}</p>}
-
-              {/* Footer do form */}
-              <div className="flex gap-2 pt-2">
-                <button onClick={voltarParaLista} className="btn-ghost flex-1 text-sm py-2.5" disabled={isPending}>
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleSalvarForm}
-                  disabled={isPending || servicosCampanha.length === 0}
-                  className="btn-primary flex-1 text-sm py-2.5"
-                >
-                  {formSucesso ? '✓ Salvo!' : isPending ? 'Salvando…' : 'Salvar'}
-                </button>
-              </div>
-
-              <p className="text-text-muted text-[11px] font-sans italic text-center">
-                Lançamento ficará marcado como &ldquo;✏️ dono&rdquo;
-              </p>
-            </div>
+            <DiaEditForm
+              mode={view === 'novo' ? 'novo' : 'editar'}
+              dataInicial={formDataInicial}
+              valoresIniciais={formValoresIniciais}
+              servicosCampanha={servicosCampanha}
+              onSalvar={handleSalvarFormDia}
+              onCancelar={voltarParaLista}
+            />
           )}
         </div>
       </div>

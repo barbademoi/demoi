@@ -45,6 +45,16 @@ const navItems: NavItem[] = [
     ),
   },
   {
+    href: '/dashboard/historico-lancamentos',
+    label: 'Histórico de lançamentos',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+        <path d="M3 3v18h18" />
+        <path d="M7 14l4-4 4 4 5-5" />
+      </svg>
+    ),
+  },
+  {
     href: '/cards',
     label: 'Cards PNG',
     icon: (

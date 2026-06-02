@@ -145,42 +145,50 @@ export interface LancamentoDia {
 }
 
 /**
- * Busca os lançamentos de pontos de um barbeiro nos últimos 30 dias.
- * Retorna agrupado por dia, com nome do serviço já resolvido e pontos
- * calculados (qtd × pontos_unitario). Usado pelo modal "Ver lançamentos"
- * que o dono acessa pelo dashboard.
+ * Busca os lançamentos de pontos de um barbeiro num INTERVALO de datas
+ * arbitrário (inclusivo nas duas pontas). Datas em 'YYYY-MM-DD' já no fuso
+ * do dono (BRT) — a coluna `controle_diario.data` é `date` (sem fuso), então
+ * o agrupamento por dia bate certo se quem grava usar `dataLocalStr` (BRT).
  *
- * Inclui também a lista de serviços ATIVOS da campanha do mês atual
- * (necessária pra o form de "Adicionar lançamento" / "Editar").
+ * Usado tanto pelo modal "Ver lançamentos" (janela fixa de 30 dias) quanto
+ * pela tela `/dashboard/historico-lancamentos` (intervalo livre).
+ *
+ * Retorna também a lista de serviços ATIVOS da campanha do ciclo ATUAL —
+ * mesmo que o intervalo selecionado seja passado, "Adicionar lançamento"
+ * precisa dos serviços do ciclo onde a edição seria salva.
  */
-export async function buscarLancamentosBarbeiro30Dias(barbeiroId: string) {
+export async function buscarLancamentosBarbeiroIntervalo(
+  barbeiroId: string,
+  inicioIso: string,
+  fimIso: string,
+) {
   const auth = await autorizarDono(barbeiroId)
   if ('error' in auth) return { error: auth.error }
   const { supabase, barbeariaId, diaFechamento } = auth
 
-  const hoje = new Date()
-  const ha30 = new Date(hoje)
-  ha30.setDate(ha30.getDate() - 30)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const toIso = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  // Validação leve do intervalo. Limite máximo de 366 dias pra não explodir.
+  const re = /^\d{4}-\d{2}-\d{2}$/
+  if (!re.test(inicioIso) || !re.test(fimIso)) return { error: 'Datas inválidas.' as const }
+  if (inicioIso > fimIso) return { error: 'Data inicial maior que a final.' as const }
+  const inicio = new Date(inicioIso + 'T12:00:00')
+  const fim = new Date(fimIso + 'T12:00:00')
+  const diasNoIntervalo = Math.round((fim.getTime() - inicio.getTime()) / 86400000) + 1
+  if (diasNoIntervalo > 366) return { error: 'Intervalo máximo: 12 meses.' as const }
 
-  // Campanha do ciclo atual (pra resolver serviços + permitir adicionar lançamento novo).
-  // NÃO usar getMonth() direto — em barbearia com ciclo 26→25, o form abriria
-  // sem serviços nos dias 1-25 (campanha está em mesRef, não no mês calendário).
-  const ciclo = cicloAtual(diaFechamento, hoje)
-  const mes = ciclo.mesRef
-  const ano = ciclo.anoRef
+  // Campanha do ciclo ATUAL (pra resolver serviços do form de "Adicionar").
+  const hoje = new Date()
+  const cicloHoje = cicloAtual(diaFechamento, hoje)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: campRaw } = await (supabase as any)
+  const { data: campAtualRaw } = await (supabase as any)
     .from('campanha').select('id, ativo')
-    .eq('barbearia_id', barbeariaId).eq('mes', mes).eq('ano', ano).maybeSingle() as
+    .eq('barbearia_id', barbeariaId).eq('mes', cicloHoje.mesRef).eq('ano', cicloHoje.anoRef).maybeSingle() as
     { data: { id: string; ativo: boolean } | null }
 
-  // Pega TODOS os serviços de campanha da barbearia que poderiam aparecer nos últimos 30 dias
-  // (campanha pode ter mudado entre meses)
+  // Serviços de TODAS as campanhas da barbearia — controles podem referenciar
+  // servico_id de campanha de qualquer ciclo dentro do intervalo.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: campanhasRaw } = await (supabase as any)
-    .from('campanha').select('id').eq('barbearia_id', barbeariaId).gte('ano', ano - 1)
+    .from('campanha').select('id').eq('barbearia_id', barbeariaId)
   const campanhaIds = ((campanhasRaw ?? []) as { id: string }[]).map(c => c.id)
 
   let servicos: { id: string; nome: string; pontos: number; campanha_id: string }[] = []
@@ -193,14 +201,14 @@ export async function buscarLancamentosBarbeiro30Dias(barbeiroId: string) {
     servicos = (servRaw ?? []) as typeof servicos
   }
 
-  // Controles do barbeiro nos últimos 30 dias
+  // Controles do barbeiro no intervalo.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: controlesRaw } = await (supabase as any)
     .from('controle_diario')
     .select('data, servico_id, quantidade, lancado_por, editado_por, editado_em')
     .eq('barbeiro_id', barbeiroId)
-    .gte('data', toIso(ha30))
-    .lte('data', toIso(hoje))
+    .gte('data', inicioIso)
+    .lte('data', fimIso)
     .order('data', { ascending: false })
 
   const linhas = (controlesRaw ?? []) as Array<{
@@ -210,7 +218,7 @@ export async function buscarLancamentosBarbeiro30Dias(barbeiroId: string) {
     editado_em: string | null
   }>
 
-  // Agrupa por dia
+  // Agrupa por dia. `r.data` já é string 'YYYY-MM-DD' direto da coluna `date`.
   const porDia = new Map<string, LancamentoDia>()
   for (const r of linhas) {
     const serv = servicos.find(s => s.id === r.servico_id)
@@ -233,17 +241,40 @@ export async function buscarLancamentosBarbeiro30Dias(barbeiroId: string) {
   }
 
   const dias: LancamentoDia[] = Array.from(porDia.values()).sort((a, b) => b.data.localeCompare(a.data))
+  const totalPontosPeriodo = dias.reduce((s, d) => s + d.totalPontos, 0)
 
-  // Serviços ATIVOS da campanha do mês atual (pra o form de adicionar)
-  const servicosAtuais = campRaw?.id
-    ? servicos.filter(s => s.campanha_id === campRaw.id).map(s => ({ id: s.id, nome: s.nome, pontos: s.pontos }))
+  const servicosCampanhaAtual = campAtualRaw?.id
+    ? servicos.filter(s => s.campanha_id === campAtualRaw.id).map(s => ({ id: s.id, nome: s.nome, pontos: s.pontos }))
     : []
 
   return {
     ok: true as const,
     dias,
-    servicosCampanhaAtual: servicosAtuais,
-    campanhaAtualAtiva: campRaw?.ativo !== false && !!campRaw?.id,
+    totalPontosPeriodo,
+    servicosCampanhaAtual,
+    campanhaAtualAtiva: campAtualRaw?.ativo !== false && !!campAtualRaw?.id,
+  }
+}
+
+/**
+ * Busca os lançamentos de pontos de um barbeiro nos últimos 30 dias.
+ * Wrapper sobre `buscarLancamentosBarbeiroIntervalo` mantido pra compat
+ * com o modal "Ver lançamentos" no dashboard.
+ */
+export async function buscarLancamentosBarbeiro30Dias(barbeiroId: string) {
+  const hoje = new Date()
+  const ha30 = new Date(hoje)
+  ha30.setDate(ha30.getDate() - 30)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const toIso = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  const res = await buscarLancamentosBarbeiroIntervalo(barbeiroId, toIso(ha30), toIso(hoje))
+  if ('error' in res) return res
+  // Mantém o shape antigo (sem totalPontosPeriodo) pra não quebrar o modal.
+  return {
+    ok: true as const,
+    dias: res.dias,
+    servicosCampanhaAtual: res.servicosCampanhaAtual,
+    campanhaAtualAtiva: res.campanhaAtualAtiva,
   }
 }
 
