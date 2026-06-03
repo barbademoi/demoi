@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Check, Gift, Star, AlertTriangle, Info } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Check, Gift, Star, AlertTriangle, Info, Copy, ChevronRight, CheckCircle2, Heart } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 
 export interface ColaboradorLite {
@@ -22,8 +22,11 @@ interface Props {
 const LABELS_ESTRELAS = ['', 'Péssimo', 'Ruim', 'Regular', 'Bom', 'Excelente']
 
 interface Resultado {
+  feedback_id?: string
   ganhou_brinde: boolean
   brinde: { nome: string; descricao: string | null; codigo_resgate: string; validade_dias?: number } | null
+  google_reviews?: { url: string } | null
+  comentario_enviado?: string
 }
 
 export default function FeedbackClienteCliente({ slug, nomeEmpresa, logoUrl, colaboradores, mensagemPosFeedback, temBrindes }: Props) {
@@ -70,8 +73,11 @@ export default function FeedbackClienteCliente({ slug, nomeEmpresa, logoUrl, col
         return
       }
       setResultado({
+        feedback_id: j.feedback_id,
         ganhou_brinde: !!j.ganhou_brinde,
         brinde: j.brinde ?? null,
+        google_reviews: j.google_reviews ?? null,
+        comentario_enviado: comentario.trim(),
       })
     } catch {
       setErro('Sem conexão. Tente de novo.')
@@ -284,6 +290,8 @@ function SelecionarEstrelas({ valor, onChange }: { valor: number; onChange: (n: 
   )
 }
 
+type EtapaResultado = 'brinde' | 'google' | 'final-google' | 'final-recusou'
+
 function TelaResultado({
   nomeEmpresa,
   mensagem,
@@ -293,8 +301,42 @@ function TelaResultado({
   mensagem: string
   resultado: Resultado
 }) {
-  const { ganhou_brinde, brinde } = resultado
+  const { ganhou_brinde, brinde, google_reviews, comentario_enviado, feedback_id } = resultado
   const mensagemFinal = mensagem || 'Obrigado pelo seu feedback! Sua opinião nos ajuda a melhorar.'
+  const podeOferecerGoogle = !!google_reviews?.url && !!comentario_enviado
+  const [etapa, setEtapa] = useState<EtapaResultado>('brinde')
+
+  if (etapa === 'google' && podeOferecerGoogle && google_reviews) {
+    return (
+      <TelaGoogle
+        nomeEmpresa={nomeEmpresa}
+        comentario={comentario_enviado!}
+        googleUrl={google_reviews.url}
+        feedbackId={feedback_id}
+        onConcluir={() => setEtapa('final-google')}
+        onRecusar={() => setEtapa('final-recusou')}
+      />
+    )
+  }
+
+  if (etapa === 'final-google') {
+    return (
+      <TelaFinal
+        icon={<CheckCircle2 size={72} strokeWidth={1.5} color="#5C7148" className="mx-auto" />}
+        titulo="Obrigado!"
+        texto="O Google abriu numa nova aba. Cole o comentário lá e publique. Muito obrigado por ajudar!"
+      />
+    )
+  }
+  if (etapa === 'final-recusou') {
+    return (
+      <TelaFinal
+        icon={<Heart size={56} strokeWidth={1.5} color="#A56336" className="mx-auto" />}
+        titulo="Obrigado pela sua avaliação!"
+        texto="Sua opinião é muito importante pra gente."
+      />
+    )
+  }
 
   return (
     <main className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
@@ -338,6 +380,152 @@ function TelaResultado({
             <p className="text-sm text-grafite px-4">{mensagemFinal}</p>
           </>
         )}
+
+        {podeOferecerGoogle && (
+          <button
+            type="button"
+            onClick={() => setEtapa('google')}
+            className="btn-primary w-full"
+          >
+            Continuar <ChevronRight size={16} strokeWidth={1.5} />
+          </button>
+        )}
+      </div>
+    </main>
+  )
+}
+
+function TelaGoogle({
+  nomeEmpresa,
+  comentario,
+  googleUrl,
+  feedbackId,
+  onConcluir,
+  onRecusar,
+}: {
+  nomeEmpresa: string
+  comentario: string
+  googleUrl: string
+  feedbackId?: string
+  onConcluir: () => void
+  onRecusar: () => void
+}) {
+  const [copiado, setCopiado] = useState(false)
+  const [erroCopia, setErroCopia] = useState(false)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  async function copiar() {
+    setErroCopia(false)
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(comentario)
+      } else {
+        // Fallback: seleciona o textarea pra cópia manual.
+        inputRef.current?.select()
+        document.execCommand?.('copy')
+      }
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 2000)
+    } catch {
+      setErroCopia(true)
+      inputRef.current?.select()
+    }
+  }
+
+  function abrirGoogle() {
+    if (feedbackId) {
+      // Tracking best-effort, não bloqueia o redirect.
+      fetch('/api/feedback-cliente/clicou-google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedback_id: feedbackId }),
+        keepalive: true,
+      }).catch(() => {})
+    }
+    window.open(googleUrl, '_blank', 'noopener,noreferrer')
+    onConcluir()
+  }
+
+  return (
+    <main className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md text-center space-y-6 animate-fade-in">
+        <Star size={56} strokeWidth={1.5} color="#8B6F47" className="mx-auto" fill="#8B6F47" />
+        <div className="space-y-2">
+          <h1 className="font-serif text-2xl text-preto">Sua avaliação foi incrível!</h1>
+          <p className="text-sm text-grafite px-2">
+            Você toparia compartilhar essa mesma opinião no Google? Ajudaria muito a{' '}
+            <strong>{nomeEmpresa}</strong> a ser encontrada por mais pessoas.
+          </p>
+        </div>
+
+        <div className="rounded-lg border-l-4 border-marrom bg-linho/50 p-4 text-left">
+          <p className="text-marrom text-2xl leading-none mb-1" aria-hidden>“</p>
+          <p className="text-text italic text-sm whitespace-pre-wrap">{comentario}</p>
+          <textarea
+            ref={inputRef}
+            value={comentario}
+            readOnly
+            className="sr-only"
+            aria-hidden
+          />
+        </div>
+
+        <button
+          type="button"
+          onClick={copiar}
+          className="btn-secondary w-full"
+        >
+          {copiado ? <><Check size={16} strokeWidth={1.5} /> Copiado</> : <><Copy size={16} strokeWidth={1.5} /> Copiar comentário</>}
+        </button>
+        {erroCopia && (
+          <p className="text-xs text-vinho">
+            Copiar automático falhou. Toque no comentário acima pra copiar manualmente.
+          </p>
+        )}
+
+        <div className="space-y-3 pt-2">
+          <button
+            type="button"
+            onClick={abrirGoogle}
+            className="btn-primary w-full min-h-[44px]"
+          >
+            Avaliar no Google
+          </button>
+          <button
+            type="button"
+            onClick={onRecusar}
+            className="text-sm text-grafite hover:text-text underline"
+          >
+            Agora não, obrigado
+          </button>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+function TelaFinal({
+  icon,
+  titulo,
+  texto,
+}: {
+  icon: React.ReactNode
+  titulo: string
+  texto: string
+}) {
+  return (
+    <main className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md text-center space-y-5 animate-fade-in">
+        {icon}
+        <h1 className="text-xl font-semibold text-text">{titulo}</h1>
+        <p className="text-sm text-grafite px-4">{texto}</p>
+        <button
+          type="button"
+          onClick={() => window.close()}
+          className="btn-secondary"
+        >
+          Fechar
+        </button>
       </div>
     </main>
   )

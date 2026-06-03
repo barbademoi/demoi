@@ -127,6 +127,40 @@ export async function salvarValidadeBrinde(dias: number) {
   }
 }
 
+export async function salvarGoogleReviewsUrl(urlBruta: string) {
+  try {
+    const supabase = createClient()
+    const id = await getEstabelecimentoId()
+    if (!id) return { error: 'Não autenticado.' }
+    const trimmed = (urlBruta ?? '').trim().slice(0, 500)
+    let valor: string | null = null
+    if (trimmed) {
+      try {
+        const u = new URL(trimmed)
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+          return { error: 'URL precisa começar com http:// ou https://.' }
+        }
+        valor = u.toString()
+      } catch {
+        return { error: 'URL inválida.' }
+      }
+    }
+    const { error } = await supabase
+      .from('estabelecimentos')
+      .update({ google_reviews_url: valor })
+      .eq('id', id)
+    if (error) {
+      console.error('[salvarGoogleReviewsUrl]', error)
+      return { error: 'Não foi possível salvar.' }
+    }
+    revalidatePath('/painel/configuracoes')
+    return { ok: true as const, salvo: valor }
+  } catch (err) {
+    console.error('[salvarGoogleReviewsUrl]', err)
+    return { error: 'Erro interno.' }
+  }
+}
+
 interface BrindeInput {
   nome: string
   descricao: string | null

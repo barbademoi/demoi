@@ -41,12 +41,12 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient()
 
-  // Tenta select com brinde_validade_dias (migration 018); cai pro mínimo
-  // se a coluna ainda não existe.
-  let est: { id: string; feedback_cliente_ativo: boolean; brinde_validade_dias: number } | null = null
+  // Tenta select com brinde_validade_dias + google_reviews_url (migrations
+  // 018 + 019); cai pro mínimo se as colunas ainda não existem.
+  let est: { id: string; feedback_cliente_ativo: boolean; brinde_validade_dias: number; google_reviews_url: string | null } | null = null
   const estCompleto = await admin
     .from('estabelecimentos')
-    .select('id, feedback_cliente_ativo, brinde_validade_dias')
+    .select('id, feedback_cliente_ativo, brinde_validade_dias, google_reviews_url')
     .eq('link_feedback_cliente_slug', body.slug)
     .maybeSingle()
   if (estCompleto.data) {
@@ -54,6 +54,7 @@ export async function POST(req: Request) {
       id: estCompleto.data.id as string,
       feedback_cliente_ativo: !!estCompleto.data.feedback_cliente_ativo,
       brinde_validade_dias: (estCompleto.data.brinde_validade_dias as number | null) ?? 30,
+      google_reviews_url: (estCompleto.data.google_reviews_url as string | null) ?? null,
     }
   } else {
     const estMin = await admin
@@ -66,6 +67,7 @@ export async function POST(req: Request) {
         id: estMin.data.id as string,
         feedback_cliente_ativo: !!estMin.data.feedback_cliente_ativo,
         brinde_validade_dias: 30,
+        google_reviews_url: null,
       }
     }
   }
@@ -73,6 +75,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Link não disponível.' }, { status: 404 })
   }
   const validadeDias = est.brinde_validade_dias
+  const googleReviewsUrl = est.google_reviews_url
 
   // Confere colaborador, se enviado.
   if (colabId) {
@@ -117,8 +120,12 @@ export async function POST(req: Request) {
 
   const identificado = !!nomeCliente
 
-  // Insere com brinde_validade_dias (snapshot da config atual); se a coluna
-  // ainda não existe (migration 018 não rodou), tenta sem ela.
+  // Condição pra oferecer Google Reviews: 5 estrelas + comentário + url
+  // cadastrada + identificação completa (nomeCliente).
+  const convidarGoogle = estrelas === 5 && !!comentario && !!googleReviewsUrl && !!nomeCliente
+
+  // Insere com brinde_validade_dias + convidado_google (snapshots); se as
+  // colunas ainda não existem, tenta sem elas.
   const payloadBase = {
     estabelecimento_id: est.id,
     profissional_id: colabId,
@@ -131,21 +138,31 @@ export async function POST(req: Request) {
     status: 'novo',
     ip_address: ip,
   }
-  let { error } = await admin.from('feedbacks_cliente').insert({
-    ...payloadBase,
-    brinde_validade_dias: brindeSorteado ? validadeDias : null,
-  })
-  if (error) {
-    const semCol = await admin.from('feedbacks_cliente').insert(payloadBase)
-    error = semCol.error
+  let insertResult = await admin
+    .from('feedbacks_cliente')
+    .insert({
+      ...payloadBase,
+      brinde_validade_dias: brindeSorteado ? validadeDias : null,
+      convidado_google: convidarGoogle,
+    })
+    .select('id')
+    .single()
+  if (insertResult.error) {
+    insertResult = await admin
+      .from('feedbacks_cliente')
+      .insert(payloadBase)
+      .select('id')
+      .single()
   }
-  if (error) {
-    console.error('[feedback-cliente] insert', error)
+  if (insertResult.error || !insertResult.data) {
+    console.error('[feedback-cliente] insert', insertResult.error)
     return NextResponse.json({ error: 'Não foi possível registrar.' }, { status: 500 })
   }
+  const feedbackId = insertResult.data.id as string
 
   return NextResponse.json({
     sucesso: true,
+    feedback_id: feedbackId,
     ganhou_brinde: !!brindeSorteado,
     brinde: brindeSorteado && codigoResgate
       ? {
@@ -155,6 +172,7 @@ export async function POST(req: Request) {
           validade_dias: validadeDias,
         }
       : null,
+    google_reviews: convidarGoogle ? { url: googleReviewsUrl } : null,
   })
 }
 

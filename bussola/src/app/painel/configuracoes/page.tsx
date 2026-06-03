@@ -36,6 +36,7 @@ export default async function ConfiguracoesPage() {
   let slug: string | null = null
   let mensagem: string = MENSAGEM_POS_FEEDBACK_PADRAO
   let validadeBrinde = 30
+  let googleReviewsUrl: string | null = null
   const fc = await supabase
     .from('estabelecimentos')
     .select('feedback_cliente_ativo, link_feedback_cliente_slug, mensagem_pos_feedback')
@@ -45,6 +46,17 @@ export default async function ConfiguracoesPage() {
     feedbackClienteAtivo = !!fc.data.feedback_cliente_ativo
     slug = (fc.data.link_feedback_cliente_slug as string | null) ?? null
     mensagem = (fc.data.mensagem_pos_feedback as string | null) ?? MENSAGEM_POS_FEEDBACK_PADRAO
+  }
+  // Google Reviews URL (migration 019) — tolera ausência.
+  try {
+    const gr = await supabase
+      .from('estabelecimentos')
+      .select('google_reviews_url')
+      .eq('id', estabId)
+      .maybeSingle()
+    if (gr.data?.google_reviews_url) googleReviewsUrl = gr.data.google_reviews_url as string
+  } catch {
+    /* Migration 019 ainda não rodou. */
   }
   // Validade do brinde (migration 018) — tolera ausência.
   try {
@@ -123,6 +135,7 @@ export default async function ConfiguracoesPage() {
         mensagem={mensagem}
         brindes={brindes}
         validadeInicial={validadeBrinde}
+        googleReviewsUrlInicial={googleReviewsUrl}
         origem={origem}
       />
       <LimpezaSection />

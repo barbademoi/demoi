@@ -20,6 +20,7 @@ import {
   atualizarBrinde,
   excluirBrinde,
   salvarValidadeBrinde,
+  salvarGoogleReviewsUrl,
 } from './feedbackClienteActions'
 
 export interface BrindeUI {
@@ -37,6 +38,7 @@ interface Props {
   brindes: BrindeUI[]
   origem: string // ex: "https://bussola.app"
   validadeInicial?: number // dias — 15/30/60/90
+  googleReviewsUrlInicial?: string | null
 }
 
 const VALIDADES: { v: 15 | 30 | 60 | 90; label: string; rec?: boolean }[] = [
@@ -48,9 +50,12 @@ const VALIDADES: { v: 15 | 30 | 60 | 90; label: string; rec?: boolean }[] = [
 
 const MENSAGEM_PADRAO = 'Obrigado pelo seu feedback! Sua opinião nos ajuda a melhorar.'
 
-export default function FeedbackClienteSection({ ativo, slug, mensagem, brindes, origem, validadeInicial = 30 }: Props) {
+export default function FeedbackClienteSection({ ativo, slug, mensagem, brindes, origem, validadeInicial = 30, googleReviewsUrlInicial = null }: Props) {
   const [validade, setValidade] = useState<number>(validadeInicial)
   const [validadeMsg, setValidadeMsg] = useState<string | null>(null)
+  const [googleUrl, setGoogleUrl] = useState<string>(googleReviewsUrlInicial ?? '')
+  const [googleMsg, setGoogleMsg] = useState<string | null>(null)
+  const [comoPegarAberto, setComoPegarAberto] = useState(false)
 
   const [feedbackUI, setFeedbackUI] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -70,6 +75,18 @@ export default function FeedbackClienteSection({ ativo, slug, mensagem, brindes,
     startTransition(async () => {
       const r = await salvarValidadeBrinde(dias)
       setValidadeMsg(r?.error ?? 'Validade salva')
+    })
+  }
+
+  function salvarGoogleUrl() {
+    setGoogleMsg(null)
+    startTransition(async () => {
+      const r = await salvarGoogleReviewsUrl(googleUrl)
+      if (r?.error) setGoogleMsg(r.error)
+      else {
+        if ('salvo' in r) setGoogleUrl(r.salvo ?? '')
+        setGoogleMsg(googleUrl.trim() ? 'Link salvo' : 'Link removido (feature desativada)')
+      }
     })
   }
 
@@ -232,6 +249,56 @@ export default function FeedbackClienteSection({ ativo, slug, mensagem, brindes,
               })}
             </div>
             {validadeMsg && <p className="text-xs text-chumbo">{validadeMsg}</p>}
+          </div>
+
+          {/* LINK DO GOOGLE REVIEWS */}
+          <div className="space-y-2">
+            <label htmlFor="google-reviews-url" className="label">Link do Google Reviews</label>
+            <p className="text-xs text-chumbo">
+              Cole o link de avaliação direta do Google da sua empresa. Quando um cliente deixar 5
+              estrelas com comentário, vamos perguntar se ele quer publicar a mesma avaliação no
+              Google. Deixe vazio pra desativar.
+            </p>
+            <div className="flex gap-2">
+              <input
+                id="google-reviews-url"
+                type="url"
+                value={googleUrl}
+                onChange={(e) => setGoogleUrl(e.target.value.slice(0, 500))}
+                placeholder="https://g.page/r/..."
+                className="input text-sm flex-1"
+              />
+              <button
+                type="button"
+                onClick={salvarGoogleUrl}
+                disabled={isPending}
+                className="btn-secondary text-sm shrink-0"
+              >
+                Salvar
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setComoPegarAberto((v) => !v)}
+              className="text-xs text-marrom underline"
+            >
+              {comoPegarAberto ? 'Fechar' : 'Como pegar este link?'}
+            </button>
+            {comoPegarAberto && (
+              <div className="rounded-md border border-border bg-linho/30 p-3 text-xs text-grafite space-y-2">
+                <p className="font-medium text-text">Dois jeitos de pegar o link:</p>
+                <ol className="list-decimal pl-4 space-y-1">
+                  <li>
+                    Pelo <strong>Google Business Profile</strong>: acesse business.google.com → sua empresa →
+                    &quot;Pedir avaliações&quot;. O Google gera um link curto pra você.
+                  </li>
+                  <li>
+                    Pelo link curto <strong>g.page/r/...</strong>: se você já tem ele anotado, basta colar aqui.
+                  </li>
+                </ol>
+              </div>
+            )}
+            {googleMsg && <p className="text-xs text-chumbo">{googleMsg}</p>}
           </div>
 
           {/* BRINDES */}
