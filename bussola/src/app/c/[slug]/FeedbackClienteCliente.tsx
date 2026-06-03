@@ -31,8 +31,8 @@ export default function FeedbackClienteCliente({ slug, nomeEmpresa, logoUrl, col
   const [colabId, setColabId] = useState<string | null>(null) // null = nenhum / vários
   const [colabEscolhido, setColabEscolhido] = useState(false) // marca que passou desse passo
   const [comentario, setComentario] = useState('')
-  const [anonimo, setAnonimo] = useState(false)
   const [nome, setNome] = useState('')
+  const [sobrenome, setSobrenome] = useState('')
 
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -40,9 +40,10 @@ export default function FeedbackClienteCliente({ slug, nomeEmpresa, logoUrl, col
 
   async function enviar() {
     if (!estrelas) return
-    // Identificação só é exigida se o usuário escreveu um comentário.
-    if (comentario.trim() && !anonimo && !nome.trim()) {
-      setErro('Informe seu nome ou marque "Prefiro deixar anônimo".')
+    // Identificação obrigatória quando há comentário: nome + sobrenome
+    // são usados pra entregar o brinde.
+    if (comentario.trim() && (!nome.trim() || !sobrenome.trim())) {
+      setErro('Informe nome e sobrenome pra receber o brinde.')
       return
     }
     setErro(null)
@@ -56,7 +57,10 @@ export default function FeedbackClienteCliente({ slug, nomeEmpresa, logoUrl, col
           estrelas,
           colaborador_id: colabId,
           comentario: comentario.trim() || null,
-          nome_cliente: !anonimo && nome.trim() ? nome.trim() : null,
+          nome_cliente:
+            comentario.trim() && nome.trim() && sobrenome.trim()
+              ? `${nome.trim()} ${sobrenome.trim()}`
+              : null,
         }),
       })
       const j = await r.json()
@@ -192,27 +196,33 @@ export default function FeedbackClienteCliente({ slug, nomeEmpresa, logoUrl, col
           </section>
         )}
 
-        {/* PASSO 4 — IDENTIFICAÇÃO */}
+        {/* PASSO 4 — IDENTIFICAÇÃO (obrigatória pra receber o brinde) */}
         {mostrarIdentificacao && (
           <section className="animate-fade-in space-y-2">
-            <label htmlFor="nome-cliente" className="block text-sm text-text">Como podemos te chamar?</label>
-            <input
-              id="nome-cliente"
-              type="text"
-              value={nome}
-              onChange={(e) => setNome(e.target.value.slice(0, 80))}
-              disabled={anonimo}
-              className="input text-sm"
-            />
-            <label className="flex items-center gap-2 text-sm text-grafite">
+            <div>
+              <p className="text-sm text-text">Pra receber o brinde, informe seu nome completo:</p>
+              <p className="text-xs text-chumbo mt-0.5">Usamos só pra confirmar o ganhador na empresa.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
               <input
-                type="checkbox"
-                checked={anonimo}
-                onChange={(e) => setAnonimo(e.target.checked)}
-                className="accent-marrom w-4 h-4"
+                id="nome-cliente"
+                type="text"
+                value={nome}
+                onChange={(e) => setNome(e.target.value.slice(0, 40))}
+                placeholder="Nome"
+                autoComplete="given-name"
+                className="input text-sm"
               />
-              Prefiro deixar anônimo
-            </label>
+              <input
+                id="sobrenome-cliente"
+                type="text"
+                value={sobrenome}
+                onChange={(e) => setSobrenome(e.target.value.slice(0, 40))}
+                placeholder="Sobrenome"
+                autoComplete="family-name"
+                className="input text-sm"
+              />
+            </div>
           </section>
         )}
 
