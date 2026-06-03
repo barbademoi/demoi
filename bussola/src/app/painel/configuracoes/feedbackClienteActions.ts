@@ -102,6 +102,31 @@ export async function salvarMensagemPosFeedback(texto: string) {
   }
 }
 
+const VALIDADES_OK = [15, 30, 60, 90] as const
+export async function salvarValidadeBrinde(dias: number) {
+  try {
+    if (!VALIDADES_OK.includes(dias as (typeof VALIDADES_OK)[number])) {
+      return { error: 'Validade inválida.' }
+    }
+    const supabase = createClient()
+    const id = await getEstabelecimentoId()
+    if (!id) return { error: 'Não autenticado.' }
+    const { error } = await supabase
+      .from('estabelecimentos')
+      .update({ brinde_validade_dias: dias })
+      .eq('id', id)
+    if (error) {
+      console.error('[salvarValidadeBrinde]', error)
+      return { error: 'Não foi possível salvar.' }
+    }
+    revalidatePath('/painel/configuracoes')
+    return { ok: true as const }
+  } catch (err) {
+    console.error('[salvarValidadeBrinde]', err)
+    return { error: 'Erro interno.' }
+  }
+}
+
 interface BrindeInput {
   nome: string
   descricao: string | null

@@ -44,6 +44,7 @@ export interface FeedbackClienteUI {
   brinde_id: string | null
   codigo_resgate: string | null
   brinde_usado: boolean
+  brinde_validade_dias?: number | null
   status: 'novo' | 'lido' | 'compartilhado_colaborador' | 'arquivado'
   created_at: string
   profissionais: ProfRel
@@ -330,6 +331,17 @@ function CardFeedback({
               Código: <span className="font-mono font-semibold text-text">{fb.codigo_resgate}</span>
             </p>
           )}
+          {fb.codigo_resgate && fb.created_at && (() => {
+            const dias = fb.brinde_validade_dias ?? 30
+            const exp = new Date(new Date(fb.created_at).getTime() + dias * 24 * 60 * 60 * 1000)
+            const expirou = exp.getTime() < Date.now()
+            const fmt = exp.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+            return (
+              <p className={`text-[11px] mt-0.5 ${expirou ? 'text-chumbo/70' : 'text-chumbo'}`}>
+                {expirou ? `Brinde expirado em ${fmt}` : `Brinde expira em ${fmt}`}
+              </p>
+            )
+          })()}
           <label className="mt-2 inline-flex items-center gap-2 text-xs text-grafite">
             <input
               type="checkbox"

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Gift, Star, AlertTriangle } from 'lucide-react'
+import { Check, Gift, Star, AlertTriangle, Info } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 
 export interface ColaboradorLite {
@@ -23,7 +23,7 @@ const LABELS_ESTRELAS = ['', 'Péssimo', 'Ruim', 'Regular', 'Bom', 'Excelente']
 
 interface Resultado {
   ganhou_brinde: boolean
-  brinde: { nome: string; descricao: string | null; codigo_resgate: string } | null
+  brinde: { nome: string; descricao: string | null; codigo_resgate: string; validade_dias?: number } | null
 }
 
 export default function FeedbackClienteCliente({ slug, nomeEmpresa, logoUrl, colaboradores, mensagemPosFeedback, temBrindes }: Props) {
@@ -304,9 +304,20 @@ function TelaResultado({
               </div>
             </div>
             <p className="text-sm text-text">
-              Mostre este código na <strong>{nomeEmpresa}</strong> pra usar seu brinde.
+              Mostre este código na <strong>{nomeEmpresa}</strong> pra usar seu brinde,
+              em até <strong>{brinde.validade_dias ?? 30} dias</strong>.
             </p>
-            <p className="text-xs text-chumbo">
+
+            <div className="border-t border-border pt-4 mt-6 space-y-1.5 text-[12px] text-chumbo">
+              <p className="inline-flex items-center justify-center gap-1.5">
+                <Info size={13} strokeWidth={1.5} />
+                Brinde válido por {brinde.validade_dias ?? 30} dias
+              </p>
+              <p>· Não acumulável com outras avaliações</p>
+              <p>· Uso individual</p>
+            </div>
+
+            <p className="text-xs text-chumbo border-t border-border pt-4">
               Sugestão: tire um print desta tela pra não perder o código.
             </p>
           </>

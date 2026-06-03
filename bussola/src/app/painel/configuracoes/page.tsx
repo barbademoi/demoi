@@ -35,6 +35,7 @@ export default async function ConfiguracoesPage() {
   let feedbackClienteAtivo = false
   let slug: string | null = null
   let mensagem: string = MENSAGEM_POS_FEEDBACK_PADRAO
+  let validadeBrinde = 30
   const fc = await supabase
     .from('estabelecimentos')
     .select('feedback_cliente_ativo, link_feedback_cliente_slug, mensagem_pos_feedback')
@@ -44,6 +45,20 @@ export default async function ConfiguracoesPage() {
     feedbackClienteAtivo = !!fc.data.feedback_cliente_ativo
     slug = (fc.data.link_feedback_cliente_slug as string | null) ?? null
     mensagem = (fc.data.mensagem_pos_feedback as string | null) ?? MENSAGEM_POS_FEEDBACK_PADRAO
+  }
+  // Validade do brinde (migration 018) — tolera ausência.
+  try {
+    const vc = await supabase
+      .from('estabelecimentos')
+      .select('brinde_validade_dias')
+      .eq('id', estabId)
+      .maybeSingle()
+    if (vc.data?.brinde_validade_dias) {
+      const v = vc.data.brinde_validade_dias as number
+      if ([15, 30, 60, 90].includes(v)) validadeBrinde = v
+    }
+  } catch {
+    /* Migration 018 ainda não rodou — fica 30. */
   }
 
   // 3) Logo (migration 015) — independente da 012.
@@ -107,6 +122,7 @@ export default async function ConfiguracoesPage() {
         slug={slug}
         mensagem={mensagem}
         brindes={brindes}
+        validadeInicial={validadeBrinde}
         origem={origem}
       />
       <LimpezaSection />

@@ -28,11 +28,23 @@ export default async function FeedbacksClientePage() {
     .order('nome')
   const ativos = (ativosData ?? []) as ColaboradorLite[]
 
-  const { data: fbData } = await supabase
+  // Tenta com brinde_validade_dias (migration 018); cai sem ela.
+  let fbData: unknown[] | null = null
+  const tentativaCompleta = await supabase
     .from('feedbacks_cliente')
-    .select('id, profissional_id, nome_cliente, identificado, estrelas, comentario, brinde_id, codigo_resgate, brinde_usado, status, created_at, profissionais(nome, foto_url), brindes(nome)')
+    .select('id, profissional_id, nome_cliente, identificado, estrelas, comentario, brinde_id, codigo_resgate, brinde_usado, brinde_validade_dias, status, created_at, profissionais(nome, foto_url), brindes(nome)')
     .eq('estabelecimento_id', est.id)
     .order('created_at', { ascending: false })
+  if (tentativaCompleta.data) {
+    fbData = tentativaCompleta.data
+  } else {
+    const tentativaMinima = await supabase
+      .from('feedbacks_cliente')
+      .select('id, profissional_id, nome_cliente, identificado, estrelas, comentario, brinde_id, codigo_resgate, brinde_usado, status, created_at, profissionais(nome, foto_url), brindes(nome)')
+      .eq('estabelecimento_id', est.id)
+      .order('created_at', { ascending: false })
+    fbData = tentativaMinima.data
+  }
   const lista = (fbData ?? []) as unknown as FeedbackClienteUI[]
 
   // Contadores resumidos.

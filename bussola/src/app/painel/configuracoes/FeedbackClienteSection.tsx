@@ -19,6 +19,7 @@ import {
   criarBrinde,
   atualizarBrinde,
   excluirBrinde,
+  salvarValidadeBrinde,
 } from './feedbackClienteActions'
 
 export interface BrindeUI {
@@ -35,11 +36,22 @@ interface Props {
   mensagem: string
   brindes: BrindeUI[]
   origem: string // ex: "https://bussola.app"
+  validadeInicial?: number // dias — 15/30/60/90
 }
+
+const VALIDADES: { v: 15 | 30 | 60 | 90; label: string; rec?: boolean }[] = [
+  { v: 15, label: '15 dias' },
+  { v: 30, label: '30 dias', rec: true },
+  { v: 60, label: '60 dias' },
+  { v: 90, label: '90 dias' },
+]
 
 const MENSAGEM_PADRAO = 'Obrigado pelo seu feedback! Sua opinião nos ajuda a melhorar.'
 
-export default function FeedbackClienteSection({ ativo, slug, mensagem, brindes, origem }: Props) {
+export default function FeedbackClienteSection({ ativo, slug, mensagem, brindes, origem, validadeInicial = 30 }: Props) {
+  const [validade, setValidade] = useState<number>(validadeInicial)
+  const [validadeMsg, setValidadeMsg] = useState<string | null>(null)
+
   const [feedbackUI, setFeedbackUI] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -49,6 +61,15 @@ export default function FeedbackClienteSection({ ativo, slug, mensagem, brindes,
     startTransition(async () => {
       const res = novo ? await ativarFeedbackCliente() : await desativarFeedbackCliente()
       setFeedbackUI(res?.error ?? (novo ? 'Ativado' : 'Desativado'))
+    })
+  }
+
+  function alterarValidade(dias: number) {
+    setValidade(dias)
+    setValidadeMsg(null)
+    startTransition(async () => {
+      const r = await salvarValidadeBrinde(dias)
+      setValidadeMsg(r?.error ?? 'Validade salva')
     })
   }
 
@@ -182,6 +203,35 @@ export default function FeedbackClienteSection({ ativo, slug, mensagem, brindes,
               </button>
             </div>
             {msgSalva && <p className="text-xs text-chumbo">{msgSalva}</p>}
+          </div>
+
+          {/* VALIDADE DO BRINDE */}
+          <div className="space-y-2">
+            <label className="label">Validade do brinde</label>
+            <p className="text-xs text-chumbo">
+              Tempo que o cliente tem pra usar o brinde após receber. Aplica apenas a brindes novos —
+              sorteados anteriormente mantêm a validade original.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+              {VALIDADES.map((o) => {
+                const on = validade === o.v
+                return (
+                  <button
+                    key={o.v}
+                    type="button"
+                    onClick={() => alterarValidade(o.v)}
+                    disabled={isPending}
+                    className={`rounded-md border p-2.5 text-sm transition-colors ${
+                      on ? 'border-marrom bg-linho/40 text-marrom font-medium' : 'border-border text-grafite hover:bg-linho/30'
+                    }`}
+                  >
+                    {o.label}
+                    {o.rec && <span className="block text-[10px] text-chumbo font-normal">(recomendado)</span>}
+                  </button>
+                )
+              })}
+            </div>
+            {validadeMsg && <p className="text-xs text-chumbo">{validadeMsg}</p>}
           </div>
 
           {/* BRINDES */}

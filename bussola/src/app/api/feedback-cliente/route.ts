@@ -41,14 +41,38 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient()
 
-  const { data: est } = await admin
+  // Tenta select com brinde_validade_dias (migration 018); cai pro mínimo
+  // se a coluna ainda não existe.
+  let est: { id: string; feedback_cliente_ativo: boolean; brinde_validade_dias: number } | null = null
+  const estCompleto = await admin
     .from('estabelecimentos')
-    .select('id, feedback_cliente_ativo')
+    .select('id, feedback_cliente_ativo, brinde_validade_dias')
     .eq('link_feedback_cliente_slug', body.slug)
     .maybeSingle()
+  if (estCompleto.data) {
+    est = {
+      id: estCompleto.data.id as string,
+      feedback_cliente_ativo: !!estCompleto.data.feedback_cliente_ativo,
+      brinde_validade_dias: (estCompleto.data.brinde_validade_dias as number | null) ?? 30,
+    }
+  } else {
+    const estMin = await admin
+      .from('estabelecimentos')
+      .select('id, feedback_cliente_ativo')
+      .eq('link_feedback_cliente_slug', body.slug)
+      .maybeSingle()
+    if (estMin.data) {
+      est = {
+        id: estMin.data.id as string,
+        feedback_cliente_ativo: !!estMin.data.feedback_cliente_ativo,
+        brinde_validade_dias: 30,
+      }
+    }
+  }
   if (!est || !est.feedback_cliente_ativo) {
     return NextResponse.json({ error: 'Link não disponível.' }, { status: 404 })
   }
+  const validadeDias = est.brinde_validade_dias
 
   // Confere colaborador, se enviado.
   if (colabId) {
@@ -93,7 +117,9 @@ export async function POST(req: Request) {
 
   const identificado = !!nomeCliente
 
-  const { error } = await admin.from('feedbacks_cliente').insert({
+  // Insere com brinde_validade_dias (snapshot da config atual); se a coluna
+  // ainda não existe (migration 018 não rodou), tenta sem ela.
+  const payloadBase = {
     estabelecimento_id: est.id,
     profissional_id: colabId,
     nome_cliente: nomeCliente,
@@ -104,7 +130,15 @@ export async function POST(req: Request) {
     codigo_resgate: codigoResgate,
     status: 'novo',
     ip_address: ip,
+  }
+  let { error } = await admin.from('feedbacks_cliente').insert({
+    ...payloadBase,
+    brinde_validade_dias: brindeSorteado ? validadeDias : null,
   })
+  if (error) {
+    const semCol = await admin.from('feedbacks_cliente').insert(payloadBase)
+    error = semCol.error
+  }
   if (error) {
     console.error('[feedback-cliente] insert', error)
     return NextResponse.json({ error: 'Não foi possível registrar.' }, { status: 500 })
@@ -118,6 +152,7 @@ export async function POST(req: Request) {
           nome: brindeSorteado.nome,
           descricao: brindeSorteado.descricao,
           codigo_resgate: codigoResgate,
+          validade_dias: validadeDias,
         }
       : null,
   })
