@@ -57,7 +57,7 @@ export function TeseCentral() {
         transition={{ duration: 0.8, delay: 0.3 }}
         className="mt-16 font-serif text-2xl sm:text-3xl text-marrom text-center leading-snug max-w-3xl mx-auto"
       >
-        E cultura não se constrói em planilha. Se constrói na conversa semanal com a equipe.
+        E cultura não se constrói em planilha. Se constrói na conversa semanal com a equipe — com a IA da Bússola te guiando.
       </motion.p>
     </section>
   )

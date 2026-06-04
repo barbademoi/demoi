@@ -4,6 +4,29 @@ import { motion } from 'framer-motion'
 import { PhoneFrame } from './PhoneFrame'
 import { LazyAutoplayVideo } from './LazyAutoplayVideo'
 
+const BLOCOS = [
+  {
+    titulo: 'Você anota. A IA organiza.',
+    texto:
+      'Durante a semana, você anota qualquer observação sobre sua equipe. Texto livre, em segundos, no celular. A IA lê tudo e classifica nos 6 momentos certos da reunião.',
+  },
+  {
+    titulo: 'A IA sugere — com fundamento.',
+    texto:
+      'Em cada observação, a IA traz um princípio de liderança consagrado e sugere uma forma de abordar com firmeza e respeito. Sem adivinhação. Sem "achismo".',
+  },
+  {
+    titulo: 'A IA escreve resumos que fazem sentido.',
+    texto:
+      'No fim da semana, a IA gera um resumo do que aconteceu, identifica destaques e padrões, e prepara sua pauta da próxima reunião. Você lê em 2 minutos.',
+  },
+  {
+    titulo: 'Você decide. Você fala.',
+    texto:
+      'A IA é parceira, não substituta. Ela prepara o terreno pra você liderar com clareza — mas a voz que vai falar com sua equipe é a sua.',
+  },
+]
+
 export function SolucaoEmAcao() {
   return (
     <section
@@ -17,51 +40,62 @@ export function SolucaoEmAcao() {
         aria-hidden
         className="pointer-events-none absolute -right-32 top-1/2 -translate-y-1/2 w-[640px] h-[640px] opacity-[0.06] select-none"
       />
-      <div className="relative max-w-5xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-15%' }}
-          transition={{ duration: 0.6 }}
-          className="space-y-5"
-        >
-          <h2 className="font-serif text-3xl sm:text-4xl text-preto leading-tight">
-            A reunião que conduz você.
-          </h2>
-          <p className="text-grafite text-lg">
-            A Bússola transforma observações soltas da semana numa conversa
-            estruturada com sua equipe. Você só conduz.
-          </p>
-          <div className="space-y-4 text-grafite leading-relaxed pt-2">
-            <p>
-              Durante a semana, você anota qualquer observação sobre sua equipe.
-              Texto livre, em segundos, no celular.
-            </p>
-            <p>
-              Na hora da reunião, a IA organiza tudo nos 6 momentos certos:
-              <strong className="text-text"> Abertura, Revisão, Reconhecimento,
-              Equipe, Ajustes e Encerramento</strong>.
-            </p>
-            <p>
-              Em cada momento, princípios sólidos de liderança aparecem pra te
-              orientar. Princípios que constroem cultura — não que só preenchem ata.
-            </p>
-          </div>
-        </motion.div>
+      <div className="relative max-w-6xl mx-auto">
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <motion.h2
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-15%' }}
+            transition={{ duration: 0.6 }}
+            className="font-serif text-3xl sm:text-4xl text-preto leading-tight"
+          >
+            A IA que pensa por décadas de liderança — e trabalha por você.
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-15%' }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="text-grafite text-lg mt-4 leading-relaxed"
+          >
+            A Bússola tem uma IA treinada nos fundamentos consagrados da gestão
+            de pessoas. Décadas de pesquisa sobre o que funciona em equipes
+            reais, princípios destilados dos maiores nomes da liderança moderna
+            — tudo dentro de uma ferramenta que cabe no seu bolso.
+          </motion.p>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, x: 40 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true, margin: '-15%' }}
-          transition={{ duration: 0.7 }}
-        >
-          <PhoneFrame size="md">
-            <LazyAutoplayVideo
-              src="modo-reuniao"
-              poster="/landing/optimized/modo-reuniao-poster.jpg"
-            />
-          </PhoneFrame>
-        </motion.div>
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="space-y-7">
+            {BLOCOS.map((bloco, i) => (
+              <motion.div
+                key={bloco.titulo}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-10%' }}
+                transition={{ duration: 0.5, delay: i * 0.15 }}
+                className="space-y-1.5"
+              >
+                <h3 className="font-semibold text-text text-lg">{bloco.titulo}</h3>
+                <p className="text-grafite leading-relaxed">{bloco.texto}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: '-15%' }}
+            transition={{ duration: 0.7 }}
+          >
+            <PhoneFrame size="md">
+              <LazyAutoplayVideo
+                src="modo-reuniao"
+                poster="/landing/optimized/modo-reuniao-poster.jpg"
+              />
+            </PhoneFrame>
+          </motion.div>
+        </div>
       </div>
     </section>
   )

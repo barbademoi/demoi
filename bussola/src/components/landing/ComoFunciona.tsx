@@ -7,23 +7,23 @@ import { LazyAutoplayVideo } from './LazyAutoplayVideo'
 const PASSOS = [
   {
     numero: '01',
-    titulo: 'Anote no momento',
+    titulo: 'Você anota no momento',
     texto:
-      'Viu algo importante na semana? Abre o celular, anota em segundos. Sem categoria, sem complicação.',
+      'Viu algo importante na semana? Abre o celular, anota em segundos. Sem categoria, sem complicação. A IA cuida do resto.',
     video: 'colaboradores',
   },
   {
     numero: '02',
-    titulo: 'A IA organiza',
+    titulo: 'A IA prepara sua reunião',
     texto:
-      'No dia da reunião, sua pauta aparece pronta. Cada observação no lugar certo, com sugestão de como abordar com firmeza e respeito.',
+      'No dia da reunião, sua pauta aparece pronta. Cada observação no lugar certo, com princípio de liderança e sugestão de fala — direto do que funciona em equipes reais.',
     video: 'dashboard-gestor',
   },
   {
     numero: '03',
-    titulo: 'Você conduz',
+    titulo: 'Você conduz com clareza',
     texto:
-      'Segue os 6 momentos da Bússola no celular. Equipe entende, você lidera com clareza, todo mundo sai sabendo o que fazer — e como faz parte de algo maior.',
+      'Segue os 6 momentos no celular. Equipe entende, você lidera, todo mundo sai sabendo o que fazer. Cultura construída, semana após semana.',
     video: 'modo-reuniao',
   },
 ]
@@ -38,7 +38,7 @@ export function ComoFunciona() {
         transition={{ duration: 0.6 }}
         className="font-serif text-3xl sm:text-4xl text-preto text-center mb-12 leading-tight"
       >
-        Três passos. Uma cultura que se constrói.
+        Três passos. A IA faz o trabalho pesado.
       </motion.h2>
 
       <div className="grid sm:grid-cols-3 gap-8 sm:gap-10">
@@ -72,7 +72,7 @@ export function ComoFunciona() {
         transition={{ duration: 0.6, delay: 0.4 }}
         className="text-center text-grafite text-lg mt-12 italic"
       >
-        Reunião pronta em 30 minutos. Sem decorar, sem adivinhar. Cultura construída na conversa.
+        Reunião pronta em 30 minutos. Sem decorar, sem adivinhar. A IA já fez a parte difícil.
       </motion.p>
     </section>
   )

@@ -12,13 +12,13 @@ import { RodapeMarketing } from '@/components/landing/RodapeMarketing'
 import { StickyMobileCta } from '@/components/landing/StickyMobileCta'
 
 export const metadata = {
-  title: 'Bússola — A ferramenta que constrói cultura na sua empresa',
+  title: 'Bússola — IA mentora que constrói cultura na sua empresa',
   description:
-    'Empresa só cresce se a cultura for forte. A Bússola é o mentor com IA que te ajuda a construir cultura semana após semana — na conversa com sua equipe. R$ 97 pelo ano todo, vagas limitadas aos primeiros 100 clientes.',
+    'IA treinada nos fundamentos da gestão de pessoas. Você anota, ela organiza e prepara sua reunião semanal. Cultura forte construída na conversa com a equipe. R$ 97 pelo ano todo, vagas limitadas aos primeiros 100 clientes.',
   openGraph: {
-    title: 'Bússola — Empresa só cresce se a cultura for forte',
+    title: 'Bússola — IA mentora que constrói cultura na sua empresa',
     description:
-      'O mentor com IA que constrói cultura na sua reunião semanal. R$ 97 pelo ano todo (primeiros 100 clientes).',
+      'A IA mentora que constrói cultura na sua empresa. R$ 97 pelo ano todo (primeiros 100 clientes).',
     url: 'https://bussolameet.com.br',
     siteName: 'Bússola',
     locale: 'pt_BR',

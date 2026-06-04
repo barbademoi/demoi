@@ -50,7 +50,7 @@ export function ProvaSocial() {
           className="text-center text-grafite max-w-2xl mx-auto"
         >
           Mais de uma centena de feedbacks coletados — internos e no Google. Mas o
-          que importa não são os números. É o que está por trás deles.
+          que importa não são os números. É o que está por trás deles: a cultura.
         </motion.p>
 
         {/* TODO: substituir por foto estática da fachada quando enviada */}

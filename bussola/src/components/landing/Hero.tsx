@@ -19,7 +19,7 @@ export function Hero() {
             transition={{ duration: 0.6 }}
             className="text-xs uppercase tracking-wider text-marrom font-semibold"
           >
-            A ferramenta que constrói cultura na sua empresa
+            Inteligência Artificial treinada nos fundamentos da gestão
           </motion.p>
 
           <motion.h1
@@ -37,8 +37,10 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.4 }}
             className="text-grafite text-lg leading-relaxed"
           >
-            A Bússola é o mentor com IA que te ajuda a construir cultura semana após
-            semana — usando a conversa com sua equipe como o momento que muda tudo.
+            A Bússola tem uma IA com profundidade de mentor sênior que organiza
+            suas observações, sugere as melhores abordagens e te guia a conduzir
+            reuniões que constroem cultura. Você só anota e fala. A IA cuida do
+            resto.
           </motion.p>
 
           <motion.div
@@ -49,7 +51,7 @@ export function Hero() {
           >
             <CtaCompra />
             <a href="#solucao" className="text-sm text-grafite underline hover:text-marrom">
-              Ver como funciona
+              Ver como a IA trabalha
             </a>
           </motion.div>
 
@@ -59,9 +61,9 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.8 }}
             className="text-xs text-chumbo leading-relaxed"
           >
-            Testada em barbearia real · <strong className="text-text">11 pessoas</strong> ·
-            {' '}<strong className="text-text">1.700+ atendimentos/mês</strong> ·
-            Mais de uma centena de feedbacks coletados
+            IA treinada nos fundamentos consagrados da liderança · Testada em
+            barbearia real · <strong className="text-text">11 pessoas</strong> ·
+            {' '}<strong className="text-text">1.700+ atendimentos/mês</strong>
           </motion.p>
 
           <motion.div

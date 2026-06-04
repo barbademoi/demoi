@@ -18,8 +18,8 @@ export function RodapeMarketing() {
         <div className="text-sm text-grafite">
           <p className="font-semibold text-text mb-2">Sobre</p>
           <p>
-            A Bússola é uma ferramenta de gestão criada por Carlos Henrique,
-            fundador da Demôi Barbearia em Cássia/MG.
+            A Bússola é uma ferramenta de gestão com IA mentora, criada por
+            Carlos Henrique, fundador da Demôi Barbearia em Cássia/MG.
           </p>
         </div>
       </div>

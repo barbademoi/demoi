@@ -74,24 +74,96 @@ export function CaseDemoi() {
               Hoje, a cultura é o forte da Demôi.
             </p>
 
-            <motion.blockquote
-              initial={{ opacity: 0, scale: 0.95, rotate: -1 }}
+          </motion.div>
+        </div>
+
+        {/* EXEMPLOS REAIS DO OUTPUT DA IA */}
+        <div className="mt-16 space-y-6">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-10%' }}
+            transition={{ duration: 0.6 }}
+            className="text-center space-y-2"
+          >
+            <h3 className="font-serif text-2xl sm:text-3xl text-preto">
+              Veja como a IA da Bússola escreve.
+            </h3>
+            <p className="text-grafite text-sm">
+              Dois exemplos reais — extraídos do uso real na Demôi.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 gap-5">
+            {/* CARD A — Resumo da semana */}
+            <motion.article
+              initial={{ opacity: 0, scale: 0.95, rotate: -1.5 }}
               whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
               viewport={{ once: true, margin: '-10%' }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="border-l-4 border-marrom bg-linho/80 p-5 rounded-r-md italic text-grafite"
+              transition={{ duration: 0.6 }}
+              className="rounded-lg border-l-4 border-marrom bg-linho p-5 shadow-sm"
             >
-              <p>
+              <p className="text-[10px] uppercase tracking-wider text-chumbo font-semibold mb-3">
+                Resumo automático da semana
+              </p>
+              <p className="text-text italic leading-relaxed">
                 &ldquo;Semana de puro fogo! Zé Lucas é destaque absoluto com seis
                 feedbacks cinco estrelas elogiando atendimento rápido e excelente,
                 enquanto Rael bomba com paciência e carisma reconhecidos pelos
-                clientes.&rdquo;
+                clientes. Ryan e Davi também fecham com louvor na qualidade do
+                atendimento.&rdquo;
               </p>
-              <footer className="not-italic text-xs text-chumbo mt-3">
-                — Resumo da semana gerado pela IA da Bússola
-              </footer>
-            </motion.blockquote>
-          </motion.div>
+              <p className="text-xs text-chumbo mt-4">— IA da Bússola</p>
+            </motion.article>
+
+            {/* CARD B — Princípio + Sugestão de Fala */}
+            <motion.article
+              initial={{ opacity: 0, scale: 0.95, rotate: 1.5 }}
+              whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+              viewport={{ once: true, margin: '-10%' }}
+              transition={{ duration: 0.6, delay: 0.15 }}
+              className="rounded-lg border-l-4 border-marrom bg-linho p-5 shadow-sm"
+            >
+              <p className="text-[10px] uppercase tracking-wider text-chumbo font-semibold mb-3">
+                Princípio de liderança + sugestão de fala
+              </p>
+              <div className="space-y-3 text-text leading-relaxed">
+                <p>
+                  <span className="block text-[10px] uppercase tracking-wider text-marrom font-semibold mb-1">
+                    Princípio
+                  </span>
+                  &ldquo;Elogio precisa ser específico ao comportamento, não
+                  genérico à pessoa. &lsquo;Atendeu bem&rsquo; é fraco.
+                  &lsquo;Atendeu a cliente das 14h com paciência&rsquo; é forte.&rdquo;
+                </p>
+                <div className="border-t border-marrom/20" />
+                <p>
+                  <span className="block text-[10px] uppercase tracking-wider text-marrom font-semibold mb-1">
+                    Sugestão de fala
+                  </span>
+                  <span className="italic">
+                    &ldquo;Zé, queria reconhecer aqui na frente do time: seu
+                    atendimento ao cliente das 14h foi modelo. A paciência que
+                    você teve quando ele mudou de ideia no meio do corte mostrou
+                    o profissional que você é.&rdquo;
+                  </span>
+                </p>
+              </div>
+              <p className="text-xs text-chumbo mt-4">
+                — IA da Bússola, momento Reconhecimentos
+              </p>
+            </motion.article>
+          </div>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true, margin: '-10%' }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="text-center text-sm text-chumbo italic"
+          >
+            Isso é o que sua IA vai entregar — toda semana, em todas as reuniões.
+          </motion.p>
         </div>
 
         {/* Mídia extra: FeedbackClienteMock */}

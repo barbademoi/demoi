@@ -5,8 +5,24 @@ import { ShieldCheck } from 'lucide-react'
 
 const FAQ = [
   {
+    p: 'Como a IA da Bússola funciona, na prática?',
+    r: 'Ela lê suas observações, classifica nos 6 momentos da reunião, sugere abordagens fundamentadas em princípios consagrados de liderança e prepara um resumo automático da semana. Você anota e fala. Ela faz a parte difícil de organizar e preparar.',
+  },
+  {
+    p: 'A IA realmente entende meu contexto?',
+    r: 'Sim. Quanto mais você usa, mais contexto ela tem do seu negócio. Os princípios de liderança que ela aplica vêm dos fundamentos consagrados da gestão de pessoas — décadas de pesquisa sobre o que funciona com equipes reais.',
+  },
+  {
+    p: 'Posso confiar nas sugestões da IA?',
+    r: 'A IA é parceira, não chefe. Ela sugere com fundamento, mas você decide o que fazer e como falar. A voz que conversa com sua equipe é sempre a sua.',
+  },
+  {
+    p: 'E se eu nunca conduzi reunião antes?',
+    r: 'A Bússola foi feita pra isso. A IA prepara cada momento com instrução clara, princípio de liderança e sugestão de fala. Você não decora — só conduz.',
+  },
+  {
     p: 'Funciona pra qualquer tipo de empresa?',
-    r: 'Sim. A Bússola foi desenhada universal — qualquer empresa com equipe. Barbearia, salão, restaurante, loja, oficina, escritório, clínica, agência. A linguagem é neutra, sem termos específicos de setor. O que importa é construir cultura — e isso vale pra qualquer negócio.',
+    r: 'Sim. A Bússola foi desenhada universal — qualquer empresa com equipe. Barbearia, salão, restaurante, loja, oficina, escritório, clínica, agência. A linguagem é neutra, sem termos específicos de setor.',
   },
   {
     p: 'Quantas pessoas cabem na minha conta?',
@@ -17,20 +33,12 @@ const FAQ = [
     r: 'Não. Sua equipe acessa um link único pelo celular, sem app, sem login. Em 30 segundos entendem.',
   },
   {
-    p: 'E se eu nunca conduzi reunião antes?',
-    r: 'A Bússola foi feita pra isso. Cada momento da reunião vem com instrução, princípio de liderança e sugestão de fala. Você não decora — só conduz.',
-  },
-  {
-    p: 'Funciona no celular?',
-    r: 'Sim, totalmente. A Bússola é mobile-first. 99% do uso é pelo celular, pra você e pra equipe.',
-  },
-  {
     p: 'O pagamento é mensal ou anual?',
     r: 'Anual. Você paga R$ 97 uma vez e tem acesso por 12 meses. Sem cartão recorrente, sem cobrança mensal.',
   },
   {
     p: 'E depois dos 100 primeiros, o preço sobe?',
-    r: 'Sim. A oferta de R$ 97 é só para os primeiros 100. Depois disso, o valor passa a R$ 197/ano. Quem comprar agora, mantém R$ 97 na próxima renovação.',
+    r: 'Sim. A oferta de R$ 97 é só para os primeiros 100. Depois, o valor passa a R$ 197/ano. Quem comprar agora, mantém R$ 97 na próxima renovação.',
   },
   {
     p: 'Posso testar antes?',

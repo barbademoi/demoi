@@ -44,8 +44,8 @@ export function Dor() {
         transition={{ duration: 0.7, delay: 0.2 }}
         className="mt-12 font-serif text-2xl sm:text-3xl text-marrom text-center leading-snug"
       >
-        A Bússola foi feita pra resolver isso — construindo cultura na sua reunião
-        semanal, mesmo quando você nunca teve tempo de estudar liderança.
+        Por isso a Bússola tem uma IA que já leu por você — e te entrega a
+        sabedoria deles na hora exata em que você precisa.
       </motion.p>
     </section>
   )

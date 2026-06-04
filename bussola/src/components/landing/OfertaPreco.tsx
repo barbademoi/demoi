@@ -5,9 +5,10 @@ import { Check } from 'lucide-react'
 import { CtaCompra } from './CtaCompra'
 
 const INCLUSOES = [
+  'IA mentora treinada nos fundamentos da gestão',
   'Reuniões guiadas pela IA, sem limite',
   'Modo Reunião com 6 momentos estruturados',
-  'Resumo automático da semana',
+  'Resumo automático da semana pela IA',
   'Equipe sem limite de pessoas',
   'Feedback de clientes com brindes',
   'Integração com Google Reviews',
