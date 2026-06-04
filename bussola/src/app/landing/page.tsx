@@ -45,8 +45,16 @@ export default function LandingPage() {
       </section>
 
       {/* DIFERENCIAL — Modo Reunião */}
-      <section className="px-4 py-16 bg-surface border-y border-border">
-        <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+      <section className="relative px-4 py-16 bg-surface border-y border-border overflow-hidden">
+        {/* Marca d'água: símbolo grande no fundo */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logos/logo-simbolo-transparente.svg"
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute -right-32 top-1/2 -translate-y-1/2 w-[640px] h-[640px] opacity-[0.06] select-none"
+        />
+        <div className="relative max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
           <div className="space-y-4">
             <p className="text-xs uppercase tracking-wider text-marrom font-semibold">Diferencial</p>
             <h2 className="font-serif text-3xl text-preto">Modo Reunião conduzido pela IA</h2>
@@ -104,17 +112,36 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA FINAL */}
-      <section className="px-4 py-20 text-center space-y-5">
-        <h2 className="font-serif text-3xl text-preto">Pronto pra começar?</h2>
-        <p className="text-grafite max-w-md mx-auto">
-          Sem cartão de crédito. Em 5 minutos você conduz sua primeira reunião.
-        </p>
-        <Link href="/cadastro" className="btn-primary inline-flex">Criar minha conta</Link>
+      {/* CTA FINAL — símbolo girando no fundo */}
+      <section className="relative px-4 py-20 text-center overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logos/logo-simbolo-transparente.svg"
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] opacity-[0.08] select-none animate-spin"
+          style={{ animationDuration: '30s' }}
+        />
+        <div className="relative space-y-5">
+          <h2 className="font-serif text-3xl text-preto">Pronto pra começar?</h2>
+          <p className="text-grafite max-w-md mx-auto">
+            Sem cartão de crédito. Em 5 minutos você conduz sua primeira reunião.
+          </p>
+          <Link href="/cadastro" className="btn-primary inline-flex">Criar minha conta</Link>
+        </div>
       </section>
 
-      <footer className="border-t border-border py-8 text-center text-xs text-chumbo">
-        © Bússola · <a href="https://bussolameet.com.br" className="hover:text-marrom">bussolameet.com.br</a>
+      <footer className="border-t border-border py-8 text-center">
+        <div className="flex items-center justify-center gap-2 text-xs text-chumbo">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logos/logo-simbolo-transparente.svg"
+            alt=""
+            aria-hidden
+            className="w-4 h-4 opacity-70"
+          />
+          <span>© Bússola · <a href="https://bussolameet.com.br" className="hover:text-marrom">bussolameet.com.br</a></span>
+        </div>
       </footer>
     </main>
   )
