@@ -33,3 +33,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Landing — vídeos originais (pesados, não versionar)
+bussola/public/landing/*.mov
+bussola/public/landing/*.MOV
+bussola/public/landing/*.mp4
+bussola/public/landing/*.MP4
+
+# Versionar apenas os otimizados
+!bussola/public/landing/optimized/
