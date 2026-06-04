@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 220" width="280" height="220" role="img" aria-label="Curva orgânica de crescimento">
+  <!-- Linha do eixo (chão) -->
+  <line x1="20" y1="190" x2="260" y2="190" stroke="#8B6F47" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- Pontos do gráfico (semanas) -->
+  <g fill="#8B6F47" opacity="0.5">
+    <circle cx="60" cy="190" r="2"/>
+    <circle cx="100" cy="190" r="2"/>
+    <circle cx="140" cy="190" r="2"/>
+    <circle cx="180" cy="190" r="2"/>
+    <circle cx="220" cy="190" r="2"/>
+  </g>
+
+  <!-- Curva ascendente orgânica -->
+  <path
+    d="M 30 180 C 60 175, 80 170, 100 155 C 120 140, 130 125, 145 110 C 160 95, 175 80, 195 65 C 215 50, 230 45, 255 38"
+    fill="none"
+    stroke="#8B6F47"
+    stroke-width="3.5"
+    stroke-linecap="round"
+  />
+
+  <!-- Marcos na curva (cada semana de cultura construída) -->
+  <g fill="#5C4A30">
+    <circle cx="60" cy="178" r="4"/>
+    <circle cx="100" cy="155" r="4"/>
+    <circle cx="145" cy="110" r="4"/>
+    <circle cx="195" cy="65" r="4"/>
+  </g>
+
+  <!-- Folha/broto no topo da curva (vida, organic growth) -->
+  <g transform="translate(255,38)">
+    <path d="M 0 0 C -8 -8, -8 -18, 0 -25 C 8 -18, 8 -8, 0 0 Z" fill="#5C4A30"/>
+    <line x1="0" y1="0" x2="0" y2="-22" stroke="#8B6F47" stroke-width="1"/>
+  </g>
+
+  <!-- Folha intermediária pequena -->
+  <g transform="translate(145,110)">
+    <path d="M 0 0 C -5 -5, -5 -10, 0 -14 C 5 -10, 5 -5, 0 0 Z" fill="#8B6F47" opacity="0.7"/>
+  </g>
+</svg>
