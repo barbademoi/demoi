@@ -49,37 +49,38 @@ export function TeseCentral() {
         </motion.p>
       </div>
 
-      {/* Árvore-metáfora central */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true, margin: '-10%' }}
-        transition={{ duration: 0.8, delay: 0.3 }}
-        className="flex justify-center my-12"
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/illustrations/arvore-cultura.svg"
-          alt="Cultura como raízes profundas que sustentam o crescimento"
-          className="w-56 h-56 sm:w-72 sm:h-72"
-        />
-      </motion.div>
-
-      <div className="grid sm:grid-cols-3 gap-8 sm:gap-10 mt-4">
+      <div className="grid sm:grid-cols-3 gap-8 sm:gap-10 mt-14">
         {PILARES.map((p, i) => (
           <Pilar key={p.titulo} {...p} delay={i * 0.2} />
         ))}
       </div>
 
-      <motion.p
-        initial={{ opacity: 0, scale: 0.96 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true, margin: '-10%' }}
-        transition={{ duration: 0.8, delay: 0.3 }}
-        className="mt-16 font-serif text-2xl sm:text-3xl text-marrom text-center leading-snug max-w-3xl mx-auto"
-      >
-        E cultura não se constrói em planilha. Se constrói na conversa semanal com a equipe — com a IA da Bússola te guiando.
-      </motion.p>
+      {/* Árvore + frase de fechamento juntas (ancora visual e textual) */}
+      <div className="mt-16 grid sm:grid-cols-[180px_1fr] gap-6 sm:gap-8 items-center max-w-3xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.85 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true, margin: '-10%' }}
+          transition={{ duration: 0.7 }}
+          className="flex justify-center sm:justify-end"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/illustrations/arvore-cultura.svg"
+            alt="Cultura como raízes profundas que sustentam o crescimento"
+            className="w-32 h-32 sm:w-44 sm:h-44"
+          />
+        </motion.div>
+        <motion.p
+          initial={{ opacity: 0, x: 16 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, margin: '-10%' }}
+          transition={{ duration: 0.7, delay: 0.15 }}
+          className="font-serif text-xl sm:text-2xl text-marrom leading-snug text-center sm:text-left"
+        >
+          E cultura não se constrói em planilha. Se constrói na conversa semanal com a equipe — com a IA da Bússola te guiando.
+        </motion.p>
+      </div>
     </section>
   )
 }
