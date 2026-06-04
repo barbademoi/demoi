@@ -43,7 +43,7 @@ export function LazyAutoplayVideo({ src, className = '', poster }: LazyAutoplayV
         <AutoplayVideo src={src} className={className} poster={poster} />
       ) : poster ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={poster} alt="" className={`w-full h-full object-cover ${className}`} />
+        <img src={poster} alt="" className={`w-full h-full object-contain bg-areia ${className}`} />
       ) : (
         <div className="w-full h-full bg-areia" aria-hidden />
       )}

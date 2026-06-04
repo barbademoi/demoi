@@ -16,7 +16,7 @@ export function AutoplayVideo({ src, className = '', poster }: AutoplayVideoProp
       playsInline
       poster={poster}
       preload="metadata"
-      className={`w-full h-full object-cover ${className}`}
+      className={`w-full h-full object-contain bg-areia ${className}`}
     >
       <source src={`/landing/optimized/${src}.webm`} type="video/webm" />
       <source src={`/landing/optimized/${src}.mp4`} type="video/mp4" />
