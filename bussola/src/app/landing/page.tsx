@@ -1,21 +1,12 @@
 import Link from 'next/link'
 import { PhoneFrame } from '@/components/landing/PhoneFrame'
+import { LazyAutoplayVideo } from '@/components/landing/LazyAutoplayVideo'
+import { PreparaReuniaoMock } from '@/components/landing/mocks/PreparaReuniaoMock'
+import { FeedbackClienteMock } from '@/components/landing/mocks/FeedbackClienteMock'
 
 export const metadata = {
   title: 'Bússola — Reuniões com clareza',
   description: 'Mentor de reuniões semanais com IA pra empresas pequenas e médias.',
-}
-
-// Placeholder pra slot de mídia. Vira PhoneFrame + LazyAutoplayVideo
-// (ou <Image>) conforme as mídias forem aplicadas.
-function MediaSlot({ label, size = 'md' }: { label: string; size?: 'sm' | 'md' | 'lg' }) {
-  return (
-    <PhoneFrame size={size}>
-      <div className="w-full h-full flex items-center justify-center bg-linho text-center p-4">
-        <p className="text-xs text-chumbo italic">[ {label} ]</p>
-      </div>
-    </PhoneFrame>
-  )
 }
 
 export default function LandingPage() {
@@ -40,13 +31,17 @@ export default function LandingPage() {
         </div>
 
         <div className="pt-4">
-          <MediaSlot label="VÍDEO HERO — visão geral do app" size="lg" />
+          <PhoneFrame size="lg">
+            <LazyAutoplayVideo
+              src="dashboard-gestor"
+              poster="/landing/optimized/dashboard-gestor-poster.jpg"
+            />
+          </PhoneFrame>
         </div>
       </section>
 
       {/* DIFERENCIAL — Modo Reunião */}
       <section className="relative px-4 py-16 bg-surface border-y border-border overflow-hidden">
-        {/* Marca d'água: símbolo grande no fundo */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logos/logo-simbolo-transparente.svg"
@@ -63,35 +58,75 @@ export default function LandingPage() {
               Equipe, Ajustes, Encerramento — com dicas em tempo real pra cada
               caso. Você fala, a Bússola lembra.
             </p>
+            <ul className="text-sm text-grafite space-y-2 pt-2">
+              <li className="flex gap-2"><span className="text-marrom">·</span> Princípio escrito pra cada momento</li>
+              <li className="flex gap-2"><span className="text-marrom">·</span> Observações classificadas automaticamente</li>
+              <li className="flex gap-2"><span className="text-marrom">·</span> Metas registradas e revisadas na semana seguinte</li>
+            </ul>
           </div>
           <div>
-            <MediaSlot label="VÍDEO MODO REUNIÃO" size="md" />
+            <PhoneFrame size="md">
+              <LazyAutoplayVideo
+                src="modo-reuniao"
+                poster="/landing/optimized/modo-reuniao-poster.jpg"
+              />
+            </PhoneFrame>
           </div>
         </div>
       </section>
 
-      {/* BENTO GRID — recursos */}
+      {/* BENTO GRID */}
       <section className="px-4 py-16 max-w-5xl mx-auto">
-        <div className="text-center mb-10 space-y-2">
+        <div className="text-center mb-12 space-y-2">
           <p className="text-xs uppercase tracking-wider text-marrom font-semibold">O que tem dentro</p>
           <h2 className="font-serif text-3xl text-preto">Tudo o que sua reunião precisa</h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="card p-5 space-y-3">
-            <MediaSlot label="Observações" size="sm" />
-            <h3 className="font-semibold text-text">Observações ao longo da semana</h3>
-            <p className="text-sm text-grafite">Capture qualquer coisa no momento. A IA organiza pra você.</p>
-          </div>
-          <div className="card p-5 space-y-3">
-            <MediaSlot label="Link colaborador" size="sm" />
-            <h3 className="font-semibold text-text">Link único pra cada pessoa</h3>
-            <p className="text-sm text-grafite">Sua equipe acompanha as anotações sem precisar de cadastro.</p>
-          </div>
-          <div className="card p-5 space-y-3">
-            <MediaSlot label="Feedback de cliente" size="sm" />
-            <h3 className="font-semibold text-text">Feedback de clientes com brindes</h3>
-            <p className="text-sm text-grafite">Coleta estruturada, sorteio automático, integração com Google.</p>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 sm:gap-12">
+          <BentoCard
+            kicker="Inteligência"
+            title="A IA escreve o resumo da sua semana"
+            description="Suas observações soltas viram um resumo claro do que aconteceu, com sinais por colaborador e categorias. Sem precisar lembrar de tudo."
+          >
+            <PhoneFrame size="sm">
+              <PreparaReuniaoMock />
+            </PhoneFrame>
+          </BentoCard>
+
+          <BentoCard
+            kicker="Voz pra equipe"
+            title="Cada colaborador com seu próprio link"
+            description="Sua equipe acompanha as anotações em um link privado, sem precisar baixar nada. Marca como visto e responde quando quiser."
+          >
+            <PhoneFrame size="sm">
+              <LazyAutoplayVideo
+                src="colaboradores"
+                poster="/landing/optimized/colaboradores-poster.jpg"
+              />
+            </PhoneFrame>
+          </BentoCard>
+
+          <BentoCard
+            kicker="Voz do cliente"
+            title="Feedback de clientes com sorteio de brindes"
+            description="Link público de avaliação, integração com Google Reviews, brindes sorteados automaticamente com código único e validade configurável."
+          >
+            <PhoneFrame size="sm">
+              <FeedbackClienteMock />
+            </PhoneFrame>
+          </BentoCard>
+
+          <BentoCard
+            kicker="Sob medida"
+            title="Personalize do seu jeito"
+            description="Cadência da reunião (diária, semanal, quinzenal ou mensal), categorias de observação, tom da IA e identidade visual da empresa. Tudo configurável."
+          >
+            <PhoneFrame size="sm">
+              <LazyAutoplayVideo
+                src="configuracoes"
+                poster="/landing/optimized/configuracoes-poster.jpg"
+              />
+            </PhoneFrame>
+          </BentoCard>
         </div>
       </section>
 
@@ -99,20 +134,30 @@ export default function LandingPage() {
       <section className="px-4 py-16 bg-linho/40 border-y border-border">
         <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <MediaSlot label="VÍDEO CASE DEMÔI" size="md" />
+            <PhoneFrame size="md">
+              <LazyAutoplayVideo
+                src="fachada-demoi"
+                poster="/landing/optimized/fachada-demoi-poster.jpg"
+              />
+            </PhoneFrame>
           </div>
           <div className="space-y-4">
             <p className="text-xs uppercase tracking-wider text-marrom font-semibold">Em uso</p>
             <h2 className="font-serif text-3xl text-preto">Demôi Barbearia</h2>
             <p className="text-grafite">
-              Como uma barbearia em Porto Alegre usa a Bússola pra conduzir as
-              reuniões semanais da equipe e acompanhar a voz dos clientes.
+              Uma barbearia em Porto Alegre que usa a Bússola pra conduzir as
+              reuniões semanais da equipe, registrar observações no dia a dia e
+              transformar a voz dos clientes em melhoria contínua.
             </p>
+            <blockquote className="border-l-2 border-marrom pl-4 text-sm text-grafite italic">
+              &ldquo;A reunião deixou de ser improviso. Agora cada um sai sabendo
+              o que precisa melhorar — e o que tá indo bem.&rdquo;
+            </blockquote>
           </div>
         </div>
       </section>
 
-      {/* CTA FINAL — símbolo girando no fundo */}
+      {/* CTA FINAL */}
       <section className="relative px-4 py-20 text-center overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -144,5 +189,28 @@ export default function LandingPage() {
         </div>
       </footer>
     </main>
+  )
+}
+
+function BentoCard({
+  kicker,
+  title,
+  description,
+  children,
+}: {
+  kicker: string
+  title: string
+  description: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="card p-6 space-y-4 hover:bg-linho/30 transition-colors">
+      <div>{children}</div>
+      <div>
+        <p className="text-xs uppercase tracking-wider text-marrom font-semibold">{kicker}</p>
+        <h3 className="font-serif text-xl text-preto mt-1">{title}</h3>
+        <p className="text-sm text-grafite mt-2 leading-relaxed">{description}</p>
+      </div>
+    </div>
   )
 }
