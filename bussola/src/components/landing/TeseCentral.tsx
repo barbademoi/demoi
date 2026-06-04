@@ -1,7 +1,27 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Compass, Users, TrendingUp, type LucideIcon } from 'lucide-react'
+
+const PILARES = [
+  {
+    svg: '/illustrations/constelacao-direcao.svg',
+    titulo: 'Cultura é direção',
+    texto:
+      'Quando a equipe sabe pra onde vai, decide melhor sozinha. Não precisa te perguntar tudo.',
+  },
+  {
+    svg: '/illustrations/pessoas-confianca.svg',
+    titulo: 'Cultura é confiança',
+    texto:
+      'Quando a equipe confia em você e entre si, problema vira conversa em vez de virar fofoca.',
+  },
+  {
+    svg: '/illustrations/crescimento.svg',
+    titulo: 'Cultura é crescimento',
+    texto:
+      'Empresa com cultura forte cresce sem precisar do dono apagando incêndio o tempo todo.',
+  },
+]
 
 export function TeseCentral() {
   return (
@@ -29,25 +49,26 @@ export function TeseCentral() {
         </motion.p>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-8 sm:gap-10 mt-14">
-        <Pilar
-          icon={Compass}
-          titulo="Cultura é direção"
-          texto="Quando a equipe sabe pra onde vai, decide melhor sozinha. Não precisa te perguntar tudo."
-          delay={0}
+      {/* Árvore-metáfora central */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true, margin: '-10%' }}
+        transition={{ duration: 0.8, delay: 0.3 }}
+        className="flex justify-center my-12"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/illustrations/arvore-cultura.svg"
+          alt="Cultura como raízes profundas que sustentam o crescimento"
+          className="w-56 h-56 sm:w-72 sm:h-72"
         />
-        <Pilar
-          icon={Users}
-          titulo="Cultura é confiança"
-          texto="Quando a equipe confia em você e entre si, problema vira conversa em vez de virar fofoca."
-          delay={0.2}
-        />
-        <Pilar
-          icon={TrendingUp}
-          titulo="Cultura é crescimento"
-          texto="Empresa com cultura forte cresce sem precisar do dono apagando incêndio o tempo todo."
-          delay={0.4}
-        />
+      </motion.div>
+
+      <div className="grid sm:grid-cols-3 gap-8 sm:gap-10 mt-4">
+        {PILARES.map((p, i) => (
+          <Pilar key={p.titulo} {...p} delay={i * 0.2} />
+        ))}
       </div>
 
       <motion.p
@@ -63,7 +84,7 @@ export function TeseCentral() {
   )
 }
 
-function Pilar({ icon: Icon, titulo, texto, delay }: { icon: LucideIcon; titulo: string; texto: string; delay: number }) {
+function Pilar({ svg, titulo, texto, delay }: { svg: string; titulo: string; texto: string; delay: number }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -73,11 +94,12 @@ function Pilar({ icon: Icon, titulo, texto, delay }: { icon: LucideIcon; titulo:
       className="text-center space-y-3"
     >
       <motion.div
-        animate={{ scale: [1, 1.05, 1] }}
+        animate={{ scale: [1, 1.04, 1] }}
         transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay }}
-        className="inline-flex w-14 h-14 rounded-full bg-linho items-center justify-center"
+        className="inline-flex w-28 h-28 items-center justify-center"
       >
-        <Icon size={28} strokeWidth={1.5} className="text-marrom" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={svg} alt="" aria-hidden className="w-full h-full" />
       </motion.div>
       <h3 className="font-semibold text-text text-lg">{titulo}</h3>
       <p className="text-sm text-grafite leading-relaxed max-w-xs mx-auto">{texto}</p>

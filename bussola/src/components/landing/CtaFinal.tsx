@@ -8,11 +8,11 @@ export function CtaFinal() {
     <section className="relative px-4 py-24 bg-preto text-white overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/logos/logo-simbolo-transparente.svg"
+        src="/illustrations/bussola-decorativa.svg"
         alt=""
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] opacity-[0.08] select-none animate-spin"
-        style={{ animationDuration: '30s' }}
+        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] opacity-25 select-none animate-spin"
+        style={{ animationDuration: '45s' }}
       />
 
       <div className="relative max-w-2xl mx-auto text-center space-y-6">

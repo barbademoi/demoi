@@ -7,8 +7,15 @@ import { CtaCompra } from './CtaCompra'
 
 export function Hero() {
   return (
-    <section className="px-4 pt-12 pb-16 max-w-6xl mx-auto">
-      <div className="grid lg:grid-cols-2 gap-12 items-center">
+    <section className="relative px-4 pt-12 pb-16 max-w-6xl mx-auto overflow-hidden">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/illustrations/bussola-decorativa.svg"
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute -left-32 -top-20 w-[520px] h-[520px] opacity-[0.05] select-none"
+      />
+      <div className="relative grid lg:grid-cols-2 gap-12 items-center">
         <div className="space-y-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logos/logo-completa.svg" alt="Bússola" className="h-10 w-auto" />

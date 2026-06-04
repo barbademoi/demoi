@@ -33,12 +33,13 @@ export function SolucaoEmAcao() {
       id="solucao"
       className="relative px-4 py-20 bg-surface border-y border-border overflow-hidden"
     >
+      {/* Cérebro-IA decorativo no canto direito */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/logos/logo-simbolo-transparente.svg"
+        src="/illustrations/cerebro-ia.svg"
         alt=""
         aria-hidden
-        className="pointer-events-none absolute -right-32 top-1/2 -translate-y-1/2 w-[640px] h-[640px] opacity-[0.06] select-none"
+        className="pointer-events-none absolute -right-12 top-12 w-[420px] h-[420px] opacity-[0.08] select-none hidden md:block"
       />
       <div className="relative max-w-6xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-12">
@@ -96,6 +97,25 @@ export function SolucaoEmAcao() {
             </PhoneFrame>
           </motion.div>
         </div>
+
+        {/* Timeline visual dos 6 momentos */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-10%' }}
+          transition={{ duration: 0.7, delay: 0.2 }}
+          className="mt-16 max-w-3xl mx-auto"
+        >
+          <p className="text-xs uppercase tracking-wider text-marrom font-semibold text-center mb-4">
+            Os 6 momentos da reunião
+          </p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/illustrations/seis-momentos.svg"
+            alt="Sequência dos 6 momentos: Abertura, Revisão, Reconhecimento, Equipe, Ajustes, Encerramento"
+            className="w-full h-auto"
+          />
+        </motion.div>
       </div>
     </section>
   )
