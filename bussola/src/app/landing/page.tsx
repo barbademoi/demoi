@@ -180,9 +180,12 @@ export default function LandingPage() {
 
           <div className="grid lg:grid-cols-[260px_1fr] gap-10 items-start">
             <div className="text-center lg:text-left">
-              <div className="w-32 h-32 mx-auto lg:mx-0 rounded-full bg-linho border-2 border-marrom flex items-center justify-center font-serif text-4xl text-marrom mb-3">
-                CH
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/landing/carlos.jpg"
+                alt="Carlos Henrique"
+                className="w-40 h-40 mx-auto lg:mx-0 rounded-full object-cover border-2 border-marrom mb-3 shadow-md"
+              />
               <p className="font-semibold text-text">Carlos Henrique</p>
               <p className="text-sm text-chumbo">Fundador da Bússola</p>
               <p className="text-xs text-chumbo">Dono da Demôi Barbearia · Cássia/MG</p>
