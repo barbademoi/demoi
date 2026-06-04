@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { PhoneFrame } from './PhoneFrame'
-import { PreparaReuniaoMock } from './mocks/PreparaReuniaoMock'
+import { LazyAutoplayVideo } from './LazyAutoplayVideo'
 import { CtaCompra } from './CtaCompra'
 
 export function Hero() {
@@ -91,7 +91,10 @@ export function Hero() {
             transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
           >
             <PhoneFrame size="lg">
-              <PreparaReuniaoMock />
+              <LazyAutoplayVideo
+                src="dashboard-gestor"
+                poster="/landing/optimized/dashboard-gestor-poster.jpg"
+              />
             </PhoneFrame>
           </motion.div>
         </motion.div>

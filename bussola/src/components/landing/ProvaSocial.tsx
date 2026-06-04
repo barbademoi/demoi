@@ -3,7 +3,6 @@
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRef } from 'react'
 import { AnimatedNumber } from './AnimatedNumber'
-import { LazyAutoplayVideo } from './LazyAutoplayVideo'
 
 export function ProvaSocial() {
   const ref = useRef<HTMLDivElement>(null)
@@ -53,13 +52,23 @@ export function ProvaSocial() {
           que importa não são os números. É o que está por trás deles: a cultura.
         </motion.p>
 
-        {/* TODO: substituir por foto estática da fachada quando enviada */}
+        {/* TODO: substituir por foto estática da fachada quando enviada.
+            object-cover crop o vídeo vertical 9:16 num container horizontal,
+            preservando o centro (entrada com a marca "De môi"). */}
         <motion.div ref={ref} style={{ y }} className="max-w-3xl mx-auto pt-4">
           <div className="rounded-lg overflow-hidden border border-border shadow-md aspect-video bg-areia">
-            <LazyAutoplayVideo
-              src="fachada-demoi"
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="metadata"
               poster="/landing/optimized/fachada-demoi-poster.jpg"
-            />
+              className="w-full h-full object-cover"
+            >
+              <source src="/landing/optimized/fachada-demoi.webm" type="video/webm" />
+              <source src="/landing/optimized/fachada-demoi.mp4" type="video/mp4" />
+            </video>
           </div>
         </motion.div>
       </div>

@@ -3,28 +3,46 @@
 import { motion } from 'framer-motion'
 import { PhoneFrame } from './PhoneFrame'
 import { LazyAutoplayVideo } from './LazyAutoplayVideo'
+import { PreparaReuniaoMock } from './mocks/PreparaReuniaoMock'
 
-const PASSOS = [
+interface Passo {
+  numero: string
+  titulo: string
+  texto: string
+  midia: React.ReactNode
+}
+
+const PASSOS: Passo[] = [
   {
     numero: '01',
     titulo: 'Você anota no momento',
     texto:
       'Viu algo importante na semana? Abre o celular, anota em segundos. Sem categoria, sem complicação. A IA cuida do resto.',
-    video: 'colaboradores',
+    midia: (
+      <LazyAutoplayVideo
+        src="colaboradores"
+        poster="/landing/optimized/colaboradores-poster.jpg"
+      />
+    ),
   },
   {
     numero: '02',
     titulo: 'A IA prepara sua reunião',
     texto:
       'No dia da reunião, sua pauta aparece pronta. Cada observação no lugar certo, com princípio de liderança e sugestão de fala — direto do que funciona em equipes reais.',
-    video: 'dashboard-gestor',
+    midia: <PreparaReuniaoMock />,
   },
   {
     numero: '03',
     titulo: 'Você conduz com clareza',
     texto:
       'Segue os 6 momentos no celular. Equipe entende, você lidera, todo mundo sai sabendo o que fazer. Cultura construída, semana após semana.',
-    video: 'modo-reuniao',
+    midia: (
+      <LazyAutoplayVideo
+        src="modo-reuniao"
+        poster="/landing/optimized/modo-reuniao-poster.jpg"
+      />
+    ),
   },
 ]
 
@@ -52,12 +70,7 @@ export function ComoFunciona() {
             whileHover={{ y: -4 }}
             className="space-y-4 card p-5 transition-shadow hover:shadow-md"
           >
-            <PhoneFrame size="sm">
-              <LazyAutoplayVideo
-                src={passo.video}
-                poster={`/landing/optimized/${passo.video}-poster.jpg`}
-              />
-            </PhoneFrame>
+            <PhoneFrame size="sm">{passo.midia}</PhoneFrame>
             <p className="font-serif text-5xl text-marrom font-bold leading-none">{passo.numero}</p>
             <h3 className="font-semibold text-text text-lg">{passo.titulo}</h3>
             <p className="text-sm text-grafite leading-relaxed">{passo.texto}</p>
