@@ -462,10 +462,16 @@ export default function BarbeiroClient({
                   </div>
                 )}
 
-                {/* BLOCO 2 — ABAIXO DO MÍNIMO */}
+                {/* BLOCO 2 — ABAIXO DO MÍNIMO. Se ninguém qualificou ainda,
+                    vira "Ranking de Pontuações" (mesma lista, só muda o header)
+                    pra não dar impressão de que não tem ranking. */}
                 {abaixoMin.length > 0 && (
                   <div className="card-light p-6">
-                    <h3 className="font-serif text-lg text-on-cream mb-4">⏳ Ainda em busca do mínimo</h3>
+                    <h3 className="font-serif text-lg text-on-cream mb-4">
+                      {qualificados.length === 0
+                        ? '🏆 Ranking de Pontuações'
+                        : '⏳ Ainda em busca do mínimo'}
+                    </h3>
                     <div className="space-y-2">
                       {abaixoMin.map(r => {
                         const isMe = r.barbeiro_id === barbeiro.id

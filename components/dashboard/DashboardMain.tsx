@@ -481,7 +481,9 @@ function TodosView({
             {abaixoMin.length > 0 && (
               <section>
                 <h2 className="font-serif text-xl text-text mb-4">
-                  ⏳ Ainda em busca do mínimo
+                  {qualificados.length === 0
+                    ? <>🏆 Ranking de Pontuações <span className="text-text-muted text-base font-sans">— {cicloLabel}</span></>
+                    : <>⏳ Ainda em busca do mínimo</>}
                 </h2>
                 <div className="space-y-3">
                   {abaixoMin.map((barbeiro, idx) => (
@@ -561,7 +563,9 @@ function TodosView({
             {abaixoMin.length > 0 && (
               <section>
                 <h2 className="font-serif text-xl text-text mb-4">
-                  ⏳ Recepcionistas — em busca do mínimo
+                  {qualificados.length === 0
+                    ? '🏆 Recepcionistas — Ranking de Pontuações'
+                    : '⏳ Recepcionistas — em busca do mínimo'}
                 </h2>
                 <div className="space-y-3">
                   {abaixoMin.map((barbeiro, idx) => (
