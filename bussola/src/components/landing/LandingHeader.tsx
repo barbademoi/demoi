@@ -69,8 +69,8 @@ export function LandingHeader() {
               rel={isExternoHotmart ? 'noopener noreferrer' : undefined}
               className="inline-flex items-center bg-marrom text-white hover:bg-marrom-escuro transition-colors rounded-md font-semibold shadow-sm hover:shadow-md px-3 py-2 text-sm md:px-4 md:py-2.5 whitespace-nowrap"
             >
-              <span className="hidden md:inline">Garantir acesso · R$ 97</span>
-              <span className="md:hidden">R$ 97</span>
+              <span className="hidden md:inline">Garantir acesso</span>
+              <span className="md:hidden">Garantir</span>
             </a>
           </div>
         </div>
