@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { FaStar } from 'react-icons/fa6'
 import { AnimatedNumber } from './AnimatedNumber'
 import { PhoneFrame } from './PhoneFrame'
+import { AutoplayVideo } from './AutoplayVideo'
 
 export function ProvaSocial() {
   return (
@@ -117,11 +118,9 @@ export function ProvaSocial() {
           A voz dos clientes dentro do painel
         </p>
         <PhoneFrame size="md">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/landing/prova-social-feedbacks-mobile.png"
-            alt="Tela de feedbacks de clientes no painel da Bússola"
-            className="w-full h-full object-cover"
+          <AutoplayVideo
+            src="feedbacks-mobile"
+            poster="/landing/optimized/feedbacks-mobile-poster.jpg"
           />
         </PhoneFrame>
         <p className="text-sm text-grafite">
