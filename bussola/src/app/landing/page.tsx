@@ -1,6 +1,7 @@
 import { LandingHeader } from '@/components/landing/LandingHeader'
 import { Hero } from '@/components/landing/Hero'
 import { DemoVisual } from '@/components/landing/DemoVisual'
+import { FeaturesCarrossel } from '@/components/landing/FeaturesCarrossel'
 import { ProvaSocial } from '@/components/landing/ProvaSocial'
 import { Problema } from '@/components/landing/Problema'
 import { AntesDepois } from '@/components/landing/AntesDepois'
@@ -22,6 +23,7 @@ export default function LandingPage() {
       <LandingHeader />
       <Hero />
       <DemoVisual />
+      <FeaturesCarrossel />
       <ProvaSocial />
       <Problema />
       <AntesDepois />
