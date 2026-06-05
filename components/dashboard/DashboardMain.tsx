@@ -421,50 +421,168 @@ function TodosView({
         <TicketMedio historico={historicoBarbearia} variant="dark" escopo="coletivo" />
       )}
 
-      {/* Barbeiros ranking */}
-      {rankingBarbeiros.length > 0 && (
-        <section>
-          <h2 className="font-serif text-xl text-text mb-4">
-            Barbeiros <span className="text-text-muted text-base font-sans">— {cicloLabel}</span>
-          </h2>
-          <div className="space-y-3">
-            {rankingBarbeiros.map((barbeiro, idx) => (
-              <RankingCard
-                key={barbeiro.id}
-                barbeiro={barbeiro}
-                posicao={idx + 1}
-                modoAtual={modoAtual}
-                campanha={campanha}
-                pontosMap={pontosMap}
-                pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
-                rankingPontos={rankingPontosBarb}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Barbeiros — no modo pontos/ambos, divide em qualificados + abaixo do mínimo.
+          No modo metas, mantém uma lista única (ordenada por comissão). */}
+      {rankingBarbeiros.length > 0 && (() => {
+        const dividirPorPontos = (modoAtual === 'pontos' || modoAtual === 'ambos') && campanha
+        if (!dividirPorPontos) {
+          return (
+            <section>
+              <h2 className="font-serif text-xl text-text mb-4">
+                Barbeiros <span className="text-text-muted text-base font-sans">— {cicloLabel}</span>
+              </h2>
+              <div className="space-y-3">
+                {rankingBarbeiros.map((barbeiro, idx) => (
+                  <RankingCard
+                    key={barbeiro.id}
+                    barbeiro={barbeiro}
+                    posicao={idx + 1}
+                    modoAtual={modoAtual}
+                    campanha={campanha}
+                    pontosMap={pontosMap}
+                    pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
+                    rankingPontos={rankingPontosBarb}
+                  />
+                ))}
+              </div>
+            </section>
+          )
+        }
+        // Modo pontos/ambos: re-ordena por pontos (desc) e particiona.
+        const min = campanha!.min_pontos
+        const ordPorPontos = [...rankingBarbeiros].sort(
+          (a, b) => (pontosMap[b.id] ?? 0) - (pontosMap[a.id] ?? 0),
+        )
+        const qualificados = ordPorPontos.filter(b => (pontosMap[b.id] ?? 0) >= min)
+        const abaixoMin = ordPorPontos.filter(b => (pontosMap[b.id] ?? 0) < min)
+        return (
+          <>
+            {qualificados.length > 0 && (
+              <section>
+                <h2 className="font-serif text-xl text-text mb-4">
+                  🏆 Ranking — Qualificados <span className="text-text-muted text-base font-sans">— {cicloLabel}</span>
+                </h2>
+                <div className="space-y-3">
+                  {qualificados.map((barbeiro, idx) => (
+                    <RankingCard
+                      key={barbeiro.id}
+                      barbeiro={barbeiro}
+                      posicao={idx + 1}
+                      modoAtual={modoAtual}
+                      campanha={campanha}
+                      pontosMap={pontosMap}
+                      pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
+                      rankingPontos={rankingPontosBarb}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+            {abaixoMin.length > 0 && (
+              <section>
+                <h2 className="font-serif text-xl text-text mb-4">
+                  ⏳ Ainda em busca do mínimo
+                </h2>
+                <div className="space-y-3">
+                  {abaixoMin.map((barbeiro, idx) => (
+                    <RankingCard
+                      key={barbeiro.id}
+                      barbeiro={barbeiro}
+                      posicao={qualificados.length + idx + 1}
+                      modoAtual={modoAtual}
+                      campanha={campanha}
+                      pontosMap={pontosMap}
+                      pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
+                      rankingPontos={rankingPontosBarb}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
+        )
+      })()}
 
-      {/* Recepcionistas */}
-      {rankingRecepcionistas.length > 0 && (
-        <section>
-          <h2 className="font-serif text-xl text-text mb-4">Recepcionistas</h2>
-          <div className="space-y-3">
-            {rankingRecepcionistas.map((barbeiro, idx) => (
-              <RankingCard
-                key={barbeiro.id}
-                barbeiro={barbeiro}
-                posicao={idx + 1}
-                modoAtual={modoAtual}
-                campanha={campanha}
-                pontosMap={pontosMap}
-                pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
-                rankingPontos={rankingPontosRecep}
-                isRecep
-              />
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Recepcionistas — mesma divisão quando modo pontos/ambos */}
+      {rankingRecepcionistas.length > 0 && (() => {
+        const dividirPorPontos = (modoAtual === 'pontos' || modoAtual === 'ambos') && campanha
+        if (!dividirPorPontos) {
+          return (
+            <section>
+              <h2 className="font-serif text-xl text-text mb-4">Recepcionistas</h2>
+              <div className="space-y-3">
+                {rankingRecepcionistas.map((barbeiro, idx) => (
+                  <RankingCard
+                    key={barbeiro.id}
+                    barbeiro={barbeiro}
+                    posicao={idx + 1}
+                    modoAtual={modoAtual}
+                    campanha={campanha}
+                    pontosMap={pontosMap}
+                    pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
+                    rankingPontos={rankingPontosRecep}
+                    isRecep
+                  />
+                ))}
+              </div>
+            </section>
+          )
+        }
+        const minRecep = campanha!.min_pontos_recep
+        const ordPorPontos = [...rankingRecepcionistas].sort(
+          (a, b) => (pontosMap[b.id] ?? 0) - (pontosMap[a.id] ?? 0),
+        )
+        const qualificados = ordPorPontos.filter(b => (pontosMap[b.id] ?? 0) >= minRecep)
+        const abaixoMin = ordPorPontos.filter(b => (pontosMap[b.id] ?? 0) < minRecep)
+        return (
+          <>
+            {qualificados.length > 0 && (
+              <section>
+                <h2 className="font-serif text-xl text-text mb-4">
+                  🏆 Recepcionistas — Qualificados
+                </h2>
+                <div className="space-y-3">
+                  {qualificados.map((barbeiro, idx) => (
+                    <RankingCard
+                      key={barbeiro.id}
+                      barbeiro={barbeiro}
+                      posicao={idx + 1}
+                      modoAtual={modoAtual}
+                      campanha={campanha}
+                      pontosMap={pontosMap}
+                      pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
+                      rankingPontos={rankingPontosRecep}
+                      isRecep
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+            {abaixoMin.length > 0 && (
+              <section>
+                <h2 className="font-serif text-xl text-text mb-4">
+                  ⏳ Recepcionistas — em busca do mínimo
+                </h2>
+                <div className="space-y-3">
+                  {abaixoMin.map((barbeiro, idx) => (
+                    <RankingCard
+                      key={barbeiro.id}
+                      barbeiro={barbeiro}
+                      posicao={qualificados.length + idx + 1}
+                      modoAtual={modoAtual}
+                      campanha={campanha}
+                      pontosMap={pontosMap}
+                      pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
+                      rankingPontos={rankingPontosRecep}
+                      isRecep
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
+        )
+      })()}
 
       {rankingBarbeiros.length === 0 && rankingRecepcionistas.length === 0 && (
         <div className="card-light p-8 text-center">
