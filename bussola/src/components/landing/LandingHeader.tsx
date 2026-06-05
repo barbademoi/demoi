@@ -40,7 +40,7 @@ export function LandingHeader() {
           <div className="flex justify-start">
             <Link
               href="/entrar"
-              className="text-grafite hover:text-marrom font-medium text-sm transition-colors px-2 py-1"
+              className="inline-flex items-center border border-marrom text-marrom hover:bg-marrom hover:text-white transition-colors rounded-md font-semibold text-sm px-3 py-2 md:px-4 md:py-2.5"
             >
               Entrar
             </Link>
