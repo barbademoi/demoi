@@ -198,6 +198,50 @@ function CardSugestaoFala({ momento, contexto }: { momento: Momento; contexto: s
   )
 }
 
+// Checkbox "Marcar todos como abordados" pro momento Reconhecimentos.
+// 3 estados: vazio (0 marcados), parcial (1..N-1 marcados), cheio (todos).
+function MarcarTodos({
+  total,
+  marcados,
+  onToggleAll,
+}: {
+  total: number
+  marcados: number
+  onToggleAll: (marcarTodos: boolean) => void
+}) {
+  const estado: 'vazio' | 'parcial' | 'cheio' =
+    marcados === 0 ? 'vazio' : marcados === total ? 'cheio' : 'parcial'
+
+  // Click no vazio ou parcial → marca todos. Click no cheio → desmarca todos.
+  const handleClick = () => onToggleAll(estado !== 'cheio')
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className="w-full min-h-[44px] flex items-center gap-3 px-3 py-2.5 rounded-md border border-marrom/20 bg-linho/40 hover:bg-linho transition-colors text-left"
+      aria-label={estado === 'cheio' ? 'Desmarcar todos' : 'Marcar todos como abordados'}
+    >
+      <span
+        className={[
+          'w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors',
+          estado === 'cheio' || estado === 'parcial'
+            ? 'bg-marrom border-marrom'
+            : 'bg-white border-marrom/40',
+        ].join(' ')}
+        aria-hidden
+      >
+        {estado === 'cheio' && <Check size={14} strokeWidth={3} className="text-white" />}
+        {estado === 'parcial' && <span className="block w-2.5 h-0.5 bg-white rounded-full" />}
+      </span>
+      <span className="text-sm font-medium text-text flex-1">Marcar todos como abordados</span>
+      <span className="text-xs text-chumbo">
+        {marcados} de {total} marcados
+      </span>
+    </button>
+  )
+}
+
 function ObsCard({
   obs,
   marcado,
@@ -486,17 +530,31 @@ export default function ConduzirClient(props: Props) {
                 Nenhum reconhecimento classificado {periodoLabel}. Use este momento mesmo assim — pense em algo positivo que viu acontecer.
               </p>
             ) : (
-              recs.map((o) => (
-                <ObsCard
-                  key={o.id}
-                  obs={o}
-                  marcado={discutidos.has(o.id)}
-                  toggle={() => toggle(o)}
-                  nota={notas[o.id] ?? ''}
-                  setNota={(v) => setNotas((n) => ({ ...n, [o.id]: v }))}
-                  momento="reconhecimento"
+              <>
+                <MarcarTodos
+                  total={recs.length}
+                  marcados={recs.filter((o) => discutidos.has(o.id)).length}
+                  onToggleAll={(marcarTodos) => {
+                    setDiscutidos((prev) => {
+                      const novo = new Set(prev)
+                      if (marcarTodos) recs.forEach((o) => novo.add(o.id))
+                      else recs.forEach((o) => novo.delete(o.id))
+                      return novo
+                    })
+                  }}
                 />
-              ))
+                {recs.map((o) => (
+                  <ObsCard
+                    key={o.id}
+                    obs={o}
+                    marcado={discutidos.has(o.id)}
+                    toggle={() => toggle(o)}
+                    nota={notas[o.id] ?? ''}
+                    setNota={(v) => setNotas((n) => ({ ...n, [o.id]: v }))}
+                    momento="reconhecimento"
+                  />
+                ))}
+              </>
             )}
           </div>
         )}

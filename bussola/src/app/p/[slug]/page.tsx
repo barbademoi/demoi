@@ -7,6 +7,7 @@ import Timeline, { type ItemElogio } from './Timeline'
 import FeedbacksCliente, { type ItemFeedbackCliente } from './FeedbacksCliente'
 import AutoRefresh from './AutoRefresh'
 import RegistraSW from './RegistraSW'
+import { CaixaMensagem } from './CaixaMensagem'
 
 export const dynamic = 'force-dynamic'
 
@@ -178,6 +179,9 @@ export default async function TimelinePublicaPage({ params }: { params: { slug: 
             <FeedbacksCliente itens={feedbacksCliente} />
           </section>
         )}
+
+        {/* CAIXA DE MENSAGEM PRO DONO */}
+        <CaixaMensagem slug={params.slug} />
 
         {/* INSTALAR PWA */}
         <div className="flex flex-col items-center gap-2 pt-2">

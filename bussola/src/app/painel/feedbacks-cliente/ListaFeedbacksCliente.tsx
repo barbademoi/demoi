@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import Modal from '@/components/Modal'
+import { ListExpander } from '@/components/ui/ListExpander'
 import { tempoRelativo, dataLonga } from '@/lib/feedbacks'
 import {
   marcarLido,
@@ -224,15 +225,27 @@ export default function ListaFeedbacksCliente({ featureAtiva, contadores, lista,
         </div>
       </div>
 
-      {/* LISTA */}
+      {/* LISTA — ListExpander mostra primeiros 5 quando sem filtro; expande
+          tudo automaticamente quando filtro ativo */}
       {lista2.length === 0 ? (
         <p className="text-chumbo text-sm text-center py-10">Nenhum feedback nesse filtro.</p>
       ) : (
-        <div className="space-y-3">
-          {lista2.map((f) => (
-            <CardFeedback key={f.id} fb={f} ativos={ativos} onChange={() => router.refresh()} />
-          ))}
-        </div>
+        <ListExpander
+          items={lista2}
+          initialCount={5}
+          alwaysExpanded={
+            filtroStatus !== 'todos' ||
+            filtroPeriodo !== 'tudo' ||
+            filtroEstrelas.size > 0 ||
+            filtroComComentario ||
+            filtroColabId !== 'todos' ||
+            filtroComBrinde
+          }
+          showMoreLabel={(r) => `Ver mais ${r} ${r === 1 ? 'feedback' : 'feedbacks'}`}
+          renderItem={(f) => (
+            <CardFeedback fb={f} ativos={ativos} onChange={() => router.refresh()} />
+          )}
+        />
       )}
     </main>
   )

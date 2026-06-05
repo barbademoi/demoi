@@ -50,9 +50,29 @@ export default async function PainelLayout({ children }: { children: React.React
     .or(`lido_em.gt.${uv},resposta_em.gt.${uv}`)
   const novas = count ?? 0
 
+  // Badge de mensagens dos colaboradores não lidas (migration 020).
+  // Se a migration ainda não rodou, segue com 0 sem quebrar.
+  let mensagensNaoLidas = 0
+  try {
+    const { count: mc } = await supabase
+      .from('mensagens_colaboradores')
+      .select('id', { count: 'exact', head: true })
+      .eq('estabelecimento_id', estabelecimento.id)
+      .eq('lida', false)
+    mensagensNaoLidas = mc ?? 0
+  } catch {
+    /* migration 020 ausente — sem badge */
+  }
+
   return (
     <div className="min-h-screen lg:flex">
-      <Sidebar nomeEstab={estabelecimento.nome} email={user.email ?? ''} logoUrl={estabelecimento.logo_url} novas={novas} />
+      <Sidebar
+        nomeEstab={estabelecimento.nome}
+        email={user.email ?? ''}
+        logoUrl={estabelecimento.logo_url}
+        novas={novas}
+        mensagensNaoLidas={mensagensNaoLidas}
+      />
 
       <div className="flex-1 min-w-0">
         {/* Header só no mobile (no desktop o logo fica na sidebar) */}
@@ -83,7 +103,7 @@ export default async function PainelLayout({ children }: { children: React.React
         <main className="max-w-4xl mx-auto pb-20 lg:pb-8">{children}</main>
       </div>
 
-      <BottomNav novas={novas} />
+      <BottomNav novas={novas} mensagensNaoLidas={mensagensNaoLidas} />
     </div>
   )
 }

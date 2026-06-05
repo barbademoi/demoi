@@ -16,6 +16,7 @@ import {
   Star,
   X,
   BookOpen,
+  Mail,
   type LucideIcon,
 } from 'lucide-react'
 import { sair } from '@/app/painel/actions'
@@ -35,12 +36,13 @@ const PRINCIPAIS: Item[] = [
 const SECUNDARIOS: Item[] = [
   { href: '/painel/reuniao', label: 'Preparar Reunião', icon: ClipboardList },
   { href: '/painel/feedbacks-cliente', label: 'Feedback de Clientes', icon: Star },
+  { href: '/painel/mensagens', label: 'Mensagens', icon: Mail },
   { href: '/painel/historico-reunioes', label: 'Histórico', icon: History },
   { href: '/painel/tutoriais', label: 'Tutoriais', icon: BookOpen },
   { href: '/painel/configuracoes', label: 'Configurações', icon: Settings },
 ]
 
-export default function BottomNav({ novas }: { novas: number }) {
+export default function BottomNav({ novas, mensagensNaoLidas = 0 }: { novas: number; mensagensNaoLidas?: number }) {
   const pathname = usePathname()
   const [drawer, setDrawer] = useState(false)
   const ativo = (i: Item) => (i.exato ? pathname === i.href : pathname.startsWith(i.href))
@@ -110,6 +112,7 @@ export default function BottomNav({ novas }: { novas: number }) {
               {SECUNDARIOS.map((i) => {
                 const Icon = i.icon
                 const on = ativo(i)
+                const badge = i.href === '/painel/mensagens' ? mensagensNaoLidas : 0
                 return (
                   <Link
                     key={i.href}
@@ -118,7 +121,12 @@ export default function BottomNav({ novas }: { novas: number }) {
                     className={`flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors ${on ? 'bg-linho text-marrom' : 'text-grafite hover:bg-linho'}`}
                   >
                     <Icon size={22} strokeWidth={1.5} color={on ? '#8B6F47' : '#8A8A8A'} />
-                    {i.label}
+                    <span className="flex-1">{i.label}</span>
+                    {badge > 0 && (
+                      <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-marrom text-white text-[10px] font-bold flex items-center justify-center">
+                        {badge > 9 ? '9+' : badge}
+                      </span>
+                    )}
                   </Link>
                 )
               })}
