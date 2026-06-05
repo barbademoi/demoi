@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 280" width="280" height="280" role="img" aria-label="Pessoas conectadas representando confiança">
+  <!-- Círculo de fundo sutil -->
+  <circle cx="140" cy="140" r="110" fill="none" stroke="#8B6F47" stroke-width="1" stroke-dasharray="2 5" opacity="0.3"/>
+
+  <!-- Linhas conectoras entre pessoas (confiança mútua) -->
+  <g stroke="#8B6F47" stroke-width="1.5" opacity="0.5">
+    <line x1="140" y1="80" x2="80" y2="170"/>
+    <line x1="140" y1="80" x2="200" y2="170"/>
+    <line x1="80" y1="170" x2="200" y2="170"/>
+    <line x1="140" y1="80" x2="140" y2="210"/>
+    <line x1="80" y1="170" x2="140" y2="210"/>
+    <line x1="200" y1="170" x2="140" y2="210"/>
+  </g>
+
+  <!-- Pessoa de cima -->
+  <g>
+    <circle cx="140" cy="65" r="18" fill="#F5F1EA" stroke="#8B6F47" stroke-width="3"/>
+    <path d="M 115 110 C 115 95, 165 95, 165 110 L 165 125 L 115 125 Z" fill="#8B6F47"/>
+  </g>
+
+  <!-- Pessoa esquerda -->
+  <g>
+    <circle cx="80" cy="155" r="18" fill="#F5F1EA" stroke="#8B6F47" stroke-width="3"/>
+    <path d="M 55 200 C 55 185, 105 185, 105 200 L 105 215 L 55 215 Z" fill="#5C4A30"/>
+  </g>
+
+  <!-- Pessoa direita -->
+  <g>
+    <circle cx="200" cy="155" r="18" fill="#F5F1EA" stroke="#8B6F47" stroke-width="3"/>
+    <path d="M 175 200 C 175 185, 225 185, 225 200 L 225 215 L 175 215 Z" fill="#5C4A30"/>
+  </g>
+
+  <!-- Pessoa de baixo -->
+  <g>
+    <circle cx="140" cy="195" r="18" fill="#F5F1EA" stroke="#8B6F47" stroke-width="3"/>
+    <path d="M 115 240 C 115 225, 165 225, 165 240 L 165 255 L 115 255 Z" fill="#8B6F47"/>
+  </g>
+</svg>

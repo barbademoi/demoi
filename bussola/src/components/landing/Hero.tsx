@@ -1,98 +1,92 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { PhoneFrame } from './PhoneFrame'
-import { PreparaReuniaoMock } from './mocks/PreparaReuniaoMock'
+import { FcGoogle } from 'react-icons/fc'
 import { CtaCompra } from './CtaCompra'
 
 export function Hero() {
   return (
-    <section className="px-4 pt-12 pb-16 max-w-6xl mx-auto">
-      <div className="grid lg:grid-cols-2 gap-12 items-center">
-        <div className="space-y-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logos/logo-completa.svg" alt="Bússola" className="h-10 w-auto" />
+    <section className="relative px-4 pt-12 pb-16 max-w-3xl mx-auto overflow-hidden">
+      {/* Bússola decorativa girando muito devagar no fundo */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/illustrations/bussola-decorativa.svg"
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[560px] h-[560px] opacity-[0.08] select-none animate-spin"
+        style={{ animationDuration: '90s' }}
+      />
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            className="text-xs uppercase tracking-wider text-marrom font-semibold"
-          >
-            A ferramenta que constrói cultura na sua empresa
-          </motion.p>
+      <div className="relative text-center space-y-6">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logos/logo-completa.svg" alt="Bússola" className="h-10 w-auto mx-auto" />
 
-          <motion.h1
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="font-serif text-4xl sm:text-5xl text-preto leading-[1.1]"
-          >
-            Empresa só cresce se a cultura for forte.
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="text-grafite text-lg leading-relaxed"
-          >
-            A Bússola é o mentor com IA que te ajuda a construir cultura semana após
-            semana — usando a conversa com sua equipe como o momento que muda tudo.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
-            className="flex flex-col sm:flex-row gap-3 items-start sm:items-center pt-2"
-          >
-            <CtaCompra />
-            <a href="#solucao" className="text-sm text-grafite underline hover:text-marrom">
-              Ver como funciona
-            </a>
-          </motion.div>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="text-xs text-chumbo leading-relaxed"
-          >
-            Testada em barbearia real · <strong className="text-text">11 pessoas</strong> ·
-            {' '}<strong className="text-text">1.700+ atendimentos/mês</strong> ·
-            Mais de uma centena de feedbacks coletados
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 1 }}
-            className="inline-flex items-start gap-2 rounded-md bg-linho border-l-[3px] border-marrom px-3 py-2"
-          >
-            <p className="text-xs text-marrom font-semibold leading-tight">
-              OFERTA DE LANÇAMENTO · Vagas limitadas aos primeiros 100 clientes ·{' '}
-              <span className="font-bold">R$ 97 pelo ano todo</span>{' '}
-              <span className="font-normal text-chumbo">(depois R$ 197)</span>
-            </p>
-          </motion.div>
-        </div>
-
-        {/* PhoneFrame com float sutil */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.3 }}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          className="text-xs uppercase tracking-wider text-marrom font-semibold"
         >
-          <motion.div
-            animate={{ y: [0, -4, 0] }}
-            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <PhoneFrame size="lg">
-              <PreparaReuniaoMock />
-            </PhoneFrame>
-          </motion.div>
+          IA mentora pra construir cultura
+        </motion.p>
+
+        <motion.h1
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="font-serif text-4xl sm:text-5xl text-preto leading-[1.1]"
+        >
+          Empresa só cresce se a cultura for forte.
+        </motion.h1>
+
+        <motion.p
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="text-grafite text-lg leading-relaxed max-w-xl mx-auto"
+        >
+          A IA da Bússola organiza, sugere e prepara sua reunião semanal. Você
+          só anota e fala — ela faz o resto.
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="flex flex-col sm:flex-row gap-3 items-center justify-center pt-1"
+        >
+          <CtaCompra />
+          <a href="#demo" className="text-sm text-grafite underline hover:text-marrom">
+            Ver demonstração
+          </a>
         </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.7 }}
+          className="text-xs text-chumbo leading-relaxed flex flex-wrap items-center justify-center gap-x-2 gap-y-1"
+        >
+          <span>Em uso real na Demôi Barbearia</span>
+          <span className="text-chumbo/40">·</span>
+          <strong className="text-text">11 pessoas</strong>
+          <span className="text-chumbo/40">·</span>
+          <strong className="text-text">1.700+ atendimentos/mês</strong>
+          <span className="text-chumbo/40">·</span>
+          <span className="inline-flex items-center gap-1">
+            <FcGoogle size={14} aria-hidden />
+            <strong className="text-text">200+ avaliações 4.9★ no Google</strong>
+          </span>
+        </motion.p>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.9 }}
+          className="text-xs text-marrom font-semibold"
+        >
+          R$ 97 pelo ano · Vagas limitadas aos primeiros 100 clientes
+        </motion.p>
       </div>
     </section>
   )

@@ -32,8 +32,8 @@ export function CtaFinal() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-white/80 text-lg leading-relaxed"
         >
-          Junte-se aos primeiros 100 que vão receber acesso completo à Bússola por
-          R$ 97 pelo ano todo.
+          Vagas limitadas aos primeiros 100. Depois, o valor passa pra R$ 197
+          — sem bônus.
         </motion.p>
 
         <motion.div

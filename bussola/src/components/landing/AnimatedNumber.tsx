@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useInView } from 'framer-motion'
 
 interface Props {
   to: number
@@ -11,61 +12,59 @@ interface Props {
   className?: string
 }
 
-// Count-up reutilizável. Anima 0 → `to` quando o elemento entra na
-// viewport. Respeita prefers-reduced-motion: já mostra o valor final.
+// Count-up animado. Usa useInView do framer-motion (battle-tested) com
+// once:true para disparar uma vez quando o elemento entra na viewport
+// com margem -100px (precisa estar 100px dentro). Easing easeOutQuart.
+// Respeita prefers-reduced-motion: vai direto pro valor final.
 export function AnimatedNumber({
   to,
   suffix = '',
   prefix = '',
   decimals = 0,
-  duration = 1500,
+  duration = 1800,
   className = '',
 }: Props) {
   const ref = useRef<HTMLSpanElement>(null)
+  const inView = useInView(ref, { once: true, margin: '-100px' })
   const [value, setValue] = useState(0)
-  const [reduced, setReduced] = useState(false)
 
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    if (mq.matches) {
-      setReduced(true)
-      setValue(to)
-      return
+    if (!inView) return
+
+    if (typeof window !== 'undefined') {
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+      if (mq.matches) {
+        setValue(to)
+        return
+      }
     }
 
-    const node = ref.current
-    if (!node) return
+    let startTime: number | null = null
+    let raf = 0
 
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return
-        obs.disconnect()
-        const start = performance.now()
-        function tick(now: number) {
-          const elapsed = now - start
-          const t = Math.min(1, elapsed / duration)
-          // ease-out cubic
-          const eased = 1 - Math.pow(1 - t, 3)
-          setValue(to * eased)
-          if (t < 1) requestAnimationFrame(tick)
-          else setValue(to)
-        }
-        requestAnimationFrame(tick)
-      },
-      { rootMargin: '0px 0px -10% 0px' },
-    )
-    obs.observe(node)
-    return () => obs.disconnect()
-  }, [to, duration])
+    const tick = (now: number) => {
+      if (startTime === null) startTime = now
+      const progress = Math.min((now - startTime) / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 4) // easeOutQuart
+      setValue(to * eased)
+      if (progress < 1) raf = requestAnimationFrame(tick)
+      else setValue(to)
+    }
+    raf = requestAnimationFrame(tick)
 
-  const display = reduced ? to : value
-  const formatted = decimals > 0
-    ? display.toFixed(decimals).replace('.', ',')
-    : Math.round(display).toLocaleString('pt-BR')
+    return () => cancelAnimationFrame(raf)
+  }, [inView, to, duration])
+
+  const formatted =
+    decimals > 0
+      ? value.toFixed(decimals).replace('.', ',')
+      : Math.round(value).toLocaleString('pt-BR')
 
   return (
     <span ref={ref} className={className}>
-      {prefix}{formatted}{suffix}
+      {prefix}
+      {formatted}
+      {suffix}
     </span>
   )
 }
