@@ -85,4 +85,12 @@
     @apply bg-surface border border-border rounded-lg;
     box-shadow: var(--sombra-suave);
   }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
