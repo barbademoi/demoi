@@ -421,35 +421,37 @@ function TodosView({
         <TicketMedio historico={historicoBarbearia} variant="dark" escopo="coletivo" />
       )}
 
-      {/* Barbeiros — no modo pontos/ambos, divide em qualificados + abaixo do mínimo.
-          No modo metas, mantém uma lista única (ordenada por comissão). */}
-      {rankingBarbeiros.length > 0 && (() => {
-        const dividirPorPontos = (modoAtual === 'pontos' || modoAtual === 'ambos') && campanha
-        if (!dividirPorPontos) {
-          return (
-            <section>
-              <h2 className="font-serif text-xl text-text mb-4">
-                Barbeiros <span className="text-text-muted text-base font-sans">— {cicloLabel}</span>
-              </h2>
-              <div className="space-y-3">
-                {rankingBarbeiros.map((barbeiro, idx) => (
-                  <RankingCard
-                    key={barbeiro.id}
-                    barbeiro={barbeiro}
-                    posicao={idx + 1}
-                    modoAtual={modoAtual}
-                    campanha={campanha}
-                    pontosMap={pontosMap}
-                    pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
-                    rankingPontos={rankingPontosBarb}
-                  />
-                ))}
-              </div>
-            </section>
-          )
-        }
-        // Modo pontos/ambos: re-ordena por pontos (desc) e particiona.
-        const min = campanha!.min_pontos
+      {/* Rankings: comissão e pontos são sempre EXIBIDOS EM SEÇÕES SEPARADAS,
+          mesmo no modo 'ambos' — pra não misturar métricas no mesmo card.
+            - modo 'metas'  → só Comissão (lista única ordenada por comissão)
+            - modo 'pontos' → só Pontos  (com divisão qualificados/abaixo)
+            - modo 'ambos'  → Comissão  +  Pontos (uma seção depois da outra)
+          Recepcionistas: sempre só Pontos (não participam de meta de comissão). */}
+      {rankingBarbeiros.length > 0 && modoAtual !== 'pontos' && (
+        <section>
+          <h2 className="font-serif text-xl text-text mb-4">
+            💰 Barbeiros — Comissão <span className="text-text-muted text-base font-sans">— {cicloLabel}</span>
+          </h2>
+          <div className="space-y-3">
+            {rankingBarbeiros.map((barbeiro, idx) => (
+              <RankingCard
+                key={barbeiro.id}
+                barbeiro={barbeiro}
+                posicao={idx + 1}
+                modoAtual={modoAtual}
+                campanha={campanha}
+                pontosMap={pontosMap}
+                pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
+                rankingPontos={rankingPontosBarb}
+                vista="comissao"
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {rankingBarbeiros.length > 0 && modoAtual !== 'metas' && campanha && (() => {
+        const min = campanha.min_pontos
         const ordPorPontos = [...rankingBarbeiros].sort(
           (a, b) => (pontosMap[b.id] ?? 0) - (pontosMap[a.id] ?? 0),
         )
@@ -460,7 +462,7 @@ function TodosView({
             {qualificados.length > 0 && (
               <section>
                 <h2 className="font-serif text-xl text-text mb-4">
-                  🏆 Ranking — Qualificados <span className="text-text-muted text-base font-sans">— {cicloLabel}</span>
+                  🏆 Barbeiros — Pontos · Qualificados <span className="text-text-muted text-base font-sans">— {cicloLabel}</span>
                 </h2>
                 <div className="space-y-3">
                   {qualificados.map((barbeiro, idx) => (
@@ -473,6 +475,7 @@ function TodosView({
                       pontosMap={pontosMap}
                       pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
                       rankingPontos={rankingPontosBarb}
+                      vista="pontos"
                     />
                   ))}
                 </div>
@@ -482,8 +485,8 @@ function TodosView({
               <section>
                 <h2 className="font-serif text-xl text-text mb-4">
                   {qualificados.length === 0
-                    ? <>🏆 Ranking de Pontuações <span className="text-text-muted text-base font-sans">— {cicloLabel}</span></>
-                    : <>⏳ Ainda em busca do mínimo</>}
+                    ? <>🏆 Barbeiros — Ranking de Pontos <span className="text-text-muted text-base font-sans">— {cicloLabel}</span></>
+                    : <>⏳ Barbeiros — em busca do mínimo de pontos</>}
                 </h2>
                 <div className="space-y-3">
                   {abaixoMin.map((barbeiro, idx) => (
@@ -496,6 +499,7 @@ function TodosView({
                       pontosMap={pontosMap}
                       pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
                       rankingPontos={rankingPontosBarb}
+                      vista="pontos"
                     />
                   ))}
                 </div>
@@ -505,32 +509,10 @@ function TodosView({
         )
       })()}
 
-      {/* Recepcionistas — mesma divisão quando modo pontos/ambos */}
-      {rankingRecepcionistas.length > 0 && (() => {
-        const dividirPorPontos = (modoAtual === 'pontos' || modoAtual === 'ambos') && campanha
-        if (!dividirPorPontos) {
-          return (
-            <section>
-              <h2 className="font-serif text-xl text-text mb-4">Recepcionistas</h2>
-              <div className="space-y-3">
-                {rankingRecepcionistas.map((barbeiro, idx) => (
-                  <RankingCard
-                    key={barbeiro.id}
-                    barbeiro={barbeiro}
-                    posicao={idx + 1}
-                    modoAtual={modoAtual}
-                    campanha={campanha}
-                    pontosMap={pontosMap}
-                    pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
-                    rankingPontos={rankingPontosRecep}
-                    isRecep
-                  />
-                ))}
-              </div>
-            </section>
-          )
-        }
-        const minRecep = campanha!.min_pontos_recep
+      {/* Recepcionistas — só seção de Pontos. Eles não participam de metas
+          de comissão (só pontuam na campanha). */}
+      {rankingRecepcionistas.length > 0 && modoAtual !== 'metas' && campanha && (() => {
+        const minRecep = campanha.min_pontos_recep
         const ordPorPontos = [...rankingRecepcionistas].sort(
           (a, b) => (pontosMap[b.id] ?? 0) - (pontosMap[a.id] ?? 0),
         )
@@ -541,7 +523,7 @@ function TodosView({
             {qualificados.length > 0 && (
               <section>
                 <h2 className="font-serif text-xl text-text mb-4">
-                  🏆 Recepcionistas — Qualificados
+                  🏆 Recepcionistas — Pontos · Qualificados
                 </h2>
                 <div className="space-y-3">
                   {qualificados.map((barbeiro, idx) => (
@@ -555,6 +537,7 @@ function TodosView({
                       pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
                       rankingPontos={rankingPontosRecep}
                       isRecep
+                      vista="pontos"
                     />
                   ))}
                 </div>
@@ -564,8 +547,8 @@ function TodosView({
               <section>
                 <h2 className="font-serif text-xl text-text mb-4">
                   {qualificados.length === 0
-                    ? '🏆 Recepcionistas — Ranking de Pontuações'
-                    : '⏳ Recepcionistas — em busca do mínimo'}
+                    ? '🏆 Recepcionistas — Ranking de Pontos'
+                    : '⏳ Recepcionistas — em busca do mínimo de pontos'}
                 </h2>
                 <div className="space-y-3">
                   {abaixoMin.map((barbeiro, idx) => (
@@ -579,6 +562,7 @@ function TodosView({
                       pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
                       rankingPontos={rankingPontosRecep}
                       isRecep
+                      vista="pontos"
                     />
                   ))}
                 </div>
@@ -610,9 +594,20 @@ interface RankingCardProps {
   pontosHojeBarbeiro: number
   rankingPontos: { id: string; pts: number }[]
   isRecep?: boolean
+  // 'comissao' = card foca em comissão/metas (esconde badges/valor de pontos).
+  // 'pontos'   = card foca em pontos (esconde barras/valor de comissão).
+  // omitido    = legacy: deriva do `modoAtual` (modo 'ambos' mostra os dois,
+  //              mas é caso a caso — preferir passar vista explícita).
+  vista?: 'comissao' | 'pontos'
 }
 
-function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, pontosHojeBarbeiro, rankingPontos, isRecep }: RankingCardProps) {
+function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, pontosHojeBarbeiro, rankingPontos, isRecep, vista }: RankingCardProps) {
+  // Quando `vista` é passada, ela manda no que o card exibe — permite que
+  // o dashboard renderize duas seções (Comissão + Pontos) sem misturar
+  // métricas no mesmo card. Sem `vista`, cai no comportamento legacy
+  // baseado em modoAtual.
+  const mostraComissao = vista ? vista === 'comissao' : modoAtual !== 'pontos'
+  const mostraPontos   = vista ? vista === 'pontos'   : modoAtual !== 'metas'
   const tier = barbeiro.metaInd
     ? calcTier(barbeiro.comissao, barbeiro.metaInd.bronze_comm, barbeiro.metaInd.prata_comm, barbeiro.metaInd.ouro_comm)
     : null
@@ -631,7 +626,7 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, pontos
   const posClass = posicao <= 3 ? posColors[posicao - 1] : 'text-on-cream-muted'
 
   const [lancamentosOpen, setLancamentosOpen] = useState(false)
-  const podeVerLancamentos = modoAtual !== 'metas' && campanha !== null
+  const podeVerLancamentos = mostraPontos && campanha !== null
 
   return (
     <div className="card-light p-4 sm:p-5 relative">
@@ -666,13 +661,13 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, pontos
                   ★ {TIER_CONFIG[tier].label}
                 </span>
               )}
-              {modoAtual !== 'metas' && campanha && (
+              {mostraPontos && campanha && (
                 <span className={`text-[11px] font-sans font-semibold px-2 py-0.5 rounded-full
                   ${qualificado ? 'bg-primary/10 text-primary' : 'bg-cream-surface text-on-cream-muted'}`}>
                   🏅 {pts} pts{posicaoPts >= 0 && qualificado ? ` · #${posicaoPts + 1}` : ''}
                 </span>
               )}
-              {modoAtual !== 'metas' && campanha && (
+              {mostraPontos && campanha && (
                 pontosHojeBarbeiro > 0 ? (
                   <span className="text-[11px] font-sans font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600">
                     ✅ Lançou hoje · {pontosHojeBarbeiro} pts
@@ -697,13 +692,13 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, pontos
                 ★ {TIER_CONFIG[tier].label}
               </span>
             )}
-            {modoAtual !== 'metas' && campanha && (
+            {mostraPontos && campanha && (
               <span className={`text-xs font-sans font-semibold px-2 py-0.5 rounded-full
                 ${qualificado ? 'bg-primary/10 text-primary' : 'bg-cream-surface text-on-cream-muted'}`}>
                 🏅 {pts} pts{posicaoPts >= 0 && qualificado ? ` · #${posicaoPts + 1}` : ''}
               </span>
             )}
-            {modoAtual !== 'metas' && campanha && (
+            {mostraPontos && campanha && (
               pontosHojeBarbeiro > 0 ? (
                 <span className="text-xs font-sans font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600">
                   ✅ Lançou hoje · {pontosHojeBarbeiro} pts
@@ -728,7 +723,7 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, pontos
             )}
           </div>
 
-          {progresso && modoAtual !== 'pontos' && (
+          {progresso && mostraComissao && (
             <div className="mt-2.5 space-y-1.5">
               {(['bronze', 'prata', 'ouro'] as const).map(t => {
                 const metaVal = barbeiro.metaInd![`${t}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm']
@@ -768,7 +763,7 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, pontos
             )}
           </div>
 
-          {progresso && modoAtual !== 'pontos' && (
+          {progresso && mostraComissao && (
             <div className="space-y-1.5">
               {(['bronze', 'prata', 'ouro'] as const).map(t => {
                 const metaVal = barbeiro.metaInd![`${t}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm']
@@ -793,7 +788,7 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, pontos
           )}
 
           <div className="flex items-center justify-between pt-1">
-            {modoAtual !== 'pontos' ? (
+            {mostraComissao ? (
               <p className="font-serif text-lg text-on-cream">{formatBRL(barbeiro.comissao)}</p>
             ) : (
               <p className="font-serif text-lg text-on-cream">{pts} pts</p>
@@ -801,12 +796,11 @@ function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, pontos
           </div>
         </div>
 
-        {/* Desktop: valor à direita */}
+        {/* Desktop: valor à direita — comissão OU pontos, conforme a vista */}
         <div className="hidden sm:block text-right shrink-0">
-          {modoAtual !== 'pontos' && (
+          {mostraComissao ? (
             <p className="font-serif text-xl text-on-cream">{formatBRL(barbeiro.comissao)}</p>
-          )}
-          {modoAtual === 'pontos' && (
+          ) : (
             <p className="font-serif text-xl text-on-cream">{pts} pts</p>
           )}
         </div>
