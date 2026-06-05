@@ -52,10 +52,10 @@ export function LandingHeader() {
           </a>
 
           {/* Ações */}
-          <div className="flex items-center gap-3 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <Link
               href="/entrar"
-              className="hidden md:inline-block text-grafite hover:text-marrom font-medium text-sm transition-colors"
+              className="text-grafite hover:text-marrom font-medium text-sm transition-colors px-2 py-1"
             >
               Entrar
             </Link>
