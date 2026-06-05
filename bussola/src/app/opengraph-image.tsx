@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'Bússola — Reuniões com clareza'
+export const alt = 'Bússola — IA mentora pra construir cultura'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -57,7 +57,7 @@ export default function Image() {
             textAlign: 'center',
           }}
         >
-          Reuniões com clareza, semana após semana.
+          IA mentora pra construir cultura.
         </div>
       </div>
     ),

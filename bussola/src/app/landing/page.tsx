@@ -12,34 +12,8 @@ import { CtaFinal } from '@/components/landing/CtaFinal'
 import { RodapeMarketing } from '@/components/landing/RodapeMarketing'
 import { StickyMobileCta } from '@/components/landing/StickyMobileCta'
 
-export const metadata = {
-  title: 'Bússola — IA mentora pra construir cultura na sua empresa',
-  description:
-    'IA mentora pra construir cultura na sua empresa. R$ 97 pelo ano todo + 2 bônus exclusivos (mentoria mensal + suporte WhatsApp). Vagas limitadas aos primeiros 100 clientes.',
-  openGraph: {
-    title: 'Bússola',
-    description:
-      'IA mentora pra construir cultura na sua empresa. R$ 97 pelo ano todo + 2 bônus exclusivos.',
-    url: 'https://bussolameet.com.br',
-    siteName: 'Bússola',
-    locale: 'pt_BR',
-    type: 'website',
-    images: [
-      {
-        url: '/opengraph-image',
-        alt: 'Bússola — IA mentora pra construir cultura',
-        width: 1200,
-        height: 630,
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Bússola — IA mentora pra construir cultura',
-    description: 'R$ 97 pelo ano todo + 2 bônus exclusivos.',
-    images: ['/opengraph-image'],
-  },
-}
+// Metadata vive no root layout (src/app/layout.tsx) porque a landing também
+// é servida em / (via src/app/page.tsx), não só em /landing.
 
 export default function LandingPage() {
   return (

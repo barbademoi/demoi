@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Check, Gift } from 'lucide-react'
-import { FaWhatsapp } from 'react-icons/fa6'
+import { FaWhatsapp, FaStar } from 'react-icons/fa6'
 import { SiGooglemeet } from 'react-icons/si'
 import { FcGoogle } from 'react-icons/fc'
 import { CtaCompra } from './CtaCompra'
@@ -23,13 +23,18 @@ const INCLUSOES: Inclusao[] = [
     extra: <Gift size={16} strokeWidth={1.5} className="text-marrom shrink-0" />,
   },
   {
-    texto: 'Integração com Google Reviews',
-    extra: <FcGoogle size={18} className="shrink-0" />,
+    texto: 'Captação automática de avaliações 5★ no Google',
+    extra: (
+      <span className="inline-flex items-center gap-1 shrink-0">
+        <FcGoogle size={18} />
+        <FaStar size={12} className="text-[#FFC107]" />
+      </span>
+    ),
   },
   {
     texto: 'Tutoriais embutidos no sistema',
     extra: (
-      <span className="hidden md:inline-block w-12 h-16 rounded overflow-hidden border border-border shrink-0">
+      <span className="hidden md:inline-block ml-2 w-12 h-16 rounded overflow-hidden border border-border shrink-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/landing/oferta-tutoriais-mobile.png"
@@ -102,9 +107,9 @@ export function OfertaPreco() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: '-5%' }}
               transition={{ duration: 0.3, delay: 0.5 + i * 0.05 }}
-              className="flex items-start gap-2 text-sm text-text"
+              className="flex items-center gap-2 text-sm text-text"
             >
-              <Check size={16} strokeWidth={2.2} className="text-verde-musgo mt-0.5 shrink-0" />
+              <Check size={16} strokeWidth={2.2} className="text-verde-musgo shrink-0" />
               <span className="flex-1">{item.texto}</span>
               {item.extra}
             </motion.li>

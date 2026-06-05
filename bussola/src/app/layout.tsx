@@ -14,13 +14,15 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
-    default: 'Bússola — Reuniões com clareza',
+    default: 'Bússola — IA mentora pra construir cultura na sua empresa',
     template: '%s | Bússola',
   },
-  description: 'Mentor de reuniões semanais com IA pra empresas pequenas e médias.',
+  description:
+    'IA mentora pra construir cultura na sua empresa. R$ 97 pelo ano todo + 2 bônus exclusivos (Encontro da Cultura + Suporte WhatsApp). Vagas limitadas aos primeiros 100 clientes.',
   openGraph: {
-    title: 'Bússola',
-    description: 'Mentor de reuniões semanais com IA',
+    title: 'Bússola — IA mentora pra construir cultura',
+    description:
+      'IA mentora pra construir cultura na sua empresa. R$ 97 pelo ano todo + 2 bônus exclusivos.',
     url: APP_URL,
     siteName: 'Bússola',
     locale: 'pt_BR',
@@ -28,8 +30,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Bússola',
-    description: 'Mentor de reuniões semanais com IA',
+    title: 'Bússola — IA mentora pra construir cultura',
+    description: 'R$ 97 pelo ano todo + 2 bônus exclusivos.',
   },
 }
 

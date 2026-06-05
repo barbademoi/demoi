@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { FcGoogle } from 'react-icons/fc'
 import { CtaCompra } from './CtaCompra'
 
 export function Hero() {
@@ -64,10 +65,18 @@ export function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.7 }}
-          className="text-xs text-chumbo leading-relaxed"
+          className="text-xs text-chumbo leading-relaxed flex flex-wrap items-center justify-center gap-x-2 gap-y-1"
         >
-          Em uso real na Demôi Barbearia · <strong className="text-text">11 pessoas</strong> ·
-          {' '}<strong className="text-text">1.700+ atendimentos/mês</strong>
+          <span>Em uso real na Demôi Barbearia</span>
+          <span className="text-chumbo/40">·</span>
+          <strong className="text-text">11 pessoas</strong>
+          <span className="text-chumbo/40">·</span>
+          <strong className="text-text">1.700+ atendimentos/mês</strong>
+          <span className="text-chumbo/40">·</span>
+          <span className="inline-flex items-center gap-1">
+            <FcGoogle size={14} aria-hidden />
+            <strong className="text-text">200+ avaliações 4.9★ no Google</strong>
+          </span>
         </motion.p>
 
         <motion.p

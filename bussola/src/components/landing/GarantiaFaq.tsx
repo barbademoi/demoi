@@ -32,6 +32,10 @@ const FAQ = [
     p: 'E depois dos 100 primeiros, o preço sobe?',
     r: 'Sim. Vai pra R$ 197/ano, sem os bônus. Quem comprar agora, mantém R$ 97 + bônus na próxima renovação.',
   },
+  {
+    p: 'Como funciona a captação de avaliações no Google?',
+    r: 'A Bússola identifica os clientes que deram 5 estrelas internamente e envia um convite automático pra eles avaliarem você no Google. O cliente clica no link, é levado direto pra caixa de avaliação no Google Maps. Em 30 segundos, sua empresa tem uma estrela a mais — sem você precisar pedir.',
+  },
 ]
 
 export function GarantiaFaq() {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useInView } from 'framer-motion'
 
 interface Props {
   to: number
@@ -11,78 +12,59 @@ interface Props {
   className?: string
 }
 
-// Count-up reutilizável. Anima 0 → `to` quando o elemento entra na
-// viewport (ou imediatamente se já está visível ao montar). Respeita
-// prefers-reduced-motion: vai direto pro valor final.
+// Count-up animado. Usa useInView do framer-motion (battle-tested) com
+// once:true para disparar uma vez quando o elemento entra na viewport
+// com margem -100px (precisa estar 100px dentro). Easing easeOutQuart.
+// Respeita prefers-reduced-motion: vai direto pro valor final.
 export function AnimatedNumber({
   to,
   suffix = '',
   prefix = '',
   decimals = 0,
-  duration = 1500,
+  duration = 1800,
   className = '',
 }: Props) {
   const ref = useRef<HTMLSpanElement>(null)
+  const inView = useInView(ref, { once: true, margin: '-100px' })
   const [value, setValue] = useState(0)
-  const startedRef = useRef(false)
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (!inView) return
 
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    if (mq.matches) {
-      setValue(to)
-      startedRef.current = true
-      return
-    }
-
-    function animate() {
-      if (startedRef.current) return
-      startedRef.current = true
-      const start = performance.now()
-      function tick(now: number) {
-        const elapsed = now - start
-        const t = Math.min(1, elapsed / duration)
-        const eased = 1 - Math.pow(1 - t, 3)
-        setValue(to * eased)
-        if (t < 1) requestAnimationFrame(tick)
-        else setValue(to)
+    if (typeof window !== 'undefined') {
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+      if (mq.matches) {
+        setValue(to)
+        return
       }
-      requestAnimationFrame(tick)
     }
 
-    const node = ref.current
-    if (!node) return
+    let startTime: number | null = null
+    let raf = 0
 
-    // Se o elemento JÁ está visível ao montar (acima do fold no Hero,
-    // por exemplo), dispara imediatamente. O IntersectionObserver pode
-    // não chamar callback se o elemento já está intersecionado.
-    const rect = node.getBoundingClientRect()
-    if (rect.top < window.innerHeight && rect.bottom > 0) {
-      animate()
-      return
+    const tick = (now: number) => {
+      if (startTime === null) startTime = now
+      const progress = Math.min((now - startTime) / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 4) // easeOutQuart
+      setValue(to * eased)
+      if (progress < 1) raf = requestAnimationFrame(tick)
+      else setValue(to)
     }
+    raf = requestAnimationFrame(tick)
 
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          animate()
-          obs.disconnect()
-        }
-      },
-      { threshold: 0.1 },
-    )
-    obs.observe(node)
-    return () => obs.disconnect()
-  }, [to, duration])
+    return () => cancelAnimationFrame(raf)
+  }, [inView, to, duration])
 
-  const formatted = decimals > 0
-    ? value.toFixed(decimals).replace('.', ',')
-    : Math.round(value).toLocaleString('pt-BR')
+  const formatted =
+    decimals > 0
+      ? value.toFixed(decimals).replace('.', ',')
+      : Math.round(value).toLocaleString('pt-BR')
 
   return (
     <span ref={ref} className={className}>
-      {prefix}{formatted}{suffix}
+      {prefix}
+      {formatted}
+      {suffix}
     </span>
   )
 }
