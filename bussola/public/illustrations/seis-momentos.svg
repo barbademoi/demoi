@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" width="600" height="200" role="img" aria-label="6 momentos da reunião">
+  <!-- Linha conectora -->
+  <line x1="50" y1="100" x2="550" y2="100" stroke="#8B6F47" stroke-width="2"/>
+
+  <!-- 6 nós (momentos) -->
+  <g>
+    <!-- 1. Abertura -->
+    <circle cx="50" cy="100" r="22" fill="#F5F1EA" stroke="#8B6F47" stroke-width="3"/>
+    <circle cx="50" cy="100" r="6" fill="#8B6F47"/>
+    <text x="50" y="155" fill="#5C4A30" font-family="serif" font-size="13" font-weight="700" text-anchor="middle">Abertura</text>
+    <text x="50" y="50" fill="#8B6F47" font-family="sans-serif" font-size="10" font-weight="600" text-anchor="middle">1</text>
+
+    <!-- 2. Revisão -->
+    <circle cx="150" cy="100" r="22" fill="#F5F1EA" stroke="#8B6F47" stroke-width="3"/>
+    <circle cx="150" cy="100" r="6" fill="#8B6F47"/>
+    <text x="150" y="155" fill="#5C4A30" font-family="serif" font-size="13" font-weight="700" text-anchor="middle">Revisão</text>
+    <text x="150" y="50" fill="#8B6F47" font-family="sans-serif" font-size="10" font-weight="600" text-anchor="middle">2</text>
+
+    <!-- 3. Reconhecimento -->
+    <circle cx="250" cy="100" r="22" fill="#F5F1EA" stroke="#8B6F47" stroke-width="3"/>
+    <circle cx="250" cy="100" r="6" fill="#8B6F47"/>
+    <text x="250" y="155" fill="#5C4A30" font-family="serif" font-size="12" font-weight="700" text-anchor="middle">Reconhecimento</text>
+    <text x="250" y="50" fill="#8B6F47" font-family="sans-serif" font-size="10" font-weight="600" text-anchor="middle">3</text>
+
+    <!-- 4. Equipe -->
+    <circle cx="350" cy="100" r="22" fill="#F5F1EA" stroke="#8B6F47" stroke-width="3"/>
+    <circle cx="350" cy="100" r="6" fill="#8B6F47"/>
+    <text x="350" y="155" fill="#5C4A30" font-family="serif" font-size="13" font-weight="700" text-anchor="middle">Equipe</text>
+    <text x="350" y="50" fill="#8B6F47" font-family="sans-serif" font-size="10" font-weight="600" text-anchor="middle">4</text>
+
+    <!-- 5. Ajustes -->
+    <circle cx="450" cy="100" r="22" fill="#F5F1EA" stroke="#8B6F47" stroke-width="3"/>
+    <circle cx="450" cy="100" r="6" fill="#8B6F47"/>
+    <text x="450" y="155" fill="#5C4A30" font-family="serif" font-size="13" font-weight="700" text-anchor="middle">Ajustes</text>
+    <text x="450" y="50" fill="#8B6F47" font-family="sans-serif" font-size="10" font-weight="600" text-anchor="middle">5</text>
+
+    <!-- 6. Encerramento -->
+    <circle cx="550" cy="100" r="22" fill="#5C4A30" stroke="#5C4A30" stroke-width="3"/>
+    <circle cx="550" cy="100" r="6" fill="#F5F1EA"/>
+    <text x="550" y="155" fill="#5C4A30" font-family="serif" font-size="12" font-weight="700" text-anchor="middle">Encerramento</text>
+    <text x="550" y="50" fill="#8B6F47" font-family="sans-serif" font-size="10" font-weight="600" text-anchor="middle">6</text>
+  </g>
+</svg>
