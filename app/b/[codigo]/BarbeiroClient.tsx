@@ -401,45 +401,102 @@ export default function BarbeiroClient({
             </div>
           )}
 
-          {/* Ranking pontos da equipe */}
-          {mostraPontos && rankingPontos.length > 0 && visibilidadeRanking !== 'proprio' && !isAutonomo && (
-            <div className="card-light p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-serif text-lg text-on-cream">Ranking de pontos</h3>
-                {posicaoPts >= 0 && (
-                  <span className="text-on-cream-muted text-sm font-sans">
-                    Você em <span className="text-on-cream font-semibold">#{posicaoPts + 1}</span>
-                  </span>
-                )}
-              </div>
-              <div className="space-y-2">
-                {rankingPontos.slice(0, 8).map((r, i) => {
-                  const isMe = r.barbeiro_id === barbeiro.id
-                  const b = ranking.find(l => l.barbeiro_id === r.barbeiro_id)
-                  const nome = b?.barbeiros?.nome ?? '—'
-                  const qual = campanha ? r.pontos >= campanha.min_pontos : true
-                  return (
-                    <div key={r.barbeiro_id} className={`flex items-center gap-3 px-3 py-2 rounded-xl
-                      ${isMe ? 'bg-primary/10 border border-primary/20' : 'hover:bg-cream-surface'}`}>
-                      <span className={`font-sans text-sm w-5 text-center
-                        ${i === 0 ? 'metal-text-gold' : i === 1 ? 'metal-text-silver' : i === 2 ? 'metal-text-bronze' : 'text-on-cream-muted'}`}>
-                        {i + 1}
-                      </span>
-                      <span className={`font-sans text-sm flex-1 ${isMe ? 'text-on-cream font-semibold' : qual ? 'text-on-cream-muted' : 'text-on-cream-muted opacity-50'}`}>
-                        {nome} {isMe && '(você)'}
-                      </span>
-                      {/* Valor só aparece em modo 'completo' OU pra própria linha do barbeiro */}
-                      {(visibilidadeRanking === 'completo' || isMe) && (
-                        <span className={`font-sans text-sm ${isMe ? 'text-on-cream' : 'text-on-cream-muted'}`}>
-                          {r.pontos} pts
+          {/* Ranking pontos da equipe — dividido em dois blocos visuais:
+              1) QUALIFICADOS: atingiram min_pontos, mostram posição + prêmio em jogo
+              2) ABAIXO DO MÍNIMO: ordenados por proximidade (maior pontos primeiro)
+              Visibilidade:
+                - 'proprio'   → bloco inteiro escondido
+                - 'posicoes'  → mostra nome + posição, mas esconde pontos/"falta" dos outros
+                - 'completo'  → mostra tudo */}
+          {mostraPontos && rankingPontos.length > 0 && visibilidadeRanking !== 'proprio' && !isAutonomo && campanha && (() => {
+            const min = campanha.min_pontos
+            const qualificados = rankingPontos.filter(r => r.pontos >= min)
+            // Quem não qualificou: mais perto do mínimo primeiro (= maior pontos primeiro).
+            // rankingPontos já vem ordenado desc, então o filter preserva isso.
+            const abaixoMin = rankingPontos.filter(r => r.pontos < min)
+            const mostraValores = visibilidadeRanking === 'completo'
+            return (
+              <>
+                {/* BLOCO 1 — QUALIFICADOS */}
+                {qualificados.length > 0 && (
+                  <div className="card-light p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-serif text-lg text-on-cream">🏆 Ranking — Qualificados</h3>
+                      {posicaoPts >= 0 && qualificado && (
+                        <span className="text-on-cream-muted text-sm font-sans">
+                          Você em <span className="text-on-cream font-semibold">#{posicaoPts + 1}</span>
                         </span>
                       )}
                     </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+                    <div className="space-y-2">
+                      {qualificados.map((r, i) => {
+                        const isMe = r.barbeiro_id === barbeiro.id
+                        const b = ranking.find(l => l.barbeiro_id === r.barbeiro_id)
+                        const nome = b?.barbeiros?.nome ?? '—'
+                        const premio = campanha.campanha_premios.find(p => p.posicao === i + 1)
+                        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null
+                        return (
+                          <div key={r.barbeiro_id} className={`flex items-center gap-3 px-3 py-2 rounded-xl
+                            ${isMe ? 'bg-primary/10 border border-primary/20' : 'hover:bg-cream-surface'}`}>
+                            <span className={`font-sans text-sm w-8 text-center
+                              ${i === 0 ? 'metal-text-gold' : i === 1 ? 'metal-text-silver' : i === 2 ? 'metal-text-bronze' : 'text-on-cream-muted'}`}>
+                              {i + 1}º
+                            </span>
+                            <span className={`font-sans text-sm flex-1 truncate ${isMe ? 'text-on-cream font-semibold' : 'text-on-cream-muted'}`}>
+                              {nome} {isMe && '(você)'}
+                            </span>
+                            {(mostraValores || isMe) && (
+                              <span className={`font-sans text-sm tabular-nums ${isMe ? 'text-on-cream' : 'text-on-cream-muted'}`}>
+                                {r.pontos} pts
+                              </span>
+                            )}
+                            {premio && (
+                              <span className="font-sans text-xs text-on-cream-muted whitespace-nowrap">
+                                {medal} {formatBRL(Number(premio.valor))}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* BLOCO 2 — ABAIXO DO MÍNIMO */}
+                {abaixoMin.length > 0 && (
+                  <div className="card-light p-6">
+                    <h3 className="font-serif text-lg text-on-cream mb-4">⏳ Ainda em busca do mínimo</h3>
+                    <div className="space-y-2">
+                      {abaixoMin.map(r => {
+                        const isMe = r.barbeiro_id === barbeiro.id
+                        const b = ranking.find(l => l.barbeiro_id === r.barbeiro_id)
+                        const nome = b?.barbeiros?.nome ?? '—'
+                        const falta = min - r.pontos
+                        return (
+                          <div key={r.barbeiro_id} className={`flex items-center gap-3 px-3 py-2 rounded-xl
+                            ${isMe ? 'bg-primary/10 border border-primary/20' : 'hover:bg-cream-surface'}`}>
+                            <span className={`font-sans text-sm flex-1 truncate ${isMe ? 'text-on-cream font-semibold' : 'text-on-cream-muted'}`}>
+                              {nome} {isMe && '(você)'}
+                            </span>
+                            {(mostraValores || isMe) && (
+                              <>
+                                <span className={`font-sans text-sm tabular-nums ${isMe ? 'text-on-cream' : 'text-on-cream-muted'}`}>
+                                  {r.pontos} pts
+                                </span>
+                                <span className="font-sans text-xs text-on-cream-muted whitespace-nowrap">
+                                  faltam {falta} pts
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            )
+          })()}
 
           {/* Ranking comissão da equipe */}
           {mostraMetas && ranking.length > 0 && visibilidadeRanking !== 'proprio' && !isAutonomo && (
