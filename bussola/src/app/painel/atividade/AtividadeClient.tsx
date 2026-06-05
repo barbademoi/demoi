@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import AtividadeItem, { type AtividadeFb } from '@/components/AtividadeItem'
 import { intervalo, type NomePeriodo } from '@/lib/periodos'
+import { ListExpander } from '@/components/ui/ListExpander'
 
 export interface ItemAtividade extends AtividadeFb {
   profissional_id: string | null
@@ -71,9 +72,14 @@ export default function AtividadeClient({
       {lista.length === 0 ? (
         <p className="text-text-muted text-sm text-center py-8">Nenhuma atividade nesse filtro.</p>
       ) : (
-        <div className="space-y-2">
-          {lista.map((a) => <AtividadeItem key={a.id} a={a} />)}
-        </div>
+        <ListExpander
+          items={lista}
+          initialCount={5}
+          className="space-y-2"
+          alwaysExpanded={tipo !== 'todos' || periodo !== 'tudo' || profId !== 'todos'}
+          showMoreLabel={(r) => `Ver mais ${r} ${r === 1 ? 'atividade' : 'atividades'}`}
+          renderItem={(a) => <AtividadeItem a={a} />}
+        />
       )}
     </div>
   )

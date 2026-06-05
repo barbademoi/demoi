@@ -15,6 +15,7 @@ import {
   LogOut,
   Star,
   BookOpen,
+  Mail,
   type LucideIcon,
 } from 'lucide-react'
 import { sair } from '@/app/painel/actions'
@@ -33,6 +34,7 @@ const ITENS: Item[] = [
   { href: '/painel/reuniao', label: 'Preparar Reunião', icon: ClipboardList },
   { href: '/painel/atividade', label: 'Atividade da Equipe', icon: Inbox },
   { href: '/painel/feedbacks-cliente', label: 'Feedback de Clientes', icon: Star },
+  { href: '/painel/mensagens', label: 'Mensagens', icon: Mail },
   { href: '/painel/historico-reunioes', label: 'Histórico', icon: History },
   { href: '/painel/tutoriais', label: 'Tutoriais', icon: BookOpen },
 ]
@@ -47,11 +49,13 @@ export default function Sidebar({
   email,
   logoUrl,
   novas,
+  mensagensNaoLidas = 0,
 }: {
   nomeEstab: string
   email: string
   logoUrl?: string | null
   novas: number
+  mensagensNaoLidas?: number
 }) {
   const pathname = usePathname()
   const [menuAberto, setMenuAberto] = useState(false)
@@ -95,15 +99,20 @@ export default function Sidebar({
         {ITENS.map((i) => {
           const on = ativo(i)
           const Icon = i.icon
-          const isAtividade = i.href === '/painel/atividade'
+          const badge =
+            i.href === '/painel/atividade'
+              ? novas
+              : i.href === '/painel/mensagens'
+                ? mensagensNaoLidas
+                : 0
           return (
             <Link key={i.href} href={i.href} className={itemClasses(on)}>
               {on && <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-marrom" />}
               <Icon size={24} strokeWidth={1.5} color={on ? '#8B6F47' : '#8A8A8A'} />
               <span>{i.label}</span>
-              {isAtividade && novas > 0 && (
+              {badge > 0 && (
                 <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-marrom text-white text-[10px] font-bold flex items-center justify-center">
-                  {novas > 9 ? '9+' : novas}
+                  {badge > 9 ? '9+' : badge}
                 </span>
               )}
             </Link>
