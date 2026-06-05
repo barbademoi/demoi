@@ -1,3 +1,4 @@
+import { LandingHeader } from '@/components/landing/LandingHeader'
 import { Hero } from '@/components/landing/Hero'
 import { DemoVisual } from '@/components/landing/DemoVisual'
 import { ProvaSocial } from '@/components/landing/ProvaSocial'
@@ -17,7 +18,8 @@ import { StickyMobileCta } from '@/components/landing/StickyMobileCta'
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-background text-preto pb-20 md:pb-0">
+    <main className="min-h-screen bg-background text-preto pt-14 md:pt-16 pb-20 md:pb-0">
+      <LandingHeader />
       <Hero />
       <DemoVisual />
       <ProvaSocial />
