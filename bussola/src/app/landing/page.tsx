@@ -1,9 +1,8 @@
 import { Hero } from '@/components/landing/Hero'
+import { DemoVisual } from '@/components/landing/DemoVisual'
 import { ProvaSocial } from '@/components/landing/ProvaSocial'
-import { TeseCentral } from '@/components/landing/TeseCentral'
-import { Dor } from '@/components/landing/Dor'
-import { SolucaoEmAcao } from '@/components/landing/SolucaoEmAcao'
-import { ComoFunciona } from '@/components/landing/ComoFunciona'
+import { Features } from '@/components/landing/Features'
+import { Cultura } from '@/components/landing/Cultura'
 import { CaseDemoi } from '@/components/landing/CaseDemoi'
 import { OfertaPreco } from '@/components/landing/OfertaPreco'
 import { GarantiaFaq } from '@/components/landing/GarantiaFaq'
@@ -12,17 +11,22 @@ import { RodapeMarketing } from '@/components/landing/RodapeMarketing'
 import { StickyMobileCta } from '@/components/landing/StickyMobileCta'
 
 export const metadata = {
-  title: 'Bússola — A ferramenta que constrói cultura na sua empresa',
+  title: 'Bússola — IA mentora que constrói cultura na sua empresa',
   description:
-    'Empresa só cresce se a cultura for forte. A Bússola é o mentor com IA que te ajuda a construir cultura semana após semana — na conversa com sua equipe. R$ 97 pelo ano todo, vagas limitadas aos primeiros 100 clientes.',
+    'IA mentora que constrói cultura na sua empresa. Bússola guia sua reunião semanal com fundamentos consagrados da gestão. R$ 97 pelo ano todo, vagas limitadas aos primeiros 100 clientes.',
   openGraph: {
-    title: 'Bússola — Empresa só cresce se a cultura for forte',
-    description:
-      'O mentor com IA que constrói cultura na sua reunião semanal. R$ 97 pelo ano todo (primeiros 100 clientes).',
+    title: 'Bússola',
+    description: 'A IA mentora que constrói cultura na sua empresa.',
     url: 'https://bussolameet.com.br',
     siteName: 'Bússola',
     locale: 'pt_BR',
     type: 'website',
+    images: [
+      {
+        url: '/opengraph-image',
+        alt: 'Bússola — IA mentora pra construir cultura',
+      },
+    ],
   },
 }
 
@@ -30,11 +34,10 @@ export default function LandingPage() {
   return (
     <main className="min-h-screen bg-background text-preto pb-20 md:pb-0">
       <Hero />
+      <DemoVisual />
       <ProvaSocial />
-      <TeseCentral />
-      <Dor />
-      <SolucaoEmAcao />
-      <ComoFunciona />
+      <Features />
+      <Cultura />
       <CaseDemoi />
       <OfertaPreco />
       <GarantiaFaq />
