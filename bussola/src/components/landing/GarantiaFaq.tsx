@@ -6,27 +6,31 @@ import { ShieldCheck } from 'lucide-react'
 const FAQ = [
   {
     p: 'Como a IA da Bússola funciona, na prática?',
-    r: 'Ela lê suas observações, classifica nos 6 momentos da reunião, sugere abordagens fundamentadas em princípios de liderança e prepara um resumo da semana. Você anota e fala. Ela faz a parte difícil.',
+    r: 'Ela lê suas observações, classifica nos 6 momentos da reunião, sugere abordagens fundamentadas em princípios consagrados de liderança e prepara um resumo automático da semana. Você anota e fala. Ela faz a parte difícil de organizar e preparar.',
   },
   {
     p: 'E se eu nunca conduzi reunião antes?',
-    r: 'A Bússola foi feita pra isso. Cada momento vem com instrução, princípio de liderança e sugestão de fala. Você não decora — só conduz.',
+    r: 'A Bússola foi feita pra isso. Cada momento vem com instrução clara, princípio de liderança e sugestão de fala. Você não decora — só conduz.',
   },
   {
     p: 'Funciona pra qualquer tipo de empresa?',
-    r: 'Sim. Universal. Barbearia, restaurante, loja, oficina, escritório, clínica, agência. A linguagem é neutra.',
+    r: 'Sim. A Bússola foi desenhada universal — qualquer empresa com equipe. Barbearia, salão, restaurante, loja, oficina, escritório, clínica, agência. A linguagem é neutra, sem termos específicos de setor.',
   },
   {
     p: 'Quantas pessoas cabem na minha conta?',
-    r: 'Sem limite. O preço é o mesmo independente do tamanho da equipe.',
+    r: 'Sem limite. Cadastre quantas pessoas quiser — o preço é o mesmo. A Bússola funciona bem de 3 a 30 pessoas.',
+  },
+  {
+    p: 'Como funciona o "Encontro da Cultura"?',
+    r: 'É um encontro online em grupo no Google Meet, 1 hora por mês, sempre na última quinta-feira. Discutimos cultura, vejo cases reais dos donos e respondo dúvidas ao vivo. Você recebe o link todo mês no WhatsApp.',
+  },
+  {
+    p: 'E o suporte WhatsApp, como funciona?',
+    r: 'É um canal direto comigo (Carlos), de segunda a sexta, das 14h às 17h. Resposta em até 24h úteis. Suporte a dúvidas de uso da Bússola, liderança e cultura. Pra discussões mais profundas, use o Encontro da Cultura mensal.',
   },
   {
     p: 'E depois dos 100 primeiros, o preço sobe?',
-    r: 'Sim. Vai pra R$ 197/ano. Quem comprar agora, mantém R$ 97 na próxima renovação.',
-  },
-  {
-    p: 'Posso testar antes?',
-    r: 'Não temos versão grátis, mas oferecemos 7 dias de garantia integral. Compra, testa, e se não gostar, devolvemos.',
+    r: 'Sim. Vai pra R$ 197/ano, sem os bônus. Quem comprar agora, mantém R$ 97 + bônus na próxima renovação.',
   },
 ]
 

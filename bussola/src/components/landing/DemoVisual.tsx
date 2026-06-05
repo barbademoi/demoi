@@ -2,10 +2,11 @@
 
 import { motion } from 'framer-motion'
 import { PhoneFrame } from './PhoneFrame'
-import { LazyAutoplayVideo } from './LazyAutoplayVideo'
+import { AutoplayVideo } from './AutoplayVideo'
 
-// Seção full-width com o vídeo grande do Modo Reunião centralizado.
-// Mobile: PhoneFrame size lg. Desktop: container max 900px com sombra.
+// Seção full-width com vídeo grande do Modo Reunião. Usa AutoplayVideo
+// DIRETO (não lazy) — esse vídeo é prova visual principal e precisa
+// começar a carregar imediatamente.
 export function DemoVisual() {
   return (
     <section id="demo" className="px-4 py-16 bg-surface border-y border-border">
@@ -20,29 +21,19 @@ export function DemoVisual() {
           Veja a Bússola em ação
         </motion.p>
 
-        {/* Mobile: PhoneFrame. Desktop: vídeo grande direto */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-10%' }}
           transition={{ duration: 0.7 }}
+          className="max-w-[420px] mx-auto"
         >
-          <div className="md:hidden">
-            <PhoneFrame size="lg">
-              <LazyAutoplayVideo
-                src="modo-reuniao"
-                poster="/landing/optimized/modo-reuniao-poster.jpg"
-              />
-            </PhoneFrame>
-          </div>
-          <div className="hidden md:block max-w-[420px] mx-auto">
-            <PhoneFrame size="lg">
-              <LazyAutoplayVideo
-                src="modo-reuniao"
-                poster="/landing/optimized/modo-reuniao-poster.jpg"
-              />
-            </PhoneFrame>
-          </div>
+          <PhoneFrame size="lg">
+            <AutoplayVideo
+              src="modo-reuniao"
+              poster="/landing/optimized/modo-reuniao-poster.jpg"
+            />
+          </PhoneFrame>
         </motion.div>
 
         <motion.p

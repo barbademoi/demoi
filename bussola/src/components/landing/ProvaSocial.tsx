@@ -1,11 +1,13 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { FaStar } from 'react-icons/fa6'
 import { AnimatedNumber } from './AnimatedNumber'
+import { PhoneFrame } from './PhoneFrame'
 
 export function ProvaSocial() {
   return (
-    <section className="px-4 py-20 max-w-5xl mx-auto space-y-12">
+    <section className="px-4 py-20 max-w-5xl mx-auto space-y-14">
       <div className="text-center space-y-3 max-w-2xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 16 }}
@@ -31,11 +33,27 @@ export function ProvaSocial() {
       <div className="grid grid-cols-3 gap-4">
         <Stat numero={<AnimatedNumber to={11} />} label="pessoas na equipe" delay={0} />
         <Stat numero={<><AnimatedNumber to={1700} />+</>} label="atendimentos/mês" delay={0.15} />
-        <Stat numero={<><AnimatedNumber to={5.0} decimals={1} />★</>} label="média dos clientes" delay={0.3} />
+        <Stat
+          numero={
+            <span className="inline-flex items-center gap-1">
+              <AnimatedNumber to={5.0} decimals={1} />
+              <motion.span
+                initial={{ scale: 0, rotate: -45 }}
+                whileInView={{ scale: 1, rotate: 0 }}
+                viewport={{ once: true, margin: '-10%' }}
+                transition={{ duration: 0.6, delay: 0.5, type: 'spring' }}
+              >
+                <FaStar className="text-[#FFC107]" size={36} />
+              </motion.span>
+            </span>
+          }
+          label="média dos clientes"
+          delay={0.3}
+        />
       </div>
 
-      {/* Cards de output da IA */}
-      <div className="grid md:grid-cols-2 gap-5 max-w-4xl mx-auto pt-4">
+      {/* 2 cards de output da IA */}
+      <div className="grid md:grid-cols-2 gap-5 max-w-4xl mx-auto">
         <motion.article
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -52,6 +70,7 @@ export function ProvaSocial() {
             enquanto Rael bomba com paciência e carisma reconhecidos pelos
             clientes.&rdquo;
           </p>
+          <p className="text-xs text-chumbo mt-3">— IA da Bússola</p>
         </motion.article>
 
         <motion.article
@@ -72,6 +91,7 @@ export function ProvaSocial() {
               Elogio precisa ser específico ao comportamento, não genérico à pessoa.
             </p>
           </div>
+          <div className="border-t border-marrom/20" />
           <div>
             <p className="text-[10px] uppercase tracking-wider text-marrom font-semibold mb-1">
               Sugestão de fala
@@ -81,8 +101,33 @@ export function ProvaSocial() {
               ao cliente das 14h foi modelo.&rdquo;
             </p>
           </div>
+          <p className="text-xs text-chumbo">— IA da Bússola, momento Reconhecimentos</p>
         </motion.article>
       </div>
+
+      {/* Terceiro elemento: print de feedbacks */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-10%' }}
+        transition={{ duration: 0.7 }}
+        className="max-w-sm mx-auto text-center space-y-4"
+      >
+        <p className="text-[10px] uppercase tracking-wider text-marrom font-semibold">
+          A voz dos clientes dentro do painel
+        </p>
+        <PhoneFrame size="md">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/landing/prova-social-feedbacks-mobile.png"
+            alt="Tela de feedbacks de clientes no painel da Bússola"
+            className="w-full h-full object-cover"
+          />
+        </PhoneFrame>
+        <p className="text-sm text-grafite">
+          Cada feedback vira combustível pra próxima reunião.
+        </p>
+      </motion.div>
     </section>
   )
 }
