@@ -1,8 +1,37 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { Suspense, useState, useTransition } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { entrar } from './actions'
+
+// Banner de aviso vindo de outros fluxos (Hotmart, refund, etc).
+function MsgBanner() {
+  const params = useSearchParams()
+  const msg = params.get('msg')
+  if (!msg) return null
+
+  const conteudo: Record<string, { titulo: string; texto: string }> = {
+    ja_tem_senha: {
+      titulo: 'Você já tem conta',
+      texto: 'Sua senha já foi criada. Entre com email e senha abaixo.',
+    },
+    conta_suspensa: {
+      titulo: 'Conta suspensa',
+      texto:
+        'Sua compra foi cancelada ou estornada e o acesso foi desativado. Fale com o suporte se for engano.',
+    },
+  }
+  const m = conteudo[msg]
+  if (!m) return null
+
+  return (
+    <div className="mb-5 rounded-md border border-marrom/20 bg-linho/60 p-4 text-sm">
+      <p className="font-semibold text-text">{m.titulo}</p>
+      <p className="text-grafite mt-1 leading-relaxed">{m.texto}</p>
+    </div>
+  )
+}
 
 export default function EntrarPage() {
   const [error, setError] = useState<string | null>(null)
@@ -27,6 +56,10 @@ export default function EntrarPage() {
           <img src="/logos/logo-completa.svg" alt="Bússola" className="h-16 w-auto mb-2" />
           <p className="text-chumbo text-sm">Acesso do gestor</p>
         </div>
+
+        <Suspense fallback={null}>
+          <MsgBanner />
+        </Suspense>
 
         <div className="card p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-5">

@@ -12,11 +12,12 @@ export default async function PainelLayout({ children }: { children: React.React
     redirect('/entrar')
   }
 
-  // Tenta com logo_url (migration 015); cai pro select básico se ainda não rodou.
-  let estabelecimento: { id: string; nome: string; ultima_visita_home: string | null; logo_url: string | null }
+  // Tenta com logo_url (migration 015) + ativo (migration 021). Cai
+  // gradualmente se faltar coluna.
+  let estabelecimento: { id: string; nome: string; ultima_visita_home: string | null; logo_url: string | null; ativo: boolean }
   const completo = await supabase
     .from('estabelecimentos')
-    .select('id, nome, ultima_visita_home, logo_url')
+    .select('id, nome, ultima_visita_home, logo_url, ativo')
     .eq('dono_id', user.id)
     .maybeSingle()
   if (completo.data) {
@@ -25,6 +26,7 @@ export default async function PainelLayout({ children }: { children: React.React
       nome: completo.data.nome as string,
       ultima_visita_home: (completo.data.ultima_visita_home as string | null) ?? null,
       logo_url: (completo.data.logo_url as string | null) ?? null,
+      ativo: (completo.data.ativo as boolean | null) ?? true,
     }
   } else {
     const minimo = await supabase
@@ -38,7 +40,14 @@ export default async function PainelLayout({ children }: { children: React.React
       nome: minimo.data.nome as string,
       ultima_visita_home: (minimo.data.ultima_visita_home as string | null) ?? null,
       logo_url: null,
+      ativo: true,
     }
+  }
+
+  if (!estabelecimento.ativo) {
+    // Refund/cancelamento via Hotmart desativa. Cliente sai do painel.
+    await supabase.auth.signOut()
+    redirect('/entrar?msg=conta_suspensa')
   }
 
   // Badge de novidades (leituras/respostas desde a última visita à Home).
