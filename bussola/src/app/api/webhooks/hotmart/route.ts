@@ -184,7 +184,9 @@ export async function POST(request: NextRequest) {
       .eq('id', estabelecimentoId)
   }
 
-  // Salva/atualiza linha em compras_hotmart.
+  // Salva/atualiza linha em compras_hotmart. Inclui senha_temporaria pra
+  // exibição na tela /entrar logo após o redirect da Hotmart. Será
+  // apagada (UPDATE NULL) quando cliente criar senha definitiva.
   await admin.from('compras_hotmart').upsert(
     {
       transaction_id: transactionId,
@@ -195,6 +197,7 @@ export async function POST(request: NextRequest) {
       status: 'approved',
       usuario_id: userId,
       estabelecimento_id: estabelecimentoId,
+      senha_temporaria: senhaTemp,
       raw_payload: payload as unknown as Record<string, unknown>,
     },
     { onConflict: 'transaction_id' },

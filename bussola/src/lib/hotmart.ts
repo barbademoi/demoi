@@ -1,5 +1,5 @@
 // Tipos do payload Hotmart e helpers compartilhados pelo webhook e
-// pela página /boas-vindas.
+// pelas telas /entrar e /esqueci-senha.
 
 export type HotmartEvent =
   | 'PURCHASE_APPROVED'
@@ -54,10 +54,16 @@ export function statusDeEvento(event: HotmartEvent): StatusCompra | null {
   return null
 }
 
-// Senha aleatória temporária. 32 chars hex (16 bytes). Usuário troca em
-// /boas-vindas — esse valor nunca é mostrado nem enviado.
+// Senha temporária legível pra mostrar na tela. 8 chars sem caracteres
+// confundíveis (0/O/1/l/I) e sem símbolos. Cliente troca por uma definitiva
+// logo após o primeiro login (forçado pelo middleware).
 export function gerarSenhaTemporaria(): string {
-  const arr = new Uint8Array(16)
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+  const arr = new Uint8Array(8)
   crypto.getRandomValues(arr)
-  return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('')
+  let senha = ''
+  for (let i = 0; i < 8; i++) {
+    senha += chars.charAt(arr[i] % chars.length)
+  }
+  return senha
 }
