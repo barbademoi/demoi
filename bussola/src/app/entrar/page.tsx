@@ -1,124 +1,51 @@
-'use client'
+import { createAdminClient } from '@/utils/supabase/admin'
+import { EntrarForm } from './EntrarForm'
+import { PreFilledForm } from './PreFilledForm'
 
-import { Suspense, useState, useTransition } from 'react'
-import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
-import { entrar } from './actions'
+export const dynamic = 'force-dynamic'
 
-// Banner de aviso vindo de outros fluxos (Hotmart, refund, etc).
-function MsgBanner() {
-  const params = useSearchParams()
-  const msg = params.get('msg')
-  if (!msg) return null
-
-  const conteudo: Record<string, { titulo: string; texto: string }> = {
-    ja_tem_senha: {
-      titulo: 'Você já tem conta',
-      texto: 'Sua senha já foi criada. Entre com email e senha abaixo.',
-    },
-    conta_suspensa: {
-      titulo: 'Conta suspensa',
-      texto:
-        'Sua compra foi cancelada ou estornada e o acesso foi desativado. Fale com o suporte se for engano.',
-    },
-    hotmart_cliente: {
-      titulo: 'Acesse sua conta',
-      texto:
-        'Use o email da sua compra. Se ainda não criou senha, clique em "Esqueci minha senha" pra receber um link.',
-    },
-  }
-  const m = conteudo[msg]
-  if (!m) return null
-
-  return (
-    <div className="mb-5 rounded-md border border-marrom/20 bg-linho/60 p-4 text-sm">
-      <p className="font-semibold text-text">{m.titulo}</p>
-      <p className="text-grafite mt-1 leading-relaxed">{m.texto}</p>
-    </div>
-  )
+interface Props {
+  searchParams: { email?: string; t?: string; msg?: string }
 }
 
-export default function EntrarPage() {
-  const [error, setError] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
+// Server component: detecta ?email=&t= (vindo da página de obrigado da
+// Hotmart) e tenta resgatar a senha temporária da compra. Se OK e ainda
+// não foi definida, mostra banner verde com senha pré-preenchida.
+// Caso contrário cai no form normal.
+export default async function EntrarPage({ searchParams }: Props) {
+  const email = searchParams.email?.toLowerCase().trim()
+  const transaction = searchParams.t?.trim()
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setError(null)
-    const formData = new FormData(e.currentTarget)
-
-    startTransition(async () => {
-      const result = await entrar(formData)
-      if (result?.error) setError(result.error)
-    })
+  // Sem params → form normal
+  if (!email || !transaction) {
+    return <EntrarForm msg={searchParams.msg} />
   }
 
-  return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm animate-fade-in">
-        <div className="flex flex-col items-center mb-8">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logos/logo-completa.svg" alt="Bússola" className="h-16 w-auto mb-2" />
-          <p className="text-chumbo text-sm">Acesso do gestor</p>
-        </div>
+  const admin = createAdminClient()
 
-        <Suspense fallback={null}>
-          <MsgBanner />
-        </Suspense>
+  const { data: compra } = await admin
+    .from('compras_hotmart')
+    .select('senha_temporaria, status, usuario_id')
+    .eq('transaction_id', transaction)
+    .eq('email_comprador', email)
+    .maybeSingle()
 
-        <div className="card p-6 sm:p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label htmlFor="email" className="label">Email</label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                placeholder="voce@email.com"
-                className="input"
-              />
-            </div>
+  // Compra inexistente ou cancelada → cai no form normal silenciosamente
+  if (!compra || compra.status !== 'approved' || !compra.usuario_id) {
+    return <EntrarForm msg={searchParams.msg} />
+  }
 
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="password" className="label !mb-0">Senha</label>
-                <Link
-                  href="/esqueci-senha"
-                  className="text-xs text-text-muted hover:text-primary transition-colors"
-                >
-                  Esqueci minha senha
-                </Link>
-              </div>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                placeholder="••••••••"
-                className="input"
-              />
-            </div>
+  // Sem senha temp = cliente já criou definitiva. Form normal com aviso.
+  if (!compra.senha_temporaria) {
+    return <EntrarForm msg="ja_tem_senha" />
+  }
 
-            {error && (
-              <p className="text-vinho text-sm text-center">{error}</p>
-            )}
+  // Confirma no auth que senha_definida ainda é false (defesa extra)
+  const { data: userResp } = await admin.auth.admin.getUserById(compra.usuario_id)
+  const appMeta = (userResp?.user?.app_metadata ?? {}) as Record<string, unknown>
+  if (appMeta.senha_definida === true) {
+    return <EntrarForm msg="ja_tem_senha" />
+  }
 
-            <button type="submit" disabled={isPending} className="btn-primary w-full">
-              {isPending ? 'Entrando…' : 'Entrar'}
-            </button>
-          </form>
-        </div>
-
-        <p className="text-center text-text-muted text-sm mt-6">
-          Ainda não tem conta?{' '}
-          <Link href="/cadastro" className="text-primary font-medium hover:underline">
-            Criar conta
-          </Link>
-        </p>
-      </div>
-    </main>
-  )
+  return <PreFilledForm email={email} senhaTemporaria={compra.senha_temporaria} />
 }
