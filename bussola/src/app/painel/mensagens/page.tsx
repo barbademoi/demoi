@@ -18,15 +18,30 @@ export default async function MensagensPage() {
   if (!est) redirect('/onboarding')
 
   // RLS já garante que só vê do próprio estabelecimento; o filtro abaixo é
-  // defensivo e ajuda o planner.
-  const { data } = await supabase
+  // defensivo e ajuda o planner. Tenta selecionar deletada/deletada_em
+  // (migration 023); cai pra select sem essas colunas se ainda não rodou.
+  let itens: ItemMensagem[] = []
+  const completo = await supabase
     .from('mensagens_colaboradores')
-    .select('id, colaborador_id, conteudo, anonimo, lida, created_at, profissionais(nome)')
+    .select('id, colaborador_id, conteudo, anonimo, lida, deletada, deletada_em, created_at, profissionais(nome)')
     .eq('estabelecimento_id', est.id)
     .order('created_at', { ascending: false })
     .limit(500)
-
-  const itens = ((data ?? []) as unknown as ItemMensagem[])
+  if (completo.data) {
+    itens = completo.data as unknown as ItemMensagem[]
+  } else {
+    const minimo = await supabase
+      .from('mensagens_colaboradores')
+      .select('id, colaborador_id, conteudo, anonimo, lida, created_at, profissionais(nome)')
+      .eq('estabelecimento_id', est.id)
+      .order('created_at', { ascending: false })
+      .limit(500)
+    itens = ((minimo.data ?? []) as unknown as ItemMensagem[]).map((m) => ({
+      ...m,
+      deletada: false,
+      deletada_em: null,
+    }))
+  }
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-6 animate-fade-in">
