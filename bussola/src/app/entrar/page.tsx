@@ -21,6 +21,11 @@ function MsgBanner() {
       texto:
         'Sua compra foi cancelada ou estornada e o acesso foi desativado. Fale com o suporte se for engano.',
     },
+    hotmart_cliente: {
+      titulo: 'Acesse sua conta',
+      texto:
+        'Use o email da sua compra. Se ainda não criou senha, clique em "Esqueci minha senha" pra receber um link.',
+    },
   }
   const m = conteudo[msg]
   if (!m) return null
