@@ -1,212 +1,122 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/utils/supabase/admin'
-import {
-  gerarSenhaTemporaria,
-  statusDeEvento,
-  type HotmartWebhookPayload,
-} from '@/lib/hotmart'
+import { processarPayloadHotmart } from '@/lib/hotmartProcessor'
+import type { HotmartWebhookPayload } from '@/lib/hotmart'
 
-// Webhook Hotmart. Recebe eventos de compra (approved/refunded/canceled).
-// Cria usuário no Supabase Auth + estabelecimento na primeira aprovação.
-// Idempotente: chamadas repetidas com mesmo transaction_id não duplicam.
-// Sempre retorna 2xx pra Hotmart (mesmo em erro lógico) — exceto HOTTOK
-// inválido, que retorna 401 pra Hotmart parar de tentar.
+// Webhook Hotmart resiliente.
+//
+// Camada 1 (sempre): salva o payload bruto em webhooks_recebidos ANTES
+// de qualquer processamento. Mesmo que a lógica de negócio quebre
+// (tabela inexistente, env var faltando, bug novo), o payload fica
+// registrado e pode ser reprocessado depois via /api/admin/reprocessar.
+//
+// Camada 2: tenta processar. Sucesso ou erro são marcados no mesmo
+// registro de webhooks_recebidos.
+//
+// HOTTOK inválido retorna 401 (Hotmart para de tentar). Outros casos
+// retornam 200 (sucesso lógico ou registrado pra reprocessar).
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
-  let payload: HotmartWebhookPayload
+  // 1) Parse JSON. Se falhar, registra raw text mesmo assim (best effort).
+  let payload: HotmartWebhookPayload | null = null
+  let rawText: string | null = null
   try {
-    payload = (await request.json()) as HotmartWebhookPayload
+    rawText = await request.text()
+    payload = JSON.parse(rawText) as HotmartWebhookPayload
   } catch {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
   }
 
-  // 1) Validação HOTTOK — header preferido, fallback no body
+  // 2) Valida HOTTOK
   const hottok =
     request.headers.get('x-hotmart-hottok') ||
     request.headers.get('X-HOTMART-HOTTOK') ||
-    payload.hottok ||
+    payload?.hottok ||
     ''
-
   const expected = process.env.HOTMART_HOTTOK
+  const hottokValido = !!expected && hottok === expected
+
+  // Sem HOTTOK configurado é falha do servidor — não dá pra confiar em nada
   if (!expected) {
     console.error('[hotmart-webhook] HOTMART_HOTTOK ausente nas env vars')
     return NextResponse.json({ error: 'config_missing' }, { status: 500 })
   }
-  if (hottok !== expected) {
+  if (!hottokValido) {
     return NextResponse.json({ error: 'invalid_hottok' }, { status: 401 })
-  }
-
-  // 2) Eventos que ignoramos retornam 200 (Hotmart não retenta)
-  const status = statusDeEvento(payload.event)
-  if (!status) {
-    return NextResponse.json({ ok: true, ignored: payload.event })
-  }
-
-  const data = payload.data
-  const transactionId = data?.purchase?.transaction
-  const email = data?.buyer?.email?.toLowerCase().trim()
-  const nome = data?.buyer?.name ?? null
-  const produtoId = String(data?.product?.id ?? '')
-  const valor = data?.purchase?.price?.value ?? null
-
-  if (!transactionId || !email || !produtoId) {
-    return NextResponse.json(
-      { error: 'payload_incomplete' },
-      { status: 400 },
-    )
   }
 
   const admin = createAdminClient()
 
-  // 3) Idempotência — busca compra existente pelo transaction_id
-  const { data: existente } = await admin
-    .from('compras_hotmart')
-    .select('id, status, usuario_id, estabelecimento_id')
-    .eq('transaction_id', transactionId)
-    .maybeSingle()
-
-  // ─── REFUND / CANCELAMENTO ───
-  if (status === 'refunded' || status === 'canceled') {
-    if (existente?.estabelecimento_id) {
-      await admin
-        .from('estabelecimentos')
-        .update({ ativo: false })
-        .eq('id', existente.estabelecimento_id)
-    }
-    await admin
-      .from('compras_hotmart')
-      .upsert(
-        {
-          transaction_id: transactionId,
-          email_comprador: email,
-          nome_comprador: nome,
-          produto_id: produtoId,
-          valor_pago: valor,
-          status,
-          raw_payload: payload as unknown as Record<string, unknown>,
-        },
-        { onConflict: 'transaction_id' },
-      )
-    return NextResponse.json({ ok: true, status })
-  }
-
-  // ─── APPROVED ───
-
-  // Já processado? Retorna sucesso sem repetir.
-  if (existente?.status === 'approved' && existente?.usuario_id) {
-    return NextResponse.json({ ok: true, already_processed: true })
-  }
-
-  // Verifica se já existe usuário com esse email (Hotmart pode webhookar
-  // 2x antes de a primeira chamada terminar; ou usuário foi criado por
-  // outra via). Não tem listUsers por email, então tentamos criar e em
-  // caso de "email already registered" reusamos.
-  let userId: string | null = null
-
-  const senhaTemp = gerarSenhaTemporaria()
-  const { data: criado, error: criarErr } = await admin.auth.admin.createUser({
-    email,
-    password: senhaTemp,
-    email_confirm: true,
-    user_metadata: { nome, fonte: 'hotmart' },
-    app_metadata: { senha_definida: false },
-  })
-
-  if (criarErr) {
-    // "User already registered" — vamos buscar pelo email via listUsers.
-    // O list só retorna até 1000 por página; pra base pequena, ok.
-    const msg = (criarErr.message ?? '').toLowerCase()
-    const jaExiste = msg.includes('already') || msg.includes('exists')
-    if (!jaExiste) {
-      console.error('[hotmart-webhook] erro createUser', criarErr)
-      return NextResponse.json(
-        { error: 'auth_create_failed', detail: criarErr.message },
-        { status: 500 },
-      )
-    }
-    // Encontra o usuário existente pelo email.
-    const { data: lista } = await admin.auth.admin.listUsers()
-    const existing = lista?.users.find(
-      (u) => u.email?.toLowerCase() === email,
-    )
-    if (!existing) {
-      return NextResponse.json(
-        { error: 'user_lookup_failed' },
-        { status: 500 },
-      )
-    }
-    userId = existing.id
-  } else {
-    userId = criado?.user?.id ?? null
-  }
-
-  if (!userId) {
-    return NextResponse.json({ error: 'no_user_id' }, { status: 500 })
-  }
-
-  // Verifica se já tem estabelecimento desse dono. Se sim, reusa
-  // (compra adicional de outro produto, ou re-execução).
-  const { data: estabExistente } = await admin
-    .from('estabelecimentos')
-    .select('id')
-    .eq('dono_id', userId)
-    .maybeSingle()
-
-  let estabelecimentoId = estabExistente?.id ?? null
-
-  if (!estabelecimentoId) {
-    const nomeEmpresa = nome ? `Empresa de ${nome.split(' ')[0]}` : 'Minha empresa'
-    const { data: estabCriado, error: estabErr } = await admin
-      .from('estabelecimentos')
+  // 3) Salva sempre. Se a tabela ainda não existe, segue mesmo assim pra
+  // tentar processar (não bloqueia o webhook). Loga erro pra alarme.
+  let webhookId: string | null = null
+  try {
+    const { data, error } = await admin
+      .from('webhooks_recebidos')
       .insert({
-        nome: nomeEmpresa,
-        dono_id: userId,
-        ativo: true,
+        origem: 'hotmart',
+        event: payload?.event ?? null,
+        payload: payload as unknown as Record<string, unknown>,
+        hottok_valido: hottokValido,
       })
       .select('id')
       .single()
-    if (estabErr) {
-      console.error('[hotmart-webhook] erro criar estabelecimento', estabErr)
-      return NextResponse.json(
-        { error: 'estab_create_failed', detail: estabErr.message },
-        { status: 500 },
-      )
-    }
-    estabelecimentoId = estabCriado.id
-  } else {
-    // Reativa caso tenha sido desativado em refund anterior.
-    await admin
-      .from('estabelecimentos')
-      .update({ ativo: true })
-      .eq('id', estabelecimentoId)
+    if (error) throw error
+    webhookId = data.id
+  } catch (e) {
+    console.error('[hotmart-webhook] falha salvar webhooks_recebidos', e)
+    // Não retorna erro pra Hotmart — continua tentando processar
   }
 
-  // Salva/atualiza linha em compras_hotmart. Inclui senha_temporaria pra
-  // exibição na tela /entrar logo após o redirect da Hotmart. Será
-  // apagada (UPDATE NULL) quando cliente criar senha definitiva.
-  await admin.from('compras_hotmart').upsert(
-    {
-      transaction_id: transactionId,
-      email_comprador: email,
-      nome_comprador: nome,
-      produto_id: produtoId,
-      valor_pago: valor,
-      status: 'approved',
-      usuario_id: userId,
-      estabelecimento_id: estabelecimentoId,
-      senha_temporaria: senhaTemp,
-      raw_payload: payload as unknown as Record<string, unknown>,
-    },
-    { onConflict: 'transaction_id' },
-  )
+  // 4) Processa
+  const resultado = await processarPayloadHotmart(payload as HotmartWebhookPayload)
 
+  // 5) Marca status do webhook registrado
+  if (webhookId) {
+    if (resultado.ok) {
+      await admin
+        .from('webhooks_recebidos')
+        .update({
+          processado: true,
+          processado_em: new Date().toISOString(),
+          erro_processamento: null,
+          tentativas: 1,
+          ultima_tentativa_em: new Date().toISOString(),
+        })
+        .eq('id', webhookId)
+    } else {
+      await admin
+        .from('webhooks_recebidos')
+        .update({
+          processado: false,
+          erro_processamento: `${resultado.erro}${resultado.detalhe ? ': ' + resultado.detalhe : ''}`,
+          tentativas: 1,
+          ultima_tentativa_em: new Date().toISOString(),
+        })
+        .eq('id', webhookId)
+    }
+  }
+
+  // 6) Sempre 200 quando registramos. A Hotmart não precisa retentar:
+  // se algo falhou, está salvo e pode ser reprocessado via admin.
+  if (resultado.ok) {
+    return NextResponse.json({
+      ok: true,
+      status: resultado.status,
+      transaction_id: resultado.transactionId,
+      ignorado: resultado.ignorado,
+      ja_processado: resultado.jaProcessado,
+      webhook_id: webhookId,
+    })
+  }
   return NextResponse.json({
-    ok: true,
-    status: 'approved',
-    usuario_id: userId,
-    estabelecimento_id: estabelecimentoId,
+    ok: false,
+    erro: resultado.erro,
+    detalhe: resultado.detalhe,
+    transaction_id: resultado.transactionId,
+    webhook_id: webhookId,
   })
 }
