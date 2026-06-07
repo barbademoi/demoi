@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { processarPayloadHotmart } from '@/lib/hotmartProcessor'
-import type { HotmartWebhookPayload } from '@/lib/hotmart'
+import { normalizarPayload, type HotmartWebhookPayload } from '@/lib/hotmart'
 
 // Webhook Hotmart resiliente.
 //
@@ -20,17 +20,41 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
-  // 1) Parse JSON. Se falhar, registra raw text mesmo assim (best effort).
-  let payload: HotmartWebhookPayload | null = null
-  let rawText: string | null = null
+  // 1) Lê body e tenta entender o formato.
+  // Hotmart v1 (descontinuado): envia application/x-www-form-urlencoded
+  //                              com campos flat (transaction=, email=, hottok=)
+  // Hotmart v2 (atual):          envia application/json aninhado em data.*
+  // Aceita ambos.
+  const rawText = await request.text()
+  const contentType = (request.headers.get('content-type') ?? '').toLowerCase()
+
+  let raw: unknown = null
   try {
-    rawText = await request.text()
-    payload = JSON.parse(rawText) as HotmartWebhookPayload
+    if (contentType.includes('application/x-www-form-urlencoded')) {
+      raw = Object.fromEntries(new URLSearchParams(rawText))
+    } else {
+      // Tenta JSON. Algumas variantes da Hotmart enviam JSON sem
+      // Content-Type correto, então é o caminho mais seguro.
+      try {
+        raw = JSON.parse(rawText)
+      } catch {
+        // Último recurso: form-urlencoded mesmo sem Content-Type apontando
+        raw = Object.fromEntries(new URLSearchParams(rawText))
+      }
+    }
   } catch {
-    return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
+    return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
   }
 
-  // 2) Valida HOTTOK
+  const payload = normalizarPayload(raw)
+  if (!payload) {
+    return NextResponse.json(
+      { error: 'payload_nao_reconhecido', formato: 'nem_v1_nem_v2' },
+      { status: 400 },
+    )
+  }
+
+  // 2) Valida HOTTOK (header preferido; v1 vem no body)
   const hottok =
     request.headers.get('x-hotmart-hottok') ||
     request.headers.get('X-HOTMART-HOTTOK') ||
