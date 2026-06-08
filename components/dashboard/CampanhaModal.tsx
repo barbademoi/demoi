@@ -12,12 +12,12 @@ interface Props {
   ano: number
 }
 
-const SERVICOS_PADRAO = [
-  { emoji: '⭐', nome: 'Assinatura vendida', pontos: 100 },
-  { emoji: '💆', nome: 'Limpeza de pele',   pontos: 30  },
-  { emoji: '💧', nome: 'Hidratação',         pontos: 20  },
-  { emoji: '👃', nome: 'Depilação nasal',    pontos: 15  },
-  { emoji: '🧴', nome: 'Produto vendido',    pontos: 10  },
+const SERVICOS_PADRAO: ServicoState[] = [
+  { emoji: '⭐', nome: 'Assinatura vendida', pontos: 100, contaComoAssinatura: true  },
+  { emoji: '💆', nome: 'Limpeza de pele',   pontos: 30,  contaComoAssinatura: false },
+  { emoji: '💧', nome: 'Hidratação',         pontos: 20,  contaComoAssinatura: false },
+  { emoji: '👃', nome: 'Depilação nasal',    pontos: 15,  contaComoAssinatura: false },
+  { emoji: '🧴', nome: 'Produto vendido',    pontos: 10,  contaComoAssinatura: false },
 ]
 
 const PREMIOS_PADRAO = [
@@ -28,7 +28,7 @@ const PREMIOS_PADRAO = [
   { posicao: 5, valor: 100 },
 ]
 
-interface ServicoState { id?: string; emoji: string; nome: string; pontos: number }
+interface ServicoState { id?: string; emoji: string; nome: string; pontos: number; contaComoAssinatura: boolean }
 interface PremioState  { posicao: number; valor: number }
 
 const POSICAO_LABEL = ['1º', '2º', '3º', '4º', '5º', '6º', '7º', '8º', '9º', '10º']
@@ -47,7 +47,10 @@ export default function CampanhaModal({ campanha, mes, ano }: Props) {
 
   const [servicos, setServicos] = useState<ServicoState[]>(
     campanha?.campanha_servicos?.length
-      ? campanha.campanha_servicos.map(s => ({ id: s.id, emoji: s.emoji, nome: s.nome, pontos: s.pontos }))
+      ? campanha.campanha_servicos.map(s => ({
+          id: s.id, emoji: s.emoji, nome: s.nome, pontos: s.pontos,
+          contaComoAssinatura: !!s.conta_como_assinatura,
+        }))
       : SERVICOS_PADRAO
   )
   const [premios, setPremios] = useState<PremioState[]>(
@@ -57,12 +60,12 @@ export default function CampanhaModal({ campanha, mes, ano }: Props) {
   )
 
   function addServico() {
-    setServicos(p => [...p, { emoji: '✂️', nome: '', pontos: 10 }])
+    setServicos(p => [...p, { emoji: '✂️', nome: '', pontos: 10, contaComoAssinatura: false }])
   }
   function removeServico(i: number) {
     setServicos(p => p.filter((_, idx) => idx !== i))
   }
-  function updateServico(i: number, f: keyof ServicoState, v: string | number) {
+  function updateServico(i: number, f: keyof ServicoState, v: string | number | boolean) {
     setServicos(p => p.map((s, idx) => idx === i ? { ...s, [f]: v } : s))
   }
 
@@ -147,34 +150,50 @@ export default function CampanhaModal({ campanha, mes, ano }: Props) {
                 <button onClick={addServico} className="btn-ghost text-xs py-1 px-3 border border-border shrink-0">+ Adicionar</button>
               </div>
               {servicos.map((s, i) => (
-                <div key={i} className="flex items-center gap-2 bg-surface-2 rounded-xl p-2">
-                  <input
-                    value={s.emoji}
-                    onChange={e => updateServico(i, 'emoji', e.target.value)}
-                    className="input w-14 text-center text-xl px-1 py-1.5"
-                    maxLength={4}
-                  />
-                  <input
-                    value={s.nome}
-                    onChange={e => updateServico(i, 'nome', e.target.value)}
-                    placeholder="Nome do serviço"
-                    className="input flex-1 py-1.5 text-sm"
-                  />
-                  <div className="flex items-center gap-1 shrink-0">
+                <div key={i} className="bg-surface-2 rounded-xl p-2 space-y-1.5">
+                  <div className="flex items-center gap-2">
                     <input
-                      type="number"
-                      value={s.pontos}
-                      onChange={e => updateServico(i, 'pontos', parseInt(e.target.value) || 0)}
-                      className="input w-20 text-center py-1.5 text-sm"
-                      min={0}
+                      value={s.emoji}
+                      onChange={e => updateServico(i, 'emoji', e.target.value)}
+                      className="input w-14 text-center text-xl px-1 py-1.5"
+                      maxLength={4}
                     />
-                    <span className="text-text-muted text-xs font-sans w-5">pts</span>
+                    <input
+                      value={s.nome}
+                      onChange={e => updateServico(i, 'nome', e.target.value)}
+                      placeholder="Nome do serviço"
+                      className="input flex-1 py-1.5 text-sm"
+                    />
+                    <div className="flex items-center gap-1 shrink-0">
+                      <input
+                        type="number"
+                        value={s.pontos}
+                        onChange={e => updateServico(i, 'pontos', parseInt(e.target.value) || 0)}
+                        className="input w-20 text-center py-1.5 text-sm"
+                        min={0}
+                      />
+                      <span className="text-text-muted text-xs font-sans w-5">pts</span>
+                    </div>
+                    <button onClick={() => removeServico(i)} className="text-red-400/60 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-400/10 shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                    </button>
                   </div>
-                  <button onClick={() => removeServico(i)} className="text-red-400/60 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-400/10 shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                  </button>
+                  {/* Toggle: conta no contador "X/Y assinaturas para bônus" da
+                      tela do barbeiro. Pode marcar mais de um item — o
+                      contador soma todos. */}
+                  <label className="flex items-center gap-2 pl-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={s.contaComoAssinatura}
+                      onChange={e => updateServico(i, 'contaComoAssinatura', e.target.checked)}
+                      className="w-4 h-4 accent-primary cursor-pointer"
+                    />
+                    <span className="text-text-muted text-[11px] font-sans">
+                      Este item conta como assinatura (campanha de bônus)
+                    </span>
+                  </label>
                 </div>
               ))}
             </>

@@ -90,12 +90,25 @@ export default function BarbeiroClient({
   const qualificado = campanha ? pontosTotal >= minPontosEfetivo : false
   const premioAtual = campanha?.campanha_premios.find(p => p.posicao === posicaoPts + 1)
 
-  // Contagem de assinaturas para bônus
-  const assinaturaServico = campanha?.campanha_servicos.find(s =>
-    s.nome.toLowerCase().includes('assinatura')
+  // Contagem de assinaturas para bônus.
+  // Antes usava heurística por nome (`s.nome.includes('assinatura')`), que
+  // travava o contador em 0 quando o item se chamava 'Plano clube',
+  // 'Sócio mensal' etc. Agora soma os controles de TODOS os itens da
+  // campanha marcados como `conta_como_assinatura` (flag explícita
+  // marcada pelo dono em Configurações → Campanha).
+  //
+  // Fonte de dados: `controlesDiario` (mesma do "Ver lançamentos") já
+  // filtra por barbeiro + janela do ciclo (data BRT, sem UTC).
+  // Retroativo: ao marcar a flag, o contador já reflete o histórico do
+  // ciclo sem precisar relançar nada.
+  const idsAssinatura = new Set(
+    (campanha?.campanha_servicos ?? [])
+      .filter(s => s.conta_como_assinatura)
+      .map(s => s.id),
   )
-  const totalAssinaturas = assinaturaServico
-    ? (controlesDiario ?? []).filter(cd => cd.servico_id === assinaturaServico.id)
+  const totalAssinaturas = idsAssinatura.size > 0
+    ? (controlesDiario ?? [])
+        .filter(cd => idsAssinatura.has(cd.servico_id))
         .reduce((s, cd) => s + cd.quantidade, 0)
     : 0
   const temBonus = campanha && totalAssinaturas >= campanha.bonus_assin_qtd
