@@ -59,16 +59,28 @@ export default async function PainelLayout({ children }: { children: React.React
     .or(`lido_em.gt.${uv},resposta_em.gt.${uv}`)
   const novas = count ?? 0
 
-  // Badge de mensagens dos colaboradores não lidas (migration 020).
-  // Se a migration ainda não rodou, segue com 0 sem quebrar.
+  // Badge de mensagens dos colaboradores não lidas (migration 020) +
+  // ignora deletadas (migration 023). Tenta com deletada=false; se a
+  // coluna ainda não existe (migration 023 não rodou), cai pra query
+  // sem esse filtro pra não quebrar.
   let mensagensNaoLidas = 0
   try {
-    const { count: mc } = await supabase
+    const comFiltro = await supabase
       .from('mensagens_colaboradores')
       .select('id', { count: 'exact', head: true })
       .eq('estabelecimento_id', estabelecimento.id)
       .eq('lida', false)
-    mensagensNaoLidas = mc ?? 0
+      .eq('deletada', false)
+    if (comFiltro.count !== null) {
+      mensagensNaoLidas = comFiltro.count
+    } else {
+      const semFiltro = await supabase
+        .from('mensagens_colaboradores')
+        .select('id', { count: 'exact', head: true })
+        .eq('estabelecimento_id', estabelecimento.id)
+        .eq('lida', false)
+      mensagensNaoLidas = semFiltro.count ?? 0
+    }
   } catch {
     /* migration 020 ausente — sem badge */
   }
