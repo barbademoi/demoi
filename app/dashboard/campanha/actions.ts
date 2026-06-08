@@ -28,7 +28,7 @@ export async function salvarModoMes(modo: ModoPontos, mes: number, ano: number) 
   return { ok: true }
 }
 
-interface ServicoInput { id?: string; emoji: string; nome: string; pontos: number }
+interface ServicoInput { id?: string; emoji: string; nome: string; pontos: number; contaComoAssinatura?: boolean }
 interface PremioInput { posicao: number; valor: number }
 
 export async function salvarCampanha(params: {
@@ -87,14 +87,15 @@ export async function salvarCampanha(params: {
     await (supabase as any).from('campanha_servicos').delete().in('id', toDelete)
   }
   for (const s of params.servicos) {
+    const conta_como_assinatura = !!s.contaComoAssinatura
     if (s.id) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any).from('campanha_servicos')
-        .update({ emoji: s.emoji, nome: s.nome, pontos: s.pontos }).eq('id', s.id)
+        .update({ emoji: s.emoji, nome: s.nome, pontos: s.pontos, conta_como_assinatura }).eq('id', s.id)
     } else {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any).from('campanha_servicos')
-        .insert({ campanha_id, emoji: s.emoji, nome: s.nome, pontos: s.pontos })
+        .insert({ campanha_id, emoji: s.emoji, nome: s.nome, pontos: s.pontos, conta_como_assinatura })
     }
   }
 

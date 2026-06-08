@@ -298,6 +298,7 @@ export interface CampanhaServico {
   emoji: string
   nome: string
   pontos: number
+  conta_como_assinatura: boolean
   created_at: string
 }
 
