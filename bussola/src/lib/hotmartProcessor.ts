@@ -116,6 +116,28 @@ export async function processarPayloadHotmart(
       return { ok: false, erro: 'user_lookup_failed', transactionId }
     }
     userId = existing.id
+
+    // User já existe. Decisão:
+    //   - Se ainda não trocou senha temporária (senha_definida !== true):
+    //     atualiza senha pra senhaTemp nova + email_confirm (caso falte).
+    //     Mantém senha_definida=false. Isso é o caso comum quando webhook
+    //     é reprocessado em conta criada antes da migration estar OK.
+    //   - Se já trocou senha definitiva (senha_definida === true):
+    //     NÃO mexe. Cliente já tá usando o sistema com senha pessoal —
+    //     sobrescrever ia derrubar o acesso dele.
+    const appMeta = (existing.app_metadata ?? {}) as Record<string, unknown>
+    const jaTrocouSenha = appMeta.senha_definida === true
+
+    if (!jaTrocouSenha) {
+      await admin.auth.admin.updateUserById(userId, {
+        password: senhaTemp,
+        email_confirm: true,
+        app_metadata: { ...appMeta, senha_definida: false },
+      })
+    }
+    // Se jaTrocouSenha=true, não tocamos no auth.users. A senhaTemp
+    // gerada será salva em compras_hotmart mesmo assim (audit), mas
+    // não bate com a senha real. Cliente entra com a senha pessoal dele.
   } else {
     userId = criado?.user?.id ?? null
   }
