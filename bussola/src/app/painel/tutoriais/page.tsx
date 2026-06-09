@@ -77,7 +77,17 @@ export default async function TutoriaisPage() {
         {CATEGORIAS_TUTORIAL.map((cat) => {
           const items = lista.filter((t) => t.categoria === cat.key)
           if (items.length === 0) return null
-          return <CategoriaTutoriais key={cat.key} cat={cat} items={items} />
+          // Passa apenas dados primitivos (key + nome). O ícone Lucide é
+          // resolvido dentro do client component a partir da key.
+          // Server -> Client não pode passar funções/componentes React.
+          return (
+            <CategoriaTutoriais
+              key={cat.key}
+              categoriaKey={cat.key}
+              nome={cat.nome}
+              items={items}
+            />
+          )
         })}
       </div>
     </main>
