@@ -1,23 +1,26 @@
 'use client'
 
 import Link from 'next/link'
-import { CheckCircle2, ChevronRight, type LucideIcon } from 'lucide-react'
+import { CheckCircle2, ChevronRight } from 'lucide-react'
 import { ListExpander } from '@/components/ui/ListExpander'
-import { tempoLeituraMin, type TutorialResumo } from '@/lib/tutoriais'
+import { CATEGORIAS_TUTORIAL, tempoLeituraMin, type TutorialResumo } from '@/lib/tutoriais'
 
-interface Categoria {
-  key: TutorialResumo['categoria']
+interface Props {
+  categoriaKey: TutorialResumo['categoria']
   nome: string
-  icone: LucideIcon
+  items: TutorialResumo[]
 }
 
-export function CategoriaTutoriais({ cat, items }: { cat: Categoria; items: TutorialResumo[] }) {
-  const Icon = cat.icone
+export function CategoriaTutoriais({ categoriaKey, nome, items }: Props) {
+  // Resolve o ícone Lucide aqui no client a partir do key. Server
+  // não consegue passar componentes React (forwardRef) como prop.
+  const cat = CATEGORIAS_TUTORIAL.find((c) => c.key === categoriaKey)
+  const Icon = cat?.icone
   return (
     <section className="space-y-3">
       <h2 className="inline-flex items-center gap-2 font-semibold text-text">
-        <Icon size={18} strokeWidth={1.5} color="#8B6F47" />
-        {cat.nome}
+        {Icon && <Icon size={18} strokeWidth={1.5} color="#8B6F47" />}
+        {nome}
         <span className="text-xs font-normal text-chumbo">
           · {items.length} {items.length === 1 ? 'tutorial' : 'tutoriais'}
         </span>
