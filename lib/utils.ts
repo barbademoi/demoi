@@ -100,6 +100,32 @@ export function gerarLinkCodigo(): string {
   ).join('')
 }
 
+/**
+ * Normaliza um nome de barbearia em slug pra URL pública (/c/[slug]).
+ * Ex: "Demôi Barbearia & Cia" → "demoi-barbearia-cia"
+ * Garantia de unicidade NÃO é feita aqui — quem chama deve consultar
+ * o banco e adicionar sufixo numérico se colidir.
+ */
+export function normalizarSlug(nome: string): string {
+  return nome
+    .normalize('NFD')
+    // eslint-disable-next-line no-misleading-character-class
+    .replace(/[̀-ͯ]/g, '')        // remove acentos
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')            // não-alfanum → hífen
+    .replace(/^-+|-+$/g, '')                // tira hífens das pontas
+    .slice(0, 40) || 'barbearia'
+}
+
+/** Código curto pro cliente apresentar na barbearia (resgate do brinde). */
+export function gerarCodigoResgate(): string {
+  // 6 chars, sem 0/O/1/I pra evitar confusão visual no print
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  return Array.from({ length: 6 }, () =>
+    chars[Math.floor(Math.random() * chars.length)]
+  ).join('')
+}
+
 /** Formata valor como moeda BRL */
 export function formatBRL(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
