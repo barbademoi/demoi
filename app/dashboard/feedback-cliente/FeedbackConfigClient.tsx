@@ -16,7 +16,15 @@ interface BarbeariaFC {
   feedback_pontos_por_feedback: number
   feedback_limite_diario_pontuavel: number
   feedback_brinde_minimo_id: string | null
+  brinde_validade_dias: number
 }
+
+const VALIDADES: { v: 15 | 30 | 60 | 90; label: string; rec?: boolean }[] = [
+  { v: 15, label: '15 dias' },
+  { v: 30, label: '30 dias', rec: true },
+  { v: 60, label: '60 dias' },
+  { v: 90, label: '90 dias' },
+]
 
 interface Props {
   barbearia: BarbeariaFC
@@ -33,6 +41,7 @@ export default function FeedbackConfigClient({ barbearia, brindes }: Props) {
   const [gamif, setGamif] = useState(barbearia.feedback_gamificacao_ativa)
   const [pontos, setPontos] = useState(barbearia.feedback_pontos_por_feedback)
   const [limite, setLimite] = useState(barbearia.feedback_limite_diario_pontuavel)
+  const [validade, setValidade] = useState<number>(barbearia.brinde_validade_dias ?? 30)
   const [erro, setErro] = useState<string | null>(null)
   const [sucesso, setSucesso] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -65,6 +74,7 @@ export default function FeedbackConfigClient({ barbearia, brindes }: Props) {
         gamificacaoAtiva: gamif,
         pontosPorFeedback: pontos,
         limiteDiarioPontuavel: limite,
+        brindeValidadeDias: validade,
       })
       if (res?.error) { setErro(res.error); return }
       setSucesso(true)
@@ -160,6 +170,38 @@ export default function FeedbackConfigClient({ barbearia, brindes }: Props) {
               </select>
               <p className="text-text-muted text-[11px] font-sans mt-1">
                 Se o cliente não receber nenhum brinde no sorteio, o sistema atribui esse após 24h.
+              </p>
+            </div>
+
+            <div>
+              <label className="label">Validade do brinde</label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {VALIDADES.map(o => {
+                  const on = validade === o.v
+                  return (
+                    <button
+                      key={o.v}
+                      type="button"
+                      onClick={() => setValidade(o.v)}
+                      className={[
+                        'rounded-xl border p-2.5 text-sm transition-colors',
+                        on
+                          ? 'border-primary bg-primary/10 text-primary font-semibold'
+                          : 'border-border text-text hover:bg-surface-2',
+                      ].join(' ')}
+                    >
+                      {o.label}
+                      {o.rec && (
+                        <span className="block text-[10px] text-text-muted font-normal">
+                          (recomendado)
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-text-muted text-[11px] font-sans mt-1">
+                Tempo que o cliente tem pra usar o brinde após receber. Brindes já sorteados mantêm a validade original.
               </p>
             </div>
 

@@ -71,7 +71,10 @@ interface FeedbackConfigInput {
   gamificacaoAtiva: boolean
   pontosPorFeedback: number
   limiteDiarioPontuavel: number
+  brindeValidadeDias: number
 }
+
+const VALIDADES_ACEITAS = [15, 30, 60, 90] as const
 
 export async function salvarFeedbackConfig(c: FeedbackConfigInput) {
   const auth = await autorizarDono()
@@ -84,6 +87,9 @@ export async function salvarFeedbackConfig(c: FeedbackConfigInput) {
   const limite = Math.max(0, Math.round(c.limiteDiarioPontuavel || 0))
   const msg = c.mensagemPos ? c.mensagemPos.trim().slice(0, 200) || null : null
   const url = c.googleReviewUrl ? c.googleReviewUrl.trim() || null : null
+  const validade = VALIDADES_ACEITAS.includes(c.brindeValidadeDias as (typeof VALIDADES_ACEITAS)[number])
+    ? c.brindeValidadeDias
+    : 30
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
@@ -95,6 +101,7 @@ export async function salvarFeedbackConfig(c: FeedbackConfigInput) {
       feedback_gamificacao_ativa: c.gamificacaoAtiva,
       feedback_pontos_por_feedback: pontos,
       feedback_limite_diario_pontuavel: limite,
+      brinde_validade_dias: validade,
     }).eq('id', barbeariaId)
   if (error) return { error: (error as { message: string }).message }
 

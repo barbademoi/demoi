@@ -28,7 +28,7 @@ export async function GET(request: Request) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: pendentesRaw } = await (admin as any)
     .from('feedbacks_cliente')
-    .select('id, barbearia_id, barbearias(feedback_brinde_minimo_id), brindes:feedback_brinde_minimo_id(id, nome)')
+    .select('id, barbearia_id, barbearias(feedback_brinde_minimo_id, brinde_validade_dias), brindes:feedback_brinde_minimo_id(id, nome)')
     .is('brinde_id', null)
     .lt('created_at', cutoff)
     .eq('arquivado', false)
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
   const pendentes = (pendentesRaw ?? []) as Array<{
     id: string
     barbearia_id: string
-    barbearias: { feedback_brinde_minimo_id: string | null } | null
+    barbearias: { feedback_brinde_minimo_id: string | null; brinde_validade_dias: number | null } | null
   }>
 
   let atribuidos = 0
@@ -51,6 +51,7 @@ export async function GET(request: Request) {
         brinde_id: brindeMinimoId,
         codigo_resgate: codigo,
         brinde_atribuido_em: new Date().toISOString(),
+        brinde_validade_dias: fb.barbearias?.brinde_validade_dias ?? 30,
       })
       .eq('id', fb.id)
     atribuidos++
