@@ -12,6 +12,7 @@ interface Brinde {
   descricao: string | null
   foto_url: string | null
   codigo_resgate: string
+  validade_dias: number
 }
 
 interface SucessoState {
@@ -70,6 +71,14 @@ export default function FeedbackClienteForm({ slug, barbeiros }: { slug: string;
             <div className="bg-surface border border-border rounded-xl py-3">
               <p className="text-text-muted text-[11px] font-sans uppercase tracking-wide">Código de resgate</p>
               <p className="font-serif text-3xl text-primary tracking-widest mt-1">{sucesso.brinde.codigo_resgate}</p>
+            </div>
+            <p className="text-text text-sm font-sans">
+              Apresente este código na barbearia em até <strong>{sucesso.brinde.validade_dias} dias</strong> pra usar seu brinde.
+            </p>
+            <div className="border-t border-border pt-3 mt-2 space-y-1 text-[12px] text-text-muted font-sans">
+              <p>· Válido por {sucesso.brinde.validade_dias} dias</p>
+              <p>· Não acumulável com outras avaliações</p>
+              <p>· Uso individual</p>
             </div>
             <p className="text-text-muted text-[11px] font-sans italic">
               📸 Tira print pra apresentar quando for resgatar.

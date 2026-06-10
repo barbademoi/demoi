@@ -16,7 +16,7 @@ interface EnviarFeedbackInput {
 
 interface ResultadoFeedback {
   ok: true
-  brinde: { nome: string; descricao: string | null; foto_url: string | null; codigo_resgate: string } | null
+  brinde: { nome: string; descricao: string | null; foto_url: string | null; codigo_resgate: string; validade_dias: number } | null
   mensagemPos: string | null
   ehPositivo: boolean
   googleReviewUrl: string | null
@@ -41,7 +41,7 @@ export async function enviarFeedback(input: EnviarFeedbackInput): Promise<{ erro
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barb } = await (admin as any)
     .from('barbearias')
-    .select('id, nome, feedback_ativo, feedback_slug, feedback_mensagem_pos, feedback_google_review_url, feedback_nota_minima_positivo, feedback_gamificacao_ativa, feedback_pontos_por_feedback, feedback_limite_diario_pontuavel, dia_fechamento')
+    .select('id, nome, feedback_ativo, feedback_slug, feedback_mensagem_pos, feedback_google_review_url, feedback_nota_minima_positivo, feedback_gamificacao_ativa, feedback_pontos_por_feedback, feedback_limite_diario_pontuavel, dia_fechamento, brinde_validade_dias')
     .eq('feedback_slug', input.slug)
     .eq('feedback_ativo', true)
     .maybeSingle() as { data: {
@@ -49,7 +49,7 @@ export async function enviarFeedback(input: EnviarFeedbackInput): Promise<{ erro
       feedback_mensagem_pos: string | null; feedback_google_review_url: string | null;
       feedback_nota_minima_positivo: number; feedback_gamificacao_ativa: boolean;
       feedback_pontos_por_feedback: number; feedback_limite_diario_pontuavel: number;
-      dia_fechamento: number | null;
+      dia_fechamento: number | null; brinde_validade_dias: number | null;
     } | null }
 
   if (!barb) return { error: 'Link não disponível.' }
@@ -80,6 +80,7 @@ export async function enviarFeedback(input: EnviarFeedbackInput): Promise<{ erro
   const brinde = sortearPonderado(brindesAtivos)
   const codigoResgate = brinde ? gerarCodigoUnico(admin) : null
   const codigoRes = await codigoResgate
+  const validadeDias = barb.brinde_validade_dias ?? 30
 
   // 5. INSERT do feedback (sem expor o admin client diretamente).
   //    `data` salva como string literal BRT — preserva o dia.
@@ -96,6 +97,7 @@ export async function enviarFeedback(input: EnviarFeedbackInput): Promise<{ erro
       brinde_id: brinde?.id ?? null,
       codigo_resgate: codigoRes,
       brinde_atribuido_em: brinde ? new Date().toISOString() : null,
+      brinde_validade_dias: brinde ? validadeDias : null,
       foi_redirecionado_google: ehPositivo && !!barb.feedback_google_review_url,
       data,
     })
@@ -135,6 +137,7 @@ export async function enviarFeedback(input: EnviarFeedbackInput): Promise<{ erro
     brinde: brinde && codigoRes ? {
       nome: brinde.nome, descricao: brinde.descricao,
       foto_url: brinde.foto_url, codigo_resgate: codigoRes,
+      validade_dias: validadeDias,
     } : null,
     mensagemPos: barb.feedback_mensagem_pos,
     ehPositivo,
