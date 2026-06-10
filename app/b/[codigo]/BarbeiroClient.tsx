@@ -62,6 +62,14 @@ interface Props {
   diaFechamento: number
   mostrarTicketMedio: boolean
   mostrarFaturamentoGeral: boolean
+  feedbacksDoBarbeiro: Array<{
+    id: string
+    estrelas: number
+    comentario: string | null
+    nome_cliente: string | null
+    data: string
+    created_at: string
+  }>
 }
 
 export default function BarbeiroClient({
@@ -74,13 +82,15 @@ export default function BarbeiroClient({
   pontosTotal, rankingPontos, pontosMap, controleHoje, historico,
   visibilidadeRanking, isAutonomo, comissaoMesAnterior, historicoMeses,
   cicloLabel, diaFechamento, mostrarTicketMedio, mostrarFaturamentoGeral,
+  feedbacksDoBarbeiro,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
   // Recepcionista participa só das pontuações — esconde tudo de comissão/metas.
   const isRecepcionista = barbeiro.tipo === 'recepcionista'
   const mostraPontos = modo === 'pontos' || modo === 'ambos'
   const mostraMetas = (modo === 'metas' || modo === 'ambos') && !isRecepcionista
-  const [aba, setAba] = useState<'progresso' | 'lancar' | 'regras'>('progresso')
+  const [aba, setAba] = useState<'progresso' | 'lancar' | 'regras' | 'feedbacks'>('progresso')
+  const temFeedbacks = feedbacksDoBarbeiro.length > 0
   const [celebracaoFechada, setCelebracaoFechada] = useState(false)
 
   const posicaoPts = rankingPontos.findIndex(r => r.barbeiro_id === barbeiro.id)
@@ -158,37 +168,52 @@ export default function BarbeiroClient({
         />
       )}
 
-      {/* Tabs — aparece quando modo inclui pontos, independente de campanha */}
-      {mostraPontos && (
-        <div className="flex border-b border-border mb-0">
-          <button
-            onClick={() => setAba('progresso')}
-            className={`flex-1 py-3.5 text-sm font-sans font-semibold transition-colors
-              ${aba === 'progresso' ? 'text-text border-b-2 border-primary' : 'text-text-muted hover:text-text'}`}
-          >
-            Progresso
-          </button>
-          <button
-            onClick={() => setAba('lancar')}
-            className={`flex-1 py-3.5 text-sm font-sans font-semibold transition-colors
-              ${aba === 'lancar' ? 'text-text border-b-2 border-primary' : 'text-text-muted hover:text-text'}`}
-          >
-            Lançar dia
-          </button>
-          {campanha && (
+      {/* Tabs — aparece quando modo inclui pontos OU quando há feedbacks
+          de clientes pra esse barbeiro (independente do modo da campanha). */}
+      {(mostraPontos || temFeedbacks) && (
+        <div className="flex border-b border-border mb-0 overflow-x-auto">
+          {mostraPontos && (
+            <button
+              onClick={() => setAba('progresso')}
+              className={`flex-1 py-3.5 text-sm font-sans font-semibold transition-colors whitespace-nowrap
+                ${aba === 'progresso' ? 'text-text border-b-2 border-primary' : 'text-text-muted hover:text-text'}`}
+            >
+              Progresso
+            </button>
+          )}
+          {mostraPontos && (
+            <button
+              onClick={() => setAba('lancar')}
+              className={`flex-1 py-3.5 text-sm font-sans font-semibold transition-colors whitespace-nowrap
+                ${aba === 'lancar' ? 'text-text border-b-2 border-primary' : 'text-text-muted hover:text-text'}`}
+            >
+              Lançar dia
+            </button>
+          )}
+          {mostraPontos && campanha && (
             <button
               onClick={() => setAba('regras')}
-              className={`flex-1 py-3.5 text-sm font-sans font-semibold transition-colors
+              className={`flex-1 py-3.5 text-sm font-sans font-semibold transition-colors whitespace-nowrap
                 ${aba === 'regras' ? 'text-text border-b-2 border-primary' : 'text-text-muted hover:text-text'}`}
             >
               Regras
             </button>
           )}
+          {temFeedbacks && (
+            <button
+              onClick={() => setAba('feedbacks')}
+              className={`flex-1 py-3.5 px-3 text-sm font-sans font-semibold transition-colors whitespace-nowrap
+                ${aba === 'feedbacks' ? 'text-text border-b-2 border-primary' : 'text-text-muted hover:text-text'}`}
+            >
+              ⭐ Feedbacks <span className="text-text-muted font-normal">({feedbacksDoBarbeiro.length})</span>
+            </button>
+          )}
         </div>
       )}
 
-      {/* ── ABA: PROGRESSO ── */}
-      {(aba === 'progresso' || !mostraPontos) && (
+      {/* ── ABA: PROGRESSO ── (default; ativa quando mostraPontos=false
+          tirando o caso em que o usuário clicou na aba de feedbacks) */}
+      {(aba === 'progresso' || (!mostraPontos && aba !== 'feedbacks')) && (
         <div className="space-y-6 pt-2">
 
           {/* Card do barbeiro */}
@@ -660,6 +685,45 @@ export default function BarbeiroClient({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ── ABA: FEEDBACKS DE CLIENTES ──
+          Lista TODOS os feedbacks (inclusive notas baixas e comentários
+          ruins) onde esse barbeiro foi marcado como 'quem te atendeu'.
+          Mostra estrelas, nome do cliente, comentário e data. */}
+      {aba === 'feedbacks' && (
+        <div className="space-y-3 pt-4">
+          <div className="px-1">
+            <h2 className="font-serif text-lg text-text">Feedbacks de Clientes</h2>
+            <p className="text-text-muted text-xs font-sans mt-0.5">
+              O que clientes que apontaram você como atendente disseram.
+            </p>
+          </div>
+          {feedbacksDoBarbeiro.map(f => (
+            <div key={f.id} className="card-light p-4 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-lg leading-none">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span key={i} className={i < f.estrelas ? 'text-yellow-400' : 'text-on-cream-muted/40'}>★</span>
+                  ))}
+                </div>
+                <p className="text-on-cream-muted text-[11px] font-sans whitespace-nowrap">
+                  {new Date(f.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </p>
+              </div>
+              {f.nome_cliente && (
+                <p className="text-on-cream text-xs font-sans font-semibold">{f.nome_cliente}</p>
+              )}
+              {f.comentario ? (
+                <p className="text-on-cream text-sm font-sans leading-relaxed whitespace-pre-line">
+                  &ldquo;{f.comentario}&rdquo;
+                </p>
+              ) : (
+                <p className="text-on-cream-muted text-xs font-sans italic">Sem comentário.</p>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </>
