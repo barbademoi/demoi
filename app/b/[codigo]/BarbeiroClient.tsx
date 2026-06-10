@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { formatBRL, TIER_CONFIG, calcProgresso } from '@/lib/utils'
-import { REGRAS_FIXAS } from '@/lib/regras'
+import { pegarRegrasGerais } from '@/lib/regras'
 import LancarDiaForm from './LancarDiaForm'
 import CelebracaoOverlay from '@/components/barbeiro/CelebracaoOverlay'
 import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
@@ -70,6 +70,8 @@ interface Props {
     data: string
     created_at: string
   }>
+  // Regras gerais editadas pela barbearia (null = usa default).
+  regrasGerais: string[] | null
 }
 
 export default function BarbeiroClient({
@@ -83,6 +85,7 @@ export default function BarbeiroClient({
   visibilidadeRanking, isAutonomo, comissaoMesAnterior, historicoMeses,
   cicloLabel, diaFechamento, mostrarTicketMedio, mostrarFaturamentoGeral,
   feedbacksDoBarbeiro,
+  regrasGerais,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
   // Recepcionista participa só das pontuações — esconde tudo de comissão/metas.
@@ -667,7 +670,7 @@ export default function BarbeiroClient({
               <span aria-hidden>📋</span> Regras do mês
             </h3>
             <ul className="space-y-3">
-              {REGRAS_FIXAS.map((r, i) => (
+              {pegarRegrasGerais(regrasGerais).map((r, i) => (
                 <li key={i} className="text-sm font-sans text-text flex items-start gap-2 leading-relaxed">
                   <span className="text-green-400 mt-0.5 shrink-0">✓</span>
                   <span>{r}</span>

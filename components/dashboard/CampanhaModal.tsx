@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { salvarCampanha } from '@/app/dashboard/campanha/actions'
+import { salvarCampanha, salvarRegrasGerais, resetarRegrasGerais } from '@/app/dashboard/campanha/actions'
 import { formatBRL, nomeMes } from '@/lib/utils'
 import { REGRAS_FIXAS } from '@/lib/regras'
 import type { CampanhaComDetalhes } from '@/types/database'
@@ -10,6 +10,9 @@ interface Props {
   campanha: CampanhaComDetalhes | null
   mes: number
   ano: number
+  // Regras gerais atuais da barbearia (vem do server). NULL = nunca editou,
+  // mostra o default REGRAS_FIXAS na UI. Array (mesmo vazio) = customizado.
+  regrasGeraisDb: string[] | null
 }
 
 const SERVICOS_PADRAO: ServicoState[] = [
@@ -33,7 +36,7 @@ interface PremioState  { posicao: number; valor: number }
 
 const POSICAO_LABEL = ['1º', '2º', '3º', '4º', '5º', '6º', '7º', '8º', '9º', '10º']
 
-export default function CampanhaModal({ campanha, mes, ano }: Props) {
+export default function CampanhaModal({ campanha, mes, ano, regrasGeraisDb }: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [erro, setErro] = useState<string | null>(null)
@@ -44,6 +47,16 @@ export default function CampanhaModal({ campanha, mes, ano }: Props) {
   const [bonusQtd,       setBonusQtd]       = useState(campanha?.bonus_assin_qtd  ?? 10)
   const [bonusValor,     setBonusValor]     = useState(campanha?.bonus_assin_valor ?? 200)
   const [regrasPersonalizadas, setRegrasPersonalizadas] = useState(campanha?.regras_personalizadas ?? '')
+
+  // Regras gerais — editaveis pelo dono. Inicializa do banco (se ele ja
+  // customizou) OU do default REGRAS_FIXAS. Salvar/resetar usa actions
+  // proprias (nao acopla com salvarCampanha).
+  const [regrasGerais, setRegrasGerais] = useState<string[]>(
+    regrasGeraisDb !== null ? regrasGeraisDb : [...REGRAS_FIXAS],
+  )
+  const [regrasGeraisSalvando, setRegrasGeraisSalvando] = useState(false)
+  const [regrasGeraisSucesso, setRegrasGeraisSucesso] = useState(false)
+  const ehCustomizado = regrasGeraisDb !== null
 
   const [servicos, setServicos] = useState<ServicoState[]>(() => {
     // Init: garante que SEMPRE haja exatamente 1 serviço marcado como
@@ -346,26 +359,95 @@ export default function CampanhaModal({ campanha, mes, ano }: Props) {
           {aba === 'regras' && (
             <div className="space-y-5">
               <div className="bg-surface-2 border border-border rounded-xl p-4 space-y-3">
-                <p className="font-sans font-semibold text-text text-sm flex items-center gap-2">
-                  <span aria-hidden>📋</span> Regras gerais da campanha
-                </p>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <p className="font-sans font-semibold text-text text-sm flex items-center gap-2">
+                    <span aria-hidden>📋</span> Regras gerais da campanha
+                  </p>
+                  {ehCustomizado && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!confirm('Voltar ao texto padrão do sistema? Sua versão será descartada.')) return
+                        setRegrasGeraisSalvando(true)
+                        resetarRegrasGerais().then(res => {
+                          setRegrasGeraisSalvando(false)
+                          if (res?.error) { setErro(res.error); return }
+                          setRegrasGerais([...REGRAS_FIXAS])
+                          setRegrasGeraisSucesso(true)
+                          setTimeout(() => setRegrasGeraisSucesso(false), 1500)
+                        })
+                      }}
+                      className="text-text-muted hover:text-text text-[11px] font-sans underline"
+                    >
+                      ↺ Restaurar padrão
+                    </button>
+                  )}
+                </div>
                 <p className="text-text-muted text-xs font-sans">
-                  Padrão do sistema — aplicadas a todas as campanhas e não editáveis.
+                  Editáveis. Aparecem na aba Regras pros barbeiros, junto com as suas observações abaixo.
                 </p>
-                <ul className="space-y-2">
-                  {REGRAS_FIXAS.map((r, i) => (
-                    <li key={i} className="text-sm font-sans text-text flex items-start gap-2 leading-relaxed">
-                      <span className="text-green-400 mt-0.5 shrink-0">✓</span>
-                      <span>{r}</span>
-                    </li>
+
+                <div className="space-y-2">
+                  {regrasGerais.length === 0 && (
+                    <p className="text-text-muted text-xs font-sans italic py-2">
+                      Sem regras gerais. Adicione abaixo ou restaure o padrão.
+                    </p>
+                  )}
+                  {regrasGerais.map((r, i) => (
+                    <div key={i} className="flex items-start gap-2 bg-surface rounded-lg p-2">
+                      <span className="text-green-400 mt-2 shrink-0 leading-none">✓</span>
+                      <textarea
+                        value={r}
+                        onChange={e => setRegrasGerais(arr => arr.map((x, idx) => idx === i ? e.target.value.slice(0, 500) : x))}
+                        rows={2}
+                        className="input flex-1 text-sm py-1.5 leading-relaxed"
+                        style={{ resize: 'vertical', minHeight: 48 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setRegrasGerais(arr => arr.filter((_, idx) => idx !== i))}
+                        className="text-red-400/60 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-400/10 shrink-0 mt-0.5"
+                        aria-label="Remover regra"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                    </div>
                   ))}
-                </ul>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setRegrasGerais(arr => [...arr, ''])}
+                    className="btn-ghost text-xs py-1.5 px-3 border border-border"
+                  >
+                    + Adicionar regra
+                  </button>
+                  <button
+                    type="button"
+                    disabled={regrasGeraisSalvando}
+                    onClick={() => {
+                      setRegrasGeraisSalvando(true)
+                      salvarRegrasGerais(regrasGerais).then(res => {
+                        setRegrasGeraisSalvando(false)
+                        if (res?.error) { setErro(res.error); return }
+                        setRegrasGeraisSucesso(true)
+                        setTimeout(() => setRegrasGeraisSucesso(false), 1500)
+                      })
+                    }}
+                    className="btn-primary text-xs py-1.5 px-3"
+                  >
+                    {regrasGeraisSucesso ? '✓ Salvo!' : regrasGeraisSalvando ? 'Salvando…' : 'Salvar regras'}
+                  </button>
+                </div>
               </div>
 
               <div>
-                <label className="label">+ Adicionar regras personalizadas</label>
+                <label className="label">+ Observações personalizadas (texto livre)</label>
                 <p className="text-text-muted text-xs font-sans mb-2">
-                  Combinados específicos da sua barbearia (opcional). Aparecem pros barbeiros junto com as regras gerais.
+                  Combinados específicos da sua barbearia (opcional). Salvas junto com o &ldquo;Salvar campanha&rdquo; lá embaixo.
                 </p>
                 <textarea
                   value={regrasPersonalizadas}

@@ -113,6 +113,69 @@ export async function salvarCampanha(params: {
   return { ok: true }
 }
 
+/**
+ * Salva as Regras gerais da campanha (lista editavel pelo dono — aba Regras
+ * do CampanhaModal). Persiste no nivel da BARBEARIA porque as regras valem
+ * pra todos os ciclos, nao por mes especifico.
+ *
+ * Aceita:
+ *   - array de strings: substitui tudo. Vazio ([]) eh respeitado — quer
+ *     dizer "nao ha regras gerais nessa barbearia". Default volta com
+ *     `resetarRegrasGerais` (NULL no banco).
+ */
+export async function salvarRegrasGerais(regras: string[]) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: usuario } = await (supabase as any)
+    .from('usuarios').select('barbearia_id').eq('id', user.id).single() as
+    { data: { barbearia_id: string } | null }
+  if (!usuario) return { error: 'Barbearia não encontrada.' }
+
+  const limpas = regras
+    .map(r => r.trim())
+    .filter(r => r.length > 0)
+    .map(r => r.slice(0, 500))
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('barbearias').update({ regras_gerais: limpas })
+    .eq('id', usuario.barbearia_id)
+  if (error) return { error: (error as { message: string }).message }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/b/[codigo]', 'page')
+  return { ok: true as const }
+}
+
+/**
+ * Volta as regras gerais ao default do sistema (NULL no banco, exibe
+ * REGRAS_FIXAS de lib/regras.ts).
+ */
+export async function resetarRegrasGerais() {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: usuario } = await (supabase as any)
+    .from('usuarios').select('barbearia_id').eq('id', user.id).single() as
+    { data: { barbearia_id: string } | null }
+  if (!usuario) return { error: 'Barbearia não encontrada.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('barbearias').update({ regras_gerais: null })
+    .eq('id', usuario.barbearia_id)
+  if (error) return { error: (error as { message: string }).message }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/b/[codigo]', 'page')
+  return { ok: true as const }
+}
+
 export async function toggleCampanhaAtivo(campanhaId: string, ativo: boolean) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
