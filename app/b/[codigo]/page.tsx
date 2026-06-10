@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { calcProgresso, calcTier, dataLocalStr } from '@/lib/utils'
 import { cicloAtual, calcDiasUteisCiclo, cicloDeData } from '@/lib/ciclo'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
@@ -300,6 +301,29 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     .eq('ano', ano)
   const tiersJaCelebrados: string[] = (celebracoesRaw ?? []).map((c: { tier: string }) => c.tier)
 
+  // ── Feedbacks de clientes ─────────────────────────────────────
+  // Lista os feedbacks em que esse barbeiro foi marcado como
+  // "quem te atendeu" — inclui notas baixas e comentários ruins.
+  // Página é pública via link_codigo (segredo do barbeiro), então uso
+  // admin client pra pular RLS, filtrando estritamente por barbeiro_id.
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: feedbacksRaw } = await (admin as any)
+    .from('feedbacks_cliente')
+    .select('id, estrelas, comentario, nome_cliente, data, created_at')
+    .eq('barbeiro_id', barbeiro.id)
+    .eq('arquivado', false)
+    .order('created_at', { ascending: false })
+    .limit(100)
+  const feedbacksDoBarbeiro = (feedbacksRaw ?? []) as Array<{
+    id: string
+    estrelas: number
+    comentario: string | null
+    nome_cliente: string | null
+    data: string
+    created_at: string
+  }>
+
   return (
     <div className="min-h-screen pb-16">
       <header className="border-b border-border bg-surface">
@@ -376,6 +400,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
           diaFechamento={diaFechamento}
           mostrarTicketMedio={mostrarTicketMedio}
           mostrarFaturamentoGeral={mostrarFaturamentoGeral}
+          feedbacksDoBarbeiro={feedbacksDoBarbeiro}
         />
       </main>
     </div>
