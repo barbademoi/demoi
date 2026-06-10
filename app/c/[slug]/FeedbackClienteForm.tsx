@@ -26,7 +26,6 @@ export default function FeedbackClienteForm({ slug, barbeiros }: { slug: string;
   const [barbeiroId, setBarbeiroId] = useState<string | null>(null)  // null = "Não lembro"
   const [comentario, setComentario] = useState('')
   const [nome, setNome] = useState('')
-  const [contato, setContato] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const [sucesso, setSucesso] = useState<SucessoState | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -34,12 +33,14 @@ export default function FeedbackClienteForm({ slug, barbeiros }: { slug: string;
   function enviar() {
     setErro(null)
     if (estrelas < 1) { setErro('Selecione uma nota.'); return }
+    const nomeTrim = nome.trim()
+    if (!nomeTrim) { setErro('Preencha seu nome pra receber o brinde.'); return }
     startTransition(async () => {
       const res = await enviarFeedback({
         slug, estrelas, barbeiroId,
         comentario: comentario || null,
-        nomeCliente: nome || null,
-        contatoCliente: contato || null,
+        nomeCliente: nomeTrim,
+        contatoCliente: null,
       })
       if ('error' in res) { setErro(res.error); return }
       setSucesso({
@@ -89,14 +90,22 @@ export default function FeedbackClienteForm({ slug, barbeiros }: { slug: string;
           </p>
         )}
 
+        {/* Passo OPCIONAL separado: avaliar no Google (sem prometer brinde
+            em troca — política do Google proíbe review incentivado, e o
+            brinde já foi entregue acima pelo comentário interno). */}
         {sucesso.ehPositivo && sucesso.googleReviewUrl && (
-          <a
-            href={sucesso.googleReviewUrl}
-            target="_blank" rel="noopener noreferrer"
-            className="btn-primary w-full text-sm py-3 flex items-center justify-center gap-2"
-          >
-            ⭐ Avaliar no Google
-          </a>
+          <div className="border-t border-border pt-4 space-y-2 text-center">
+            <p className="text-text-muted text-xs font-sans">
+              Quer dar uma força extra pra barbearia?
+            </p>
+            <a
+              href={sucesso.googleReviewUrl}
+              target="_blank" rel="noopener noreferrer"
+              className="btn-primary w-full text-sm py-3 inline-flex items-center justify-center gap-2"
+            >
+              ⭐ Avaliar no Google
+            </a>
+          </div>
         )}
       </div>
     )
@@ -164,8 +173,14 @@ export default function FeedbackClienteForm({ slug, barbeiros }: { slug: string;
         </div>
       )}
 
-      {/* Passo 3: Comentário (opcional, sem mencionar brinde) */}
+      {/* Passo 3: Comentário (opcional, com incentivo do brinde em destaque) */}
       <div>
+        <div className="bg-primary/10 border border-primary/30 rounded-xl p-3 mb-2 flex items-center gap-2">
+          <span className="text-2xl">🎁</span>
+          <p className="text-sm font-sans text-text">
+            <span className="font-semibold">Deixe um comentário e ganhe um brinde da empresa</span>
+          </p>
+        </div>
         <label className="text-text-muted text-xs font-sans uppercase tracking-wide mb-2 block" htmlFor="cmt">
           Conta pra gente como foi <span className="normal-case text-[11px]">(opcional)</span>
         </label>
@@ -180,34 +195,28 @@ export default function FeedbackClienteForm({ slug, barbeiros }: { slug: string;
         <p className="text-text-muted text-[11px] font-sans mt-1 text-right">{comentario.length}/500</p>
       </div>
 
-      {/* Passo 4: Identificação opcional */}
-      <div className="grid grid-cols-1 gap-3">
-        <div>
-          <label className="text-text-muted text-xs font-sans uppercase tracking-wide mb-2 block" htmlFor="nm">
-            Seu nome <span className="normal-case text-[11px]">(opcional)</span>
-          </label>
-          <input
-            id="nm" value={nome}
-            onChange={e => setNome(e.target.value.slice(0, 80))}
-            className="input w-full text-sm"
-          />
-        </div>
-        <div>
-          <label className="text-text-muted text-xs font-sans uppercase tracking-wide mb-2 block" htmlFor="ct">
-            WhatsApp ou email <span className="normal-case text-[11px]">(opcional)</span>
-          </label>
-          <input
-            id="ct" value={contato}
-            onChange={e => setContato(e.target.value.slice(0, 80))}
-            className="input w-full text-sm"
-          />
-        </div>
+      {/* Passo 4: Identificação — APENAS nome + sobrenome, obrigatório
+          (necessário pra emitir o brinde). Sem WhatsApp/email. */}
+      <div>
+        <label className="text-text-muted text-xs font-sans uppercase tracking-wide mb-2 block" htmlFor="nm">
+          Nome e sobrenome <span className="text-red-400 normal-case">*</span>
+        </label>
+        <input
+          id="nm" value={nome}
+          onChange={e => setNome(e.target.value.slice(0, 80))}
+          placeholder="Ex: João Silva"
+          className="input w-full text-sm"
+          required
+        />
+        <p className="text-text-muted text-[11px] font-sans mt-1">
+          Necessário pra emitir o brinde.
+        </p>
       </div>
 
       {erro && <p className="text-red-400 text-sm font-sans">{erro}</p>}
 
       <button
-        onClick={enviar} disabled={isPending || estrelas < 1}
+        onClick={enviar} disabled={isPending || estrelas < 1 || !nome.trim()}
         className="btn-primary w-full text-sm py-3"
       >
         {isPending ? 'Enviando…' : 'Enviar feedback'}
