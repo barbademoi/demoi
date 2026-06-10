@@ -299,7 +299,51 @@ export interface CampanhaServico {
   nome: string
   pontos: number
   conta_como_assinatura: boolean
+  eh_servico_feedback: boolean
   created_at: string
+}
+
+export interface Brinde {
+  id: string
+  barbearia_id: string
+  nome: string
+  descricao: string | null
+  foto_url: string | null
+  peso: number
+  ativo: boolean
+  created_at: string
+}
+
+export interface FeedbackCliente {
+  id: string
+  barbearia_id: string
+  barbeiro_id: string | null
+  estrelas: number
+  comentario: string | null
+  nome_cliente: string | null
+  contato_cliente: string | null
+  brinde_id: string | null
+  codigo_resgate: string | null
+  brinde_usado: boolean
+  brinde_atribuido_em: string | null
+  foi_redirecionado_google: boolean
+  pontos_concedidos: number
+  lido: boolean
+  arquivado: boolean
+  data: string
+  created_at: string
+}
+
+export interface BarbeariaFeedbackConfig {
+  feedback_ativo: boolean
+  feedback_slug: string | null
+  feedback_mensagem_pos: string | null
+  feedback_google_review_url: string | null
+  feedback_nota_minima_positivo: number
+  feedback_gamificacao_ativa: boolean
+  feedback_pontos_por_feedback: number
+  feedback_limite_diario_pontuavel: number
+  feedback_brinde_minimo_id: string | null
 }
 
 export interface CampanhaPremio {
