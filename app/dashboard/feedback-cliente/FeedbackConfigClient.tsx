@@ -241,6 +241,10 @@ function BrindesSection({ brindes }: { brindes: Brinde[] }) {
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [novoAberto, setNovoAberto] = useState(false)
 
+  // Soma dos pesos dos brindes ATIVOS — usado pelo BrindeForm pra
+  // calcular a % de chance dinamicamente quando arrasta o slider.
+  const somaPesosAtivos = brindes.filter(b => b.ativo).reduce((s, b) => s + b.peso, 0)
+
   return (
     <section className="card p-4 sm:p-5 space-y-3">
       <div className="flex items-center justify-between">
@@ -259,21 +263,28 @@ function BrindesSection({ brindes }: { brindes: Brinde[] }) {
       )}
 
       {novoAberto && (
-        <BrindeForm onClose={() => setNovoAberto(false)} />
+        <BrindeForm onClose={() => setNovoAberto(false)} somaPesosOutros={somaPesosAtivos} />
       )}
 
-      {brindes.map(b => (
-        editandoId === b.id ? (
-          <BrindeForm key={b.id} brinde={b} onClose={() => setEditandoId(null)} />
+      {brindes.map(b => {
+        const chance = b.ativo && somaPesosAtivos > 0 ? Math.round((b.peso / somaPesosAtivos) * 100) : 0
+        return editandoId === b.id ? (
+          <BrindeForm
+            key={b.id}
+            brinde={b}
+            onClose={() => setEditandoId(null)}
+            // Soma dos pesos dos OUTROS ativos (sem o atual, pra não contar 2x).
+            somaPesosOutros={somaPesosAtivos - (b.ativo ? b.peso : 0)}
+          />
         ) : (
-          <BrindeRow key={b.id} brinde={b} onEdit={() => setEditandoId(b.id)} />
+          <BrindeRow key={b.id} brinde={b} chance={chance} onEdit={() => setEditandoId(b.id)} />
         )
-      ))}
+      })}
     </section>
   )
 }
 
-function BrindeRow({ brinde, onEdit }: { brinde: Brinde; onEdit: () => void }) {
+function BrindeRow({ brinde, chance, onEdit }: { brinde: Brinde; chance: number; onEdit: () => void }) {
   const [, startTransition] = useTransition()
   function handleExcluir() {
     if (!confirm(`Excluir o brinde "${brinde.nome}"?`)) return
@@ -290,7 +301,9 @@ function BrindeRow({ brinde, onEdit }: { brinde: Brinde; onEdit: () => void }) {
       <div className="flex-1 min-w-0">
         <p className="font-sans text-sm text-text truncate">{brinde.nome}</p>
         <p className="text-text-muted text-[11px] font-sans">
-          Peso {brinde.peso} {brinde.ativo ? '' : '· Inativo'}{brinde.descricao ? ` · ${brinde.descricao}` : ''}
+          {brinde.ativo
+            ? <>Peso {brinde.peso} · <span className="text-primary font-semibold">{chance}% de chance</span>{brinde.descricao ? ` · ${brinde.descricao}` : ''}</>
+            : <>Peso {brinde.peso} · Inativo{brinde.descricao ? ` · ${brinde.descricao}` : ''}</>}
         </p>
       </div>
       <button onClick={onEdit} className="btn-ghost text-xs py-1 px-2 border border-border shrink-0">Editar</button>
@@ -303,12 +316,22 @@ function BrindeRow({ brinde, onEdit }: { brinde: Brinde; onEdit: () => void }) {
   )
 }
 
-function BrindeForm({ brinde, onClose }: { brinde?: Brinde; onClose: () => void }) {
+function BrindeForm({
+  brinde, onClose, somaPesosOutros,
+}: {
+  brinde?: Brinde
+  onClose: () => void
+  somaPesosOutros: number   // soma de pesos dos outros brindes ATIVOS
+}) {
   const [nome, setNome] = useState(brinde?.nome ?? '')
   const [descricao, setDescricao] = useState(brinde?.descricao ?? '')
   const [fotoUrl, setFotoUrl] = useState(brinde?.foto_url ?? '')
-  const [peso, setPeso] = useState(brinde?.peso ?? 1)
+  const [peso, setPeso] = useState(brinde?.peso ?? 10)
   const [ativo, setAtivo] = useState(brinde?.ativo ?? true)
+
+  // % de chance no sorteio: só se ativo. Soma do denominador inclui esse peso.
+  const denominador = somaPesosOutros + (ativo ? peso : 0)
+  const chance = ativo && denominador > 0 ? Math.round((peso / denominador) * 100) : 0
   const [erro, setErro] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -341,17 +364,31 @@ function BrindeForm({ brinde, onClose }: { brinde?: Brinde; onClose: () => void 
         <label className="label">URL da foto (opcional)</label>
         <input value={fotoUrl} onChange={e => setFotoUrl(e.target.value)} placeholder="https://..." className="input w-full text-sm" />
       </div>
-      <div className="grid grid-cols-2 gap-3 items-end">
-        <div>
-          <label className="label">Peso (raridade)</label>
-          <input type="number" min={1} value={peso} onChange={e => setPeso(parseInt(e.target.value) || 1)} className="input w-full text-center" />
-          <p className="text-text-muted text-[11px] font-sans mt-1">Maior peso = mais comum no sorteio.</p>
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="label !mb-0">Peso (raridade)</label>
+          <div className="flex items-center gap-2">
+            <span className="text-text-muted text-[11px] font-sans">peso {peso}</span>
+            {ativo && (
+              <span className="text-primary text-[11px] font-sans font-semibold">
+                {chance}% de chance
+              </span>
+            )}
+          </div>
         </div>
-        <label className="flex items-center gap-2 cursor-pointer pb-2">
-          <input type="checkbox" checked={ativo} onChange={e => setAtivo(e.target.checked)} className="w-4 h-4 accent-primary" />
-          <span className="text-sm font-sans text-text">Ativo</span>
-        </label>
+        <input
+          type="range" min={1} max={100} value={peso}
+          onChange={e => setPeso(parseInt(e.target.value) || 1)}
+          className="w-full accent-primary cursor-pointer"
+        />
+        <p className="text-text-muted text-[11px] font-sans mt-1">
+          Arraste pra ajustar. Maior peso = mais comum no sorteio entre os brindes ativos.
+        </p>
       </div>
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked={ativo} onChange={e => setAtivo(e.target.checked)} className="w-4 h-4 accent-primary" />
+        <span className="text-sm font-sans text-text">Ativo</span>
+      </label>
       {erro && <p className="text-red-400 text-sm font-sans">{erro}</p>}
       <div className="flex gap-2 pt-1">
         <button onClick={onClose} className="btn-ghost flex-1 text-sm py-2" disabled={isPending}>Cancelar</button>
