@@ -2,7 +2,7 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
-import { REGRAS_FIXAS } from '@/lib/regras'
+import { pegarRegrasGerais } from '@/lib/regras'
 import { cicloDeData } from '@/lib/ciclo'
 
 interface BarbeiroLite { id: string; nome: string; tipo: 'barbeiro' | 'recepcionista' }
@@ -42,13 +42,14 @@ export async function gerarResumoReuniao(mes: number, ano: number): Promise<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuario } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, barbearias(nome, dia_fechamento)')
+    .select('barbearia_id, barbearias(nome, dia_fechamento, regras_gerais)')
     .eq('id', user.id)
-    .single() as { data: { barbearia_id: string; barbearias: { nome: string; dia_fechamento: number | null } | null } | null }
+    .single() as { data: { barbearia_id: string; barbearias: { nome: string; dia_fechamento: number | null; regras_gerais: string[] | null } | null } | null }
   if (!usuario || !usuario.barbearias) return { error: 'Barbearia não encontrada.' }
 
   const barbeariaNome = usuario.barbearias.nome
   const diaFechamento = usuario.barbearias.dia_fechamento ?? 1
+  const regrasGerais = pegarRegrasGerais(usuario.barbearias.regras_gerais)
   const periodoLabel = cicloDeData(new Date(ano, mes - 1, diaFechamento), diaFechamento).label
 
   // ── Metas ─────────────────────────────────────────────
@@ -160,7 +161,7 @@ export async function gerarResumoReuniao(mes: number, ano: number): Promise<
   }
 
   blocos.push(
-    `REGRAS GERAIS DO SISTEMA:\n${REGRAS_FIXAS.map(r => `- ${r}`).join('\n')}`
+    `REGRAS GERAIS DA CAMPANHA:\n${regrasGerais.map(r => `- ${r}`).join('\n')}`
   )
 
   if (campanha?.regras_personalizadas) {

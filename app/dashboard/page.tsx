@@ -19,7 +19,7 @@ import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetal
 type UsuarioComBarbearia = {
   barbearia_id: string
   senha_temporaria: boolean
-  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null; dia_fechamento: number | null; mostrar_ticket_medio: boolean | null; mostrar_faturamento_geral: boolean | null }
+  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null; dia_fechamento: number | null; mostrar_ticket_medio: boolean | null; mostrar_faturamento_geral: boolean | null; regras_gerais: string[] | null }
 }
 
 type MetaSimples = {
@@ -46,7 +46,7 @@ export default async function DashboardPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral)')
+    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais)')
     .eq('id', user.id)
     .single()
 
@@ -417,7 +417,7 @@ export default async function DashboardPage({
         />
       ) : null}
       campanhaSlot={modoAtual !== 'metas' && !mesFechado ? (
-        <CampanhaModal campanha={campanha} mes={mes} ano={ano} />
+        <CampanhaModal campanha={campanha} mes={mes} ano={ano} regrasGeraisDb={barbearia.regras_gerais ?? null} />
       ) : null}
       campanhaToggleSlot={modoAtual !== 'metas' && !mesFechado && campanha ? (
         <CampanhaToggle campanhaId={campanha.id} ativo={campanha.ativo} />
