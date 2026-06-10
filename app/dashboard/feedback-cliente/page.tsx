@@ -43,11 +43,16 @@ export default async function FeedbackClientePage() {
       <Sidebar barbeariaNome={barb.nome} />
       <div className="flex-1 min-w-0 lg:pl-64 pt-14 lg:pt-0">
         <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-          <header>
-            <h1 className="font-serif text-2xl sm:text-3xl text-text">Feedback de Cliente</h1>
-            <p className="text-text-muted text-sm font-sans mt-1">
-              Colete avaliações de clientes em um link público, sorteie brindes e direcione 4★+ para o Google.
-            </p>
+          <header className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="font-serif text-2xl sm:text-3xl text-text">Feedback de Cliente</h1>
+              <p className="text-text-muted text-sm font-sans mt-1">
+                Colete avaliações de clientes em um link público, sorteie brindes e direcione 4★+ para o Google.
+              </p>
+            </div>
+            <a href="/dashboard/feedback-cliente/painel" className="btn-ghost text-xs py-2 px-3 border border-border whitespace-nowrap shrink-0">
+              📊 Ver feedbacks
+            </a>
           </header>
 
           <FeedbackConfigClient barbearia={barb} brindes={brindes} />
