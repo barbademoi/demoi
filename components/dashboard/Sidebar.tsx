@@ -46,7 +46,7 @@ const navItems: NavItem[] = [
   },
   {
     href: '/dashboard/historico-lancamentos',
-    label: 'Histórico de lançamentos',
+    label: 'Lançamento de pontos',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
         <path d="M3 3v18h18" />

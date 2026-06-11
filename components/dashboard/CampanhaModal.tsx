@@ -360,7 +360,7 @@ export default function CampanhaModal({ campanha, mes, ano, regrasGeraisDb }: Pr
                       <p className="text-text text-sm font-sans">Só o dono lança</p>
                       <p className="text-text-muted text-[11px] font-sans mt-0.5">
                         Esconde o botão de lançar no link do barbeiro. Você lança em
-                        Histórico de lançamentos &gt; Adicionar lançamento.
+                        Lançamento de pontos &gt; Adicionar lançamento.
                       </p>
                     </div>
                   </label>

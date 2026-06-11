@@ -48,7 +48,7 @@ export default async function HistoricoLancamentosPage() {
       <div className="flex-1 min-w-0 lg:pl-64 pt-14 lg:pt-0">
         <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
           <header>
-            <h1 className="font-serif text-2xl sm:text-3xl text-text">Histórico de lançamentos</h1>
+            <h1 className="font-serif text-2xl sm:text-3xl text-text">Lançamento de pontos</h1>
             <p className="text-text-muted text-sm font-sans mt-1">
               Confira os lançamentos de um barbeiro num intervalo livre e ajuste o que precisar.
             </p>
