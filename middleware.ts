@@ -39,6 +39,7 @@ export async function middleware(request: NextRequest) {
 
     const isAuthRoute        = pathname === '/login'
     const isBarbeiroRoute    = pathname.startsWith('/b/')
+    const isFeedbackRoute    = pathname.startsWith('/c/')
     const isApiRoute         = pathname.startsWith('/api/')
     const isAuthCallback     = pathname.startsWith('/auth/')
     const isPasswordRoute    = pathname === '/esqueci-senha' || pathname === '/redefinir-senha'
@@ -47,7 +48,7 @@ export async function middleware(request: NextRequest) {
     const isBoasVindasRoute  = pathname === '/boas-vindas'
     const isComprarRoute     = pathname === '/comprar'
     const isAguardandoRoute  = pathname === '/aguardando'
-    const isPublicRoute      = isAuthRoute || isBarbeiroRoute || isApiRoute ||
+    const isPublicRoute      = isAuthRoute || isBarbeiroRoute || isFeedbackRoute || isApiRoute ||
                                isAuthCallback || isPasswordRoute || isLandingRoute ||
                                isBoasVindasRoute || isComprarRoute || isAguardandoRoute
 
@@ -71,6 +72,7 @@ export async function middleware(request: NextRequest) {
                           pathname === '/comprar' ||
                           pathname === '/aguardando' ||
                           pathname.startsWith('/b/') ||
+                          pathname.startsWith('/c/') ||
                           pathname.startsWith('/api/') ||
                           pathname.startsWith('/auth/') ||
                           pathname === '/esqueci-senha' ||
