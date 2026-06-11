@@ -39,6 +39,7 @@ export async function salvarCampanha(params: {
   bonusAssinQtd: number
   bonusAssinValor: number
   regrasPersonalizadas?: string
+  quemLanca?: 'barbeiro' | 'dono'
   servicos: ServicoInput[]
   premios: PremioInput[]
 }) {
@@ -67,6 +68,7 @@ export async function salvarCampanha(params: {
       bonus_assin_qtd: params.bonusAssinQtd,
       bonus_assin_valor: params.bonusAssinValor,
       regras_personalizadas: params.regrasPersonalizadas?.trim() || null,
+      quem_lanca: params.quemLanca === 'dono' ? 'dono' : 'barbeiro',
     }, { onConflict: 'barbearia_id,mes,ano' })
     .select('id')
     .single()

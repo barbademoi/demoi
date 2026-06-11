@@ -47,6 +47,7 @@ export default function CampanhaModal({ campanha, mes, ano, regrasGeraisDb }: Pr
   const [bonusQtd,       setBonusQtd]       = useState(campanha?.bonus_assin_qtd  ?? 10)
   const [bonusValor,     setBonusValor]     = useState(campanha?.bonus_assin_valor ?? 200)
   const [regrasPersonalizadas, setRegrasPersonalizadas] = useState(campanha?.regras_personalizadas ?? '')
+  const [quemLanca,      setQuemLanca]      = useState<'barbeiro' | 'dono'>(campanha?.quem_lanca ?? 'barbeiro')
 
   // Regras gerais — editaveis pelo dono. Inicializa do banco (se ele ja
   // customizou) OU do default REGRAS_FIXAS. Salvar/resetar usa actions
@@ -116,7 +117,7 @@ export default function CampanhaModal({ campanha, mes, ano, regrasGeraisDb }: Pr
   function salvar() {
     setErro(null)
     startTransition(async () => {
-      const res = await salvarCampanha({ mes, ano, minPontos, minPontosRecep, bonusAssinQtd: bonusQtd, bonusAssinValor: bonusValor, regrasPersonalizadas, servicos, premios })
+      const res = await salvarCampanha({ mes, ano, minPontos, minPontosRecep, bonusAssinQtd: bonusQtd, bonusAssinValor: bonusValor, regrasPersonalizadas, quemLanca, servicos, premios })
       if (res?.error) { setErro(res.error); return }
       setOpen(false)
     })
@@ -327,6 +328,43 @@ export default function CampanhaModal({ campanha, mes, ano, regrasGeraisDb }: Pr
                 <p className="text-text-muted text-xs font-sans mt-1.5">
                   Recepcionistas abaixo de {minPontosRecep} pts ficam fora do ranking de premiação.
                 </p>
+              </div>
+              <div className="border-t border-border pt-4">
+                <p className="font-sans text-sm text-text mb-1">Quem lança a pontuação diária?</p>
+                <p className="text-text-muted text-xs font-sans mb-3">
+                  Só vale daqui pra frente. Lançamentos já feitos não são afetados.
+                </p>
+                <div className="space-y-2">
+                  <label className="flex items-start gap-2.5 p-3 rounded-xl border border-border cursor-pointer hover:bg-surface-2">
+                    <input
+                      type="radio" name="quem-lanca"
+                      checked={quemLanca === 'barbeiro'}
+                      onChange={() => setQuemLanca('barbeiro')}
+                      className="mt-0.5 accent-primary w-4 h-4 shrink-0"
+                    />
+                    <div className="flex-1">
+                      <p className="text-text text-sm font-sans">Cada barbeiro lança a sua</p>
+                      <p className="text-text-muted text-[11px] font-sans mt-0.5">
+                        O barbeiro abre o link dele e lança pelo celular.
+                      </p>
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-2.5 p-3 rounded-xl border border-border cursor-pointer hover:bg-surface-2">
+                    <input
+                      type="radio" name="quem-lanca"
+                      checked={quemLanca === 'dono'}
+                      onChange={() => setQuemLanca('dono')}
+                      className="mt-0.5 accent-primary w-4 h-4 shrink-0"
+                    />
+                    <div className="flex-1">
+                      <p className="text-text text-sm font-sans">Só o dono lança</p>
+                      <p className="text-text-muted text-[11px] font-sans mt-0.5">
+                        Esconde o botão de lançar no link do barbeiro. Você lança em
+                        Lançamento de pontos &gt; Adicionar lançamento.
+                      </p>
+                    </div>
+                  </label>
+                </div>
               </div>
               <div className="border-t border-border pt-4">
                 <p className="font-sans text-sm text-text mb-3">Bônus de assinaturas</p>

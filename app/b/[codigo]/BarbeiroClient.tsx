@@ -95,6 +95,10 @@ export default function BarbeiroClient({
   const isRecepcionista = barbeiro.tipo === 'recepcionista'
   const mostraPontos = modo === 'pontos' || modo === 'ambos'
   const mostraMetas = (modo === 'metas' || modo === 'ambos') && !isRecepcionista
+  // Modo "dono lança": esconde a aba/form de lançar (barbeiro continua
+  // vendo progresso, ranking, regras e feedbacks). Bloqueio tambem aplicado
+  // no servidor em lancarDiaBarbeiro.
+  const barbeiroPodeLancar = campanha?.quem_lanca !== 'dono'
   const [aba, setAba] = useState<'progresso' | 'lancar' | 'regras' | 'feedbacks'>('progresso')
   const temFeedbacks = feedbacksDoBarbeiro.length > 0
   const [celebracaoFechada, setCelebracaoFechada] = useState(false)
@@ -187,7 +191,7 @@ export default function BarbeiroClient({
               Progresso
             </button>
           )}
-          {mostraPontos && (
+          {mostraPontos && barbeiroPodeLancar && (
             <button
               onClick={() => setAba('lancar')}
               className={`flex-1 py-3.5 text-sm font-sans font-semibold transition-colors whitespace-nowrap
@@ -642,7 +646,7 @@ export default function BarbeiroClient({
       )}
 
       {/* ── ABA: LANÇAR DIA ── */}
-      {aba === 'lancar' && mostraPontos && (
+      {aba === 'lancar' && mostraPontos && barbeiroPodeLancar && (
         <div className="pt-2">
           {campanha ? (
             <LancarDiaForm
