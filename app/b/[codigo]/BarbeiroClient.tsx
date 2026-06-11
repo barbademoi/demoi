@@ -69,6 +69,9 @@ interface Props {
     nome_cliente: string | null
     data: string
     created_at: string
+    codigo_resgate: string | null
+    brinde_usado: boolean
+    brindes: { nome: string } | null
   }>
   // Regras gerais editadas pela barbearia (null = usa default).
   regrasGerais: string[] | null
@@ -724,6 +727,28 @@ export default function BarbeiroClient({
                 </p>
               ) : (
                 <p className="text-on-cream-muted text-xs font-sans italic">Sem comentário.</p>
+              )}
+              {f.brindes && (
+                <div className={`mt-2 rounded-lg border p-2.5 ${f.brinde_usado
+                  ? 'border-on-cream-muted/20 bg-on-cream-muted/5'
+                  : 'border-primary/30 bg-primary/5'}`}>
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg leading-none">🎁</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-on-cream text-xs font-sans font-semibold">
+                        {f.brindes.nome}
+                      </p>
+                      {f.codigo_resgate && (
+                        <p className="text-on-cream-muted text-[11px] font-sans mt-0.5">
+                          Código: <span className="font-mono tracking-wider">{f.codigo_resgate}</span>
+                        </p>
+                      )}
+                      <p className={`text-[11px] font-sans mt-1 ${f.brinde_usado ? 'text-on-cream-muted' : 'text-primary'}`}>
+                        {f.brinde_usado ? '✓ Já resgatado' : 'Oferece pro cliente no próximo atendimento'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           ))}

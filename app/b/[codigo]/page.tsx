@@ -311,7 +311,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: feedbacksRaw } = await (admin as any)
     .from('feedbacks_cliente')
-    .select('id, estrelas, comentario, nome_cliente, data, created_at')
+    .select('id, estrelas, comentario, nome_cliente, data, created_at, codigo_resgate, brinde_usado, brindes(nome)')
     .eq('barbeiro_id', barbeiro.id)
     .eq('arquivado', false)
     .order('created_at', { ascending: false })
@@ -323,6 +323,9 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     nome_cliente: string | null
     data: string
     created_at: string
+    codigo_resgate: string | null
+    brinde_usado: boolean
+    brindes: { nome: string } | null
   }>
 
   return (
