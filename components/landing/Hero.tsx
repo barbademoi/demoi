@@ -91,7 +91,16 @@ export default function Hero() {
               custom={5} variants={fadeUp} initial="hidden" animate="show"
               className="mt-7 flex flex-col items-center lg:items-start gap-3"
             >
-              <CTAButton />
+              <div className="flex flex-col sm:flex-row gap-3 items-center">
+                <CTAButton />
+                <a
+                  href="#funcionalidades"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5 transition-colors"
+                >
+                  Ver funcionalidades
+                  <span aria-hidden>↓</span>
+                </a>
+              </div>
               <p className="text-sm text-[#A0AEC0]">
                 Acesso vitalício · Sem mensalidade · 7 dias de garantia
               </p>
