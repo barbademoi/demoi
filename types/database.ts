@@ -289,6 +289,7 @@ export interface Campanha {
   bonus_assin_valor: number
   ativo: boolean
   regras_personalizadas: string | null
+  quem_lanca: 'barbeiro' | 'dono'
   created_at: string
 }
 

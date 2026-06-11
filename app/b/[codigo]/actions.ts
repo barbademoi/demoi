@@ -45,10 +45,16 @@ export async function lancarDiaBarbeiro(params: {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: campRaw } = await (supabase as any)
-    .from('campanha').select('id, ativo')
+    .from('campanha').select('id, ativo, quem_lanca')
     .eq('barbearia_id', barbeiroRaw.barbearia_id).eq('mes', mes).eq('ano', ano).single()
   if (!campRaw) return { error: 'Campanha não encontrada para este mês.' }
   if (campRaw.ativo === false) return { error: 'Campanha inativa.' }
+  // Bloqueio no servidor: se a campanha foi configurada pra "só o dono lança",
+  // recusa qualquer lançamento vindo dessa action (chamada pela tela do barbeiro).
+  // O dono lança pelo caminho `lancarDiaComoDono` em /dashboard/lancamentos-barbeiro.
+  if ((campRaw as { quem_lanca?: string }).quem_lanca === 'dono') {
+    return { error: 'Lançamento bloqueado: só o dono lança a pontuação nessa campanha.' }
+  }
 
   const campanha_id = (campRaw as { id: string }).id
   const barbeiro_id = (barbeiroRaw as { id: string }).id
