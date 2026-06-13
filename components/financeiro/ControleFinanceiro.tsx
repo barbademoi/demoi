@@ -8,25 +8,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import {
   loadState as remoteLoad,
   saveState as remoteSave,
 } from '@/lib/financeiro/supabaseStore'
+import { buscarComissoesBarbermeta } from '@/lib/financeiro/serverActions'
 
-// ---- Design tokens (steel / private-bank, higher contrast) ---------------
+// ---- Design tokens (alinhados com BarberMeta) ----------------------------
 const C = {
-  bg: '#333B43',
-  surface: '#3F4954',
-  surface2: '#4A5560',
-  ink: '#F6F9FB',
+  bg: '#08090D',           // BM background
+  surface: '#0F1117',      // BM surface
+  surface2: '#161820',     // BM surface-2
+  ink: '#EEF0F6',          // BM text
   inkSoft: '#C4CDD4',
   faint: '#8B96A0',
-  line: '#54606B',
-  primary: '#D2AE62',
-  primaryInk: '#27313A',
+  line: '#1E2028',         // BM border
+  primary: '#D2AE62',      // brass/gold (mantido — combina com financeiro)
+  primaryInk: '#0F1117',   // texto sobre o primary
   primarySoft: 'rgba(210,174,98,0.18)',
-  in: '#8FC39B',
-  out: '#DC9377',
+  in: '#4ADE80',           // entradas (verde)
+  out: '#F87171',          // saidas (vermelho)
 }
 
 const FONT_BODY = "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
@@ -271,6 +273,11 @@ export default function ControleFinanceiro() {
       `}</style>
 
       <div style={{ maxWidth: 920, margin: '0 auto', padding: '28px 18px 64px' }}>
+        <div style={{ marginBottom: 18 }}>
+          <Link href="/dashboard" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: C.inkSoft, background: C.surface, border: `1px solid ${C.line}`, borderRadius: 9, padding: '8px 14px', textDecoration: 'none' }}>
+            <span aria-hidden>←</span> Voltar ao BarberMeta
+          </Link>
+        </div>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: C.primary, textTransform: 'uppercase', marginBottom: 2 }}>BarberMeta</div>
@@ -718,6 +725,46 @@ function Collaborators({ state, update, scope, folha, month }: any) {
   const [fName, setFName] = useState('')
   const [fType, setFType] = useState('salario')
   const [fVal, setFVal] = useState('')
+  const [importando, setImportando] = useState(false)
+  const [importMsg, setImportMsg] = useState<string | null>(null)
+
+  // Importa barbeiros + comissao acumulada do ciclo atual do BarberMeta.
+  // Pra cada barbeiro: se ja existe colaborador com mesmo nome (case-insensitive),
+  // atualiza monthly[mesAno] com a comissao. Se nao existe, cria como 'comissao'.
+  const importarBM = async () => {
+    setImportando(true); setImportMsg(null)
+    try {
+      const res = await buscarComissoesBarbermeta()
+      if ('error' in res) { setImportMsg(res.error); return }
+      const { mesAno, barbeiros } = res
+      if (barbeiros.length === 0) {
+        setImportMsg('Nenhum barbeiro ativo encontrado no BarberMeta.')
+        return
+      }
+
+      const norm = (s: string) => s.trim().toLowerCase()
+      const next = [...state.collaborators]
+      let atualizados = 0
+      let criados = 0
+      for (const b of barbeiros) {
+        const idx = next.findIndex((c: any) => c.scope === 'empresa' && c.type === 'comissao' && norm(c.name) === norm(b.nome))
+        if (idx >= 0) {
+          const c = next[idx]
+          next[idx] = { ...c, monthly: { ...(c.monthly || {}), [mesAno]: b.comissao } }
+          atualizados++
+        } else {
+          next.push({ id: uid(), scope: 'empresa', name: b.nome, type: 'comissao', monthly: { [mesAno]: b.comissao } })
+          criados++
+        }
+      }
+      update({ collaborators: next })
+      setImportMsg(`Importados ${barbeiros.length} barbeiros para ${mesAno} (${criados} novos · ${atualizados} atualizados).`)
+    } catch (e: any) {
+      setImportMsg(e?.message || 'Erro ao importar.')
+    } finally {
+      setImportando(false)
+    }
+  }
 
   const submit = () => {
     if (!name.trim()) return
@@ -788,6 +835,27 @@ function Collaborators({ state, update, scope, folha, month }: any) {
         <p style={{ margin: '12px 4px 0', fontSize: 12.5, color: C.faint }}>
           Salário entra igual todos os meses. Comissão você informa por mês — comece pela de <strong style={{ color: C.inkSoft }}>{monthLabel(month)}</strong> e ajuste nos próximos.
         </p>
+      </Card>
+
+      {/* Importar comissões do BarberMeta */}
+      <Card style={{ background: C.surface, border: `1px dashed ${C.primary}` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14, color: C.ink, fontWeight: 700 }}>
+              <span style={{ marginRight: 6 }}>⚡</span>Importar comissões do BarberMeta
+            </div>
+            <div style={{ fontSize: 12.5, color: C.faint, marginTop: 4 }}>
+              Puxa todos os barbeiros ativos e a comissão acumulada do ciclo atual.
+              Cria os que faltam e atualiza os já cadastrados.
+            </div>
+          </div>
+          <Btn small onClick={importarBM}>
+            {importando ? 'Importando…' : 'Importar agora'}
+          </Btn>
+        </div>
+        {importMsg && (
+          <p style={{ margin: '10px 4px 0', fontSize: 12.5, color: C.in }}>{importMsg}</p>
+        )}
       </Card>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px', flexWrap: 'wrap', gap: 6 }}>
