@@ -14,9 +14,10 @@ export const metadata = {
 // O paywall (entitlement por compra) eh feito no client pelo FinanceiroGate
 // via RPC has_financeiro(); a trava REAL eh no RLS do banco.
 //
-// checkoutUrl: PLACEHOLDER por enquanto. Troque pelo link da Hotmart
-// do "BarberMeta Plus" ou do adicional avulso do Controle Financeiro.
-const CHECKOUT_URL = 'PLACEHOLDER'
+// checkoutUrl: link da Hotmart do adicional "Controle Financeiro".
+// Quem ainda nao comprou, vai cair no FinanceiroGate e clica em
+// "Desbloquear agora" — abre esse link.
+const CHECKOUT_URL = 'https://pay.hotmart.com/P106317414B'
 
 export default async function FinanceiroPage() {
   const supabase = createClient()
