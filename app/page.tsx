@@ -12,9 +12,9 @@ import Footer from '@/components/landing/Footer'
 import MobileStickyCTA from '@/components/landing/MobileStickyCTA'
 
 export const metadata = {
-  title: 'BarberMeta — Metas claras. Equipe motivada. Sem cobrar.',
+  title: 'BarberMeta — O sistema que transforma sua barbearia numa gincana de vendas',
   description:
-    'Sistema de metas para barbearias. Cada barbeiro vê o próprio ranking no celular. Quem está atrás, acelera sozinho. R$ 47 vitalício.',
+    'Crie a gincana de vendas da sua barbearia: cada barbeiro vê comissão, ranking e metas no celular. Quem está atrás, acelera sozinho. R$ 47 vitalício.',
 }
 
 export default function LandingPage() {
