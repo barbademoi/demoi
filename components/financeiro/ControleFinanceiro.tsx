@@ -240,9 +240,11 @@ export default function ControleFinanceiro() {
     const caixa = accountsSum(sf)
     const aPagar = f(state.payables).filter((p: any) => appearsIn(p, month) && !isDone(p, month)).reduce((a: number, x: any) => a + (Number(x.amount) || 0), 0)
     const aReceber = f(state.receivables).filter((r: any) => appearsIn(r, month) && !isDone(r, month)).reduce((a: number, x: any) => a + (Number(x.amount) || 0), 0)
+    const pago = f(state.payables).filter((p: any) => appearsIn(p, month) && isDone(p, month)).reduce((a: number, x: any) => a + (Number(x.amount) || 0), 0)
+    const recebido = f(state.receivables).filter((r: any) => appearsIn(r, month) && isDone(r, month)).reduce((a: number, x: any) => a + (Number(x.amount) || 0), 0)
     const folha = f(state.collaborators).reduce((a: number, c: any) => a + collabValue(c, month), 0)
     const sobra = caixa + aReceber - aPagar - folha
-    return { caixa, aPagar, aReceber, folha, sobra }
+    return { caixa, aPagar, aReceber, pago, recebido, folha, sobra }
   }
   const empresaT = computeScope('empresa')
   const pessoalT = computeScope('pessoal')
@@ -251,6 +253,8 @@ export default function ControleFinanceiro() {
     caixa: empresaT.caixa + pessoalT.caixa,
     aPagar: empresaT.aPagar + pessoalT.aPagar,
     aReceber: empresaT.aReceber + pessoalT.aReceber,
+    pago: empresaT.pago + pessoalT.pago,
+    recebido: empresaT.recebido + pessoalT.recebido,
     folha: empresaT.folha + pessoalT.folha,
     sobra: empresaT.sobra + pessoalT.sobra,
   }
@@ -443,6 +447,31 @@ function Overview({ scoped, combined, scope, month, setTab }: any) {
         {segBtn('scope', `Só ${scopeLabel}`)}
         {segBtn('all', 'Empresa + Pessoal')}
       </div>
+
+      {/* Card "Ja realizado em <mes>" — soma do que ja entrou e ja saiu
+          do caixa. So aparece quando ha algo pra mostrar. */}
+      {(t.pago > 0 || t.recebido > 0) && (
+        <Card style={{ padding: '8px 18px 14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 6px 4px' }}>
+            <div style={{ fontSize: 13, color: C.inkSoft, fontWeight: 600 }}>Já realizado em {monthLabel(month)}</div>
+            <Badge color={C.in}>Concluído</Badge>
+          </div>
+          <Line
+            label="✓ Já recebido"
+            value={t.recebido}
+            color={C.in}
+            sub={t.recebido > 0 ? 'entrou no caixa' : undefined}
+            onClick={() => setTab('receivables')}
+          />
+          <Line
+            label="✓ Já pago"
+            value={t.pago}
+            color={C.out}
+            sub={t.pago > 0 ? 'saiu do caixa' : undefined}
+            onClick={() => setTab('payables')}
+          />
+        </Card>
+      )}
 
       <Card style={{ padding: '8px 18px 18px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 6px 4px' }}>
