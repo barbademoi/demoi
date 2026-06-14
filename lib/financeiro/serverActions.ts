@@ -70,3 +70,23 @@ export async function buscarComissoesBarbermeta(): Promise<
 
   return { ok: true, mesAno: `${ano}-${String(mes).padStart(2, '0')}`, barbeiros: out }
 }
+
+// Le nome + logo da barbearia do usuario logado. Usado pra montar o card
+// de pagamento (PNG) que o dono manda pro colaborador junto com o pagamento.
+export async function buscarBarbeariaInfo(): Promise<
+  { ok: true; nome: string; logoUrl: string | null } | { error: string }
+> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: usuario } = await (supabase as any)
+    .from('usuarios')
+    .select('barbearias(nome, logo_url)')
+    .eq('id', user.id).single() as
+    { data: { barbearias: { nome: string; logo_url: string | null } | null } | null }
+
+  if (!usuario?.barbearias) return { error: 'Barbearia não encontrada.' }
+  return { ok: true, nome: usuario.barbearias.nome, logoUrl: usuario.barbearias.logo_url }
+}

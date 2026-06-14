@@ -84,9 +84,10 @@ function migrate(s: any) {
     collaborators: (s.collaborators || []).map((c: any) => {
       const m: any = { ...c, scope: 'empresa' }
       if (m.type === 'comissao' && !m.monthly) m.monthly = m.amount ? { [currentMonth()]: m.amount } : {}
-      // Descontos por mes (lista) e registro de pagamento por mes — inicializa
-      // vazios pra colaboradores antigos (mantem compat).
+      // Descontos / bonus por mes (listas) e registro de pagamento por mes —
+      // inicializa vazios pra colaboradores antigos (mantem compat).
       if (!m.descontos) m.descontos = {}
+      if (!m.bonus) m.bonus = {}
       if (!m.paid) m.paid = {}
       return m
     }),
@@ -97,16 +98,136 @@ function migrate(s: any) {
   }
 }
 
-// ---- Helpers de colaboradores (descontos / liquido / pagamento) ----------
+// ---- Helpers de colaboradores (descontos / bonus / liquido / pagamento) --
 const descontosDoMes = (c: any, ym: string): any[] => (c.descontos && c.descontos[ym]) || []
 const descontoSumDoMes = (c: any, ym: string): number =>
   descontosDoMes(c, ym).reduce((s: number, d: any) => s + (Number(d.valor) || 0), 0)
+const bonusDoMes = (c: any, ym: string): any[] => (c.bonus && c.bonus[ym]) || []
+const bonusSumDoMes = (c: any, ym: string): number =>
+  bonusDoMes(c, ym).reduce((s: number, b: any) => s + (Number(b.valor) || 0), 0)
 const liquidoDoMes = (c: any, ym: string): number =>
-  Math.max(0, collabValue(c, ym) - descontoSumDoMes(c, ym))
+  Math.max(0, collabValue(c, ym) - descontoSumDoMes(c, ym) + bonusSumDoMes(c, ym))
 const isCollabPaid = (c: any, ym: string): boolean => !!(c.paid && c.paid[ym])
 const collabPaidAccount = (c: any, ym: string): string | null => {
   const p = c.paid && c.paid[ym]
   return p && typeof p === 'object' ? p.account : null
+}
+
+const TIPOS_BONUS = ['Líder', 'Gincana', 'Meta batida', 'Outro']
+
+// ---- Card de pagamento (SVG -> PNG) -------------------------------------
+const CARD_W = 1080
+const CARD_PAD = 56
+const CARD_HEADER = 220
+const CARD_FOOTER = 230
+const ROW_H = 56
+
+function computeCardHeight(numDescs: number, numBons: number): number {
+  // header + (titulo "Bruto") + brutoRow + (descontos block) + (bonus block)
+  // + (titulo "liquido") + footer
+  let h = CARD_HEADER + ROW_H + 50  // header + label + bruto
+  if (numDescs > 0) h += 50 + numDescs * ROW_H + 20
+  if (numBons > 0)  h += 50 + numBons * ROW_H + 20
+  h += 50 + ROW_H + CARD_FOOTER  // liquido + footer
+  return h
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildCardSVG(p: any): string {
+  const { barbeariaNome, logoData, colaboradorNome, mes, tipo, bruto, descs, bons, descSum, bonSum, liq } = p
+
+  const W = CARD_W
+  const H = computeCardHeight(descs.length, bons.length)
+  const PAD = CARD_PAD
+  const accent = '#D2AE62'
+  const ink = '#EEF0F6'
+  const inkSoft = '#C4CDD4'
+  const faint = '#8B96A0'
+  const surface = '#0F1117'
+  const line = '#1E2028'
+  const out = '#F87171'
+  const inColor = '#4ADE80'
+
+  const esc = (s: string) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  const brlSVG = (n: number) =>
+    'R$ ' + (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+  // ── Header ──
+  let y = PAD + 30
+  let header = ''
+  if (logoData) {
+    header += `<image x="${PAD}" y="${PAD}" width="120" height="120" preserveAspectRatio="xMidYMid slice" href="${esc(logoData)}" clip-path="inset(0 round 24)" />`
+    header += `<text x="${PAD + 144}" y="${PAD + 50}" font-family="Helvetica, Arial, sans-serif" font-size="22" font-weight="700" fill="${accent}" letter-spacing="3">PAGAMENTO</text>`
+    header += `<text x="${PAD + 144}" y="${PAD + 86}" font-family="Helvetica, Arial, sans-serif" font-size="32" font-weight="700" fill="${ink}">${esc(barbeariaNome)}</text>`
+    header += `<text x="${PAD + 144}" y="${PAD + 118}" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="${faint}">${esc(mes)}</text>`
+    y = PAD + 160
+  } else {
+    header += `<text x="${PAD}" y="${PAD + 28}" font-family="Helvetica, Arial, sans-serif" font-size="22" font-weight="700" fill="${accent}" letter-spacing="3">PAGAMENTO</text>`
+    header += `<text x="${PAD}" y="${PAD + 70}" font-family="Helvetica, Arial, sans-serif" font-size="40" font-weight="700" fill="${ink}">${esc(barbeariaNome)}</text>`
+    header += `<text x="${PAD}" y="${PAD + 104}" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="${faint}">${esc(mes)}</text>`
+    y = PAD + 140
+  }
+
+  // ── Linha divisória + nome do colaborador ──
+  header += `<line x1="${PAD}" y1="${y}" x2="${W - PAD}" y2="${y}" stroke="${line}" stroke-width="1"/>`
+  y += 50
+  header += `<text x="${PAD}" y="${y}" font-family="Georgia, serif" font-size="46" font-weight="700" fill="${ink}">${esc(colaboradorNome)}</text>`
+  y += 32
+  header += `<text x="${PAD}" y="${y}" font-family="Helvetica, Arial, sans-serif" font-size="20" fill="${faint}">${tipo === 'comissao' ? 'Comissão' : 'Salário'} · ${esc(mes)}</text>`
+  y += 50
+
+  // ── Bruto ──
+  let body = ''
+  body += `<text x="${PAD}" y="${y}" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="${faint}" letter-spacing="2">BRUTO</text>`
+  y += 12
+  body += `<text x="${PAD}" y="${y + 32}" font-family="Helvetica, Arial, sans-serif" font-size="40" font-weight="700" fill="${ink}">${brlSVG(bruto)}</text>`
+  y += 60
+
+  // ── Descontos ──
+  if (descs.length > 0) {
+    y += 10
+    body += `<text x="${PAD}" y="${y}" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="${out}" letter-spacing="2">DESCONTOS</text>`
+    y += 22
+    for (const d of descs) {
+      body += `<text x="${PAD}" y="${y + 24}" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="${inkSoft}">${esc(d.tipo)}${d.obs ? ' · ' + esc(d.obs) : ''}</text>`
+      body += `<text x="${W - PAD}" y="${y + 24}" font-family="Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="${out}" text-anchor="end">− ${brlSVG(d.valor)}</text>`
+      y += ROW_H
+    }
+    body += `<text x="${W - PAD}" y="${y + 6}" font-family="Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="${out}" text-anchor="end">Total: − ${brlSVG(descSum)}</text>`
+    y += 36
+  }
+
+  // ── Bonus ──
+  if (bons.length > 0) {
+    y += 10
+    body += `<text x="${PAD}" y="${y}" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="${inColor}" letter-spacing="2">BÔNUS</text>`
+    y += 22
+    for (const b of bons) {
+      body += `<text x="${PAD}" y="${y + 24}" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="${inkSoft}">${esc(b.tipo)}${b.obs ? ' · ' + esc(b.obs) : ''}</text>`
+      body += `<text x="${W - PAD}" y="${y + 24}" font-family="Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="${inColor}" text-anchor="end">+ ${brlSVG(b.valor)}</text>`
+      y += ROW_H
+    }
+    body += `<text x="${W - PAD}" y="${y + 6}" font-family="Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="${inColor}" text-anchor="end">Total: + ${brlSVG(bonSum)}</text>`
+    y += 36
+  }
+
+  // ── Liquido (destaque dourado) ──
+  y += 30
+  body += `<rect x="${PAD - 20}" y="${y - 8}" width="${W - 2 * PAD + 40}" height="120" rx="20" fill="${accent}"/>`
+  body += `<text x="${W / 2}" y="${y + 26}" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="${surface}" letter-spacing="3" text-anchor="middle">LÍQUIDO A RECEBER</text>`
+  body += `<text x="${W / 2}" y="${y + 90}" font-family="Georgia, serif" font-size="64" font-weight="700" fill="${surface}" text-anchor="middle">${brlSVG(liq)}</text>`
+  y += 140
+
+  // ── Footer ──
+  const footer = `<text x="${W / 2}" y="${H - 50}" font-family="Helvetica, Arial, sans-serif" font-size="18" fill="${faint}" text-anchor="middle">Gerado pelo BarberMeta · Controle Financeiro</text>`
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+    <rect width="${W}" height="${H}" fill="${surface}"/>
+    <rect x="0" y="0" width="${W}" height="6" fill="${accent}"/>
+    ${header}
+    ${body}
+    ${footer}
+  </svg>`
 }
 
 // ---- UI primitives -------------------------------------------------------
@@ -183,7 +304,12 @@ function MonthNav({ month, setMonth }: any) {
 }
 
 // ---- App -----------------------------------------------------------------
-export default function ControleFinanceiro() {
+interface ControleFinanceiroProps {
+  barbeariaNome?: string
+  barbeariaLogo?: string | null
+}
+
+export default function ControleFinanceiro({ barbeariaNome = '', barbeariaLogo = null }: ControleFinanceiroProps = {}) {
   const [state, setState] = useState<any>(EMPTY)
   const [tab, setTab] = useState('overview')
   const [scope, setScope] = useState('empresa')
@@ -375,7 +501,7 @@ export default function ControleFinanceiro() {
             {tab === 'overview' && <Overview {...{ scoped, combined, scope, month, setTab }} />}
             {tab === 'payables' && <Payables state={state} update={update} scope={scope} month={month} setMonth={setMonth} onSettle={settleBill('payables', -1)} onUnsettle={unsettleBill('payables', -1)} />}
             {tab === 'receivables' && <Receivables state={state} update={update} scope={scope} month={month} setMonth={setMonth} onSettle={settleBill('receivables', +1)} onUnsettle={unsettleBill('receivables', +1)} />}
-            {tab === 'collaborators' && <Collaborators state={state} update={update} scope={scope} folha={folha} month={month} />}
+            {tab === 'collaborators' && <Collaborators state={state} update={update} scope={scope} folha={folha} month={month} barbeariaNome={barbeariaNome} barbeariaLogo={barbeariaLogo} />}
             {tab === 'accounts' && <Accounts state={state} update={update} scope={scope} caixa={caixa} />}
           </>
         )}
@@ -809,7 +935,7 @@ function Receivables({ state, update, scope, month, setMonth, onSettle, onUnsett
 
 const TIPOS_DESCONTO = ['Vale', 'MEI', 'Produtos', 'Outro']
 
-function Collaborators({ state, update, scope, folha, month }: any) {
+function Collaborators({ state, update, scope, folha, month, barbeariaNome, barbeariaLogo }: any) {
   const [name, setName] = useState('')
   const [type, setType] = useState('salario')
   const [amount, setAmount] = useState('')
@@ -826,8 +952,12 @@ function Collaborators({ state, update, scope, folha, month }: any) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   // Form de novo desconto: { colabId, tipo, valor, obs, step: 'form' | 'picker' }
   const [descForm, setDescForm] = useState<any>(null)
+  // Form de novo bonus: { colabId, tipo, valor, obs }
+  const [bonusForm, setBonusForm] = useState<any>(null)
   // Picker de "Pagar de qual caixa?" — colabId em que clicou "Marcar pago"
   const [payingId, setPayingId] = useState<string | null>(null)
+  // ID do colaborador gerando card. Pra mostrar feedback de loading.
+  const [generatingCardId, setGeneratingCardId] = useState<string | null>(null)
 
   // Helper: ajusta saldo da conta (delta pode ser + ou -). Reaproveita o
   // padrao usado nas contas a pagar/receber.
@@ -918,6 +1048,111 @@ function Collaborators({ state, update, scope, folha, month }: any) {
       }),
       accounts: adjustAccount(state.accounts, accId, +liq),
     })
+  }
+
+  // ── Bonus: adicionar / remover ──
+  const startBonus = (colabId: string) => {
+    setBonusForm({ colabId, tipo: 'Líder', valor: '', obs: '' })
+  }
+  const confirmBonus = () => {
+    if (!bonusForm) return
+    const valor = parseFloat(bonusForm.valor) || 0
+    if (valor <= 0) { setBonusForm(null); return }
+    const novoBonus = {
+      id: uid(),
+      tipo: bonusForm.tipo,
+      valor,
+      obs: (bonusForm.obs || '').trim() || undefined,
+    }
+    update({
+      collaborators: state.collaborators.map((c: any) => {
+        if (c.id !== bonusForm.colabId) return c
+        const prev = (c.bonus && c.bonus[month]) || []
+        return { ...c, bonus: { ...(c.bonus || {}), [month]: [...prev, novoBonus] } }
+      }),
+    })
+    setBonusForm(null)
+  }
+  const cancelBonus = () => setBonusForm(null)
+  const removeBonus = (colabId: string, bonusId: string) => {
+    update({
+      collaborators: state.collaborators.map((cc: any) => {
+        if (cc.id !== colabId) return cc
+        const prev = (cc.bonus && cc.bonus[month]) || []
+        return { ...cc, bonus: { ...(cc.bonus || {}), [month]: prev.filter((b: any) => b.id !== bonusId) } }
+      }),
+    })
+  }
+
+  // ── Gerar card PNG de pagamento ──
+  // Monta SVG inline com logo + dados do colaborador, converte pra PNG via
+  // canvas e dispara download. Tudo client-side, sem servidor.
+  const gerarCardPagamento = async (colabId: string) => {
+    const c = state.collaborators.find((x: any) => x.id === colabId)
+    if (!c) return
+    setGeneratingCardId(colabId)
+    try {
+      const bruto = collabValue(c, month)
+      const descs = descontosDoMes(c, month)
+      const bons = bonusDoMes(c, month)
+      const descSum = descontoSumDoMes(c, month)
+      const bonSum = bonusSumDoMes(c, month)
+      const liq = liquidoDoMes(c, month)
+
+      // Logo em base64 se houver — pra embutir no SVG sem CORS.
+      let logoData: string | null = null
+      if (barbeariaLogo) {
+        try {
+          const res = await fetch(barbeariaLogo)
+          const blob = await res.blob()
+          logoData = await new Promise<string>((resolve) => {
+            const reader = new FileReader()
+            reader.onloadend = () => resolve(reader.result as string)
+            reader.readAsDataURL(blob)
+          })
+        } catch { /* segue sem logo */ }
+      }
+
+      const svg = buildCardSVG({
+        barbeariaNome: barbeariaNome || 'Barbearia',
+        logoData,
+        colaboradorNome: c.name,
+        mes: monthLabel(month),
+        tipo: c.type,
+        bruto, descs, bons, descSum, bonSum, liq,
+      })
+
+      // Converte SVG -> PNG via canvas
+      const width = 1080
+      const height = computeCardHeight(descs.length, bons.length)
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')!
+      const img = new Image()
+      img.onload = () => {
+        ctx.fillStyle = '#08090D'
+        ctx.fillRect(0, 0, width, height)
+        ctx.drawImage(img, 0, 0, width, height)
+        canvas.toBlob((blob) => {
+          if (!blob) { setGeneratingCardId(null); return }
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `pagamento-${c.name.replace(/\s+/g, '-').toLowerCase()}-${month}.png`
+          document.body.appendChild(a)
+          a.click()
+          a.remove()
+          URL.revokeObjectURL(url)
+          setGeneratingCardId(null)
+        }, 'image/png')
+      }
+      img.onerror = () => setGeneratingCardId(null)
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
+    } catch (e) {
+      console.error('[gerarCardPagamento]', e)
+      setGeneratingCardId(null)
+    }
   }
 
   // Importa barbeiros + comissao acumulada do ciclo atual do BarberMeta.
@@ -1093,6 +1328,8 @@ function Collaborators({ state, update, scope, folha, month }: any) {
             }
             const descontos = descontosDoMes(c, month)
             const descSum = descontoSumDoMes(c, month)
+            const bonusList = bonusDoMes(c, month)
+            const bonSum = bonusSumDoMes(c, month)
             const liq = liquidoDoMes(c, month)
             const pago = isCollabPaid(c, month)
             const pagoAcc = collabPaidAccount(c, month)
@@ -1146,6 +1383,9 @@ function Collaborators({ state, update, scope, folha, month }: any) {
                       {descontos.length > 0 && !pago && (
                         <Badge color={C.out}>{descontos.length} desconto{descontos.length > 1 ? 's' : ''}</Badge>
                       )}
+                      {bonusList.length > 0 && !pago && (
+                        <Badge color={C.in}>{bonusList.length} bônus</Badge>
+                      )}
                       <span style={{ fontSize: 12, color: C.faint }}>
                         {isComm ? (notSet ? `comissão de ${monthLabel(month)} não informada` : `referente a ${monthLabel(month)}`) : 'todo mês'}
                       </span>
@@ -1181,7 +1421,7 @@ function Collaborators({ state, update, scope, folha, month }: any) {
                 {/* Painel expandido: descontos + pagamento */}
                 {expanded && (
                   <div style={{ background: C.surface, border: `1px solid ${C.line}`, borderTop: 'none', borderBottomLeftRadius: 12, borderBottomRightRadius: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {/* Resumo Bruto - Descontos = Liquido */}
+                    {/* Resumo Bruto - Descontos + Bonus = Liquido */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '8px 10px', background: C.surface2, borderRadius: 8 }}>
                       <div>
                         <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>Bruto</div>
@@ -1190,6 +1430,10 @@ function Collaborators({ state, update, scope, folha, month }: any) {
                       <div>
                         <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>− Descontos</div>
                         <Num value={descSum} size={15} weight={700} color={descSum > 0 ? C.out : C.faint} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>+ Bônus</div>
+                        <Num value={bonSum} size={15} weight={700} color={bonSum > 0 ? C.in : C.faint} />
                       </div>
                       <div>
                         <div style={{ fontSize: 11, color: C.primary, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>= Líquido</div>
@@ -1278,6 +1522,53 @@ function Collaborators({ state, update, scope, folha, month }: any) {
                       )
                     )}
 
+                    {/* ── Bonus ── */}
+                    {bonusList.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ fontSize: 11, color: C.in, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, padding: '0 4px' }}>Bônus</div>
+                        {bonusList.map((b: any) => (
+                          <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '8px 12px', background: C.surface2, border: `1px solid ${C.line}`, borderRadius: 8 }}>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 13.5, fontWeight: 600 }}>
+                                <Badge color={C.in}>{b.tipo}</Badge>
+                                <span style={{ marginLeft: 8 }}>+ {brl(b.valor)}</span>
+                              </div>
+                              {b.obs && <div style={{ fontSize: 11.5, color: C.faint, marginTop: 3 }}>{b.obs}</div>}
+                            </div>
+                            <Btn small tone="danger" onClick={() => removeBonus(c.id, b.id)}>✕</Btn>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Form de novo bonus */}
+                    {bonusForm && bonusForm.colabId === c.id ? (
+                      <div style={{ background: C.surface2, border: `1px dashed ${C.in}`, borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div style={{ fontSize: 13, color: C.ink, fontWeight: 600 }}>Novo bônus</div>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                          <Field label="Tipo" grow="1 1 120px">
+                            <select style={inputStyle} value={bonusForm.tipo} onChange={(e) => setBonusForm({ ...bonusForm, tipo: e.target.value })}>
+                              {TIPOS_BONUS.map((t) => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                          </Field>
+                          <Field label="Valor (R$)" grow="0 1 130px">
+                            <input autoFocus style={inputStyle} type="number" min="0" step="0.01" value={bonusForm.valor} onChange={(e) => setBonusForm({ ...bonusForm, valor: e.target.value })} placeholder="0,00" />
+                          </Field>
+                          <Field label="Obs (opcional)" grow="2 1 160px">
+                            <input style={inputStyle} value={bonusForm.obs} onChange={(e) => setBonusForm({ ...bonusForm, obs: e.target.value })} placeholder="ex.: bateu meta de ouro" />
+                          </Field>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <Btn small onClick={confirmBonus}>Adicionar bônus</Btn>
+                          <Btn small tone="ghost" onClick={cancelBonus}>Cancelar</Btn>
+                        </div>
+                      </div>
+                    ) : (
+                      !pago && (
+                        <Btn small tone="ghost" onClick={() => startBonus(c.id)}>+ Adicionar bônus</Btn>
+                      )
+                    )}
+
                     {/* Pagar / Reabrir */}
                     <div style={{ borderTop: `1px solid ${C.line}`, marginTop: 4, paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       {pago ? (
@@ -1295,6 +1586,13 @@ function Collaborators({ state, update, scope, folha, month }: any) {
                           <Btn small onClick={() => startPay(c.id)} >Marcar como pago</Btn>
                         </>
                       )}
+                    </div>
+
+                    {/* Gerar card PNG pra enviar pro colaborador */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                      <Btn small tone="ghost" onClick={() => gerarCardPagamento(c.id)}>
+                        {generatingCardId === c.id ? 'Gerando…' : '📤 Gerar card de pagamento (PNG)'}
+                      </Btn>
                     </div>
                   </div>
                 )}
