@@ -7,21 +7,29 @@
 // Secrets necessarios (supabase secrets set ...):
 //   HOTMART_HOTTOK      = seu Hottok (aba Webhook > Autenticacao na Hotmart)
 //   FINANCEIRO_OFFERS   = codigos de oferta que liberam o financeiro, separados por virgula
-//                         (ex.: a oferta do "BarberMeta Plus" e a do adicional avulso)
-//   FINANCEIRO_PRODUCTS = (alternativa/extra) IDs de produto que liberam, separados por virgula
+//                         (Combo PLUS + adicional avulso de Financeiro)
+//   FINANCEIRO_PRODUCTS = (alternativa/extra) IDs de produto que liberam financeiro
+//   FEEDBACK_OFFERS     = codigos de oferta que liberam o Feedback Premiado (combo PLUS)
+//   FEEDBACK_PRODUCTS   = (alternativa/extra) IDs de produto que liberam feedback
 //
 // SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY ja sao injetados automaticamente.
 //
-// Na Hotmart: cadastre a URL desta funcao, versao 2.0.0, e marque os eventos
-// "compra aprovada", "compra completa", "reembolso", "chargeback", "cancelada".
+// Na Hotmart: cadastre a URL desta funcao em CADA produto que pode liberar
+// acesso (BarberMeta R$47, Combo PLUS R$67, Adicional avulso). Versao 2.0.0,
+// eventos "compra aprovada", "compra completa", "reembolso", "chargeback",
+// "cancelada".
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const HOTTOK = Deno.env.get("HOTMART_HOTTOK") ?? "";
-const OFFERS = (Deno.env.get("FINANCEIRO_OFFERS") ?? "")
-  .split(",").map((s) => s.trim()).filter(Boolean);
-const PRODUCTS = (Deno.env.get("FINANCEIRO_PRODUCTS") ?? "")
-  .split(",").map((s) => s.trim()).filter(Boolean);
+
+const parseCsv = (v: string | undefined) =>
+  (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+
+const FIN_OFFERS   = parseCsv(Deno.env.get("FINANCEIRO_OFFERS"));
+const FIN_PRODUCTS = parseCsv(Deno.env.get("FINANCEIRO_PRODUCTS"));
+const FB_OFFERS    = parseCsv(Deno.env.get("FEEDBACK_OFFERS"));
+const FB_PRODUCTS  = parseCsv(Deno.env.get("FEEDBACK_PRODUCTS"));
 
 const admin = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -61,36 +69,61 @@ Deno.serve(async (req) => {
   const offerCode: string = data?.purchase?.offer?.code ?? data?.offer?.code ?? "";
   const productId: string = String(data?.product?.id ?? "");
 
-  // Esta compra inclui o financeiro? (Plus ou adicional avulso)
-  const grantsFinanceiro =
-    (OFFERS.length === 0 && PRODUCTS.length === 0) || // se nada configurado, libera tudo
-    OFFERS.includes(offerCode) ||
-    PRODUCTS.includes(productId);
+  // Qual modulo essa compra libera? Combo libera os dois; adicional avulso
+  // de financeiro libera so financeiro. Quando nenhuma lista esta configurada,
+  // libera tudo (modo dev/teste).
+  const allEmpty =
+    FIN_OFFERS.length === 0 && FIN_PRODUCTS.length === 0 &&
+    FB_OFFERS.length === 0 && FB_PRODUCTS.length === 0;
+
+  const grantsFinanceiro = allEmpty ||
+    FIN_OFFERS.includes(offerCode) || FIN_PRODUCTS.includes(productId);
+  const grantsFeedback = allEmpty ||
+    FB_OFFERS.includes(offerCode) || FB_PRODUCTS.includes(productId);
 
   // Eventos/compras que nao nos interessam: respondemos 200 e seguimos.
-  if (!email || !grantsFinanceiro || (!APPROVE.has(event) && !REVOKE.has(event))) {
+  const isApproveOrRevoke = APPROVE.has(event) || REVOKE.has(event);
+  if (!email || !isApproveOrRevoke || (!grantsFinanceiro && !grantsFeedback)) {
     return new Response(JSON.stringify({ ok: true, ignored: true }), {
       headers: { "Content-Type": "application/json" },
     });
   }
 
   const active = APPROVE.has(event);
-  const { error } = await admin.from("financeiro_grants").upsert(
-    {
-      email,
-      active,
-      source: `hotmart:${productId}/${offerCode}`,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "email" },
-  );
+  const source = `hotmart:${productId}/${offerCode}`;
+  const updated_at = new Date().toISOString();
+  const errors: string[] = [];
 
-  if (error) {
-    console.error("upsert error:", error);
-    return new Response("DB error", { status: 500 });
+  if (grantsFinanceiro) {
+    const { error } = await admin.from("financeiro_grants").upsert(
+      { email, active, source, updated_at },
+      { onConflict: "email" },
+    );
+    if (error) {
+      console.error("upsert financeiro_grants error:", error);
+      errors.push(`financeiro: ${error.message}`);
+    }
   }
 
-  return new Response(JSON.stringify({ ok: true, email, active }), {
+  if (grantsFeedback) {
+    const { error } = await admin.from("feedback_grants").upsert(
+      { email, active, source, updated_at },
+      { onConflict: "email" },
+    );
+    if (error) {
+      console.error("upsert feedback_grants error:", error);
+      errors.push(`feedback: ${error.message}`);
+    }
+  }
+
+  if (errors.length > 0) {
+    return new Response(`DB error: ${errors.join("; ")}`, { status: 500 });
+  }
+
+  return new Response(JSON.stringify({
+    ok: true, email, active,
+    granted: { financeiro: grantsFinanceiro, feedback: grantsFeedback },
+  }), {
     headers: { "Content-Type": "application/json" },
   });
 });
