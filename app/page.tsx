@@ -1,6 +1,6 @@
 import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
-import Dor from '@/components/landing/Dor'
+import AntesDepois from '@/components/landing/AntesDepois'
 import ParaQuem from '@/components/landing/ParaQuem'
 import Funcionalidades from '@/components/landing/Funcionalidades'
 import VideoAulas from '@/components/landing/VideoAulas'
@@ -22,7 +22,7 @@ export default function LandingPage() {
     <div className="bg-[#0A1929] min-h-screen">
       <Navbar />
       <Hero />
-      <Dor />
+      <AntesDepois />
       <ParaQuem />
       <Funcionalidades />
       <VideoAulas />
