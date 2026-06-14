@@ -11,16 +11,15 @@ const inclusoBM = [
   'Atualizações grátis',
   'Acesso pra equipe inteira',
   'Cards prontos pra WhatsApp',
-  'Feedback de Cliente + Brindes',
   'Suporte por email',
 ]
 const inclusoCombo = [
   'TUDO do BarberMeta',
+  '+ Feedback Premiado (brindes + Google)',
   '+ Controle Financeiro completo',
   'Caixa, contas a pagar e receber',
   'Folha da equipe (auto-sincroniza)',
   'Quanto sobra no mês',
-  'Empresa + Pessoal separados',
 ]
 
 function btnClick(price: number, url: string) {
@@ -114,10 +113,10 @@ export default function Preco() {
             <ul className="space-y-2 w-full">
               {inclusoCombo.map((item, i) => (
                 <li key={item} className="flex items-start gap-2 text-[#E2E8F0] text-sm">
-                  <span className={`font-bold mt-0.5 shrink-0 ${i < 2 ? 'text-[#D4A85A]' : 'text-[#22C55E]'}`}>
-                    {i < 2 ? '★' : '✓'}
+                  <span className={`font-bold mt-0.5 shrink-0 ${i < 3 ? 'text-[#D4A85A]' : 'text-[#22C55E]'}`}>
+                    {i < 3 ? '★' : '✓'}
                   </span>
-                  <span className={i < 2 ? 'font-semibold' : ''}>{item}</span>
+                  <span className={i < 3 ? 'font-semibold' : ''}>{item}</span>
                 </li>
               ))}
             </ul>
