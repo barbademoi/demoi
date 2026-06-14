@@ -62,6 +62,7 @@ const tudoQueFaz = [
   },
   {
     grupo: 'Feedback de Cliente + brindes',
+    plus: true,
     itens: [
       'Link público pra cliente avaliar (com QR Code e botão de WhatsApp)',
       'Brindes sorteados ponderados por peso (você define a chance de cada um)',
@@ -71,6 +72,19 @@ const tudoQueFaz = [
       'Brinde aparece no link do barbeiro pra ele oferecer no próximo atendimento',
       'Painel filtrado por período, estrela, barbeiro e brinde',
       'Gamificação opcional: feedback positivo dá pontos pro barbeiro',
+    ],
+  },
+  {
+    grupo: 'Controle Financeiro',
+    plus: true,
+    itens: [
+      'Caixa (banco, dinheiro, Pix) — quanto tem em cada um',
+      'Contas a pagar (única, fixa mensal, parcelada)',
+      'Contas a receber',
+      'Folha da equipe com sincronização automática do BarberMeta',
+      'Quanto sobra no mês (demonstrativo claro)',
+      'Empresa + Pessoal separados',
+      'Tudo na nuvem, sincroniza entre aparelhos',
     ],
   },
   {
@@ -199,9 +213,9 @@ export default function Funcionalidades() {
           className="mt-16 rounded-3xl border border-[#D4A85A]/30 bg-gradient-to-br from-[#0A1929] to-[#1A1410] overflow-hidden"
         >
           <div className="p-7 sm:p-10">
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#D4A85A]/15 border border-[#D4A85A]/40 px-3 py-1 text-xs font-semibold text-[#D4A85A] mb-4">
-              <span>🎁</span>
-              <span>NOVIDADE</span>
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#D4A85A] text-[#0F1117] px-3 py-1 text-xs font-bold mb-4">
+              <span>⭐</span>
+              <span>EXCLUSIVO DO PLUS</span>
             </div>
             <h3 className="text-2xl sm:text-3xl font-bold text-white mb-3">
               Estratégia de <span className="text-[#D4A85A]">Feedback Premiado</span>
@@ -209,6 +223,9 @@ export default function Funcionalidades() {
             <p className="text-[#A0AEC0] text-base sm:text-lg leading-relaxed max-w-3xl">
               Transforma cada cliente em fã com uma estratégia simples: ele avalia → ganha um brinde → o barbeiro
               vê o brinde no celular dele → oferece no próximo atendimento. <span className="text-white font-semibold">O cliente volta.</span>
+            </p>
+            <p className="text-[#D4A85A] text-sm mt-3 font-semibold">
+              Incluso no Combo R$ 67 · Ou adicional R$ 29 pra quem já tem BarberMeta
             </p>
           </div>
 
@@ -284,9 +301,18 @@ export default function Funcionalidades() {
             {tudoQueFaz.map((g) => (
               <div
                 key={g.grupo}
-                className="rounded-2xl border border-white/8 bg-[#0A1929] p-6"
+                className={`rounded-2xl border p-6 ${g.plus
+                  ? 'border-[#D4A85A]/50 bg-gradient-to-br from-[#0A1929] to-[#1A1410]'
+                  : 'border-white/8 bg-[#0A1929]'}`}
               >
-                <h4 className="text-[#D4A85A] font-bold text-base mb-4">{g.grupo}</h4>
+                <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+                  <h4 className="text-[#D4A85A] font-bold text-base">{g.grupo}</h4>
+                  {g.plus && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#D4A85A] text-[#0F1117] text-[10px] font-bold uppercase tracking-wider px-2 py-0.5">
+                      ⭐ Plus
+                    </span>
+                  )}
+                </div>
                 <ul className="space-y-2.5">
                   {g.itens.map((item) => (
                     <li key={item} className="flex items-start gap-2.5 text-[#A0AEC0] text-sm leading-relaxed">
