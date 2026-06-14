@@ -32,7 +32,7 @@ function btnClick(price: number, url: string) {
 
 export default function Preco() {
   return (
-    <section className="bg-[#0F1F2D] py-16 px-4 sm:px-6">
+    <section id="preco" className="bg-[#0F1F2D] py-16 px-4 sm:px-6 scroll-mt-20">
       <div className="max-w-5xl mx-auto">
 
         <motion.h2
