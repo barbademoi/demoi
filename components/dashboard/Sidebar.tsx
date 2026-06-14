@@ -8,6 +8,7 @@ import BrandLogo from '@/components/BrandLogo'
 import { SUPORTE, whatsappUrl } from '@/lib/suporte'
 import { hasFeedback } from '@/lib/feedback/access'
 import { hasFinanceiro } from '@/lib/financeiro/supabaseStore'
+import PreviewPlusModal from './PreviewPlusModal'
 
 interface Props {
   barbeariaNome: string
@@ -137,6 +138,7 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
     feedback?: boolean
     financeiro?: boolean
   }>({})
+  const [showPreview, setShowPreview] = useState(false)
 
   useEffect(() => {
     let cancel = false
@@ -213,7 +215,14 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={() => setOpen(false)}
+                onClick={(e) => {
+                  // Bloqueado: intercepta e abre preview em vez de navegar.
+                  if (locked) {
+                    e.preventDefault()
+                    setShowPreview(true)
+                  }
+                  setOpen(false)
+                }}
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm
                   transition-colors
@@ -306,6 +315,8 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
           </form>
         </div>
       </aside>
+
+      <PreviewPlusModal open={showPreview} onClose={() => setShowPreview(false)} />
     </>
   )
 }
