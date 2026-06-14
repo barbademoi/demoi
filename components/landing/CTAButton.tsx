@@ -52,9 +52,15 @@ export default function CTAButton({ size = 'lg', className = '', label }: Props)
     goToCombo()
   }
 
+  // Botao explicito "Nao, vou levar so o BarberMeta a R$47" — vai pro checkout.
   function escolheuBM() {
     setShowModal(false)
     goToBarberMeta()
+  }
+
+  // X / clique fora / Esc / "Agora nao" — so fecha, sem ir pra checkout.
+  function fecharModal() {
+    setShowModal(false)
   }
 
   return (
@@ -82,8 +88,8 @@ export default function CTAButton({ size = 'lg', className = '', label }: Props)
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={escolheuBM}
-            className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={fecharModal}
+            className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm overflow-y-auto flex items-start sm:items-center justify-center p-4 py-6"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.92, y: 16 }}
@@ -91,10 +97,10 @@ export default function CTAButton({ size = 'lg', className = '', label }: Props)
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ type: 'spring', duration: 0.35 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md rounded-2xl border-2 border-[#D4A85A] bg-gradient-to-b from-[#0F1117] to-[#1A1410] p-6 sm:p-8 relative"
+              className="w-full max-w-md my-auto rounded-2xl border-2 border-[#D4A85A] bg-gradient-to-b from-[#0F1117] to-[#1A1410] p-6 sm:p-8 relative"
             >
               <button
-                onClick={escolheuBM}
+                onClick={fecharModal}
                 aria-label="Fechar"
                 className="absolute top-3 right-3 text-[#A0AEC0] hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center"
               >
