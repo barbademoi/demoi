@@ -1,11 +1,14 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/app/login/actions'
 import BrandLogo from '@/components/BrandLogo'
 import { SUPORTE, whatsappUrl } from '@/lib/suporte'
+import { hasFeedback } from '@/lib/feedback/access'
+import { hasFinanceiro } from '@/lib/financeiro/supabaseStore'
+import PreviewPlusModal from './PreviewPlusModal'
 
 interface Props {
   barbeariaNome: string
@@ -18,6 +21,9 @@ type NavItem = {
   label: string
   icon: ReactNode
   badge?: string
+  // Itens marcados como adicional PLUS. Cadeado aparece se o usuario nao
+  // tem acesso (nem grandfather nem grant ativo).
+  requires?: 'feedback' | 'financeiro'
 }
 
 const navItems: NavItem[] = [
@@ -67,7 +73,9 @@ const navItems: NavItem[] = [
   },
   {
     href: '/dashboard/feedback-cliente',
-    label: 'Feedback de Cliente',
+    label: 'Feedback Premiado',
+    badge: 'PLUS',
+    requires: 'feedback',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -78,6 +86,7 @@ const navItems: NavItem[] = [
     href: '/dashboard/financeiro',
     label: 'Financeiro',
     badge: 'PLUS',
+    requires: 'financeiro',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
         <line x1="12" y1="1" x2="12" y2="23" />
@@ -122,6 +131,22 @@ const navItems: NavItem[] = [
 export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerramentas = false }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+
+  // Estado de acesso aos modulos PLUS. undefined = ainda verificando
+  // (nao mostra cadeado nem nao-mostra, evita flash).
+  const [access, setAccess] = useState<{
+    feedback?: boolean
+    financeiro?: boolean
+  }>({})
+  const [showPreview, setShowPreview] = useState(false)
+
+  useEffect(() => {
+    let cancel = false
+    Promise.all([hasFeedback(), hasFinanceiro()]).then(([f, fi]) => {
+      if (!cancel) setAccess({ feedback: f, financeiro: fi })
+    }).catch(() => { /* sem cadeado em caso de erro */ })
+    return () => { cancel = true }
+  }, [])
 
   return (
     <>
@@ -182,11 +207,22 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const active = pathname === item.href && !showFerramentas
+            // Cadeado: so se o item exige acesso E ja sabemos que nao tem.
+            // Enquanto undefined (verificando), nao mostra nada — evita
+            // flash visual.
+            const locked = !!item.requires && access[item.requires] === false
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={() => setOpen(false)}
+                onClick={(e) => {
+                  // Bloqueado: intercepta e abre preview em vez de navegar.
+                  if (locked) {
+                    e.preventDefault()
+                    setShowPreview(true)
+                  }
+                  setOpen(false)
+                }}
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm
                   transition-colors
@@ -196,7 +232,22 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
                 `}
               >
                 {item.icon}
-                <span className="flex-1">{item.label}</span>
+                <span className="flex-1 truncate">{item.label}</span>
+                {locked && (
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-3.5 h-3.5 shrink-0 text-[#D4A85A]/80"
+                    aria-label="Bloqueado"
+                  >
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                )}
                 {item.badge && (
                   <span
                     className="text-[9px] font-semibold tracking-wider px-1.5 py-0.5 rounded border border-[#D4A85A]/40 text-[#D4A85A]/80"
@@ -264,6 +315,8 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
           </form>
         </div>
       </aside>
+
+      <PreviewPlusModal open={showPreview} onClose={() => setShowPreview(false)} />
     </>
   )
 }
