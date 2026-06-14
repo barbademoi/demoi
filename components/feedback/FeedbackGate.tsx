@@ -38,11 +38,20 @@ export default function FeedbackGate({ children, checkoutUrl }: Props) {
         ) : (
           <>
             <div className="text-5xl mb-3">🔒</div>
-            <h2 className="font-serif text-2xl text-text mb-2">Feedback de Cliente</h2>
-            <p className="text-text-muted text-sm font-sans leading-relaxed mb-5">
-              Link público pra coletar avaliações, sortear brindes e direcionar 4★+
-              pro Google. Esse módulo agora é parte do <strong className="text-text">BarberMeta + Financeiro</strong>.
+            <h2 className="font-serif text-2xl text-text mb-2">Plus: Financeiro + Feedback Premiado</h2>
+            <p className="text-text-muted text-sm font-sans leading-relaxed mb-4">
+              Desbloqueie de uma vez os 2 módulos premium:
             </p>
+            <ul className="text-left text-sm font-sans space-y-2 mb-5 bg-surface-2 rounded-xl p-4">
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">✓</span>
+                <span className="text-text"><strong>Controle Financeiro</strong> — caixa, contas a pagar/receber, folha (auto-sync) e fluxo de caixa</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">✓</span>
+                <span className="text-text"><strong>Feedback Premiado</strong> — link público pra avaliação, brindes sorteados e direcionamento pro Google</span>
+              </li>
+            </ul>
 
             <a
               href={checkoutUrl}
@@ -50,7 +59,7 @@ export default function FeedbackGate({ children, checkoutUrl }: Props) {
               rel="noopener noreferrer"
               className="btn-primary w-full text-sm py-3 inline-flex justify-center"
             >
-              Desbloquear agora — R$ 67
+              Desbloquear Plus — R$ 29
             </a>
 
             <button
@@ -61,8 +70,8 @@ export default function FeedbackGate({ children, checkoutUrl }: Props) {
             </button>
 
             <p className="text-text-muted text-[11px] font-sans mt-4">
-              Após a compra, a liberação é automática. Se você comprou com um
-              e-mail diferente do seu login, fale com o suporte.
+              Pagamento único, sem mensalidade. Após a compra, liberação automática.
+              Se você comprou com um e-mail diferente do seu login, fale com o suporte.
             </p>
           </>
         )}
