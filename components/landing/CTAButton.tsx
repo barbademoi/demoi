@@ -83,7 +83,7 @@ export default function CTAButton({ size = 'lg', className = '', label }: Props)
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={escolheuBM}
-            className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm overflow-y-auto flex items-start sm:items-center justify-center p-4 py-6"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.92, y: 16 }}
@@ -91,7 +91,7 @@ export default function CTAButton({ size = 'lg', className = '', label }: Props)
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ type: 'spring', duration: 0.35 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md rounded-2xl border-2 border-[#D4A85A] bg-gradient-to-b from-[#0F1117] to-[#1A1410] p-6 sm:p-8 relative"
+              className="w-full max-w-md my-auto rounded-2xl border-2 border-[#D4A85A] bg-gradient-to-b from-[#0F1117] to-[#1A1410] p-6 sm:p-8 relative"
             >
               <button
                 onClick={escolheuBM}

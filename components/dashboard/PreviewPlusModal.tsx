@@ -27,7 +27,7 @@ export default function PreviewPlusModal({ open, onClose }: Props) {
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm overflow-y-auto flex items-start sm:items-center justify-center p-4 py-6"
     >
       <div
         onClick={(e) => e.stopPropagation()}
