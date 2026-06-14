@@ -49,6 +49,8 @@ interface Props {
   meta: MetaSimples | null
   faturamentoExibido: number
   progressoColetivo: number
+  progressoColetivoBronze: number
+  progressoColetivoPrata: number
   rankingBarbeiros: BarbeiroRow[]
   rankingRecepcionistas: BarbeiroRow[]
   modoAtual: ModoPontos
@@ -94,7 +96,7 @@ interface Props {
 export default function DashboardShell({
   barbeariaNome, cicloLabel, isAutonomo, comissaoMesAnterior, historicoMeses, historicoPorBarbeiro,
   historicoBarbearia, faturamentoMesAnterior, mes, ano,
-  meta, faturamentoExibido, progressoColetivo,
+  meta, faturamentoExibido, progressoColetivo, progressoColetivoBronze, progressoColetivoPrata,
   rankingBarbeiros, rankingRecepcionistas,
   modoAtual, campanha, pontosMap, pontosHojePorBarbeiro,
   rankingPontosBarb, rankingPontosRecep,
@@ -208,6 +210,8 @@ export default function DashboardShell({
             meta={meta}
             faturamentoExibido={faturamentoExibido}
             progressoColetivo={progressoColetivo}
+            progressoColetivoBronze={progressoColetivoBronze}
+            progressoColetivoPrata={progressoColetivoPrata}
             rankingBarbeiros={rankingBarbeiros}
             rankingRecepcionistas={rankingRecepcionistas}
             modoAtual={modoAtual}

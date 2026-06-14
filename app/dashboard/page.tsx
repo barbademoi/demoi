@@ -219,6 +219,10 @@ export default async function DashboardPage({
   // % calculado a partir do faturamento real — preservado mesmo quando
   // o R$ é ocultado, pra alimentar o anel/barra de progresso da UI.
   const progressoColetivo = meta ? calcProgresso(faturamentoReal, meta.meta_coletiva) : 0
+  const progressoColetivoBronze = meta?.meta_coletiva_bronze
+    ? calcProgresso(faturamentoReal, meta.meta_coletiva_bronze) : 0
+  const progressoColetivoPrata = meta?.meta_coletiva_prata
+    ? calcProgresso(faturamentoReal, meta.meta_coletiva_prata) : 0
   // Quando o dono desliga "Mostrar faturamento geral", zera o valor que vai
   // pro client — UI/cards/anel ficam só com %.
   const faturamentoExibido = mostrarFaturamentoGeral ? faturamentoReal : 0
@@ -382,6 +386,8 @@ export default async function DashboardPage({
       meta={meta}
       faturamentoExibido={faturamentoExibido}
       progressoColetivo={progressoColetivo}
+      progressoColetivoBronze={progressoColetivoBronze}
+      progressoColetivoPrata={progressoColetivoPrata}
       rankingBarbeiros={rankingBarbeiros}
       rankingRecepcionistas={rankingRecepcionistas}
       modoAtual={modoAtual}

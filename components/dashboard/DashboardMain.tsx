@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import CircularProgress from './CircularProgress'
+import RingsProgress from './RingsProgress'
 import CopiarLinkBtn from './CopiarLinkBtn'
 import EditarBarbeiroModal from './EditarBarbeiroModal'
 import ComunidadeCard from './ComunidadeCard'
@@ -51,6 +52,8 @@ interface Props {
   meta: MetaSimples | null
   faturamentoExibido: number
   progressoColetivo: number
+  progressoColetivoBronze: number
+  progressoColetivoPrata: number
   rankingBarbeiros: BarbeiroRow[]
   rankingRecepcionistas: BarbeiroRow[]
   modoAtual: ModoPontos
@@ -95,6 +98,8 @@ export default function DashboardMain({
   meta,
   faturamentoExibido,
   progressoColetivo,
+  progressoColetivoBronze,
+  progressoColetivoPrata,
   rankingBarbeiros,
   rankingRecepcionistas,
   modoAtual,
@@ -156,6 +161,8 @@ export default function DashboardMain({
           meta={meta}
           faturamentoExibido={faturamentoExibido}
           progressoColetivo={progressoColetivo}
+          progressoColetivoBronze={progressoColetivoBronze}
+          progressoColetivoPrata={progressoColetivoPrata}
           rankingBarbeiros={rankingBarbeiros}
           rankingRecepcionistas={rankingRecepcionistas}
           modoAtual={modoAtual}
@@ -218,6 +225,8 @@ interface TodosProps {
   meta: MetaSimples | null
   faturamentoExibido: number
   progressoColetivo: number
+  progressoColetivoBronze: number
+  progressoColetivoPrata: number
   rankingBarbeiros: BarbeiroRow[]
   rankingRecepcionistas: BarbeiroRow[]
   modoAtual: ModoPontos
@@ -244,6 +253,8 @@ function TodosView({
   meta,
   faturamentoExibido,
   progressoColetivo,
+  progressoColetivoBronze,
+  progressoColetivoPrata,
   rankingBarbeiros,
   rankingRecepcionistas,
   modoAtual,
@@ -300,15 +311,24 @@ function TodosView({
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-8">
-            {/* Circular chart */}
+            {/* 3 aneis concentricos: Bronze / Prata / Ouro */}
             <div className="shrink-0">
-              <CircularProgress
-                pct={progressoColetivo}
-                size={210}
-                strokeWidth={18}
-                centerLabel={`${progressoColetivo}%`}
-                centerSub={mostrarFaturamentoGeral ? `de ${formatBRL(meta.meta_coletiva)}` : 'da meta'}
-              />
+              {temTiers ? (
+                <RingsProgress
+                  pctBronze={progressoColetivoBronze}
+                  pctPrata={progressoColetivoPrata}
+                  pctOuro={progressoColetivo}
+                  size={210}
+                />
+              ) : (
+                <CircularProgress
+                  pct={progressoColetivo}
+                  size={210}
+                  strokeWidth={18}
+                  centerLabel={`${progressoColetivo}%`}
+                  centerSub={mostrarFaturamentoGeral ? `de ${formatBRL(meta.meta_coletiva)}` : 'da meta'}
+                />
+              )}
             </div>
 
             {/* Right panel */}
