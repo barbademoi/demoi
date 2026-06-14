@@ -84,6 +84,10 @@ function migrate(s: any) {
     collaborators: (s.collaborators || []).map((c: any) => {
       const m: any = { ...c, scope: 'empresa' }
       if (m.type === 'comissao' && !m.monthly) m.monthly = m.amount ? { [currentMonth()]: m.amount } : {}
+      // Descontos por mes (lista) e registro de pagamento por mes — inicializa
+      // vazios pra colaboradores antigos (mantem compat).
+      if (!m.descontos) m.descontos = {}
+      if (!m.paid) m.paid = {}
       return m
     }),
     payables: (s.payables || []).map((i: any) => migrateBill(i, anchor)),
@@ -91,6 +95,18 @@ function migrate(s: any) {
     openings: s.openings || {},
     seenGuide: s.seenGuide || false,
   }
+}
+
+// ---- Helpers de colaboradores (descontos / liquido / pagamento) ----------
+const descontosDoMes = (c: any, ym: string): any[] => (c.descontos && c.descontos[ym]) || []
+const descontoSumDoMes = (c: any, ym: string): number =>
+  descontosDoMes(c, ym).reduce((s: number, d: any) => s + (Number(d.valor) || 0), 0)
+const liquidoDoMes = (c: any, ym: string): number =>
+  Math.max(0, collabValue(c, ym) - descontoSumDoMes(c, ym))
+const isCollabPaid = (c: any, ym: string): boolean => !!(c.paid && c.paid[ym])
+const collabPaidAccount = (c: any, ym: string): string | null => {
+  const p = c.paid && c.paid[ym]
+  return p && typeof p === 'object' ? p.account : null
 }
 
 // ---- UI primitives -------------------------------------------------------
@@ -242,9 +258,13 @@ export default function ControleFinanceiro() {
     const aReceber = f(state.receivables).filter((r: any) => appearsIn(r, month) && !isDone(r, month)).reduce((a: number, x: any) => a + (Number(x.amount) || 0), 0)
     const pago = f(state.payables).filter((p: any) => appearsIn(p, month) && isDone(p, month)).reduce((a: number, x: any) => a + (Number(x.amount) || 0), 0)
     const recebido = f(state.receivables).filter((r: any) => appearsIn(r, month) && isDone(r, month)).reduce((a: number, x: any) => a + (Number(x.amount) || 0), 0)
-    const folha = f(state.collaborators).reduce((a: number, c: any) => a + collabValue(c, month), 0)
+    // Folha (a pagar) = soma do LIQUIDO dos colaboradores ainda nao pagos
+    // no mes. Quem ja foi pago saiu do caixa e nao conta mais como saida
+    // prevista — entra em pagoFolha (realizado).
+    const folha = f(state.collaborators).filter((c: any) => !isCollabPaid(c, month)).reduce((a: number, c: any) => a + liquidoDoMes(c, month), 0)
+    const pagoFolha = f(state.collaborators).filter((c: any) => isCollabPaid(c, month)).reduce((a: number, c: any) => a + liquidoDoMes(c, month), 0)
     const sobra = caixa + aReceber - aPagar - folha
-    return { caixa, aPagar, aReceber, pago, recebido, folha, sobra }
+    return { caixa, aPagar, aReceber, pago, recebido, folha, pagoFolha, sobra }
   }
   const empresaT = computeScope('empresa')
   const pessoalT = computeScope('pessoal')
@@ -256,6 +276,7 @@ export default function ControleFinanceiro() {
     pago: empresaT.pago + pessoalT.pago,
     recebido: empresaT.recebido + pessoalT.recebido,
     folha: empresaT.folha + pessoalT.folha,
+    pagoFolha: empresaT.pagoFolha + pessoalT.pagoFolha,
     sobra: empresaT.sobra + pessoalT.sobra,
   }
   const caixa = scoped.caixa
@@ -450,7 +471,7 @@ function Overview({ scoped, combined, scope, month, setTab }: any) {
 
       {/* Card "Ja realizado em <mes>" — soma do que ja entrou e ja saiu
           do caixa. So aparece quando ha algo pra mostrar. */}
-      {(t.pago > 0 || t.recebido > 0) && (
+      {(t.pago > 0 || t.recebido > 0 || (t.pagoFolha || 0) > 0) && (
         <Card style={{ padding: '8px 18px 14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 6px 4px' }}>
             <div style={{ fontSize: 13, color: C.inkSoft, fontWeight: 600 }}>Já realizado em {monthLabel(month)}</div>
@@ -464,12 +485,21 @@ function Overview({ scoped, combined, scope, month, setTab }: any) {
             onClick={() => setTab('receivables')}
           />
           <Line
-            label="✓ Já pago"
+            label="✓ Já pago (contas)"
             value={t.pago}
             color={C.out}
             sub={t.pago > 0 ? 'saiu do caixa' : undefined}
             onClick={() => setTab('payables')}
           />
+          {(t.pagoFolha || 0) > 0 && (
+            <Line
+              label="✓ Já pago à equipe"
+              value={t.pagoFolha}
+              color={C.out}
+              sub="líquido (já com descontos)"
+              onClick={() => setTab('collaborators')}
+            />
+          )}
         </Card>
       )}
 
@@ -777,6 +807,8 @@ function Receivables({ state, update, scope, month, setMonth, onSettle, onUnsett
   )
 }
 
+const TIPOS_DESCONTO = ['Vale', 'MEI', 'Produtos', 'Outro']
+
 function Collaborators({ state, update, scope, folha, month }: any) {
   const [name, setName] = useState('')
   const [type, setType] = useState('salario')
@@ -789,6 +821,104 @@ function Collaborators({ state, update, scope, folha, month }: any) {
   const [fVal, setFVal] = useState('')
   const [importando, setImportando] = useState(false)
   const [importMsg, setImportMsg] = useState<string | null>(null)
+
+  // Detalhes (descontos + pagar): so 1 colaborador expandido por vez.
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  // Form de novo desconto: { colabId, tipo, valor, obs, step: 'form' | 'picker' }
+  const [descForm, setDescForm] = useState<any>(null)
+  // Picker de "Pagar de qual caixa?" — colabId em que clicou "Marcar pago"
+  const [payingId, setPayingId] = useState<string | null>(null)
+
+  // Helper: ajusta saldo da conta (delta pode ser + ou -). Reaproveita o
+  // padrao usado nas contas a pagar/receber.
+  const adjustAccount = (accounts: any[], accId: string | null, delta: number) =>
+    accId ? accounts.map((a: any) => (a.id === accId ? { ...a, balance: (Number(a.balance) || 0) + delta } : a)) : accounts
+
+  // ── Adicionar desconto ──
+  const startDesconto = (colabId: string) => {
+    setDescForm({ colabId, tipo: 'Vale', valor: '', obs: '', step: 'form' })
+  }
+  const goToDescPicker = () => {
+    if (!descForm) return
+    const v = parseFloat(descForm.valor) || 0
+    if (v <= 0) return
+    setDescForm({ ...descForm, step: 'picker' })
+  }
+  // Confirma desconto: accId=null -> "Registrar sem descontar" (caixa intocada).
+  // accId=string -> subtrai o valor da caixa escolhida.
+  const confirmDesconto = (accId: string | null) => {
+    if (!descForm) return
+    const { colabId, tipo, obs } = descForm
+    const valor = parseFloat(descForm.valor) || 0
+    if (valor <= 0) { setDescForm(null); return }
+    const novoDesc = {
+      id: uid(),
+      tipo,
+      valor,
+      obs: (obs || '').trim() || undefined,
+      account: accId || null,
+    }
+    update({
+      collaborators: state.collaborators.map((c: any) => {
+        if (c.id !== colabId) return c
+        const prev = (c.descontos && c.descontos[month]) || []
+        return { ...c, descontos: { ...(c.descontos || {}), [month]: [...prev, novoDesc] } }
+      }),
+      accounts: adjustAccount(state.accounts, accId, -valor),
+    })
+    setDescForm(null)
+  }
+  const cancelDesconto = () => setDescForm(null)
+
+  // ── Remover desconto: devolve a caixa se tinha saido de alguma ──
+  const removeDesconto = (colabId: string, descId: string) => {
+    const c = state.collaborators.find((x: any) => x.id === colabId)
+    if (!c) return
+    const desc = ((c.descontos && c.descontos[month]) || []).find((d: any) => d.id === descId)
+    if (!desc) return
+    update({
+      collaborators: state.collaborators.map((cc: any) => {
+        if (cc.id !== colabId) return cc
+        const prev = (cc.descontos && cc.descontos[month]) || []
+        return { ...cc, descontos: { ...(cc.descontos || {}), [month]: prev.filter((d: any) => d.id !== descId) } }
+      }),
+      accounts: adjustAccount(state.accounts, desc.account || null, +(Number(desc.valor) || 0)),
+    })
+  }
+
+  // ── Pagar colaborador (subtrai LIQUIDO da caixa escolhida) ──
+  const startPay = (colabId: string) => setPayingId(colabId)
+  const confirmPay = (colabId: string, accId: string | null) => {
+    const c = state.collaborators.find((x: any) => x.id === colabId)
+    if (!c) return
+    const liq = liquidoDoMes(c, month)
+    update({
+      collaborators: state.collaborators.map((cc: any) => {
+        if (cc.id !== colabId) return cc
+        return { ...cc, paid: { ...(cc.paid || {}), [month]: accId ? { account: accId } : true } }
+      }),
+      accounts: adjustAccount(state.accounts, accId, -liq),
+    })
+    setPayingId(null)
+  }
+  const cancelPay = () => setPayingId(null)
+
+  // ── Reabrir pagamento (devolve o liquido pra caixa) ──
+  const reopenPay = (colabId: string) => {
+    const c = state.collaborators.find((x: any) => x.id === colabId)
+    if (!c) return
+    const accId = collabPaidAccount(c, month)
+    const liq = liquidoDoMes(c, month)
+    update({
+      collaborators: state.collaborators.map((cc: any) => {
+        if (cc.id !== colabId) return cc
+        const nextPaid = { ...(cc.paid || {}) }
+        delete nextPaid[month]
+        return { ...cc, paid: nextPaid }
+      }),
+      accounts: adjustAccount(state.accounts, accId, +liq),
+    })
+  }
 
   // Importa barbeiros + comissao acumulada do ciclo atual do BarberMeta.
   // Pra cada barbeiro: se ja existe colaborador com mesmo nome (case-insensitive),
@@ -875,6 +1005,7 @@ function Collaborators({ state, update, scope, folha, month }: any) {
   const visible = state.collaborators.filter((c: any) => c.scope === scope)
   const salarios = visible.filter((c: any) => c.type === 'salario').reduce((a: number, c: any) => a + (Number(c.amount) || 0), 0)
   const comissoes = visible.filter((c: any) => c.type === 'comissao').reduce((a: number, c: any) => a + collabValue(c, month), 0)
+  const accountsScope = state.accounts.filter((a: any) => a.scope === scope)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -960,35 +1091,213 @@ function Collaborators({ state, update, scope, folha, month }: any) {
                 </div>
               )
             }
-            return (
-              <div key={c.id} style={rowStyle(isComm ? C.in : C.primary)}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 15 }}>{c.name}</div>
-                  <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <Badge color={isComm ? C.in : C.inkSoft}>{isComm ? 'Comissão' : 'Salário fixo'}</Badge>
-                    <span style={{ fontSize: 12, color: C.faint }}>
-                      {isComm ? (notSet ? `comissão de ${monthLabel(month)} não informada` : `referente a ${monthLabel(month)}`) : 'todo mês'}
-                    </span>
-                    <span onClick={() => startFull(c)} style={{ ...linkStyle, fontSize: 12 }}>editar</span>
+            const descontos = descontosDoMes(c, month)
+            const descSum = descontoSumDoMes(c, month)
+            const liq = liquidoDoMes(c, month)
+            const pago = isCollabPaid(c, month)
+            const pagoAcc = collabPaidAccount(c, month)
+            const pagoAccName = pagoAcc ? (state.accounts.find((a: any) => a.id === pagoAcc)?.name || '') : ''
+            const expanded = expandedId === c.id
+            const accent = pago ? C.line : (isComm ? C.in : C.primary)
+
+            // ── Picker "Pagar de qual caixa?" pra este colaborador ──
+            if (payingId === c.id) {
+              const ordered = accountsScope
+              return (
+                <div key={c.id} style={{ background: C.surface, border: `1px solid ${C.primary}`, borderRadius: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ fontSize: 13.5, color: C.ink, fontWeight: 600 }}>
+                    Pagar {c.name} de qual caixa? <span style={{ color: C.faint, fontWeight: 400 }}>(líquido {brl(liq)})</span>
+                  </div>
+                  {descSum > 0 && (
+                    <div style={{ fontSize: 11.5, color: C.faint }}>
+                      Bruto {brl(collabValue(c, month))} − descontos {brl(descSum)} = líquido {brl(liq)}
+                    </div>
+                  )}
+                  {ordered.length === 0 ? (
+                    <div style={{ fontSize: 12.5, color: C.faint }}>
+                      Você ainda não tem caixa cadastrado. Cadastre na aba Caixa, ou conclua sem mexer no saldo.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {ordered.map((a: any) => (
+                        <Btn key={a.id} small onClick={() => confirmPay(c.id, a.id)}>
+                          {a.name} · {brl(a.balance)}
+                        </Btn>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <Btn small tone="ghost" onClick={() => confirmPay(c.id, null)}>Concluir sem descontar</Btn>
+                    <Btn small tone="ghost" onClick={cancelPay}>Cancelar</Btn>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                  {editing === c.id ? (
-                    <>
-                      <input autoFocus style={{ ...inputStyle, width: 120, padding: '7px 10px' }} type="number" min="0" step="0.01"
-                        value={editVal} onChange={(e) => setEditVal(e.target.value)} onKeyDown={(e: any) => e.key === 'Enter' && saveEdit(c)} />
-                      <Btn small onClick={() => saveEdit(c)}>Salvar</Btn>
-                    </>
-                  ) : (
-                    <>
-                      <Num value={val} color={notSet ? C.faint : C.ink} />
-                      <Btn small tone="ghost" onClick={() => { setEditing(c.id); setEditVal(isComm ? (c.monthly && c.monthly[month] != null ? String(c.monthly[month]) : '') : String(c.amount)) }}>
-                        {isComm ? (notSet ? 'Informar' : 'Editar') : 'Editar'}
-                      </Btn>
-                    </>
-                  )}
-                  <Btn small tone="danger" onClick={() => remove(c.id)}>✕</Btn>
+              )
+            }
+
+            return (
+              <div key={c.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                {/* Linha resumida */}
+                <div style={{ ...rowStyle(accent, pago), borderBottomLeftRadius: expanded ? 0 : 12, borderBottomRightRadius: expanded ? 0 : 12 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 15, color: pago ? C.faint : C.ink, textDecoration: pago ? 'line-through' : 'none' }}>{c.name}</div>
+                    <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <Badge color={isComm ? C.in : C.inkSoft}>{isComm ? 'Comissão' : 'Salário fixo'}</Badge>
+                      {pago && <Badge color={C.in}>✓ Pago{pagoAccName ? ` · ${pagoAccName}` : ''}</Badge>}
+                      {descontos.length > 0 && !pago && (
+                        <Badge color={C.out}>{descontos.length} desconto{descontos.length > 1 ? 's' : ''}</Badge>
+                      )}
+                      <span style={{ fontSize: 12, color: C.faint }}>
+                        {isComm ? (notSet ? `comissão de ${monthLabel(month)} não informada` : `referente a ${monthLabel(month)}`) : 'todo mês'}
+                      </span>
+                      <span onClick={() => startFull(c)} style={{ ...linkStyle, fontSize: 12 }}>editar</span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                    {editing === c.id ? (
+                      <>
+                        <input autoFocus style={{ ...inputStyle, width: 120, padding: '7px 10px' }} type="number" min="0" step="0.01"
+                          value={editVal} onChange={(e) => setEditVal(e.target.value)} onKeyDown={(e: any) => e.key === 'Enter' && saveEdit(c)} />
+                        <Btn small onClick={() => saveEdit(c)}>Salvar</Btn>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ textAlign: 'right' }}>
+                          <Num value={descSum > 0 ? liq : val} color={notSet ? C.faint : (pago ? C.faint : C.ink)} />
+                          {descSum > 0 && !notSet && (
+                            <div style={{ fontSize: 10.5, color: C.faint, marginTop: 1 }}>
+                              líquido (bruto {brl(val)})
+                            </div>
+                          )}
+                        </div>
+                        <Btn small tone="ghost" onClick={() => setExpandedId(expanded ? null : c.id)}>
+                          {expanded ? 'Fechar' : 'Detalhes'}
+                        </Btn>
+                      </>
+                    )}
+                    <Btn small tone="danger" onClick={() => remove(c.id)}>✕</Btn>
+                  </div>
                 </div>
+
+                {/* Painel expandido: descontos + pagamento */}
+                {expanded && (
+                  <div style={{ background: C.surface, border: `1px solid ${C.line}`, borderTop: 'none', borderBottomLeftRadius: 12, borderBottomRightRadius: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {/* Resumo Bruto - Descontos = Liquido */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '8px 10px', background: C.surface2, borderRadius: 8 }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>Bruto</div>
+                        <Num value={val} size={15} weight={700} color={C.ink} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>− Descontos</div>
+                        <Num value={descSum} size={15} weight={700} color={descSum > 0 ? C.out : C.faint} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: C.primary, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>= Líquido</div>
+                        <Num value={liq} size={17} weight={700} color={C.primary} />
+                      </div>
+                    </div>
+
+                    {/* Lista de descontos */}
+                    {descontos.length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.faint, padding: '6px 4px' }}>
+                        Sem descontos em {monthLabel(month)}.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {descontos.map((d: any) => {
+                          const acc = d.account ? state.accounts.find((a: any) => a.id === d.account) : null
+                          return (
+                            <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '8px 12px', background: C.surface2, border: `1px solid ${C.line}`, borderRadius: 8 }}>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: 13.5, fontWeight: 600 }}>
+                                  <Badge color={C.out}>{d.tipo}</Badge>
+                                  <span style={{ marginLeft: 8 }}>{brl(d.valor)}</span>
+                                </div>
+                                <div style={{ fontSize: 11.5, color: C.faint, marginTop: 3 }}>
+                                  {acc ? `saiu de ${acc.name}` : 'só registro (não saiu da caixa)'}
+                                  {d.obs && <span> · {d.obs}</span>}
+                                </div>
+                              </div>
+                              <Btn small tone="danger" onClick={() => removeDesconto(c.id, d.id)}>✕</Btn>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {/* Form de novo desconto */}
+                    {descForm && descForm.colabId === c.id ? (
+                      descForm.step === 'form' ? (
+                        <div style={{ background: C.surface2, border: `1px dashed ${C.primary}`, borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          <div style={{ fontSize: 13, color: C.ink, fontWeight: 600 }}>Novo desconto</div>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                            <Field label="Tipo" grow="1 1 120px">
+                              <select style={inputStyle} value={descForm.tipo} onChange={(e) => setDescForm({ ...descForm, tipo: e.target.value })}>
+                                {TIPOS_DESCONTO.map((t) => <option key={t} value={t}>{t}</option>)}
+                              </select>
+                            </Field>
+                            <Field label="Valor (R$)" grow="0 1 130px">
+                              <input autoFocus style={inputStyle} type="number" min="0" step="0.01" value={descForm.valor} onChange={(e) => setDescForm({ ...descForm, valor: e.target.value })} placeholder="0,00" />
+                            </Field>
+                            <Field label="Obs (opcional)" grow="2 1 160px">
+                              <input style={inputStyle} value={descForm.obs} onChange={(e) => setDescForm({ ...descForm, obs: e.target.value })} placeholder="ex.: vale farmácia" />
+                            </Field>
+                          </div>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <Btn small onClick={goToDescPicker}>Próximo: caixa</Btn>
+                            <Btn small tone="ghost" onClick={cancelDesconto}>Cancelar</Btn>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ background: C.surface2, border: `1px solid ${C.primary}`, borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          <div style={{ fontSize: 13.5, color: C.ink, fontWeight: 600 }}>
+                            Descontar de qual caixa agora? <span style={{ color: C.faint, fontWeight: 400 }}>({brl(parseFloat(descForm.valor) || 0)})</span>
+                          </div>
+                          {accountsScope.length === 0 ? (
+                            <div style={{ fontSize: 12.5, color: C.faint }}>
+                              Você ainda não tem caixa cadastrado. Registre sem descontar ou crie uma conta na aba Caixa.
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                              {accountsScope.map((a: any) => (
+                                <Btn key={a.id} small onClick={() => confirmDesconto(a.id)}>
+                                  {a.name} · {brl(a.balance)}
+                                </Btn>
+                              ))}
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            <Btn small tone="ghost" onClick={() => confirmDesconto(null)}>Registrar sem descontar</Btn>
+                            <Btn small tone="ghost" onClick={cancelDesconto}>Cancelar</Btn>
+                          </div>
+                        </div>
+                      )
+                    ) : (
+                      !pago && (
+                        <Btn small tone="ghost" onClick={() => startDesconto(c.id)}>+ Adicionar desconto</Btn>
+                      )
+                    )}
+
+                    {/* Pagar / Reabrir */}
+                    <div style={{ borderTop: `1px solid ${C.line}`, marginTop: 4, paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      {pago ? (
+                        <>
+                          <span style={{ fontSize: 12.5, color: C.in }}>
+                            ✓ Pago em {monthLabel(month)}{pagoAccName ? ` · ${pagoAccName}` : ''}
+                          </span>
+                          <Btn small tone="ghost" onClick={() => reopenPay(c.id)}>Reabrir</Btn>
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ fontSize: 12.5, color: C.faint }}>
+                            {liq > 0 ? <>Vai sair <strong style={{ color: C.ink }}>{brl(liq)}</strong> do caixa</> : 'Valor a pagar ainda não informado.'}
+                          </span>
+                          <Btn small onClick={() => startPay(c.id)} >Marcar como pago</Btn>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })}
