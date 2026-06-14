@@ -127,8 +127,8 @@ export default function Hero() {
                 </div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/prints/01-dashboard-ranking.png"
-                  alt="Dashboard do BarberMeta com ranking ao vivo dos barbeiros"
+                  src="/prints/dashboard-meta-coletiva.png"
+                  alt="Dashboard do BarberMeta com Meta Coletiva, progresso e ritmo necessário"
                   className="block w-full h-auto"
                 />
               </div>
