@@ -7,7 +7,9 @@ import type { Brinde } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
-const CHECKOUT_COMBO_URL = 'https://pay.hotmart.com/K106318479K'
+// Adicional Plus (Financeiro + Feedback) — pra quem ja eh cliente do BarberMeta.
+// Cliente novo iria pelo combo R$67 na LP; quem ja tem R$47 paga so R$29.
+const CHECKOUT_PLUS_URL = 'https://pay.hotmart.com/P106317414B'
 
 interface BarbeariaFC {
   id: string
@@ -46,7 +48,7 @@ export default async function FeedbackClientePage() {
     <div className="min-h-screen flex">
       <Sidebar barbeariaNome={barb.nome} />
       <div className="flex-1 min-w-0 lg:pl-64 pt-14 lg:pt-0">
-        <FeedbackGate checkoutUrl={CHECKOUT_COMBO_URL}>
+        <FeedbackGate checkoutUrl={CHECKOUT_PLUS_URL}>
           <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
             <header className="flex items-start justify-between gap-3">
               <div>
