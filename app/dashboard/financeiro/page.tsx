@@ -9,14 +9,6 @@ export const metadata = {
   title: 'Controle Financeiro — BarberMeta',
 }
 
-// Rota do modulo Financeiro. Auth de login eh feito pelo middleware
-// (middleware.ts) — quem nao tem sessao cai pra /login antes daqui.
-// O paywall (entitlement por compra) eh feito no client pelo FinanceiroGate
-// via RPC has_financeiro(); a trava REAL eh no RLS do banco.
-//
-// checkoutUrl: link da Hotmart do adicional "Controle Financeiro".
-// Quem ainda nao comprou, vai cair no FinanceiroGate e clica em
-// "Desbloquear agora" — abre esse link.
 const CHECKOUT_URL = 'https://pay.hotmart.com/P106317414B'
 
 export default async function FinanceiroPage() {
@@ -24,9 +16,20 @@ export default async function FinanceiroPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // Le nome + logo da barbearia pra passar ao componente — usado no card
+  // de pagamento (PNG) gerado pra cada colaborador.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: usuario } = await (supabase as any)
+    .from('usuarios').select('barbearias(nome, logo_url)')
+    .eq('id', user.id).single() as
+    { data: { barbearias: { nome: string; logo_url: string | null } | null } | null }
+
+  const barbeariaNome = usuario?.barbearias?.nome ?? 'Barbearia'
+  const barbeariaLogo = usuario?.barbearias?.logo_url ?? null
+
   return (
     <FinanceiroGate checkoutUrl={CHECKOUT_URL}>
-      <ControleFinanceiro />
+      <ControleFinanceiro barbeariaNome={barbeariaNome} barbeariaLogo={barbeariaLogo} />
     </FinanceiroGate>
   )
 }
