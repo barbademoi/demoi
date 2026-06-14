@@ -72,7 +72,7 @@ const navItems: NavItem[] = [
   },
   {
     href: '/dashboard/feedback-cliente',
-    label: 'Estratégia de Feedback Premiado',
+    label: 'Feedback Premiado',
     badge: 'PLUS',
     requires: 'feedback',
     icon: (
