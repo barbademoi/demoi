@@ -1,7 +1,7 @@
 'use client'
 
+import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { trackInitiateCheckout } from '@/lib/pixel'
 
 interface Props {
   size?: 'sm' | 'md' | 'lg'
@@ -11,21 +11,10 @@ interface Props {
 
 const PRECO = process.env.NEXT_PUBLIC_PRECO ?? '47'
 
-// Rola suave pra secao #preco — onde os 2 cards (R$47 e R$67) ficam lado
-// a lado. Em vez de abrir modal, leva o lead pra escolher a oferta na
-// propria pagina, sem fricao. trackInitiateCheckout serve so de sinal
-// pro pixel ("intencao de compra").
-function scrollToPreco() {
-  trackInitiateCheckout(Number(PRECO) || 47)
-  const el = document.getElementById('preco')
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  } else {
-    // Fallback: hash navegacao caso a secao ainda nao tenha montado.
-    window.location.hash = 'preco'
-  }
-}
-
+// Todo CTA do R$47 vai pra /oferta, uma pagina dedicada que mostra os 2
+// planos lado a lado (BarberMeta R$47 e Combo PLUS R$67) com beneficios,
+// "por que escolher o combo" e FAQ. O pixel de InitiateCheckout dispara
+// quando essa pagina monta (useEffect na /oferta).
 export default function CTAButton({ size = 'lg', className = '', label }: Props) {
   const text = label ?? `Quero o BarberMeta — R$ ${PRECO}`
 
@@ -35,25 +24,20 @@ export default function CTAButton({ size = 'lg', className = '', label }: Props)
     ? 'px-6 py-4 text-base'
     : 'px-4 py-3 text-sm'
 
-  function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
-    e.preventDefault()
-    scrollToPreco()
-  }
-
   return (
-    <motion.a
-      href="#preco"
-      onClick={handleClick}
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.97 }}
-      className={`
-        inline-block rounded-xl font-bold text-black text-center
-        bg-[#D4A85A] hover:bg-[#e0b96a] transition-colors
-        shadow-lg shadow-[#D4A85A]/20
-        ${padding} ${className}
-      `}
-    >
-      {text}
-    </motion.a>
+    <Link href="/oferta" className="inline-block">
+      <motion.span
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.97 }}
+        className={`
+          inline-block rounded-xl font-bold text-black text-center
+          bg-[#D4A85A] hover:bg-[#e0b96a] transition-colors
+          shadow-lg shadow-[#D4A85A]/20
+          ${padding} ${className}
+        `}
+      >
+        {text}
+      </motion.span>
+    </Link>
   )
 }
