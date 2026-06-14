@@ -191,6 +191,39 @@ export default function ControleFinanceiro() {
     saveState(state)
   }, [state, ready])
 
+  // Auto-sync das comissoes do BarberMeta:
+  // Apos carregar o state, busca a comissao acumulada do ciclo atual e
+  // atualiza monthly[mesAno] dos colaboradores tipo 'comissao' que ja
+  // existem (matching por nome, case-insensitive). NAO cria novos — quem
+  // ainda nao foi importado nem aparece (botao "Importar agora" faz isso).
+  // Colaboradores tipo 'salario' ou de scope 'pessoal' ficam intocados.
+  const synced = useRef(false)
+  useEffect(() => {
+    if (!ready || synced.current) return
+    synced.current = true
+    const temComissao = state.collaborators.some(
+      (c: any) => c.scope === 'empresa' && c.type === 'comissao',
+    )
+    if (!temComissao) return
+    buscarComissoesBarbermeta().then((res) => {
+      if ('error' in res) return
+      const { mesAno, barbeiros } = res
+      const norm = (s: string) => s.trim().toLowerCase()
+      const mapa = new Map(barbeiros.map((b) => [norm(b.nome), b.comissao]))
+      setState((s: any) => ({
+        ...s,
+        collaborators: s.collaborators.map((c: any) => {
+          if (c.scope !== 'empresa' || c.type !== 'comissao') return c
+          const v = mapa.get(norm(c.name))
+          if (v === undefined) return c
+          if ((c.monthly?.[mesAno] ?? null) === v) return c
+          return { ...c, monthly: { ...(c.monthly || {}), [mesAno]: v } }
+        }),
+      }))
+    }).catch(() => { /* sync silencioso, ignora erros */ })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready])
+
   const update = (patch: any) => setState((s: any) => ({ ...s, ...patch }))
 
   const [showGuide, setShowGuide] = useState(false)
