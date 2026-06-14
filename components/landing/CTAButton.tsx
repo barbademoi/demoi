@@ -13,7 +13,6 @@ interface Props {
 const PRECO = process.env.NEXT_PUBLIC_PRECO ?? '47'
 const CHECKOUT_URL = 'https://pay.hotmart.com/D105833676F?sck=HOTMART_PRODUCT_PAGE&off=9rjhgvlk&hotfeature=32'
 const CHECKOUT_COMBO_URL = 'https://pay.hotmart.com/K106318479K'
-const SAW_UPSELL_KEY = 'bm_saw_upsell_modal'
 
 export default function CTAButton({ size = 'lg', className = '', label }: Props) {
   const text = label ?? `Quero o BarberMeta — R$ ${PRECO}`
@@ -24,15 +23,6 @@ export default function CTAButton({ size = 'lg', className = '', label }: Props)
     : size === 'md'
     ? 'px-6 py-4 text-base'
     : 'px-4 py-3 text-sm'
-
-  function alreadySawUpsell() {
-    if (typeof window === 'undefined') return false
-    try { return window.sessionStorage.getItem(SAW_UPSELL_KEY) === '1' }
-    catch { return false }
-  }
-  function markSawUpsell() {
-    try { window.sessionStorage.setItem(SAW_UPSELL_KEY, '1') } catch {}
-  }
 
   // Vai pra checkout direto do BarberMeta R$47.
   function goToBarberMeta() {
@@ -50,15 +40,11 @@ export default function CTAButton({ size = 'lg', className = '', label }: Props)
     }, 200)
   }
 
+  // Sempre intercepta com o modal de upsell — TODO clique em CTA do R$47
+  // mostra a oferta do combo antes de seguir.
   function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
     e.preventDefault()
-    // Primeira vez na sessao: intercepta com upsell.
-    if (!alreadySawUpsell()) {
-      markSawUpsell()
-      setShowModal(true)
-      return
-    }
-    goToBarberMeta()
+    setShowModal(true)
   }
 
   function escolheuCombo() {
