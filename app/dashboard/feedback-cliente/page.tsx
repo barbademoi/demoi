@@ -2,9 +2,12 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Sidebar from '@/components/dashboard/Sidebar'
 import FeedbackConfigClient from './FeedbackConfigClient'
+import FeedbackGate from '@/components/feedback/FeedbackGate'
 import type { Brinde } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
+
+const CHECKOUT_COMBO_URL = 'https://pay.hotmart.com/K106318479K'
 
 interface BarbeariaFC {
   id: string
@@ -43,21 +46,23 @@ export default async function FeedbackClientePage() {
     <div className="min-h-screen flex">
       <Sidebar barbeariaNome={barb.nome} />
       <div className="flex-1 min-w-0 lg:pl-64 pt-14 lg:pt-0">
-        <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-          <header className="flex items-start justify-between gap-3">
-            <div>
-              <h1 className="font-serif text-2xl sm:text-3xl text-text">Feedback de Cliente</h1>
-              <p className="text-text-muted text-sm font-sans mt-1">
-                Colete avaliações de clientes em um link público, sorteie brindes e direcione 4★+ para o Google.
-              </p>
-            </div>
-            <a href="/dashboard/feedback-cliente/painel" className="btn-ghost text-xs py-2 px-3 border border-border whitespace-nowrap shrink-0">
-              📊 Ver feedbacks
-            </a>
-          </header>
+        <FeedbackGate checkoutUrl={CHECKOUT_COMBO_URL}>
+          <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+            <header className="flex items-start justify-between gap-3">
+              <div>
+                <h1 className="font-serif text-2xl sm:text-3xl text-text">Feedback de Cliente</h1>
+                <p className="text-text-muted text-sm font-sans mt-1">
+                  Colete avaliações de clientes em um link público, sorteie brindes e direcione 4★+ para o Google.
+                </p>
+              </div>
+              <a href="/dashboard/feedback-cliente/painel" className="btn-ghost text-xs py-2 px-3 border border-border whitespace-nowrap shrink-0">
+                📊 Ver feedbacks
+              </a>
+            </header>
 
-          <FeedbackConfigClient barbearia={barb} brindes={brindes} />
-        </main>
+            <FeedbackConfigClient barbearia={barb} brindes={brindes} />
+          </main>
+        </FeedbackGate>
       </div>
     </div>
   )

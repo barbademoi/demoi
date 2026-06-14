@@ -3,9 +3,12 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import Sidebar from '@/components/dashboard/Sidebar'
 import PainelClient from './PainelClient'
+import FeedbackGate from '@/components/feedback/FeedbackGate'
 import { dataLocalStr } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
+
+const CHECKOUT_COMBO_URL = 'https://pay.hotmart.com/K106318479K'
 
 export default async function PainelFeedbacksPage({
   searchParams,
@@ -95,34 +98,36 @@ export default async function PainelFeedbacksPage({
     <div className="min-h-screen flex">
       <Sidebar barbeariaNome={usuario.barbearias.nome} />
       <div className="flex-1 min-w-0 lg:pl-64 pt-14 lg:pt-0">
-        <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
-          <header className="flex items-center justify-between gap-3">
-            <div>
-              <h1 className="font-serif text-2xl sm:text-3xl text-text">Feedbacks de Cliente</h1>
-              <p className="text-text-muted text-sm font-sans mt-1">
-                Lista de avaliações recebidas. Filtra, marca como lido e gerencia brindes.
-              </p>
+        <FeedbackGate checkoutUrl={CHECKOUT_COMBO_URL}>
+          <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+            <header className="flex items-center justify-between gap-3">
+              <div>
+                <h1 className="font-serif text-2xl sm:text-3xl text-text">Feedbacks de Cliente</h1>
+                <p className="text-text-muted text-sm font-sans mt-1">
+                  Lista de avaliações recebidas. Filtra, marca como lido e gerencia brindes.
+                </p>
+              </div>
+              <Link href="/dashboard/feedback-cliente" className="btn-ghost text-xs py-2 px-3 border border-border whitespace-nowrap">
+                ⚙ Configurações
+              </Link>
+            </header>
+
+            {/* Contadores */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Stat label="Novos" valor={String(novos ?? 0)} highlight={(novos ?? 0) > 0} />
+              <Stat label="Última semana" valor={String(semanaCount ?? 0)} />
+              <Stat label="Últimos 30 dias" valor={String(mesEstrelas.length)} />
+              <Stat label="Média ★ (30d)" valor={mediaEstrelas > 0 ? mediaEstrelas.toFixed(1) : '—'} />
             </div>
-            <Link href="/dashboard/feedback-cliente" className="btn-ghost text-xs py-2 px-3 border border-border whitespace-nowrap">
-              ⚙ Configurações
-            </Link>
-          </header>
 
-          {/* Contadores */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Stat label="Novos" valor={String(novos ?? 0)} highlight={(novos ?? 0) > 0} />
-            <Stat label="Última semana" valor={String(semanaCount ?? 0)} />
-            <Stat label="Últimos 30 dias" valor={String(mesEstrelas.length)} />
-            <Stat label="Média ★ (30d)" valor={mediaEstrelas > 0 ? mediaEstrelas.toFixed(1) : '—'} />
-          </div>
-
-          <PainelClient
-            feedbacks={feedbacks}
-            barbeiros={(barbeirosRaw ?? []) as { id: string; nome: string }[]}
-            brindes={(brindesRaw ?? []) as { id: string; nome: string }[]}
-            filtros={{ periodo, estrelas, comComentario, barbeiroId: barbeiroIdFiltro, brindeId: brindeIdFiltro, arquivados: verArquivados }}
-          />
-        </main>
+            <PainelClient
+              feedbacks={feedbacks}
+              barbeiros={(barbeirosRaw ?? []) as { id: string; nome: string }[]}
+              brindes={(brindesRaw ?? []) as { id: string; nome: string }[]}
+              filtros={{ periodo, estrelas, comComentario, barbeiroId: barbeiroIdFiltro, brindeId: brindeIdFiltro, arquivados: verArquivados }}
+            />
+          </main>
+        </FeedbackGate>
       </div>
     </div>
   )
