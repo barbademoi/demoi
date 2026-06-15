@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
   // ── 4. Normalizar payload ─────────────────────────────────────────────────
   const payload = normalizePayload(fields, isFormData)
   const { buyer, purchase } = payload
-  console.log('[webhook/hotmart] event:', payload.event, '| email:', buyer.email, '| nome:', buyer.name)
+  console.log('[webhook/hotmart] event:', payload.event, '| email:', buyer.email, '| nome:', buyer.name, '| tx:', purchase.transaction)
 
   if (payload.event !== 'PURCHASE_APPROVED') {
     console.log('[webhook/hotmart] evento ignorado:', payload.event)
@@ -134,26 +134,84 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
 
-  const email           = buyer.email
-  const nome            = buyer.name
+  const email              = buyer.email
+  const nome               = buyer.name
   const hotmartTransaction = purchase.transaction
 
-  // ── 5. Idempotência: checar se email já está cadastrado ───────────────────
+  // ── 5. Lookup idempotente: 1º por transação, 2º por email ────────────────
+  // - Transação é a unica chave estavel por compra: garante idempotência real
+  //   contra retentativas da Hotmart (mesmo evento chega N vezes → 1 conta).
+  // - Email é fallback: cliente existente comprando produto novo (transação
+  //   diferente, mesmo email) → atualiza o registro, nao duplica.
   const supabase = createAdminClient()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: existente } = await (supabase as any)
-    .from('usuarios')
-    .select('id')
-    .eq('email', email)
-    .maybeSingle()
+  type ExistenteRow = { id: string; email: string; hotmart_transaction: string | null }
+  let existente: ExistenteRow | null = null
 
-  if (existente) {
-    console.log('[webhook/hotmart] email já cadastrado:', email)
-    return NextResponse.json({ ok: true, message: 'Already registered' })
+  if (hotmartTransaction) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any)
+      .from('usuarios')
+      .select('id, email, hotmart_transaction')
+      .eq('hotmart_transaction', hotmartTransaction)
+      .maybeSingle()
+    existente = (data as ExistenteRow | null) ?? null
   }
 
-  // ── 6. Criar barbearia ────────────────────────────────────────────────────
+  if (!existente) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any)
+      .from('usuarios')
+      .select('id, email, hotmart_transaction')
+      .eq('email', email)
+      .maybeSingle()
+    existente = (data as ExistenteRow | null) ?? null
+  }
+
+  // ── 6. Se ja existe: atualiza somente o que mudou (idempotente) ──────────
+  if (existente) {
+    const emailMudou = existente.email.toLowerCase() !== email.toLowerCase()
+    const txMudou    = !!hotmartTransaction && existente.hotmart_transaction !== hotmartTransaction
+
+    // Email mudou → propaga em auth.users + auth.identities via Admin API
+    // (a API garante sync das duas tabelas; SQL direto quebraria login).
+    if (emailMudou) {
+      const { error: errAuthUpd } = await supabase.auth.admin.updateUserById(existente.id, {
+        email,
+        email_confirm: true,
+      })
+      if (errAuthUpd) {
+        console.error('[webhook/hotmart] erro ao atualizar email no auth:', errAuthUpd)
+        return NextResponse.json({ error: 'Failed to update auth email' }, { status: 500 })
+      }
+    }
+
+    if (emailMudou || txMudou) {
+      const patch: Record<string, unknown> = {}
+      if (emailMudou) patch.email = email
+      if (txMudou)    patch.hotmart_transaction = hotmartTransaction
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: errUpd } = await (supabase as any)
+        .from('usuarios')
+        .update(patch)
+        .eq('id', existente.id)
+      if (errUpd) {
+        console.error('[webhook/hotmart] erro ao atualizar usuarios:', errUpd)
+        return NextResponse.json({ error: 'Failed to update usuario' }, { status: 500 })
+      }
+    }
+
+    console.log('[webhook/hotmart] ja cadastrado — atualizado:', {
+      id: existente.id, emailMudou, txMudou,
+    })
+    return NextResponse.json({
+      ok: true,
+      message: 'Already registered',
+      updated: { email: emailMudou, transaction: txMudou },
+    })
+  }
+
+  // ── 7. Nao existe: cria barbearia + auth user + usuarios ──────────────────
   const primeiroNome = nome.split(' ')[0]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barbearia, error: errBarbearia } = await (supabase as any)
@@ -170,7 +228,6 @@ export async function POST(request: NextRequest) {
   const barbeariaId: string = (barbearia as { id: string }).id
   console.log('[webhook/hotmart] barbearia criada:', barbeariaId)
 
-  // ── 7. Criar usuário Supabase Auth ────────────────────────────────────────
   const senha = gerarSenhaInterna()
 
   const { data: authData, error: errAuth } = await supabase.auth.admin.createUser({
@@ -190,7 +247,6 @@ export async function POST(request: NextRequest) {
   const userId = authData.user.id
   console.log('[webhook/hotmart] auth user criado:', userId)
 
-  // ── 8. Criar linha em usuarios ────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: errUsuario } = await (supabase as any)
     .from('usuarios')
@@ -211,5 +267,5 @@ export async function POST(request: NextRequest) {
   }
 
   console.log('[webhook/hotmart] conta criada com sucesso:', email, '| barbearia:', barbeariaId)
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, message: 'Created' })
 }
