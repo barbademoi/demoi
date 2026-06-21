@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import PhoneMockup from './PhoneMockup'
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 24 },
@@ -38,15 +39,15 @@ export default function AntesDepois() {
                 ✗ Antes
               </span>
             </div>
-            <div className="rounded-2xl overflow-hidden border border-white/10 bg-black shadow-2xl">
+            <PhoneMockup maxWidth={230}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/prints/img_6056.png"
                 alt="Grupo do WhatsApp com mensagens manuais de controle diário dos barbeiros"
-                className="w-full h-auto"
+                className="block w-full h-auto"
                 loading="lazy"
               />
-            </div>
+            </PhoneMockup>
             <p className="text-[#A0AEC0] text-sm mt-4 leading-relaxed">
               Cada barbeiro digitava à mão. Demorava 10 min e ninguém
               conseguia ver o próprio progresso de ponto/meta.
@@ -60,15 +61,15 @@ export default function AntesDepois() {
                 ✓ Depois
               </span>
             </div>
-            <div className="rounded-2xl overflow-hidden border border-white/10 bg-black shadow-2xl">
+            <PhoneMockup maxWidth={230}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/prints/img_6057.png"
                 alt="Tela do BarberMeta pra lançar serviços do dia com botões + e -"
-                className="w-full h-auto"
+                className="block w-full h-auto"
                 loading="lazy"
               />
-            </div>
+            </PhoneMockup>
             <p className="text-[#A0AEC0] text-sm mt-4 leading-relaxed">
               Toca +/- nos serviços, o total calcula sozinho. Lançamento
               do dia em 30 segundos, pelo celular.
@@ -77,17 +78,16 @@ export default function AntesDepois() {
         </div>
 
         {/* Dashboard de Progresso */}
-        <motion.div
-          {...fadeUp(0.35)}
-          className="rounded-2xl overflow-hidden border border-[#D4A85A]/20 bg-black shadow-2xl"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/prints/img_6058.png"
-            alt="Dashboard do barbeiro mostrando ritmo necessário, pontuação do mês e insights"
-            className="w-full h-auto"
-            loading="lazy"
-          />
+        <motion.div {...fadeUp(0.35)}>
+          <PhoneMockup maxWidth={280} className="border-[#D4A85A]/30">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/prints/img_6058.png"
+              alt="Dashboard do barbeiro mostrando ritmo necessário, pontuação do mês e insights"
+              className="block w-full h-auto"
+              loading="lazy"
+            />
+          </PhoneMockup>
         </motion.div>
         <motion.p
           {...fadeUp(0.4)}

@@ -2,6 +2,8 @@
 
 import { motion } from 'framer-motion'
 import CTAButton from './CTAButton'
+import BrowserMockup from './BrowserMockup'
+import PhoneMockup from './PhoneMockup'
 
 const fadeIn = (delay = 0) => ({
   initial: { opacity: 0, y: 20 },
@@ -140,13 +142,15 @@ export default function Funcionalidades() {
                 Cada barbeiro vê onde está. Quem tá atrás, corre. Sem você precisar falar nada.
               </p>
             </div>
-            <div className="sm:w-1/2 flex items-start justify-center p-4 pt-0 sm:pt-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/prints/01-dashboard-ranking.png"
-                alt="Ranking ao vivo dos barbeiros"
-                className="w-full h-auto rounded-xl"
-              />
+            <div className="sm:w-1/2 flex items-start justify-center p-5 pt-0 sm:pt-5">
+              <BrowserMockup url="barbermeta.com.br/dashboard" maxWidth={380}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/prints/01-dashboard-ranking.png"
+                  alt="Ranking ao vivo dos barbeiros"
+                  className="block w-full h-auto"
+                />
+              </BrowserMockup>
             </div>
           </motion.div>
 
@@ -155,13 +159,15 @@ export default function Funcionalidades() {
             {...fadeIn(0.2)}
             className="rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col"
           >
-            <div className="p-4 pb-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/prints/03-barbeiro-individual.png"
-                alt="Página individual do barbeiro"
-                className="w-full h-auto rounded-xl"
-              />
+            <div className="p-5 pb-0 flex justify-center">
+              <PhoneMockup maxWidth={210}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/prints/03-barbeiro-individual.png"
+                  alt="Página individual do barbeiro"
+                  className="block w-full h-auto"
+                />
+              </PhoneMockup>
             </div>
             <div className="p-6 pt-4">
               <h3 className="text-white font-bold text-lg mb-1">Link individual por barbeiro</h3>
@@ -176,13 +182,15 @@ export default function Funcionalidades() {
             {...fadeIn(0.25)}
             className="rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col"
           >
-            <div className="p-4 pb-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/prints/05-meta-coletiva.png"
-                alt="Meta coletiva da barbearia"
-                className="w-full h-auto rounded-xl"
-              />
+            <div className="p-5 pb-0">
+              <BrowserMockup url="barbermeta.com.br/dashboard" maxWidth={320}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/prints/05-meta-coletiva.png"
+                  alt="Meta coletiva da barbearia"
+                  className="block w-full h-auto"
+                />
+              </BrowserMockup>
             </div>
             <div className="p-6 pt-4">
               <h3 className="text-white font-bold text-lg mb-1">Meta coletiva da equipe</h3>
@@ -239,12 +247,16 @@ export default function Funcionalidades() {
               <p className="text-[#A0AEC0] text-sm leading-relaxed mb-4">
                 Cadastra os brindes com o peso de cada um. Define validade (15 / 30 / 60 / 90 dias) e gera o link público.
               </p>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/prints/feedback-config.png"
-                alt="Tela de configuração do feedback de cliente"
-                className="mt-auto w-full h-auto rounded-xl border border-white/8"
-              />
+              <div className="mt-auto">
+                <BrowserMockup url="barbermeta.com.br/feedback" maxWidth={280}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/prints/feedback-config.png"
+                    alt="Tela de configuração do feedback de cliente"
+                    className="block w-full h-auto"
+                  />
+                </BrowserMockup>
+              </div>
             </div>
 
             {/* Etapa 2 — Cliente avalia */}
@@ -257,12 +269,16 @@ export default function Funcionalidades() {
                 Acessa pelo QR Code ou WhatsApp, deixa estrelas + comentário e ganha um brinde sorteado na hora.
                 Quem dá 4+ estrelas vai pro Google Reviews.
               </p>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/prints/feedback-painel.png"
-                alt="Painel do dono com feedbacks recebidos"
-                className="mt-auto w-full h-auto rounded-xl border border-white/8"
-              />
+              <div className="mt-auto">
+                <BrowserMockup url="barbermeta.com.br/feedback/painel" maxWidth={280}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/prints/feedback-painel.png"
+                    alt="Painel do dono com feedbacks recebidos"
+                    className="block w-full h-auto"
+                  />
+                </BrowserMockup>
+              </div>
             </div>
 
             {/* Etapa 3 — Barbeiro oferece */}
@@ -275,12 +291,16 @@ export default function Funcionalidades() {
                 No link dele aparece quem avaliou, qual brinde ganhou e o código. Ele oferece no próximo
                 atendimento — cliente volta pra usar.
               </p>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/prints/feedback-barbeiro.png"
-                alt="Tela do barbeiro mostrando o brinde do cliente"
-                className="mt-auto w-full h-auto rounded-xl border border-white/8"
-              />
+              <div className="mt-auto flex justify-center">
+                <PhoneMockup maxWidth={200}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/prints/feedback-barbeiro.png"
+                    alt="Tela do barbeiro mostrando o brinde do cliente"
+                    className="block w-full h-auto"
+                  />
+                </PhoneMockup>
+              </div>
             </div>
           </div>
         </motion.div>
