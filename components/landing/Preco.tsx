@@ -82,8 +82,9 @@ export default function Preco() {
 
             <a
               href={URL_BM}
+              id="cta-preco-bm-47"
               onClick={btnClick(47, URL_BM)}
-              className="w-full text-center rounded-xl border border-white/25 bg-transparent hover:bg-white/5 text-white font-bold px-5 py-3.5 text-base transition-colors"
+              className="gtm-cta gtm-cta-preco cta-bm w-full text-center rounded-xl border border-white/25 bg-transparent hover:bg-white/5 text-white font-bold px-5 py-3.5 text-base transition-colors"
             >
               Quero o BarberMeta — R$ 47
             </a>
@@ -123,8 +124,9 @@ export default function Preco() {
 
             <a
               href={URL_COMBO}
+              id="cta-preco-combo-67"
               onClick={btnClick(67, URL_COMBO)}
-              className="w-full text-center rounded-xl bg-[#D4A85A] hover:bg-[#E6CB8A] text-[#0F1117] font-bold px-5 py-3.5 text-base transition-colors"
+              className="gtm-cta gtm-cta-preco cta-combo w-full text-center rounded-xl bg-[#D4A85A] hover:bg-[#E6CB8A] text-[#0F1117] font-bold px-5 py-3.5 text-base transition-colors"
             >
               Quero o Combo — R$ 67
             </a>
