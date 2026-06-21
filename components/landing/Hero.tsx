@@ -29,37 +29,34 @@ export default function Hero() {
 
           {/* ── texto ── */}
           <div className="order-2 lg:order-1 text-center lg:text-left">
-            <motion.h1
+            {/* badge cima */}
+            <motion.span
               custom={0} variants={fadeUp} initial="hidden" animate="show"
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight"
+              className="inline-flex items-center gap-2 rounded-full bg-[#D4A85A]/15 border border-[#D4A85A]/40 px-3 py-1 text-xs font-bold text-[#D4A85A] uppercase tracking-wider mb-5"
             >
-              O sistema que transforma sua barbearia numa{' '}
-              <span className="text-[#D4A85A]">gincana de vendas</span>.
+              <span>🎯</span>
+              Sistema + 6 aulas
+            </motion.span>
+
+            <motion.h1
+              custom={1} variants={fadeUp} initial="hidden" animate="show"
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight"
+            >
+              O sistema <span className="text-[#D4A85A]">+ 6 aulas</span> pra você criar, rodar e acompanhar a{' '}
+              <span className="text-[#D4A85A]">gincana</span> que aumenta o faturamento da sua barbearia.
             </motion.h1>
 
             <motion.p
-              custom={1} variants={fadeUp} initial="hidden" animate="show"
-              className="mt-5 text-[#A0AEC0] text-lg leading-relaxed"
+              custom={2} variants={fadeUp} initial="hidden" animate="show"
+              className="mt-5 text-[#A0AEC0] text-base sm:text-lg leading-relaxed"
             >
-              Cada barbeiro acompanha o próprio resultado pelo celular —
-              comissão acumulada, ranking ao vivo e quanto falta pra cada meta.
-              <strong className="text-white"> Quem está atrás, acelera sozinho.</strong>
+              Você não recebe só a ferramenta. Recebe o{' '}
+              <span className="text-white font-semibold">passo a passo de quem já faz</span>:
+              como montar as metas, engajar o time e transformar disputa em faturamento.
             </motion.p>
 
-            {/* destaque aulas inclusas */}
             <motion.div
-              custom={4} variants={fadeUp} initial="hidden" animate="show"
-              className="mt-6 inline-flex items-start gap-2.5 rounded-xl bg-[#D4A85A]/15 border border-[#D4A85A]/40 px-4 py-3 text-sm text-left max-w-md"
-            >
-              <span className="text-base leading-none mt-0.5 shrink-0">🎥</span>
-              <span className="text-[#E6CB8A] leading-relaxed">
-                <span className="font-bold text-white">+6 aulas curtas comigo</span> ensinando 2 tipos
-                de metas e gamificação — exatamente o que faço aqui na minha barbearia.
-              </span>
-            </motion.div>
-
-            <motion.div
-              custom={5} variants={fadeUp} initial="hidden" animate="show"
+              custom={3} variants={fadeUp} initial="hidden" animate="show"
               className="mt-7 flex flex-col items-center lg:items-start gap-3"
             >
               <div className="flex flex-col sm:flex-row gap-3 items-center">
@@ -72,13 +69,13 @@ export default function Hero() {
 
             {/* aviso: nao substitui sistema de gestao */}
             <motion.div
-              custom={6} variants={fadeUp} initial="hidden" animate="show"
+              custom={4} variants={fadeUp} initial="hidden" animate="show"
               className="mt-5 inline-flex items-start gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-left max-w-md"
             >
               <span className="text-base leading-none mt-0.5 shrink-0">ℹ️</span>
               <span className="text-[#A0AEC0] text-sm leading-relaxed">
                 <span className="text-white font-semibold">Não precisa trocar seu sistema de gestão.</span>{' '}
-                BarberMeta é um <span className="text-emerald-300 font-semibold">adicional</span> — senta em cima do que voce ja usa (Trinks, Booksy, Agenda Serviço, etc).
+                BarberMeta é um <span className="text-emerald-300 font-semibold">adicional</span> — se integra ao que você já usa (Trinks, Booksy, Agenda Serviço, etc).
               </span>
             </motion.div>
           </div>
@@ -99,15 +96,6 @@ export default function Hero() {
             </div>
           </motion.div>
         </div>
-
-        {/* ── trust strip ── */}
-        <motion.div
-          custom={5} variants={fadeUp} initial="hidden" animate="show"
-          className="mt-12 pt-8 border-t border-white/5 flex items-center justify-center gap-3 text-[#A0AEC0] text-sm"
-        >
-          <span>🏠</span>
-          <span>Usado pela <strong className="text-white">Demôi Barbearia</strong> · Cássia / MG · 7 barbeiros</span>
-        </motion.div>
       </div>
     </section>
   )
