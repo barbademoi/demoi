@@ -95,8 +95,8 @@ export default function Hero() {
               <div className="relative rounded-3xl overflow-hidden border-2 border-white/10 shadow-2xl shadow-black/50">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/prints/carlos-oculos-vermelho.jpg"
-                  alt="Carlos Henrique, criador do BarberMeta"
+                  src="/prints/carlos-hero.jpg"
+                  alt="Carlos Henrique"
                   className="block w-full h-auto"
                 />
                 {/* gradiente embaixo pra leitura do nome */}
