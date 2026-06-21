@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import CTAButton from './CTAButton'
 import BrowserMockup from './BrowserMockup'
 import PhoneMockup from './PhoneMockup'
+import Carousel from './Carousel'
 
 const fadeIn = (delay = 0) => ({
   initial: { opacity: 0, y: 20 },
@@ -127,84 +128,80 @@ export default function Funcionalidades() {
           Simples de usar.
         </motion.p>
 
-        {/* ── bento grid ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* ── carrossel dos 3 destaques principais ── */}
+        <motion.div {...fadeIn(0.1)} className="mb-12">
+          <Carousel autoRotate={5000} showArrows>
+            {/* slide 1 — Ranking ao vivo */}
+            <div className="rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col sm:flex-row items-center max-w-3xl mx-auto">
+              <div className="p-6 sm:p-8 flex flex-col justify-center sm:w-1/2 text-center sm:text-left">
+                <span className="text-3xl mb-3">🏆</span>
+                <h3 className="text-white font-bold text-xl mb-2">Ranking ao vivo</h3>
+                <p className="text-[#A0AEC0] text-sm sm:text-base leading-relaxed">
+                  Cada barbeiro vê onde está. Quem tá atrás, corre. Sem você precisar falar nada.
+                </p>
+              </div>
+              <div className="sm:w-1/2 flex items-center justify-center p-5">
+                <BrowserMockup url="barbermeta.com.br/dashboard" maxWidth={340}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/prints/01-dashboard-ranking.png"
+                    alt="Ranking ao vivo dos barbeiros"
+                    className="block w-full h-auto"
+                  />
+                </BrowserMockup>
+              </div>
+            </div>
 
-          {/* card grande — ranking ao vivo (2 colunas no lg) */}
-          <motion.div
-            {...fadeIn(0.1)}
-            className="lg:col-span-2 rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col sm:flex-row"
-          >
-            <div className="p-7 flex flex-col justify-center sm:w-1/2">
-              <span className="text-3xl mb-3">🏆</span>
-              <h3 className="text-white font-bold text-xl mb-2">Ranking ao vivo</h3>
-              <p className="text-[#A0AEC0] text-base leading-relaxed">
-                Cada barbeiro vê onde está. Quem tá atrás, corre. Sem você precisar falar nada.
-              </p>
+            {/* slide 2 — Link individual */}
+            <div className="rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col sm:flex-row items-center max-w-3xl mx-auto">
+              <div className="p-6 sm:p-8 flex flex-col justify-center sm:w-1/2 text-center sm:text-left order-2 sm:order-1">
+                <span className="text-3xl mb-3">📱</span>
+                <h3 className="text-white font-bold text-xl mb-2">Link individual por barbeiro</h3>
+                <p className="text-[#A0AEC0] text-sm sm:text-base leading-relaxed">
+                  Cada barbeiro tem seu próprio link. Acessa pelo celular, vê comissão, ritmo e metas — sem senha.
+                </p>
+              </div>
+              <div className="sm:w-1/2 flex items-center justify-center p-5 order-1 sm:order-2">
+                <PhoneMockup maxWidth={210}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/prints/03-barbeiro-individual.png"
+                    alt="Página individual do barbeiro"
+                    className="block w-full h-auto"
+                  />
+                </PhoneMockup>
+              </div>
             </div>
-            <div className="sm:w-1/2 flex items-start justify-center p-5 pt-0 sm:pt-5">
-              <BrowserMockup url="barbermeta.com.br/dashboard" maxWidth={380}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/prints/01-dashboard-ranking.png"
-                  alt="Ranking ao vivo dos barbeiros"
-                  className="block w-full h-auto"
-                />
-              </BrowserMockup>
-            </div>
-          </motion.div>
 
-          {/* card — link individual do barbeiro */}
-          <motion.div
-            {...fadeIn(0.2)}
-            className="rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col"
-          >
-            <div className="p-5 pb-0 flex justify-center">
-              <PhoneMockup maxWidth={210}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/prints/03-barbeiro-individual.png"
-                  alt="Página individual do barbeiro"
-                  className="block w-full h-auto"
-                />
-              </PhoneMockup>
+            {/* slide 3 — Meta coletiva */}
+            <div className="rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col sm:flex-row items-center max-w-3xl mx-auto">
+              <div className="p-6 sm:p-8 flex flex-col justify-center sm:w-1/2 text-center sm:text-left">
+                <span className="text-3xl mb-3">🎯</span>
+                <h3 className="text-white font-bold text-xl mb-2">Meta coletiva da equipe</h3>
+                <p className="text-[#A0AEC0] text-sm sm:text-base leading-relaxed">
+                  Defina uma meta geral pra barbearia com premiação. Todo mundo puxa junto.
+                </p>
+              </div>
+              <div className="sm:w-1/2 flex items-center justify-center p-5">
+                <BrowserMockup url="barbermeta.com.br/dashboard" maxWidth={320}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/prints/05-meta-coletiva.png"
+                    alt="Meta coletiva da barbearia"
+                    className="block w-full h-auto"
+                  />
+                </BrowserMockup>
+              </div>
             </div>
-            <div className="p-6 pt-4">
-              <h3 className="text-white font-bold text-lg mb-1">Link individual por barbeiro</h3>
-              <p className="text-[#A0AEC0] text-sm leading-relaxed">
-                Cada barbeiro tem seu próprio link. Acessa pelo celular, vê comissão, ritmo e metas — sem senha.
-              </p>
-            </div>
-          </motion.div>
+          </Carousel>
+        </motion.div>
 
-          {/* card — meta coletiva */}
-          <motion.div
-            {...fadeIn(0.25)}
-            className="rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col"
-          >
-            <div className="p-5 pb-0">
-              <BrowserMockup url="barbermeta.com.br/dashboard" maxWidth={320}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/prints/05-meta-coletiva.png"
-                  alt="Meta coletiva da barbearia"
-                  className="block w-full h-auto"
-                />
-              </BrowserMockup>
-            </div>
-            <div className="p-6 pt-4">
-              <h3 className="text-white font-bold text-lg mb-1">Meta coletiva da equipe</h3>
-              <p className="text-[#A0AEC0] text-sm leading-relaxed">
-                Defina uma meta geral pra barbearia com premiação. Todo mundo puxa junto.
-              </p>
-            </div>
-          </motion.div>
-
-          {/* 3 cards pequenos */}
+        {/* 3 cards pequenos sem print */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {smallCards.map((c, i) => (
             <motion.div
               key={c.titulo}
-              {...fadeIn(0.3 + i * 0.08)}
+              {...fadeIn(0.1 + i * 0.08)}
               className="rounded-2xl border border-white/8 bg-[#0A1929] p-6 flex flex-col gap-3"
             >
               <span className="text-3xl">{c.emoji}</span>
@@ -212,7 +209,6 @@ export default function Funcionalidades() {
               <p className="text-[#A0AEC0] text-sm leading-relaxed">{c.texto}</p>
             </motion.div>
           ))}
-
         </div>
 
         {/* ── DESTAQUE: Estratégia de Feedback Premiado ── */}
@@ -237,71 +233,80 @@ export default function Funcionalidades() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-1 bg-white/5 px-1 pb-1">
-            {/* Etapa 1 — Dono configura */}
-            <div className="bg-[#0A1929] p-6 flex flex-col">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#D4A85A]/20 text-[#D4A85A] font-bold text-sm">1</span>
-                <h4 className="text-white font-bold text-base">Dono configura</h4>
+          {/* carrossel das 3 etapas */}
+          <div className="bg-white/5 px-3 py-4 sm:px-6 sm:py-6">
+            <Carousel autoRotate={5500} showArrows>
+              {/* Etapa 1 — Dono configura */}
+              <div className="flex flex-col sm:flex-row gap-5 items-center max-w-3xl mx-auto px-3 sm:px-6">
+                <div className="sm:w-1/2 text-center sm:text-left">
+                  <div className="flex items-center justify-center sm:justify-start gap-2 mb-3">
+                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#D4A85A]/20 text-[#D4A85A] font-bold text-sm">1</span>
+                    <h4 className="text-white font-bold text-base">Dono configura</h4>
+                  </div>
+                  <p className="text-[#A0AEC0] text-sm leading-relaxed">
+                    Cadastra os brindes com o peso de cada um. Define validade (15 / 30 / 60 / 90 dias) e gera o link público.
+                  </p>
+                </div>
+                <div className="sm:w-1/2 flex justify-center">
+                  <BrowserMockup url="barbermeta.com.br/feedback" maxWidth={280}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/prints/feedback-config.png"
+                      alt="Tela de configuração do feedback de cliente"
+                      className="block w-full h-auto"
+                    />
+                  </BrowserMockup>
+                </div>
               </div>
-              <p className="text-[#A0AEC0] text-sm leading-relaxed mb-4">
-                Cadastra os brindes com o peso de cada um. Define validade (15 / 30 / 60 / 90 dias) e gera o link público.
-              </p>
-              <div className="mt-auto">
-                <BrowserMockup url="barbermeta.com.br/feedback" maxWidth={280}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/prints/feedback-config.png"
-                    alt="Tela de configuração do feedback de cliente"
-                    className="block w-full h-auto"
-                  />
-                </BrowserMockup>
-              </div>
-            </div>
 
-            {/* Etapa 2 — Cliente avalia */}
-            <div className="bg-[#0A1929] p-6 flex flex-col">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#D4A85A]/20 text-[#D4A85A] font-bold text-sm">2</span>
-                <h4 className="text-white font-bold text-base">Cliente avalia e ganha</h4>
+              {/* Etapa 2 — Cliente avalia */}
+              <div className="flex flex-col sm:flex-row gap-5 items-center max-w-3xl mx-auto px-3 sm:px-6">
+                <div className="sm:w-1/2 text-center sm:text-left">
+                  <div className="flex items-center justify-center sm:justify-start gap-2 mb-3">
+                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#D4A85A]/20 text-[#D4A85A] font-bold text-sm">2</span>
+                    <h4 className="text-white font-bold text-base">Cliente avalia e ganha</h4>
+                  </div>
+                  <p className="text-[#A0AEC0] text-sm leading-relaxed">
+                    Acessa pelo QR Code ou WhatsApp, deixa estrelas + comentário e ganha um brinde sorteado na hora.
+                    Quem dá 4+ estrelas vai pro Google Reviews.
+                  </p>
+                </div>
+                <div className="sm:w-1/2 flex justify-center">
+                  <BrowserMockup url="barbermeta.com.br/feedback/painel" maxWidth={280}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/prints/feedback-painel.png"
+                      alt="Painel do dono com feedbacks recebidos"
+                      className="block w-full h-auto"
+                    />
+                  </BrowserMockup>
+                </div>
               </div>
-              <p className="text-[#A0AEC0] text-sm leading-relaxed mb-4">
-                Acessa pelo QR Code ou WhatsApp, deixa estrelas + comentário e ganha um brinde sorteado na hora.
-                Quem dá 4+ estrelas vai pro Google Reviews.
-              </p>
-              <div className="mt-auto">
-                <BrowserMockup url="barbermeta.com.br/feedback/painel" maxWidth={280}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/prints/feedback-painel.png"
-                    alt="Painel do dono com feedbacks recebidos"
-                    className="block w-full h-auto"
-                  />
-                </BrowserMockup>
-              </div>
-            </div>
 
-            {/* Etapa 3 — Barbeiro oferece */}
-            <div className="bg-[#0A1929] p-6 flex flex-col">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#D4A85A]/20 text-[#D4A85A] font-bold text-sm">3</span>
-                <h4 className="text-white font-bold text-base">Barbeiro vê e oferece</h4>
+              {/* Etapa 3 — Barbeiro oferece */}
+              <div className="flex flex-col sm:flex-row gap-5 items-center max-w-3xl mx-auto px-3 sm:px-6">
+                <div className="sm:w-1/2 text-center sm:text-left">
+                  <div className="flex items-center justify-center sm:justify-start gap-2 mb-3">
+                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#D4A85A]/20 text-[#D4A85A] font-bold text-sm">3</span>
+                    <h4 className="text-white font-bold text-base">Barbeiro vê e oferece</h4>
+                  </div>
+                  <p className="text-[#A0AEC0] text-sm leading-relaxed">
+                    No link dele aparece quem avaliou, qual brinde ganhou e o código. Ele oferece no próximo
+                    atendimento — cliente volta pra usar.
+                  </p>
+                </div>
+                <div className="sm:w-1/2 flex justify-center">
+                  <PhoneMockup maxWidth={200}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/prints/feedback-barbeiro.png"
+                      alt="Tela do barbeiro mostrando o brinde do cliente"
+                      className="block w-full h-auto"
+                    />
+                  </PhoneMockup>
+                </div>
               </div>
-              <p className="text-[#A0AEC0] text-sm leading-relaxed mb-4">
-                No link dele aparece quem avaliou, qual brinde ganhou e o código. Ele oferece no próximo
-                atendimento — cliente volta pra usar.
-              </p>
-              <div className="mt-auto flex justify-center">
-                <PhoneMockup maxWidth={200}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/prints/feedback-barbeiro.png"
-                    alt="Tela do barbeiro mostrando o brinde do cliente"
-                    className="block w-full h-auto"
-                  />
-                </PhoneMockup>
-              </div>
-            </div>
+            </Carousel>
           </div>
         </motion.div>
 
