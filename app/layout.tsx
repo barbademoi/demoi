@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import Script from 'next/script'
 import { DM_Serif_Display, DM_Sans } from 'next/font/google'
 import './globals.css'
 import MetaPixel from '@/components/MetaPixel'
@@ -36,6 +37,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className={`${dmSerif.variable} ${dmSans.variable}`}>
+      <head>
+        {/* Google Tag Manager (servidor proprio api.barbermeta.com.br) */}
+        <Script id="gtm-init" strategy="afterInteractive">
+          {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;j.src="https://api.barbermeta.com.br/eqfehwriy.js?"+i;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','brv04=EA1PMDwoS0QxOCUkOyY0Vw9UQFlZQwIfRAsTBQoAFBwcHRNZCwoLXxsb');`}
+        </Script>
+      </head>
       <body className="font-sans bg-background text-text antialiased min-h-screen">
         <MetaPixel />
         {children}
