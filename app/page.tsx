@@ -1,6 +1,7 @@
 import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
 import TudoQueFaz from '@/components/landing/TudoQueFaz'
+import NaoPrecisaTrocar from '@/components/landing/NaoPrecisaTrocar'
 import AntesDepois from '@/components/landing/AntesDepois'
 import ParaQuem from '@/components/landing/ParaQuem'
 import Funcionalidades from '@/components/landing/Funcionalidades'
@@ -24,6 +25,7 @@ export default function LandingPage() {
       <Navbar />
       <Hero />
       <TudoQueFaz />
+      <NaoPrecisaTrocar />
       <AntesDepois />
       <ParaQuem />
       <Funcionalidades />

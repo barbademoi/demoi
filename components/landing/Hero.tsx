@@ -46,38 +46,10 @@ export default function Hero() {
               <strong className="text-white"> Quem está atrás, acelera sozinho.</strong>
             </motion.p>
 
-            <motion.div
-              custom={2} variants={fadeUp} initial="hidden" animate="show"
-              className="mt-6"
-            >
-              <div className="flex flex-wrap gap-2.5 justify-center lg:justify-start">
-                <span className="inline-flex items-center gap-2 rounded-xl bg-white/5 border border-white/15 px-3.5 py-2 text-sm font-semibold text-white">
-                  <span className="text-base">👥</span>
-                  Funciona com <span className="text-[#D4A85A]">equipe</span>
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-xl bg-white/5 border border-white/15 px-3.5 py-2 text-sm font-semibold text-white">
-                  <span className="text-base">✂️</span>
-                  Funciona <span className="text-[#D4A85A]">sozinho</span>
-                </span>
-              </div>
-              <p className="mt-2 text-[#A0AEC0] text-xs sm:text-sm leading-relaxed text-center lg:text-left">
-                Você escolhe o modo na primeira vez que entrar — o sistema se adapta ao seu caso.
-              </p>
-            </motion.div>
-
-            {/* destaque link individual */}
-            <motion.div
-              custom={3} variants={fadeUp} initial="hidden" animate="show"
-              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#D4A85A]/10 border border-[#D4A85A]/25 px-4 py-2.5 text-sm text-[#D4A85A]"
-            >
-              <span>🔗</span>
-              <span>Cada barbeiro tem seu link único — sem senha, sem app</span>
-            </motion.div>
-
             {/* destaque aulas inclusas */}
             <motion.div
               custom={4} variants={fadeUp} initial="hidden" animate="show"
-              className="mt-3 inline-flex items-start gap-2.5 rounded-xl bg-[#D4A85A]/15 border border-[#D4A85A]/40 px-4 py-3 text-sm text-left max-w-md"
+              className="mt-6 inline-flex items-start gap-2.5 rounded-xl bg-[#D4A85A]/15 border border-[#D4A85A]/40 px-4 py-3 text-sm text-left max-w-md"
             >
               <span className="text-base leading-none mt-0.5 shrink-0">🎥</span>
               <span className="text-[#E6CB8A] leading-relaxed">
@@ -92,18 +64,22 @@ export default function Hero() {
             >
               <div className="flex flex-col sm:flex-row gap-3 items-center">
                 <CTAButton id="cta-hero-oferta" gtmClass="gtm-cta-hero" />
-                <a
-                  href="#funcionalidades"
-                  id="link-hero-funcionalidades"
-                  className="gtm-link-anchor inline-flex items-center gap-2 rounded-xl border border-white/20 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5 transition-colors"
-                >
-                  Ver funcionalidades
-                  <span aria-hidden>↓</span>
-                </a>
               </div>
               <p className="text-sm text-[#A0AEC0]">
                 Acesso vitalício · Sem mensalidade · 7 dias de garantia
               </p>
+            </motion.div>
+
+            {/* aviso: nao substitui sistema de gestao */}
+            <motion.div
+              custom={6} variants={fadeUp} initial="hidden" animate="show"
+              className="mt-5 inline-flex items-start gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-left max-w-md"
+            >
+              <span className="text-base leading-none mt-0.5 shrink-0">ℹ️</span>
+              <span className="text-[#A0AEC0] text-sm leading-relaxed">
+                <span className="text-white font-semibold">Não precisa trocar seu sistema de gestão.</span>{' '}
+                BarberMeta é um <span className="text-emerald-300 font-semibold">adicional</span> — senta em cima do que voce ja usa (Trinks, Booksy, Agenda Serviço, etc).
+              </span>
             </motion.div>
           </div>
 
