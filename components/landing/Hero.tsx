@@ -106,46 +106,19 @@ export default function Hero() {
             </motion.div>
           </div>
 
-          {/* ── mockup desktop + celular ── */}
+          {/* ── foto ── */}
           <motion.div
             custom={1} variants={fadeUp} initial="hidden" animate="show"
-            className="order-1 lg:order-2 flex justify-center"
+            className="order-1 lg:order-2 flex flex-col items-center gap-3"
           >
-            <div className="relative w-full max-w-[520px] pb-16 sm:pb-20">
-              {/* glow dourado por trás */}
-              <div aria-hidden className="absolute -inset-6 rounded-3xl blur-3xl opacity-20 bg-[#D4A85A]" />
-
-              {/* Desktop — janela com chrome de browser */}
-              <div className="relative rounded-2xl overflow-hidden border border-white/15 bg-[#0F1117] shadow-2xl">
-                <div className="bg-[#161820] h-7 flex items-center px-3 gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#28C840]" />
-                  <div className="mx-auto rounded-md bg-[#0A1929] border border-white/10 px-2 py-0.5 text-[10px] text-[#A0AEC0] font-mono">
-                    barbermeta.com.br/dashboard
-                  </div>
-                </div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/prints/dashboard-meta-coletiva.png"
-                  alt="Dashboard do BarberMeta com Meta Coletiva, progresso e ritmo necessário"
-                  className="block w-full h-auto"
-                />
-              </div>
-
-              {/* Mobile — celular sobrepondo no canto inferior direito */}
-              <div className="absolute -bottom-2 -right-2 sm:-right-4 w-[34%] sm:w-[30%] max-w-[180px]">
-                <div className="relative rounded-[28px] border-[5px] border-[#0F1117] bg-[#0F1117] shadow-2xl overflow-hidden">
-                  {/* notch */}
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-3.5 bg-[#0F1117] rounded-b-2xl z-10" />
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/prints/03-barbeiro-individual.png"
-                    alt="Link individual do barbeiro no celular"
-                    className="block w-full h-auto"
-                  />
-                </div>
-              </div>
+            <div className="relative w-full max-w-[280px] sm:max-w-[320px]">
+              <div aria-hidden className="absolute -inset-4 rounded-3xl blur-2xl opacity-15 bg-[#D4A85A]" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/prints/foto-celular.png"
+                alt="Carlos Henrique usando o BarberMeta no celular"
+                className="relative w-full h-auto rounded-2xl shadow-2xl"
+              />
             </div>
           </motion.div>
         </div>
