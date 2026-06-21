@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { useAppendTracking } from '@/lib/utms'
 
 interface Props {
   size?: 'sm' | 'md' | 'lg'
@@ -20,6 +21,9 @@ const PRECO = process.env.NEXT_PUBLIC_PRECO ?? '47'
 // planos lado a lado (BarberMeta R$47 e Combo PLUS R$67) com beneficios,
 // "por que escolher o combo" e FAQ. O pixel de InitiateCheckout dispara
 // quando essa pagina monta (useEffect na /oferta).
+//
+// UTMs (utm_*, gclid, fbclid, sck) sao propagadas da URL atual pra /oferta —
+// la sao novamente repassadas pro checkout Hotmart.
 export default function CTAButton({
   size = 'lg',
   className = '',
@@ -27,6 +31,7 @@ export default function CTAButton({
   id,
   gtmClass = '',
 }: Props) {
+  const appendTracking = useAppendTracking()
   const text = label ?? `Quero o BarberMeta — R$ ${PRECO}`
 
   const padding = size === 'lg'
@@ -37,7 +42,7 @@ export default function CTAButton({
 
   return (
     <Link
-      href="/oferta"
+      href={appendTracking('/oferta')}
       id={id}
       className={`cta cta-oferta gtm-cta ${gtmClass} inline-block`}
     >

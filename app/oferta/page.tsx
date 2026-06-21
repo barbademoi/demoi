@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { trackInitiateCheckout } from '@/lib/pixel'
+import { useAppendTracking } from '@/lib/utms'
 
 const URL_BM = 'https://pay.hotmart.com/D105833676F?sck=HOTMART_PRODUCT_PAGE&off=9rjhgvlk&hotfeature=32'
 const URL_COMBO = 'https://pay.hotmart.com/K106318479K'
@@ -53,19 +54,15 @@ const faq = [
 ]
 
 export default function OfertaPage() {
+  const appendTracking = useAppendTracking()
+  // hrefs com UTMs preservadas da URL atual — Hotmart Pixel le essas params
+  const hrefBM    = appendTracking(URL_BM)
+  const hrefCombo = appendTracking(URL_COMBO)
+
   // Marca o pixel de "ver oferta" quando a pagina carrega.
   useEffect(() => {
     trackInitiateCheckout(47)
   }, [])
-
-  function comprarBM() {
-    trackInitiateCheckout(47)
-    setTimeout(() => window.open(URL_BM, '_blank', 'noopener,noreferrer'), 200)
-  }
-  function comprarCombo() {
-    trackInitiateCheckout(67)
-    setTimeout(() => window.open(URL_COMBO, '_blank', 'noopener,noreferrer'), 200)
-  }
 
   return (
     <div className="bg-[#0A1929] min-h-screen text-white">
@@ -125,12 +122,16 @@ export default function OfertaPage() {
               ))}
             </ul>
 
-            <button
-              onClick={comprarBM}
-              className="w-full rounded-xl border border-white/25 bg-transparent hover:bg-white/5 text-white font-bold py-3.5 text-base transition-colors"
+            <a
+              href={hrefBM}
+              id="cta-oferta-bm-47"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackInitiateCheckout(47)}
+              className="gtm-cta gtm-cta-oferta cta-bm w-full text-center block rounded-xl border border-white/25 bg-transparent hover:bg-white/5 text-white font-bold py-3.5 text-base transition-colors"
             >
               Quero o BarberMeta — R$ 47
-            </button>
+            </a>
             <p className="text-[11px] text-[#A0AEC0] text-center mt-2">Garantia de 7 dias</p>
           </motion.div>
 
@@ -164,12 +165,16 @@ export default function OfertaPage() {
               </ul>
             </div>
 
-            <button
-              onClick={comprarCombo}
-              className="w-full rounded-xl bg-[#D4A85A] hover:bg-[#E6CB8A] text-[#0F1117] font-bold py-3.5 text-base transition-colors mt-auto"
+            <a
+              href={hrefCombo}
+              id="cta-oferta-combo-67"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackInitiateCheckout(67)}
+              className="gtm-cta gtm-cta-oferta cta-combo w-full text-center block rounded-xl bg-[#D4A85A] hover:bg-[#E6CB8A] text-[#0F1117] font-bold py-3.5 text-base transition-colors mt-auto"
             >
               Quero o Combo PLUS — R$ 67
-            </button>
+            </a>
             <p className="text-[11px] text-[#A0AEC0] text-center mt-2">Garantia de 7 dias</p>
           </motion.div>
         </div>
