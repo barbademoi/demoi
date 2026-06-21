@@ -1,5 +1,6 @@
 import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
+import TudoQueFaz from '@/components/landing/TudoQueFaz'
 import AntesDepois from '@/components/landing/AntesDepois'
 import ParaQuem from '@/components/landing/ParaQuem'
 import Funcionalidades from '@/components/landing/Funcionalidades'
@@ -22,6 +23,7 @@ export default function LandingPage() {
     <div className="bg-[#0A1929] min-h-screen">
       <Navbar />
       <Hero />
+      <TudoQueFaz />
       <AntesDepois />
       <ParaQuem />
       <Funcionalidades />
