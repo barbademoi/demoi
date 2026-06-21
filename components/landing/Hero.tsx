@@ -13,7 +13,7 @@ const fadeUp: Variants = {
 
 export default function Hero() {
   return (
-    <section className="relative min-h-screen bg-[#0A1929] flex items-center pt-16">
+    <section className="relative lg:min-h-screen bg-[#0A1929] flex items-center pt-16">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.03]"
@@ -24,8 +24,8 @@ export default function Hero() {
         }}
       />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 w-full">
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16 w-full">
+        <div className="grid lg:grid-cols-2 gap-4 lg:gap-16 items-start lg:items-center">
 
           {/* ── texto + CTA + autoridade do Carlos ── */}
           <div className="order-2 lg:order-1 text-center lg:text-left">
@@ -83,7 +83,7 @@ export default function Hero() {
           {/* ── mockup grande + foto Carlos sobreposta ── */}
           <motion.div
             custom={1} variants={fadeUp} initial="hidden" animate="show"
-            className="order-1 lg:order-2 relative w-full flex justify-center items-center pb-48 sm:pb-56"
+            className="order-1 lg:order-2 relative w-full flex justify-center items-center pb-36 sm:pb-44 lg:pb-48"
           >
             {/* glow dourado por tras */}
             <div aria-hidden className="absolute inset-0 flex items-center justify-center pointer-events-none">
