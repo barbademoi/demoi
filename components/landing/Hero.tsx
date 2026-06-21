@@ -80,7 +80,7 @@ export default function Hero() {
             </motion.div>
           </div>
 
-          {/* ── mockup grande + foto Carlos sobreposta ── */}
+          {/* ── mockup celular do dashboard + foto Carlos sobreposta ── */}
           <motion.div
             custom={1} variants={fadeUp} initial="hidden" animate="show"
             className="order-1 lg:order-2 relative w-full flex justify-center items-center pb-36 sm:pb-44 lg:pb-48"
@@ -90,22 +90,15 @@ export default function Hero() {
               <div className="w-72 h-72 sm:w-96 sm:h-96 rounded-full blur-3xl opacity-25 bg-[#D4A85A]" />
             </div>
 
-            {/* Browser mockup — dashboard */}
-            <div className="relative z-10 w-full max-w-[520px]">
-              <div className="rounded-2xl overflow-hidden border border-white/15 bg-[#0F1117] shadow-2xl shadow-black/60">
-                {/* chrome de browser */}
-                <div className="bg-[#161820] h-8 flex items-center px-3 gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#28C840]" />
-                  <div className="mx-auto rounded-md bg-[#0A1929] border border-white/10 px-2 py-0.5 text-[10px] text-[#A0AEC0] font-mono truncate max-w-[60%]">
-                    barbermeta.com.br/dashboard
-                  </div>
-                </div>
+            {/* Phone mockup — dashboard mobile */}
+            <div className="relative z-10 w-full max-w-[280px] sm:max-w-[320px]">
+              <div className="relative rounded-[40px] border-[8px] border-[#0F1117] bg-[#0F1117] shadow-2xl shadow-black/60 overflow-hidden">
+                {/* notch */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-[#0F1117] rounded-b-2xl z-10" />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/prints/dashboard-meta-coletiva.png"
-                  alt="Dashboard do BarberMeta com Meta Coletiva, progresso e ritmo necessário"
+                  src="/prints/mobile-dashboard-hero.jpg"
+                  alt="Dashboard do BarberMeta no celular — Meta Coletiva com 70%"
                   className="block w-full h-auto"
                 />
               </div>
