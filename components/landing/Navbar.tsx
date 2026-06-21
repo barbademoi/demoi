@@ -15,7 +15,7 @@ export default function Navbar() {
       className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0A1929]/80 backdrop-blur-md"
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-        <Link href="/" className="shrink-0 flex items-center gap-2">
+        <Link href="/" id="link-navbar-logo" className="gtm-link-anchor shrink-0 flex items-center gap-2">
           {/* logo icon SVG */}
           <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="4" y="16" width="5" height="9" rx="1" fill="url(#g1)"/>
@@ -43,20 +43,22 @@ export default function Navbar() {
           {/* desktop */}
           <Link
             href="/login"
-            className="text-sm text-[#A0AEC0] hover:text-white transition-colors font-medium hidden sm:inline"
+            id="link-navbar-login-desktop"
+            className="gtm-link-anchor text-sm text-[#A0AEC0] hover:text-white transition-colors font-medium hidden sm:inline"
           >
             Já tenho acesso →
           </Link>
           <div className="hidden sm:block">
-            <CTAButton size="sm" label="Quero o BarberMeta →" />
+            <CTAButton size="sm" label="Quero o BarberMeta →" id="cta-navbar-oferta-desktop" gtmClass="gtm-cta-navbar" />
           </div>
 
           {/* mobile: botão de compra + botão de acesso */}
           <div className="flex items-center gap-2 sm:hidden">
-            <CTAButton size="sm" label={`Garantir — R$ ${PRECO}`} />
+            <CTAButton size="sm" label={`Garantir — R$ ${PRECO}`} id="cta-navbar-oferta-mobile" gtmClass="gtm-cta-navbar" />
             <Link
               href="/login"
-              className="shrink-0 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors"
+              id="link-navbar-login-mobile"
+              className="gtm-link-anchor shrink-0 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors"
             >
               Acessar →
             </Link>

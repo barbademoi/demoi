@@ -91,10 +91,11 @@ export default function Hero() {
               className="mt-7 flex flex-col items-center lg:items-start gap-3"
             >
               <div className="flex flex-col sm:flex-row gap-3 items-center">
-                <CTAButton />
+                <CTAButton id="cta-hero-oferta" gtmClass="gtm-cta-hero" />
                 <a
                   href="#funcionalidades"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5 transition-colors"
+                  id="link-hero-funcionalidades"
+                  className="gtm-link-anchor inline-flex items-center gap-2 rounded-xl border border-white/20 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5 transition-colors"
                 >
                   Ver funcionalidades
                   <span aria-hidden>↓</span>

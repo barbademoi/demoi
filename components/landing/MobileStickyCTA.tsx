@@ -21,7 +21,7 @@ export default function MobileStickyCTA() {
         ${visible ? 'translate-y-0' : 'translate-y-full'}
       `}
     >
-      <CTAButton className="w-full text-center justify-center" size="md" />
+      <CTAButton className="w-full text-center justify-center" size="md" id="cta-sticky-mobile-oferta" gtmClass="gtm-cta-sticky" />
     </div>
   )
 }

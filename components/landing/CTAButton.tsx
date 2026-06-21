@@ -7,6 +7,11 @@ interface Props {
   size?: 'sm' | 'md' | 'lg'
   className?: string
   label?: string
+  // id e gtmClass servem pra GTM rastrear cada CTA individualmente via
+  // gtm.linkClick. O Link do next/link renderiza <a> nativo, entao o
+  // gatilho "Click - Just Links" do GTM identifica automaticamente.
+  id?: string
+  gtmClass?: string
 }
 
 const PRECO = process.env.NEXT_PUBLIC_PRECO ?? '47'
@@ -15,7 +20,13 @@ const PRECO = process.env.NEXT_PUBLIC_PRECO ?? '47'
 // planos lado a lado (BarberMeta R$47 e Combo PLUS R$67) com beneficios,
 // "por que escolher o combo" e FAQ. O pixel de InitiateCheckout dispara
 // quando essa pagina monta (useEffect na /oferta).
-export default function CTAButton({ size = 'lg', className = '', label }: Props) {
+export default function CTAButton({
+  size = 'lg',
+  className = '',
+  label,
+  id,
+  gtmClass = '',
+}: Props) {
   const text = label ?? `Quero o BarberMeta — R$ ${PRECO}`
 
   const padding = size === 'lg'
@@ -25,7 +36,11 @@ export default function CTAButton({ size = 'lg', className = '', label }: Props)
     : 'px-4 py-3 text-sm'
 
   return (
-    <Link href="/oferta" className="inline-block">
+    <Link
+      href="/oferta"
+      id={id}
+      className={`cta cta-oferta gtm-cta ${gtmClass} inline-block`}
+    >
       <motion.span
         whileHover={{ scale: 1.03 }}
         whileTap={{ scale: 0.97 }}

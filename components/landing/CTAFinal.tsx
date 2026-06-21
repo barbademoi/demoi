@@ -42,7 +42,7 @@ export default function CTAFinal() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="flex flex-col items-center lg:items-start gap-4"
             >
-              <CTAButton label={`Quero o BarberMeta agora — R$ ${PRECO}`} />
+              <CTAButton label={`Quero o BarberMeta agora — R$ ${PRECO}`} id="cta-final-oferta" gtmClass="gtm-cta-final" />
               <p className="text-sm text-[#A0AEC0]">
                 7 dias de garantia · Reembolso 100% · Sem pegadinha
               </p>

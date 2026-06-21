@@ -78,7 +78,7 @@ export default function Solucao() {
           transition={{ duration: 0.5, delay: 0.45 }}
           className="mt-16 flex justify-center"
         >
-          <CTAButton label="Ver como funciona →" size="md" />
+          <CTAButton label="Ver como funciona →" size="md" id="cta-solucao-oferta" gtmClass="gtm-cta-solucao" />
         </motion.div>
 
       </div>

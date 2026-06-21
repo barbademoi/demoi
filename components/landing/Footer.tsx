@@ -34,14 +34,15 @@ export default function Footer() {
         </p>
         <Link
           href="/login"
-          className="text-sm text-[#D4A85A] hover:text-white transition-colors"
+          id="link-footer-login"
+          className="gtm-link-anchor text-sm text-[#D4A85A] hover:text-white transition-colors"
         >
           Já é cliente? Acessar minha conta →
         </Link>
         <div className="flex gap-4 text-xs text-[#A0AEC0]">
-          <a href="/privacidade" className="hover:text-white transition-colors">Política de privacidade</a>
+          <a href="/privacidade" id="link-footer-privacidade" className="gtm-link-anchor hover:text-white transition-colors">Política de privacidade</a>
           <span>·</span>
-          <a href="/termos" className="hover:text-white transition-colors">Termos de uso</a>
+          <a href="/termos" id="link-footer-termos" className="gtm-link-anchor hover:text-white transition-colors">Termos de uso</a>
         </div>
       </div>
     </footer>

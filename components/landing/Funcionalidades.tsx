@@ -331,7 +331,7 @@ export default function Funcionalidades() {
           {...fadeIn(0.6)}
           className="mt-12 flex justify-center"
         >
-          <CTAButton />
+          <CTAButton id="cta-funcionalidades-oferta" gtmClass="gtm-cta-funcionalidades" />
         </motion.div>
 
       </div>
