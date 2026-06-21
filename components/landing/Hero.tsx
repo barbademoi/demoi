@@ -83,7 +83,7 @@ export default function Hero() {
           {/* ── mockup grande + foto Carlos sobreposta ── */}
           <motion.div
             custom={1} variants={fadeUp} initial="hidden" animate="show"
-            className="order-1 lg:order-2 relative w-full flex justify-center items-center pb-24 sm:pb-32"
+            className="order-1 lg:order-2 relative w-full flex justify-center items-center pb-48 sm:pb-56"
           >
             {/* glow dourado por tras */}
             <div aria-hidden className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -110,26 +110,26 @@ export default function Hero() {
                 />
               </div>
 
-              {/* Foto Carlos sobreposta — canto inferior esquerdo do mockup */}
+              {/* Foto Carlos sobreposta — redonda, centralizada na borda inferior do mockup */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.85, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.55, delay: 0.45, ease: 'easeOut' }}
-                className="absolute z-20 -bottom-16 sm:-bottom-20 -left-2 sm:left-4 w-[150px] sm:w-[180px]"
+                className="absolute z-20 left-1/2 -translate-x-1/2 -bottom-20 sm:-bottom-24 flex flex-col items-center"
               >
-                <div className="rounded-2xl overflow-hidden border-4 border-[#0A1929] shadow-2xl shadow-black/60 bg-[#0F1F2D]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/prints/carlos-hero.jpg"
-                    alt=""
-                    className="block w-full h-auto"
-                  />
-                  {/* gradiente embaixo */}
-                  <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0A1929]/95 via-[#0A1929]/40 to-transparent pointer-events-none" />
-                  <div className="absolute bottom-2 left-2.5 right-2.5">
-                    <p className="text-white font-bold text-xs sm:text-sm leading-tight">Carlos Henrique</p>
-                    <p className="text-[#D4A85A] text-[10px] sm:text-[11px] font-semibold leading-tight">criador do BarberMeta</p>
+                <div className="relative">
+                  <div className="rounded-full overflow-hidden border-[5px] border-emerald-400 shadow-2xl shadow-emerald-500/30 bg-[#0F1F2D] w-[140px] h-[140px] sm:w-[170px] sm:h-[170px]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/prints/carlos-hero.jpg"
+                      alt=""
+                      className="block w-full h-full object-cover"
+                    />
                   </div>
+                </div>
+                <div className="mt-3 text-center">
+                  <p className="text-white font-bold text-sm sm:text-base leading-tight">Carlos Henrique</p>
+                  <p className="text-[#D4A85A] text-[11px] sm:text-xs font-semibold leading-tight">criador do BarberMeta</p>
                 </div>
               </motion.div>
             </div>
