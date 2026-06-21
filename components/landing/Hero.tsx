@@ -92,15 +92,15 @@ export default function Hero() {
 
             {/* Foto do Carlos — principal, centro */}
             <div className="relative z-20 w-[58%] max-w-[280px] sm:max-w-[320px]">
-              <div className="relative rounded-3xl overflow-hidden border-2 border-white/10 shadow-2xl shadow-black/50">
+              <div className="relative rounded-3xl overflow-hidden border-2 border-white/10 shadow-2xl shadow-black/50 bg-[#0F1F2D]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/prints/carlos-hero.jpg"
-                  alt="Carlos Henrique"
+                  alt=""
                   className="block w-full h-auto"
                 />
                 {/* gradiente embaixo pra leitura do nome */}
-                <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#0A1929]/95 via-[#0A1929]/40 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#0A1929]/95 via-[#0A1929]/40 to-transparent pointer-events-none" />
                 <div className="absolute bottom-3 left-4 right-4">
                   <p className="text-white font-bold text-sm sm:text-base leading-tight">Carlos Henrique</p>
                   <p className="text-[#D4A85A] text-[11px] sm:text-xs font-semibold">criador do BarberMeta</p>
