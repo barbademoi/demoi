@@ -1,7 +1,6 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { trackInitiateCheckout } from '@/lib/pixel'
 import { useTrackingHandlers } from '@/lib/utms'
 
 const URL_BM = 'https://pay.hotmart.com/D105833676F?sck=HOTMART_PRODUCT_PAGE&off=9rjhgvlk&hotfeature=32'
@@ -22,13 +21,6 @@ const inclusoCombo = [
   'Folha da equipe (auto-sincroniza)',
   'Quanto sobra no mês',
 ]
-
-// Pixel sincrono — onClick dispara antes da navegacao acontecer. Sem
-// preventDefault, deixamos o navegador seguir o href nativo (com UTMs
-// preservadas via trackingHandlers) e o GTM detecta como gtm.linkClick.
-function pixelOnClick(price: number) {
-  return () => trackInitiateCheckout(price)
-}
 
 export default function Preco() {
   // Handlers mutam o href no instante do mouseDown/touch — UTMs sempre frescas.
@@ -87,7 +79,6 @@ export default function Preco() {
               id="cta-preco-bm-47"
               target="_blank"
               rel="noopener noreferrer"
-              onClick={pixelOnClick(47)}
               {...trackingHandlers}
               className="gtm-cta gtm-cta-preco cta-bm w-full text-center rounded-xl border border-white/25 bg-transparent hover:bg-white/5 text-white font-bold px-5 py-3.5 text-base transition-colors"
             >
@@ -132,7 +123,6 @@ export default function Preco() {
               id="cta-preco-combo-67"
               target="_blank"
               rel="noopener noreferrer"
-              onClick={pixelOnClick(67)}
               {...trackingHandlers}
               className="gtm-cta gtm-cta-preco cta-combo w-full text-center rounded-xl bg-[#D4A85A] hover:bg-[#E6CB8A] text-[#0F1117] font-bold px-5 py-3.5 text-base transition-colors"
             >

@@ -1,9 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { trackInitiateCheckout } from '@/lib/pixel'
 import { useTrackingHandlers } from '@/lib/utms'
 
 const URL_BM = 'https://pay.hotmart.com/D105833676F?sck=HOTMART_PRODUCT_PAGE&off=9rjhgvlk&hotfeature=32'
@@ -56,11 +54,6 @@ const faq = [
 export default function OfertaPage() {
   // Handlers mutam o href no instante do clique — UTMs sempre frescas.
   const trackingHandlers = useTrackingHandlers()
-
-  // Marca o pixel de "ver oferta" quando a pagina carrega.
-  useEffect(() => {
-    trackInitiateCheckout(47)
-  }, [])
 
   return (
     <div className="bg-[#0A1929] min-h-screen text-white">
@@ -125,7 +118,6 @@ export default function OfertaPage() {
               id="cta-oferta-bm-47"
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => trackInitiateCheckout(47)}
               {...trackingHandlers}
               className="gtm-cta gtm-cta-oferta cta-bm w-full text-center block rounded-xl border border-white/25 bg-transparent hover:bg-white/5 text-white font-bold py-3.5 text-base transition-colors"
             >
@@ -169,7 +161,6 @@ export default function OfertaPage() {
               id="cta-oferta-combo-67"
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => trackInitiateCheckout(67)}
               {...trackingHandlers}
               className="gtm-cta gtm-cta-oferta cta-combo w-full text-center block rounded-xl bg-[#D4A85A] hover:bg-[#E6CB8A] text-[#0F1117] font-bold py-3.5 text-base transition-colors mt-auto"
             >
