@@ -80,20 +80,90 @@ export default function Hero() {
             </motion.div>
           </div>
 
-          {/* ── foto ── */}
+          {/* ── montagem: foto + logo + mockups do sistema ── */}
           <motion.div
             custom={1} variants={fadeUp} initial="hidden" animate="show"
-            className="order-1 lg:order-2 flex flex-col items-center gap-3"
+            className="order-1 lg:order-2 relative w-full flex justify-center items-center min-h-[420px] sm:min-h-[480px] lg:min-h-[560px]"
           >
-            <div className="relative w-full max-w-[280px] sm:max-w-[320px]">
-              <div aria-hidden className="absolute -inset-4 rounded-3xl blur-2xl opacity-15 bg-[#D4A85A]" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/prints/foto-celular.png"
-                alt="Carlos Henrique usando o BarberMeta no celular"
-                className="relative w-full h-auto rounded-2xl shadow-2xl"
-              />
+            {/* glow dourado por tras de tudo */}
+            <div aria-hidden className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-72 h-72 sm:w-96 sm:h-96 rounded-full blur-3xl opacity-20 bg-[#D4A85A]" />
             </div>
+
+            {/* Foto do Carlos — principal, centro */}
+            <div className="relative z-20 w-[58%] max-w-[280px] sm:max-w-[320px]">
+              <div className="relative rounded-3xl overflow-hidden border-2 border-white/10 shadow-2xl shadow-black/50">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/prints/carlos-oculos-vermelho.jpg"
+                  alt="Carlos Henrique, criador do BarberMeta"
+                  className="block w-full h-auto"
+                />
+                {/* gradiente embaixo pra leitura do nome */}
+                <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#0A1929]/95 via-[#0A1929]/40 to-transparent" />
+                <div className="absolute bottom-3 left-4 right-4">
+                  <p className="text-white font-bold text-sm sm:text-base leading-tight">Carlos Henrique</p>
+                  <p className="text-[#D4A85A] text-[11px] sm:text-xs font-semibold">criador do BarberMeta</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Logo BarberMeta — flutuando topo direito */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.6, rotate: -8 }}
+              animate={{ opacity: 1, scale: 1, rotate: -6 }}
+              transition={{ duration: 0.6, delay: 0.55, ease: 'easeOut' }}
+              className="absolute z-30 top-2 right-2 sm:top-4 sm:right-6 lg:top-0 lg:right-2"
+            >
+              <div className="rounded-2xl border border-[#D4A85A]/40 bg-[#0A1929]/95 backdrop-blur-md shadow-2xl shadow-[#D4A85A]/20 p-2.5 sm:p-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo-barbermeta.png"
+                  alt="Logo BarberMeta"
+                  className="block w-14 h-14 sm:w-20 sm:h-20 rounded-xl"
+                />
+              </div>
+            </motion.div>
+
+            {/* Mockup desktop — flutuando esquerda atras */}
+            <motion.div
+              initial={{ opacity: 0, x: -30, rotate: -4 }}
+              animate={{ opacity: 1, x: 0, rotate: -6 }}
+              transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }}
+              className="absolute z-10 top-6 sm:top-10 lg:top-14 -left-2 sm:left-0 lg:-left-4 w-[44%] max-w-[200px] sm:max-w-[230px]"
+            >
+              <div className="rounded-lg overflow-hidden border border-white/15 bg-[#0F1117] shadow-2xl shadow-black/60">
+                <div className="bg-[#161820] h-4 sm:h-5 flex items-center px-1.5 gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#FF5F57]" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#FEBC2E]" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#28C840]" />
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/prints/dashboard-meta-coletiva.png"
+                  alt="Dashboard do BarberMeta"
+                  className="block w-full h-auto"
+                />
+              </div>
+            </motion.div>
+
+            {/* Mockup phone — flutuando direita baixo */}
+            <motion.div
+              initial={{ opacity: 0, x: 30, rotate: 8 }}
+              animate={{ opacity: 1, x: 0, rotate: 5 }}
+              transition={{ duration: 0.6, delay: 0.45, ease: 'easeOut' }}
+              className="absolute z-30 bottom-2 sm:bottom-6 -right-1 sm:right-2 lg:-right-2 w-[32%] max-w-[130px] sm:max-w-[150px]"
+            >
+              <div className="relative rounded-2xl border-[4px] border-[#0F1117] bg-[#0F1117] shadow-2xl shadow-black/60 overflow-hidden">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-2 bg-[#0F1117] rounded-b-xl z-10" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/prints/03-barbeiro-individual.png"
+                  alt="Link individual do barbeiro"
+                  className="block w-full h-auto"
+                />
+              </div>
+            </motion.div>
           </motion.div>
         </div>
       </div>
