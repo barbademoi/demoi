@@ -7,28 +7,33 @@
 //   const appendTracking = useAppendTracking()
 //   const href = appendTracking('https://pay.hotmart.com/...')
 //
-// Funciona pra URLs absolutas (Hotmart, Stripe) e relativas (/oferta).
+// Le window.location.search direto via useState/useEffect (evita
+// useSearchParams do next/navigation, que exige Suspense boundary e
+// quebra build estatico de paginas SSG).
+//
+// Trade-off: na primeira render (SSR), tracked esta vazio — href sai sem
+// UTMs. Apos hidratacao, useEffect roda, popula tracked, re-renderiza e
+// href ganha UTMs. Cliques durante esse intervalo (~ms) perderiam UTMs,
+// mas e' impraticavel na pratica (usuario nao clica antes da hidratacao).
 
-import { useSearchParams } from 'next/navigation'
-import { useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
-// Quais parametros propagar pro checkout.
-// utm_* = padrao Google Analytics
-// sck, xcod = parametros nativos da Hotmart pra tracking
-// gclid, fbclid = identificadores de campanha Google Ads / Meta Ads
-// src = generico
 const TRACKED = /^(utm_|sck$|xcod$|gclid$|fbclid$|src$)/
 
 export function useAppendTracking(): (url: string) => string {
-  const params = useSearchParams()
+  const [tracked, setTracked] = useState<[string, string][]>([])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const t: [string, string][] = []
+    params.forEach((v, k) => {
+      if (TRACKED.test(k) && v) t.push([k, v])
+    })
+    if (t.length > 0) setTracked(t)
+  }, [])
 
   return useCallback((baseUrl: string): string => {
-    if (!params) return baseUrl
-
-    const tracked: [string, string][] = []
-    params.forEach((v, k) => {
-      if (TRACKED.test(k) && v) tracked.push([k, v])
-    })
     if (tracked.length === 0) return baseUrl
 
     // URL absoluta (https://...) → usa o construtor URL
@@ -49,5 +54,5 @@ export function useAppendTracking(): (url: string) => string {
       `${encodeURIComponent(k)}=${encodeURIComponent(v)}`
     ).join('&')
     return pathQuery + sep + tail + (hash ? '#' + hash : '')
-  }, [params])
+  }, [tracked])
 }
