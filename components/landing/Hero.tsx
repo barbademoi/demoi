@@ -55,29 +55,6 @@ export default function Hero() {
               como montar as metas, engajar o time e transformar disputa em faturamento.
             </motion.p>
 
-            {/* avatar Carlos como credencial — discreto, abaixo da headline */}
-            <motion.div
-              custom={3} variants={fadeUp} initial="hidden" animate="show"
-              className="mt-5 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.03] pl-1.5 pr-4 py-1.5"
-            >
-              <span className="block w-9 h-9 rounded-full overflow-hidden border border-[#D4A85A]/40 shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/prints/carlos-hero.jpg"
-                  alt=""
-                  className="block w-full h-full object-cover"
-                />
-              </span>
-              <span className="text-left">
-                <span className="block text-white text-xs sm:text-sm font-semibold leading-tight">
-                  Por Carlos Henrique
-                </span>
-                <span className="block text-[#A0AEC0] text-[11px] sm:text-xs leading-tight">
-                  criador do BarberMeta · dono da Demôi Barbearia
-                </span>
-              </span>
-            </motion.div>
-
             <motion.div
               custom={4} variants={fadeUp} initial="hidden" animate="show"
               className="mt-7 flex flex-col items-center lg:items-start gap-3"
@@ -103,17 +80,17 @@ export default function Hero() {
             </motion.div>
           </div>
 
-          {/* ── mockup grande do dashboard, lado direito (sem sobreposicao) ── */}
+          {/* ── mockup grande + foto Carlos sobreposta ── */}
           <motion.div
             custom={1} variants={fadeUp} initial="hidden" animate="show"
-            className="order-1 lg:order-2 relative w-full flex justify-center items-center"
+            className="order-1 lg:order-2 relative w-full flex justify-center items-center pb-24 sm:pb-32"
           >
             {/* glow dourado por tras */}
             <div aria-hidden className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-72 h-72 sm:w-96 sm:h-96 rounded-full blur-3xl opacity-25 bg-[#D4A85A]" />
             </div>
 
-            {/* Browser mockup — dashboard ocupando o espaco todo */}
+            {/* Browser mockup — dashboard */}
             <div className="relative z-10 w-full max-w-[520px]">
               <div className="rounded-2xl overflow-hidden border border-white/15 bg-[#0F1117] shadow-2xl shadow-black/60">
                 {/* chrome de browser */}
@@ -132,6 +109,29 @@ export default function Hero() {
                   className="block w-full h-auto"
                 />
               </div>
+
+              {/* Foto Carlos sobreposta — canto inferior esquerdo do mockup */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.85, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.55, delay: 0.45, ease: 'easeOut' }}
+                className="absolute z-20 -bottom-16 sm:-bottom-20 -left-2 sm:left-4 w-[150px] sm:w-[180px]"
+              >
+                <div className="rounded-2xl overflow-hidden border-4 border-[#0A1929] shadow-2xl shadow-black/60 bg-[#0F1F2D]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/prints/carlos-hero.jpg"
+                    alt=""
+                    className="block w-full h-auto"
+                  />
+                  {/* gradiente embaixo */}
+                  <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0A1929]/95 via-[#0A1929]/40 to-transparent pointer-events-none" />
+                  <div className="absolute bottom-2 left-2.5 right-2.5">
+                    <p className="text-white font-bold text-xs sm:text-sm leading-tight">Carlos Henrique</p>
+                    <p className="text-[#D4A85A] text-[10px] sm:text-[11px] font-semibold leading-tight">criador do BarberMeta</p>
+                  </div>
+                </div>
+              </motion.div>
             </div>
           </motion.div>
         </div>
