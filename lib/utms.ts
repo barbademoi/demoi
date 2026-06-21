@@ -1,58 +1,80 @@
 'use client'
 
-// Hook que captura parametros de tracking (utm_*, sck, gclid, fbclid, xcod, src)
-// da URL atual e devolve uma funcao que os anexa em qualquer URL de destino.
+// Propagacao de parametros de tracking (utm_*, sck, xcod, gclid, fbclid, src)
+// da URL atual pra qualquer link de saida.
 //
-// Uso:
-//   const appendTracking = useAppendTracking()
-//   const href = appendTracking('https://pay.hotmart.com/...')
+// Estrategia: NAO depende de state/render. Em vez disso, mutaciona o atributo
+// `href` do <a> no momento que o usuario interage (mouseDown/touchStart/
+// pointerDown/focus). Esses eventos disparam ANTES do click/navegacao —
+// quando o browser efetua a navegacao, o href ja esta atualizado.
 //
-// Le window.location.search direto via useState/useEffect (evita
-// useSearchParams do next/navigation, que exige Suspense boundary e
-// quebra build estatico de paginas SSG).
+// Vantagens:
+// - Zero race condition: hidratacao nao precisa ter acontecido
+// - Sempre le da URL atual no instante do clique (nao "captura" no mount)
+// - Funciona com <a> nativo, preservando gtm.linkClick do GTM
 //
-// Trade-off: na primeira render (SSR), tracked esta vazio — href sai sem
-// UTMs. Apos hidratacao, useEffect roda, popula tracked, re-renderiza e
-// href ganha UTMs. Cliques durante esse intervalo (~ms) perderiam UTMs,
-// mas e' impraticavel na pratica (usuario nao clica antes da hidratacao).
+// IMPORTANTE: nao funciona com <Link> do next/link, porque ele usa props.href
+// pra navegar (ignora o atributo mutado). Use <a> direto, ou um Link sem
+// SPA navigation (pouco proposito), pra CTAs que precisam de UTMs.
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback } from 'react'
 
 const TRACKED = /^(utm_|sck$|xcod$|gclid$|fbclid$|src$)/
 
-export function useAppendTracking(): (url: string) => string {
-  const [tracked, setTracked] = useState<[string, string][]>([])
+function readTrackingFromUrl(): URLSearchParams | null {
+  if (typeof window === 'undefined') return null
+  const all = new URLSearchParams(window.location.search)
+  const out = new URLSearchParams()
+  all.forEach((v, k) => {
+    if (TRACKED.test(k) && v) out.set(k, v)
+  })
+  return out.toString() ? out : null
+}
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const params = new URLSearchParams(window.location.search)
-    const t: [string, string][] = []
-    params.forEach((v, k) => {
-      if (TRACKED.test(k) && v) t.push([k, v])
-    })
-    if (t.length > 0) setTracked(t)
-  }, [])
+// Anexa os parametros de tracking na URL informada. Sobrescreve UTMs velhas
+// que ja estejam no href (caso usuario navegue depois com UTMs diferentes).
+function mergeTracking(currentHref: string, tracked: URLSearchParams): string {
+  if (!currentHref) return currentHref
 
-  return useCallback((baseUrl: string): string => {
-    if (tracked.length === 0) return baseUrl
+  // Decompoe: base + query + hash
+  const hashIdx = currentHref.indexOf('#')
+  const hash = hashIdx >= 0 ? currentHref.slice(hashIdx) : ''
+  const noHash = hashIdx >= 0 ? currentHref.slice(0, hashIdx) : currentHref
+  const qIdx = noHash.indexOf('?')
+  const base = qIdx >= 0 ? noHash.slice(0, qIdx) : noHash
+  const existing = qIdx >= 0 ? noHash.slice(qIdx + 1) : ''
 
-    // URL absoluta (https://...) → usa o construtor URL
-    if (/^https?:\/\//.test(baseUrl)) {
-      try {
-        const u = new URL(baseUrl)
-        tracked.forEach(([k, v]) => u.searchParams.set(k, v))
-        return u.toString()
-      } catch {
-        // fallback se URL invalida
-      }
-    }
+  const merged = new URLSearchParams(existing)
+  // Remove tracking velho
+  Array.from(merged.keys()).forEach(k => {
+    if (TRACKED.test(k)) merged.delete(k)
+  })
+  // Adiciona o novo
+  tracked.forEach((v, k) => merged.set(k, v))
 
-    // URL relativa (/oferta) → concatena manualmente preservando hash
-    const [pathQuery, hash] = baseUrl.split('#')
-    const sep = pathQuery.includes('?') ? '&' : '?'
-    const tail = tracked.map(([k, v]) =>
-      `${encodeURIComponent(k)}=${encodeURIComponent(v)}`
-    ).join('&')
-    return pathQuery + sep + tail + (hash ? '#' + hash : '')
-  }, [tracked])
+  const q = merged.toString()
+  return base + (q ? '?' + q : '') + hash
+}
+
+// Handler pronto pra anexar em onMouseDown / onTouchStart / onFocus de <a>.
+// Pode ser passado direto como prop.
+export function applyTrackingToHref(
+  e: React.SyntheticEvent<HTMLAnchorElement>,
+): void {
+  const a = e.currentTarget
+  const tracked = readTrackingFromUrl()
+  if (!tracked) return
+  const current = a.getAttribute('href') || ''
+  a.setAttribute('href', mergeTracking(current, tracked))
+}
+
+// Hook que devolve um conjunto de handlers prontos pra spread em <a>.
+// Uso: <a href="..." {...useTrackingHandlers()}>
+export function useTrackingHandlers() {
+  const handler = useCallback(applyTrackingToHref, [])
+  return {
+    onMouseDown: handler,
+    onTouchStart: handler,
+    onFocus: handler,
+  }
 }

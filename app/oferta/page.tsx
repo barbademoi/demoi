@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { trackInitiateCheckout } from '@/lib/pixel'
-import { useAppendTracking } from '@/lib/utms'
+import { useTrackingHandlers } from '@/lib/utms'
 
 const URL_BM = 'https://pay.hotmart.com/D105833676F?sck=HOTMART_PRODUCT_PAGE&off=9rjhgvlk&hotfeature=32'
 const URL_COMBO = 'https://pay.hotmart.com/K106318479K'
@@ -54,10 +54,8 @@ const faq = [
 ]
 
 export default function OfertaPage() {
-  const appendTracking = useAppendTracking()
-  // hrefs com UTMs preservadas da URL atual — Hotmart Pixel le essas params
-  const hrefBM    = appendTracking(URL_BM)
-  const hrefCombo = appendTracking(URL_COMBO)
+  // Handlers mutam o href no instante do clique — UTMs sempre frescas.
+  const trackingHandlers = useTrackingHandlers()
 
   // Marca o pixel de "ver oferta" quando a pagina carrega.
   useEffect(() => {
@@ -123,11 +121,12 @@ export default function OfertaPage() {
             </ul>
 
             <a
-              href={hrefBM}
+              href={URL_BM}
               id="cta-oferta-bm-47"
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackInitiateCheckout(47)}
+              {...trackingHandlers}
               className="gtm-cta gtm-cta-oferta cta-bm w-full text-center block rounded-xl border border-white/25 bg-transparent hover:bg-white/5 text-white font-bold py-3.5 text-base transition-colors"
             >
               Quero o BarberMeta — R$ 47
@@ -166,11 +165,12 @@ export default function OfertaPage() {
             </div>
 
             <a
-              href={hrefCombo}
+              href={URL_COMBO}
               id="cta-oferta-combo-67"
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackInitiateCheckout(67)}
+              {...trackingHandlers}
               className="gtm-cta gtm-cta-oferta cta-combo w-full text-center block rounded-xl bg-[#D4A85A] hover:bg-[#E6CB8A] text-[#0F1117] font-bold py-3.5 text-base transition-colors mt-auto"
             >
               Quero o Combo PLUS — R$ 67
