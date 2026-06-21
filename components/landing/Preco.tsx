@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { trackInitiateCheckout } from '@/lib/pixel'
-import { useAppendTracking } from '@/lib/utms'
+import { useTrackingHandlers } from '@/lib/utms'
 
 const URL_BM = 'https://pay.hotmart.com/D105833676F?sck=HOTMART_PRODUCT_PAGE&off=9rjhgvlk&hotfeature=32'
 const URL_COMBO = 'https://pay.hotmart.com/K106318479K'
@@ -25,15 +25,14 @@ const inclusoCombo = [
 
 // Pixel sincrono — onClick dispara antes da navegacao acontecer. Sem
 // preventDefault, deixamos o navegador seguir o href nativo (com UTMs
-// preservadas) e o GTM detecta como gtm.linkClick.
+// preservadas via trackingHandlers) e o GTM detecta como gtm.linkClick.
 function pixelOnClick(price: number) {
   return () => trackInitiateCheckout(price)
 }
 
 export default function Preco() {
-  const appendTracking = useAppendTracking()
-  const hrefBM    = appendTracking(URL_BM)
-  const hrefCombo = appendTracking(URL_COMBO)
+  // Handlers mutam o href no instante do mouseDown/touch — UTMs sempre frescas.
+  const trackingHandlers = useTrackingHandlers()
   return (
     <section id="preco" className="bg-[#0F1F2D] py-16 px-4 sm:px-6 scroll-mt-20">
       <div className="max-w-5xl mx-auto">
@@ -84,11 +83,12 @@ export default function Preco() {
             </ul>
 
             <a
-              href={hrefBM}
+              href={URL_BM}
               id="cta-preco-bm-47"
               target="_blank"
               rel="noopener noreferrer"
               onClick={pixelOnClick(47)}
+              {...trackingHandlers}
               className="gtm-cta gtm-cta-preco cta-bm w-full text-center rounded-xl border border-white/25 bg-transparent hover:bg-white/5 text-white font-bold px-5 py-3.5 text-base transition-colors"
             >
               Quero o BarberMeta — R$ 47
@@ -128,11 +128,12 @@ export default function Preco() {
             </ul>
 
             <a
-              href={hrefCombo}
+              href={URL_COMBO}
               id="cta-preco-combo-67"
               target="_blank"
               rel="noopener noreferrer"
               onClick={pixelOnClick(67)}
+              {...trackingHandlers}
               className="gtm-cta gtm-cta-preco cta-combo w-full text-center rounded-xl bg-[#D4A85A] hover:bg-[#E6CB8A] text-[#0F1117] font-bold px-5 py-3.5 text-base transition-colors"
             >
               Quero o Combo — R$ 67
