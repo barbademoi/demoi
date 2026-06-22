@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import CTAButton from './CTAButton'
+import VideoModal from './VideoModal'
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 24 },
@@ -11,7 +13,11 @@ const fadeUp: Variants = {
   }),
 }
 
+const VIDEO_ID = 'DP7mrt90E-A'
+
 export default function Hero() {
+  const [videoOpen, setVideoOpen] = useState(false)
+
   return (
     <section className="relative lg:min-h-screen bg-[#0A1929] flex items-center pt-16">
       <div
@@ -25,10 +31,10 @@ export default function Hero() {
       />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16 w-full">
-        <div className="grid lg:grid-cols-2 gap-4 lg:gap-16 items-start lg:items-center">
+        <div className="grid lg:grid-cols-2 gap-6 lg:gap-16 items-start lg:items-center">
 
-          {/* ── texto + CTA + autoridade do Carlos ── */}
-          <div className="order-2 lg:order-1 text-center lg:text-left">
+          {/* ── texto + CTA + credencial Carlos ── */}
+          <div className="order-1 lg:order-1 text-center lg:text-left">
             {/* badge cima */}
             <motion.span
               custom={0} variants={fadeUp} initial="hidden" animate="show"
@@ -55,6 +61,29 @@ export default function Hero() {
               como montar as metas, engajar o time e transformar disputa em faturamento.
             </motion.p>
 
+            {/* credencial Carlos — avatar pequeno */}
+            <motion.div
+              custom={3} variants={fadeUp} initial="hidden" animate="show"
+              className="mt-5 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.03] pl-1.5 pr-4 py-1.5"
+            >
+              <span className="block w-9 h-9 rounded-full overflow-hidden border border-[#D4A85A]/40 shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/prints/carlos-hero.jpg"
+                  alt=""
+                  className="block w-full h-full object-cover"
+                />
+              </span>
+              <span className="text-left">
+                <span className="block text-white text-xs sm:text-sm font-semibold leading-tight">
+                  Por Carlos Henrique
+                </span>
+                <span className="block text-[#A0AEC0] text-[11px] sm:text-xs leading-tight">
+                  criador do BarberMeta · dono da Demôi
+                </span>
+              </span>
+            </motion.div>
+
             <motion.div
               custom={4} variants={fadeUp} initial="hidden" animate="show"
               className="mt-7 flex flex-col items-center lg:items-start gap-3"
@@ -80,55 +109,61 @@ export default function Hero() {
             </motion.div>
           </div>
 
-          {/* ── mockup celular do dashboard + foto Carlos sobreposta ── */}
+          {/* ── miniatura do video vertical (9:16) ── */}
           <motion.div
             custom={1} variants={fadeUp} initial="hidden" animate="show"
-            className="order-1 lg:order-2 relative w-full flex justify-center items-center pb-36 sm:pb-44 lg:pb-48"
+            className="order-2 lg:order-2 relative w-full flex justify-center items-center"
           >
             {/* glow dourado por tras */}
             <div aria-hidden className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-72 h-72 sm:w-96 sm:h-96 rounded-full blur-3xl opacity-25 bg-[#D4A85A]" />
+              <div className="w-72 h-72 sm:w-96 sm:h-96 rounded-full blur-3xl opacity-20 bg-[#D4A85A]" />
             </div>
 
-            {/* Phone mockup — dashboard mobile */}
-            <div className="relative z-10 w-full max-w-[280px] sm:max-w-[320px]">
-              <div className="relative rounded-[40px] border-[8px] border-[#0F1117] bg-[#0F1117] shadow-2xl shadow-black/60 overflow-hidden">
-                {/* notch */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-[#0F1117] rounded-b-2xl z-10" />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/prints/mobile-dashboard-hero.jpg"
-                  alt="Dashboard do BarberMeta no celular — Meta Coletiva com 70%"
-                  className="block w-full h-auto"
-                />
+            <button
+              type="button"
+              onClick={() => setVideoOpen(true)}
+              aria-label="Assistir vídeo: O sistema rodando — 1 minuto"
+              className="group relative z-10 block w-full max-w-[260px] sm:max-w-[300px] aspect-[9/16] rounded-2xl overflow-hidden border border-white/15 bg-[#0F1117] shadow-2xl shadow-black/60 cursor-pointer hover:border-[#D4A85A]/60 transition-colors"
+            >
+              {/* Thumbnail leve do YouTube (sem iframe) */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`https://i.ytimg.com/vi/${VIDEO_ID}/hqdefault.jpg`}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+                loading="lazy"
+              />
+
+              {/* Overlay escuro pra leitura do selo */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-black/80 pointer-events-none" />
+
+              {/* Selo no topo: 2 linhas */}
+              <div className="absolute top-4 left-3 right-3 text-center">
+                <p className="text-white font-bold text-xs sm:text-sm uppercase tracking-wider leading-tight drop-shadow-lg">
+                  Assista: O sistema rodando
+                </p>
+                <p className="text-[#D4A85A] text-[11px] sm:text-xs font-semibold mt-1 drop-shadow-md">
+                  1 min · sem enrolação
+                </p>
               </div>
 
-              {/* Foto Carlos sobreposta — redonda, centralizada na borda inferior do mockup */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.85, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.55, delay: 0.45, ease: 'easeOut' }}
-                className="absolute z-20 left-1/2 -translate-x-1/2 -bottom-20 sm:-bottom-24 flex flex-col items-center"
+              {/* Botao play centralizado */}
+              <span
+                aria-hidden
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#D4A85A] text-[#0F1117] flex items-center justify-center shadow-2xl shadow-[#D4A85A]/40 group-hover:scale-110 transition-transform"
               >
-                <div className="relative">
-                  <div className="rounded-full overflow-hidden border-[5px] border-emerald-400 shadow-2xl shadow-emerald-500/30 bg-[#0F1F2D] w-[140px] h-[140px] sm:w-[170px] sm:h-[170px]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/prints/carlos-hero.jpg"
-                      alt=""
-                      className="block w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-                <div className="mt-3 text-center">
-                  <p className="text-white font-bold text-sm sm:text-base leading-tight">Carlos Henrique</p>
-                  <p className="text-[#D4A85A] text-[11px] sm:text-xs font-semibold leading-tight">criador do BarberMeta</p>
-                </div>
-              </motion.div>
-            </div>
+                {/* triangulo play */}
+                <svg viewBox="0 0 24 24" className="w-7 h-7 sm:w-9 sm:h-9 translate-x-0.5" fill="currentColor">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </span>
+            </button>
           </motion.div>
         </div>
       </div>
+
+      {/* Modal — embed do YouTube so monta quando aberto */}
+      <VideoModal videoId={VIDEO_ID} open={videoOpen} onClose={() => setVideoOpen(false)} vertical />
     </section>
   )
 }
