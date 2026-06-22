@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import CTAButton from './CTAButton'
 
@@ -14,12 +13,11 @@ const fadeUp: Variants = {
 
 const VIDEO_ID = 'DP7mrt90E-A'
 
-// Vertical video player com "lite-YouTube" pattern:
-// - Antes do clique: so a <img> da thumbnail + botao play (pagina leve)
-// - Apos clique: swap pra <iframe> que toca dentro da pagina (sem modal)
+// Vertical video do YouTube embedado direto — usuario clica 1 vez no play
+// nativo do YouTube e ja toca. Sem nosso botao intermediario.
+// Trade-off: iframe carrega no load da pagina (um pouco mais pesado), mas
+// UX e' melhor (um click vs dois).
 function HeroVideo() {
-  const [playing, setPlaying] = useState(false)
-
   return (
     <div className="relative w-full max-w-[300px] sm:max-w-[340px] mx-auto">
       {/* glow dourado por tras */}
@@ -27,62 +25,27 @@ function HeroVideo() {
         <div className="w-72 h-72 sm:w-96 sm:h-96 rounded-full blur-3xl opacity-20 bg-[#D4A85A]" />
       </div>
 
+      {/* Selo destacado acima do video — "ASSISTA: O SISTEMA RODANDO" */}
+      <div className="relative z-10 mb-3 mx-auto inline-flex flex-col items-center justify-center w-full">
+        <div className="rounded-full bg-[#D4A85A]/15 border border-[#D4A85A]/40 px-4 py-1.5 text-center">
+          <p className="text-[#D4A85A] font-bold text-xs sm:text-sm uppercase tracking-wider leading-tight">
+            ▶ Assista: O sistema rodando
+          </p>
+          <p className="text-[#E6CB8A] text-[10px] sm:text-[11px] font-semibold leading-tight mt-0.5">
+            1 min · sem enrolação
+          </p>
+        </div>
+      </div>
+
       <div className="relative z-10 aspect-[9/16] rounded-2xl overflow-hidden border border-white/15 bg-[#0F1117] shadow-2xl shadow-black/60">
-        {playing ? (
-          <iframe
-            src={`https://www.youtube-nocookie.com/embed/${VIDEO_ID}?autoplay=1&playsinline=1&rel=0&modestbranding=1`}
-            title="Demonstração do BarberMeta"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-            className="absolute inset-0 w-full h-full"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setPlaying(true)}
-            aria-label="Assistir vídeo: O sistema rodando — 1 minuto"
-            className="group absolute inset-0 cursor-pointer"
-          >
-            {/* Thumbnail leve (sem iframe) */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`https://i.ytimg.com/vi/${VIDEO_ID}/hqdefault.jpg`}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-              loading="lazy"
-            />
-
-            {/* Overlay escuro pra leitura do selo */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/25 to-black/80 pointer-events-none" />
-
-            {/* Selo no topo: 2 linhas */}
-            <div className="absolute top-4 left-3 right-3 text-center">
-              <p className="text-white font-bold text-xs sm:text-sm uppercase tracking-wider leading-tight drop-shadow-lg">
-                Assista: O sistema rodando
-              </p>
-              <p className="text-[#D4A85A] text-[11px] sm:text-xs font-semibold mt-1 drop-shadow-md">
-                1 min · sem enrolação
-              </p>
-            </div>
-
-            {/* Botao play centralizado */}
-            <span
-              aria-hidden
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#D4A85A] text-[#0F1117] flex items-center justify-center shadow-2xl shadow-[#D4A85A]/40 group-hover:scale-110 transition-transform"
-            >
-              <svg viewBox="0 0 24 24" className="w-9 h-9 sm:w-11 sm:h-11 translate-x-0.5" fill="currentColor">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            </span>
-
-            {/* Hint no rodape */}
-            <div className="absolute bottom-3 left-3 right-3 text-center">
-              <p className="text-white/85 text-[11px] sm:text-xs font-semibold drop-shadow-md">
-                ▶ Toque pra assistir aqui mesmo
-              </p>
-            </div>
-          </button>
-        )}
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${VIDEO_ID}?rel=0&modestbranding=1&playsinline=1`}
+          title="Demonstração do BarberMeta"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          loading="lazy"
+          className="absolute inset-0 w-full h-full"
+        />
       </div>
     </div>
   )
