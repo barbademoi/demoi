@@ -41,7 +41,7 @@ export default async function LancamentoDiarioPage({
   const hoje = new Date()
   const diaFechamento = barbearia.dia_fechamento ?? 1
   const mostrarFaturamentoGeral = barbearia.mostrar_faturamento_geral ?? true
-  const modoMeta: ModoMeta = barbearia.modo_meta ?? 'faturamento'
+  const modoMeta: ModoMeta = barbearia.modo_meta ?? 'comissao'
   const baseMeta: BaseMeta = valorBase(barbearia.modo_meta, barbearia.base_meta)
   const cicloHoje = cicloAtual(diaFechamento, hoje)
   const mesAtual = cicloHoje.mesRef
@@ -135,6 +135,9 @@ export default async function LancamentoDiarioPage({
     // Fallback: se valor_faturamento esta vazio (modo='comissao') ou
     // valor_comissao esta vazio (modo='faturamento'), usa comissao_acumulada
     // como espelho do valor base — assim cards/totais nao mostram 0 enganoso.
+    // Fallback: se a coluna nova esta vazia, usa comissao_acumulada como
+    // espelho do valor base — assim cards/totais nao zeram em barbearias
+    // que ainda nao re-salvaram apos a migration.
     const fat = l.valor_faturamento != null
       ? Number(l.valor_faturamento)
       : (baseMeta === 'faturamento' ? (Number(l.comissao_acumulada) || 0) : 0)

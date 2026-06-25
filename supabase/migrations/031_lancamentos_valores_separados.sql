@@ -8,10 +8,11 @@
 -- o (modo_meta + base_meta) da barbearia. Isso evita reescrever queries de
 -- ranking/historico que ja apontam pra comissao_acumulada.
 --
--- Backfill: como default = 'faturamento' (comportamento atual), copia o
--- valor existente de comissao_acumulada -> valor_faturamento. Quem ja usa
--- e' tratado como modo='faturamento' por padrao; se trocar pra 'comissao'
--- depois, valor_comissao comeca null e e' preenchido nas proximas edicoes.
+-- Backfill: como default = 'comissao' (lancamentos.comissao_acumulada
+-- sempre representou comissao na prod), copia o valor existente
+-- comissao_acumulada -> valor_comissao. Quem ja usa e' tratado como
+-- modo='comissao' por padrao; se trocar pra 'faturamento' depois,
+-- valor_faturamento comeca null e e' preenchido nas proximas edicoes.
 --
 -- Idempotente.
 
@@ -21,11 +22,21 @@ alter table public.lancamentos
 alter table public.lancamentos
   add column if not exists valor_comissao numeric(12,2);
 
--- Backfill so onde ainda nao foi populado, pra nao sobrescrever em re-runs.
+-- Backfill principal: comissao_acumulada -> valor_comissao
 update public.lancamentos
-   set valor_faturamento = comissao_acumulada
- where valor_faturamento is null
+   set valor_comissao = comissao_acumulada
+ where valor_comissao is null
    and comissao_acumulada is not null;
+
+-- CORRECAO: se a versao anterior dessa migration ja rodou e backfillou
+-- valor_faturamento por engano, limpa esses valores (que na verdade eram
+-- comissao). So afeta linhas em que valor_faturamento == comissao_acumulada
+-- — sinal de backfill automatico, nao de valor digitado depois.
+update public.lancamentos
+   set valor_faturamento = null
+ where valor_faturamento is not null
+   and valor_faturamento = comissao_acumulada
+   and (valor_comissao is null or valor_comissao = comissao_acumulada);
 
 comment on column public.lancamentos.valor_faturamento is
   'R$ que o barbeiro faturou no mes/ciclo. So preenchido quando '

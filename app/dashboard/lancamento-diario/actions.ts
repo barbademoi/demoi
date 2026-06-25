@@ -239,8 +239,8 @@ export async function definirAcumuladoMes(
     .eq('id', barbearia_id)
     .single() as { data: { modo_meta: string | null; base_meta: string | null } | null }
 
-  const modoMeta = (cfgRaw?.modo_meta ?? 'faturamento') as 'faturamento' | 'comissao' | 'ambos'
-  const baseRaw = (cfgRaw?.base_meta ?? 'faturamento') as 'faturamento' | 'comissao'
+  const modoMeta = (cfgRaw?.modo_meta ?? 'comissao') as 'faturamento' | 'comissao' | 'ambos'
+  const baseRaw = (cfgRaw?.base_meta ?? 'comissao') as 'faturamento' | 'comissao'
   // base efetivo: pra modo simples espelha o proprio modo; pra 'ambos' usa base_meta.
   const base: 'faturamento' | 'comissao' = modoMeta === 'ambos'
     ? baseRaw
