@@ -80,10 +80,10 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
   const [diaFechamento, setDiaFechamento] = useState<string>(String(barbearia.dia_fechamento ?? 1))
   const [mostrarTicket, setMostrarTicket] = useState<boolean>(barbearia.mostrar_ticket_medio ?? false)
   const [mostrarFatGeral, setMostrarFatGeral] = useState<boolean>(barbearia.mostrar_faturamento_geral ?? true)
-  const [modoMeta, setModoMeta] = useState<ModoMetaOpt>(barbearia.modo_meta ?? 'faturamento')
-  const [baseMeta, setBaseMeta] = useState<'faturamento' | 'comissao'>(barbearia.base_meta ?? 'faturamento')
-  const modoMetaOriginal = barbearia.modo_meta ?? 'faturamento'
-  const baseMetaOriginal = barbearia.base_meta ?? 'faturamento'
+  const [modoMeta, setModoMeta] = useState<ModoMetaOpt>(barbearia.modo_meta ?? 'comissao')
+  const [baseMeta, setBaseMeta] = useState<'faturamento' | 'comissao'>(barbearia.base_meta ?? 'comissao')
+  const modoMetaOriginal = barbearia.modo_meta ?? 'comissao'
+  const baseMetaOriginal = barbearia.base_meta ?? 'comissao'
   const modoMudou = modoMeta !== modoMetaOriginal || (modoMeta === 'ambos' && baseMeta !== baseMetaOriginal)
   const [sucesso, setSucesso] = useState(false)
   const [erro, setErro] = useState<string | null>(null)

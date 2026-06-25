@@ -10,10 +10,10 @@ export function valorBase(
   modoMeta: ModoMeta | null | undefined,
   baseMeta: BaseMeta | null | undefined,
 ): BaseMeta {
-  const modo = modoMeta ?? 'faturamento'
+  const modo = modoMeta ?? 'comissao'
   if (modo === 'faturamento') return 'faturamento'
   if (modo === 'comissao') return 'comissao'
-  return (baseMeta ?? 'faturamento')
+  return (baseMeta ?? 'comissao')
 }
 
 /** Label singular do valor base — "Faturamento" ou "Comissão". */
@@ -25,11 +25,11 @@ export function labelBase(
 }
 
 export function mostraFaturamento(modoMeta: ModoMeta | null | undefined): boolean {
-  const m = modoMeta ?? 'faturamento'
+  const m = modoMeta ?? 'comissao'
   return m === 'faturamento' || m === 'ambos'
 }
 
 export function mostraComissao(modoMeta: ModoMeta | null | undefined): boolean {
-  const m = modoMeta ?? 'faturamento'
+  const m = modoMeta ?? 'comissao'
   return m === 'comissao' || m === 'ambos'
 }

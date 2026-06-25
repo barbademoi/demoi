@@ -78,12 +78,12 @@ export async function salvarOperacaoConfig(formData: FormData) {
   const mostrar_ticket_medio = formData.get('mostrar_ticket_medio') === 'true'
   const mostrar_faturamento_geral = formData.get('mostrar_faturamento_geral') === 'true'
 
-  const modoMetaRaw = (formData.get('modo_meta') as string) || 'faturamento'
-  const modo_meta = (['faturamento', 'comissao', 'ambos'].includes(modoMetaRaw) ? modoMetaRaw : 'faturamento')
+  const modoMetaRaw = (formData.get('modo_meta') as string) || 'comissao'
+  const modo_meta = (['faturamento', 'comissao', 'ambos'].includes(modoMetaRaw) ? modoMetaRaw : 'comissao')
   const baseMetaRaw = (formData.get('base_meta') as string) || modo_meta
   // base_meta so faz sentido quando modo=ambos. Pra os modos simples, espelha o proprio modo.
   const base_meta = modo_meta === 'ambos'
-    ? (['faturamento', 'comissao'].includes(baseMetaRaw) ? baseMetaRaw : 'faturamento')
+    ? (['faturamento', 'comissao'].includes(baseMetaRaw) ? baseMetaRaw : 'comissao')
     : (modo_meta as 'faturamento' | 'comissao')
 
   console.log('[salvarOperacaoConfig]', { barbeariaId, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, modo_meta, base_meta })
