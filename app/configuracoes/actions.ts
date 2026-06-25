@@ -78,7 +78,15 @@ export async function salvarOperacaoConfig(formData: FormData) {
   const mostrar_ticket_medio = formData.get('mostrar_ticket_medio') === 'true'
   const mostrar_faturamento_geral = formData.get('mostrar_faturamento_geral') === 'true'
 
-  console.log('[salvarOperacaoConfig]', { barbeariaId, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral })
+  const modoMetaRaw = (formData.get('modo_meta') as string) || 'faturamento'
+  const modo_meta = (['faturamento', 'comissao', 'ambos'].includes(modoMetaRaw) ? modoMetaRaw : 'faturamento')
+  const baseMetaRaw = (formData.get('base_meta') as string) || modo_meta
+  // base_meta so faz sentido quando modo=ambos. Pra os modos simples, espelha o proprio modo.
+  const base_meta = modo_meta === 'ambos'
+    ? (['faturamento', 'comissao'].includes(baseMetaRaw) ? baseMetaRaw : 'faturamento')
+    : (modo_meta as 'faturamento' | 'comissao')
+
+  console.log('[salvarOperacaoConfig]', { barbeariaId, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, modo_meta, base_meta })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
@@ -86,6 +94,8 @@ export async function salvarOperacaoConfig(formData: FormData) {
     .update({
       mostrar_ticket_medio,
       mostrar_faturamento_geral,
+      modo_meta,
+      base_meta,
       dias_trabalhados, horario_abertura, horario_fechamento, modalidade, tem_assinatura,
       visibilidade_ranking, dia_fechamento,
     })
