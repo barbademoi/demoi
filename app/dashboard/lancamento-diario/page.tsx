@@ -6,7 +6,17 @@ import Sidebar from '@/components/dashboard/Sidebar'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import type { Barbeiro } from '@/types/database'
 
-type UsuarioRow = { barbearia_id: string; barbearias: { id: string; nome: string; dia_fechamento: number | null; mostrar_faturamento_geral: boolean | null } }
+import type { ModoMeta, BaseMeta } from '@/lib/modoMeta'
+import { valorBase } from '@/lib/modoMeta'
+
+type UsuarioRow = { barbearia_id: string; barbearias: {
+  id: string;
+  nome: string;
+  dia_fechamento: number | null;
+  mostrar_faturamento_geral: boolean | null;
+  modo_meta: ModoMeta | null;
+  base_meta: BaseMeta | null;
+} }
 
 export default async function LancamentoDiarioPage({
   searchParams,
@@ -20,17 +30,19 @@ export default async function LancamentoDiarioPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, barbearias(id, nome, dia_fechamento, mostrar_faturamento_geral)')
+    .select('barbearia_id, barbearias(id, nome, dia_fechamento, mostrar_faturamento_geral, modo_meta, base_meta)')
     .eq('id', user.id)
     .single()
   const usuario = usuarioRaw as unknown as UsuarioRow | null
-  if (!usuario) redirect('/login')
+  if (!usuario) { redirect('/login') }
 
-  const barbearia = usuario.barbearias
+  const barbearia = usuario!.barbearias
 
   const hoje = new Date()
   const diaFechamento = barbearia.dia_fechamento ?? 1
   const mostrarFaturamentoGeral = barbearia.mostrar_faturamento_geral ?? true
+  const modoMeta: ModoMeta = barbearia.modo_meta ?? 'faturamento'
+  const baseMeta: BaseMeta = valorBase(barbearia.modo_meta, barbearia.base_meta)
   const cicloHoje = cicloAtual(diaFechamento, hoje)
   const mesAtual = cicloHoje.mesRef
   const anoAtual = cicloHoje.anoRef
@@ -102,25 +114,49 @@ export default async function LancamentoDiarioPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: lancMensaisRaw } = await (supabase as any)
     .from('lancamentos')
-    .select('barbeiro_id, comissao_acumulada, numero_atendimentos')
+    .select('barbeiro_id, comissao_acumulada, valor_faturamento, valor_comissao, numero_atendimentos')
     .eq('barbearia_id', barbearia.id)
     .eq('mes', mes)
     .eq('ano', ano)
 
-  const lancPorBarbeiro = (lancMensaisRaw ?? []) as { barbeiro_id: string; comissao_acumulada: number; numero_atendimentos: number }[]
-  const acumuladoPorBarbeiro: Record<string, { comissao: number; atendimentos: number }> = {}
+  const lancPorBarbeiro = (lancMensaisRaw ?? []) as {
+    barbeiro_id: string;
+    comissao_acumulada: number;
+    valor_faturamento: number | null;
+    valor_comissao: number | null;
+    numero_atendimentos: number;
+  }[]
+  const acumuladoPorBarbeiro: Record<string, {
+    valor_faturamento: number;
+    valor_comissao: number;
+    atendimentos: number;
+  }> = {}
   for (const l of lancPorBarbeiro) {
+    // Fallback: se valor_faturamento esta vazio (modo='comissao') ou
+    // valor_comissao esta vazio (modo='faturamento'), usa comissao_acumulada
+    // como espelho do valor base — assim cards/totais nao mostram 0 enganoso.
+    const fat = l.valor_faturamento != null
+      ? Number(l.valor_faturamento)
+      : (baseMeta === 'faturamento' ? (Number(l.comissao_acumulada) || 0) : 0)
+    const com = l.valor_comissao != null
+      ? Number(l.valor_comissao)
+      : (baseMeta === 'comissao' ? (Number(l.comissao_acumulada) || 0) : 0)
     acumuladoPorBarbeiro[l.barbeiro_id] = {
-      comissao: Number(l.comissao_acumulada) || 0,
+      valor_faturamento: fat,
+      valor_comissao: com,
       atendimentos: Number(l.numero_atendimentos) || 0,
     }
   }
 
-  const totalComissoesMes = lancPorBarbeiro.reduce((s, l) => s + (Number(l.comissao_acumulada) || 0), 0)
+  const totalFaturamentoEquipeMes = Object.values(acumuladoPorBarbeiro).reduce((s, b) => s + b.valor_faturamento, 0)
+  const totalComissoesMes = Object.values(acumuladoPorBarbeiro).reduce((s, b) => s + b.valor_comissao, 0)
   const totalAtendimentosMes = lancPorBarbeiro.reduce((s, l) => s + (Number(l.numero_atendimentos) || 0), 0)
   const faturamentoCasaAtual = Number(metaRaw?.faturamento_acumulado) || 0
   const atendimentosCasaAtual = Number(metaRaw?.numero_atendimentos) || 0
-  const faturamentoMes = faturamentoCasaAtual > 0 ? faturamentoCasaAtual : totalComissoesMes
+  // Card "Faturamento" no topo: total da casa quando o dono lancou,
+  // senao a soma do faturamento da equipe (so faz sentido se o modo
+  // capturar faturamento). Em modo 'comissao', vai mostrar 0 — esperado.
+  const faturamentoMes = faturamentoCasaAtual > 0 ? faturamentoCasaAtual : totalFaturamentoEquipeMes
   // Total de atendimentos exibido: prefere o coletivo da casa; senão a soma por barbeiro
   const atendimentosMesExibido = atendimentosCasaAtual > 0 ? atendimentosCasaAtual : totalAtendimentosMes
 
@@ -168,6 +204,7 @@ export default async function LancamentoDiarioPage({
             faturamentoCasaAtual={faturamentoCasaAtual}
             atendimentosCasaAtual={atendimentosCasaAtual}
             faturamentoMes={faturamentoMes}
+            totalFaturamentoEquipeMes={totalFaturamentoEquipeMes}
             totalComissoesMes={totalComissoesMes}
             totalAtendimentosMes={atendimentosMesExibido}
             mes={mes}
@@ -176,6 +213,8 @@ export default async function LancamentoDiarioPage({
             cicloFimIso={ciclo.fimIso}
             diaFechamento={diaFechamento}
             mostrarFaturamentoGeral={mostrarFaturamentoGeral}
+            modoMeta={modoMeta}
+            baseMeta={baseMeta}
           />
         </main>
       </div>

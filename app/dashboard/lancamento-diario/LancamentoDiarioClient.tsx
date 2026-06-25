@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { formatBRL } from '@/lib/utils'
 import { salvarComandasDia, definirAcumuladoMes, buscarComandasDia } from './actions'
+import type { ModoMeta, BaseMeta } from '@/lib/modoMeta'
+import { mostraFaturamento, mostraComissao, labelBase } from '@/lib/modoMeta'
 
 type BarbeiroLite = { id: string; nome: string; foto_url: string | null; tipo: 'barbeiro' | 'recepcionista' }
 
@@ -15,10 +17,15 @@ interface ComandaDia {
 interface Props {
   barbeiros: BarbeiroLite[]
   comandasDiarias: ComandaDia[]
-  acumuladoPorBarbeiro: Record<string, { comissao: number; atendimentos: number }>
+  acumuladoPorBarbeiro: Record<string, {
+    valor_faturamento: number;
+    valor_comissao: number;
+    atendimentos: number;
+  }>
   faturamentoCasaAtual: number
   atendimentosCasaAtual: number
   faturamentoMes: number
+  totalFaturamentoEquipeMes: number
   totalComissoesMes: number
   totalAtendimentosMes: number
   mes: number
@@ -27,6 +34,8 @@ interface Props {
   cicloFimIso: string
   diaFechamento: number
   mostrarFaturamentoGeral: boolean
+  modoMeta: ModoMeta
+  baseMeta: BaseMeta
 }
 
 function pad2(n: number) { return String(n).padStart(2, '0') }
@@ -52,6 +61,7 @@ export default function LancamentoDiarioClient({
   faturamentoCasaAtual,
   atendimentosCasaAtual,
   faturamentoMes,
+  totalFaturamentoEquipeMes,
   totalComissoesMes,
   totalAtendimentosMes,
   mes,
@@ -60,10 +70,21 @@ export default function LancamentoDiarioClient({
   cicloFimIso,
   diaFechamento,
   mostrarFaturamentoGeral,
+  modoMeta,
+  baseMeta,
 }: Props) {
+  const exibeFat = mostraFaturamento(modoMeta)
+  const exibeCom = mostraComissao(modoMeta)
+  const labelBaseValor = labelBase(modoMeta, baseMeta)
+
   // ── Estado: ACUMULADO (principal) ───────────────────────
-  const [comissoes, setComissoes] = useState<Record<string, string>>(() =>
-    Object.fromEntries(barbeiros.map(b => [b.id, acumuladoPorBarbeiro[b.id]?.comissao ? String(acumuladoPorBarbeiro[b.id].comissao) : ''])),
+  // Faturamento e Comissão sao mantidos em estados separados — preencho
+  // apenas os que o modo da barbearia exibe.
+  const [valoresFat, setValoresFat] = useState<Record<string, string>>(() =>
+    Object.fromEntries(barbeiros.map(b => [b.id, acumuladoPorBarbeiro[b.id]?.valor_faturamento ? String(acumuladoPorBarbeiro[b.id].valor_faturamento) : ''])),
+  )
+  const [valoresCom, setValoresCom] = useState<Record<string, string>>(() =>
+    Object.fromEntries(barbeiros.map(b => [b.id, acumuladoPorBarbeiro[b.id]?.valor_comissao ? String(acumuladoPorBarbeiro[b.id].valor_comissao) : ''])),
   )
   const [atendAcum, setAtendAcum] = useState<Record<string, string>>(() =>
     Object.fromEntries(barbeiros.map(b => [b.id, acumuladoPorBarbeiro[b.id]?.atendimentos ? String(acumuladoPorBarbeiro[b.id].atendimentos) : ''])),
@@ -71,9 +92,7 @@ export default function LancamentoDiarioClient({
   const [fatCasa, setFatCasa] = useState<string>(faturamentoCasaAtual > 0 ? String(faturamentoCasaAtual) : '')
   const [atendCasa, setAtendCasa] = useState<string>(atendimentosCasaAtual > 0 ? String(atendimentosCasaAtual) : '')
 
-  // Quando o servidor atualiza os atendimentos (ex: dono lançou comandas do dia),
-  // re-sincroniza os campos do acumulado pra não sobrescrever com valor velho ao salvar.
-  // Dep serializada = só dispara quando o valor PERSISTIDO muda, não a cada digitação.
+  // Re-sincroniza atendimentos quando o servidor atualiza (ex: dono lançou comandas do dia)
   const atendServidorKey = `${atendimentosCasaAtual}|` + barbeiros.map(b => `${b.id}:${acumuladoPorBarbeiro[b.id]?.atendimentos ?? 0}`).join(',')
   useEffect(() => {
     setAtendAcum(Object.fromEntries(
@@ -88,7 +107,6 @@ export default function LancamentoDiarioClient({
   const [savingAcum, startSaveAcum] = useTransition()
 
   // ── Estado: COMANDAS DO DIA (secundário) ────────────────
-  // Se hoje cai dentro do ciclo atual, default = hoje; senão = último dia do ciclo.
   const hojeStr = todayIso()
   const dataPadrao = hojeStr >= cicloInicioIso && hojeStr <= cicloFimIso ? hojeStr : cicloFimIso
   const [dataSel, setDataSel] = useState<string>(dataPadrao)
@@ -97,7 +115,6 @@ export default function LancamentoDiarioClient({
   const [sucessoDia, setSucessoDia] = useState(false)
   const [savingDia, startSaveDia] = useTransition()
 
-  // Agrupa comandas por data (histórico + pré-preenchimento)
   const comandasPorData = useMemo(() => {
     const agg: Record<string, { porBarbeiro: Record<string, number>; total: number }> = {}
     for (const r of comandasDiarias) {
@@ -118,11 +135,8 @@ export default function LancamentoDiarioClient({
     [comandasPorData],
   )
 
-  // Pré-preenche comandas ao trocar a data. Se a data está dentro do ciclo
-  // carregado, usa o cache local; senão, busca do servidor.
   function selecionarData(novaData: string) {
     if (!novaData) return
-    // Não permite data futura.
     if (novaData > todayIso()) return
     setDataSel(novaData)
     setErroDia(null)
@@ -136,7 +150,6 @@ export default function LancamentoDiarioClient({
       setComandas(v)
       return
     }
-    // Fora do ciclo carregado: limpa enquanto busca + carrega via action.
     setComandas({})
     buscarComandasDia(novaData).then(res => {
       if ('error' in res) { setErroDia(res.error); return }
@@ -156,7 +169,6 @@ export default function LancamentoDiarioClient({
     selecionarData(novo)
   }
 
-  // Inicializa comandas com o dia de hoje (1a render)
   useMemo(() => {
     const ja = comandasPorData[dataSel]
     if (ja) {
@@ -169,16 +181,21 @@ export default function LancamentoDiarioClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const comandasDoDiaTotal = Object.values(comandas).reduce((s: number, v: string) => s + (parseInt(v || '0', 10) || 0), 0)
+  const comandasDoDiaTotal = (Object.values(comandas) as string[]).reduce<number>((s, v) => s + (parseInt(v || '0', 10) || 0), 0)
 
   function salvarAcumulado() {
     setErroAcum(null)
     setSucessoAcum(false)
-    const itens = barbeiros.map(b => ({
-      barbeiro_id: b.id,
-      comissao_acumulada: parseFloat(comissoes[b.id] || '0') || 0,
-      numero_atendimentos: parseInt(atendAcum[b.id] || '0', 10) || 0,
-    }))
+    const itens = barbeiros.map(b => {
+      const fat = exibeFat ? (parseFloat(valoresFat[b.id] || '0') || 0) : null
+      const com = exibeCom ? (parseFloat(valoresCom[b.id] || '0') || 0) : null
+      return {
+        barbeiro_id: b.id,
+        valor_faturamento: fat,
+        valor_comissao: com,
+        numero_atendimentos: parseInt(atendAcum[b.id] || '0', 10) || 0,
+      }
+    })
     const fatNum = parseFloat(fatCasa || '0') || 0
     const atendCasaNum = parseInt(atendCasa || '0', 10) || 0
     startSaveAcum(async () => {
@@ -206,27 +223,48 @@ export default function LancamentoDiarioClient({
 
   const ehHoje = dataSel === todayIso()
 
+  // Quantos cards de total exibir no topo
+  const cardsTopo: { label: string; valor: string }[] = []
+  if (mostrarFaturamentoGeral && exibeFat) {
+    cardsTopo.push({ label: 'Faturamento', valor: formatBRL(faturamentoMes) })
+  }
+  if (exibeCom) {
+    cardsTopo.push({ label: 'Comissões', valor: formatBRL(totalComissoesMes) })
+  }
+  if (!exibeCom && exibeFat && mostrarFaturamentoGeral) {
+    // Modo 'faturamento' puro — mostra tambem total da equipe pra dar contexto
+    cardsTopo.push({ label: 'Equipe', valor: formatBRL(totalFaturamentoEquipeMes) })
+  }
+  cardsTopo.push({ label: 'Atendimentos', valor: String(totalAtendimentosMes) })
+
+  const gridColsTopo = cardsTopo.length === 4 ? 'grid-cols-2 sm:grid-cols-4'
+    : cardsTopo.length === 3 ? 'grid-cols-3'
+    : cardsTopo.length === 2 ? 'grid-cols-2'
+    : 'grid-cols-1'
+
   return (
     <div className="space-y-6">
 
-      {/* Resumo do mês — card "Faturamento" some quando o toggle "Mostrar
-          faturamento geral" está OFF. O FORM de edição abaixo ("Total da
-          barbearia") permanece, é onde o dono lança o número oficial. */}
-      <div className={mostrarFaturamentoGeral ? 'grid grid-cols-3 gap-3' : 'grid grid-cols-2 gap-3'}>
-        {mostrarFaturamentoGeral && (
-          <div className="card p-4">
-            <p className="text-text-muted text-[10px] sm:text-xs font-sans uppercase tracking-wide">Faturamento</p>
-            <p className="font-serif text-lg sm:text-2xl text-text mt-1">{formatBRL(faturamentoMes)}</p>
+      {/* Banner do modo atual */}
+      <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+        <p className="text-text text-xs sm:text-sm font-sans">
+          Modo atual: <span className="font-semibold">{
+            modoMeta === 'ambos' ? `Faturamento + Comissão (meta/ranking por ${labelBaseValor})`
+            : modoMeta === 'faturamento' ? 'Faturamento'
+            : 'Comissão'
+          }</span>
+          <span className="text-text-muted ml-2">· trocar em Configurações → Operação</span>
+        </p>
+      </div>
+
+      {/* Resumo do mês */}
+      <div className={`grid ${gridColsTopo} gap-3`}>
+        {cardsTopo.map(c => (
+          <div key={c.label} className="card p-4">
+            <p className="text-text-muted text-[10px] sm:text-xs font-sans uppercase tracking-wide">{c.label}</p>
+            <p className="font-serif text-lg sm:text-2xl text-text mt-1">{c.valor}</p>
           </div>
-        )}
-        <div className="card p-4">
-          <p className="text-text-muted text-[10px] sm:text-xs font-sans uppercase tracking-wide">Comissões</p>
-          <p className="font-serif text-lg sm:text-2xl text-text mt-1">{formatBRL(totalComissoesMes)}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-text-muted text-[10px] sm:text-xs font-sans uppercase tracking-wide">Atendimentos</p>
-          <p className="font-serif text-lg sm:text-2xl text-text mt-1">{totalAtendimentosMes}</p>
-        </div>
+        ))}
       </div>
 
       {/* ── SEÇÃO PRINCIPAL: Acumulado do mês ───────────────── */}
@@ -234,7 +272,7 @@ export default function LancamentoDiarioClient({
         <div>
           <h2 className="font-serif text-lg text-text">Acumulado do {diaFechamento === 1 ? 'mês' : 'ciclo'}</h2>
           <p className="text-text-muted text-xs font-sans mt-0.5 leading-relaxed">
-            O número oficial do mês. Edite aqui o faturamento da casa e a comissão de cada barbeiro.
+            O número oficial do mês. Edite aqui o faturamento da casa e o valor de cada barbeiro.
           </p>
         </div>
 
@@ -277,12 +315,16 @@ export default function LancamentoDiarioClient({
           </p>
         </div>
 
-        {/* Comissão + atendimentos por barbeiro */}
+        {/* Valores por barbeiro */}
         <div>
           <p className="text-text-muted text-xs font-sans uppercase tracking-wide mb-1">Por barbeiro</p>
           <p className="text-text-muted text-[11px] font-sans mb-2.5 leading-snug">
-            Comissão que <span className="text-text font-semibold">cada um já recebeu</span> e total de atendimentos no mês.
-            Quem entrou no meio do mês: lance o total de atendimentos aqui — depois use &ldquo;Comandas do dia&rdquo;.
+            {modoMeta === 'ambos'
+              ? 'Preencha o faturamento E a comissão de cada um (você definiu os dois). Meta e ranking contam pelo ' + labelBaseValor.toLowerCase() + '.'
+              : modoMeta === 'comissao'
+              ? <>Comissão que <span className="text-text font-semibold">cada um já recebeu</span> no mês. Quem entrou no meio: lance o total agora.</>
+              : <>Faturamento que <span className="text-text font-semibold">cada um já fez</span> no mês. Quem entrou no meio: lance o total agora.</>
+            }
           </p>
           <div className="space-y-2">
             {barbeiros.map(b => (
@@ -296,35 +338,75 @@ export default function LancamentoDiarioClient({
                   </div>
                   <p className="font-sans text-sm text-text flex-1 min-w-0 truncate">{b.nome}</p>
                 </div>
-                <div className="grid grid-cols-[1fr_auto] gap-2">
-                  <div>
-                    <label className="text-text-muted text-[11px] font-sans">Comissão acumulada</label>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <span className="text-text-muted text-xs font-sans shrink-0">R$</span>
+                {modoMeta === 'ambos' ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-[1fr_1fr_auto] gap-2">
+                    <div>
+                      <label className="text-text-muted text-[11px] font-sans">
+                        Faturamento {baseMeta === 'faturamento' && <span className="text-[#D4A85A]">·meta</span>}
+                      </label>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="text-text-muted text-xs font-sans shrink-0">R$</span>
+                        <input
+                          type="number" min="0" step="0.01" placeholder="0"
+                          value={valoresFat[b.id] ?? ''}
+                          onChange={e => setValoresFat(v => ({ ...v, [b.id]: e.target.value }))}
+                          className="input flex-1 py-1.5 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-text-muted text-[11px] font-sans">
+                        Comissão {baseMeta === 'comissao' && <span className="text-[#D4A85A]">·meta</span>}
+                      </label>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="text-text-muted text-xs font-sans shrink-0">R$</span>
+                        <input
+                          type="number" min="0" step="0.01" placeholder="0"
+                          value={valoresCom[b.id] ?? ''}
+                          onChange={e => setValoresCom(v => ({ ...v, [b.id]: e.target.value }))}
+                          className="input flex-1 py-1.5 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="col-span-2 sm:col-span-1 sm:w-24">
+                      <label className="text-text-muted text-[11px] font-sans">Atendimentos</label>
                       <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="0"
-                        value={comissoes[b.id] ?? ''}
-                        onChange={e => setComissoes(v => ({ ...v, [b.id]: e.target.value }))}
-                        className="input flex-1 py-1.5 text-sm"
+                        type="number" min="0" step="1" placeholder="0"
+                        value={atendAcum[b.id] ?? ''}
+                        onChange={e => setAtendAcum(v => ({ ...v, [b.id]: e.target.value }))}
+                        className="input w-full py-1.5 text-sm text-center mt-0.5"
                       />
                     </div>
                   </div>
-                  <div className="w-24">
-                    <label className="text-text-muted text-[11px] font-sans">Atendimentos</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      placeholder="0"
-                      value={atendAcum[b.id] ?? ''}
-                      onChange={e => setAtendAcum(v => ({ ...v, [b.id]: e.target.value }))}
-                      className="input w-full py-1.5 text-sm text-center mt-0.5"
-                    />
+                ) : (
+                  <div className="grid grid-cols-[1fr_auto] gap-2">
+                    <div>
+                      <label className="text-text-muted text-[11px] font-sans">{labelBaseValor} acumulado</label>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="text-text-muted text-xs font-sans shrink-0">R$</span>
+                        <input
+                          type="number" min="0" step="0.01" placeholder="0"
+                          value={(modoMeta === 'comissao' ? valoresCom : valoresFat)[b.id] ?? ''}
+                          onChange={e => {
+                            const upd = (v: Record<string, string>) => ({ ...v, [b.id]: e.target.value })
+                            if (modoMeta === 'comissao') setValoresCom(upd)
+                            else setValoresFat(upd)
+                          }}
+                          className="input flex-1 py-1.5 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="w-24">
+                      <label className="text-text-muted text-[11px] font-sans">Atendimentos</label>
+                      <input
+                        type="number" min="0" step="1" placeholder="0"
+                        value={atendAcum[b.id] ?? ''}
+                        onChange={e => setAtendAcum(v => ({ ...v, [b.id]: e.target.value }))}
+                        className="input w-full py-1.5 text-sm text-center mt-0.5"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             ))}
             {barbeiros.length === 0 && (
@@ -386,7 +468,6 @@ export default function LancamentoDiarioClient({
           </div>
         </div>
 
-        {/* Alerta quando data está fora do ciclo atual */}
         {(dataSel < cicloInicioIso || dataSel > cicloFimIso) && (
           <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
             <p className="text-amber-200 text-xs font-sans leading-relaxed">
@@ -434,7 +515,6 @@ export default function LancamentoDiarioClient({
           {sucessoDia ? '✓ Salvo!' : savingDia ? 'Salvando…' : `Salvar comandas ${ehHoje ? 'de hoje' : 'do dia'}`}
         </button>
 
-        {/* Histórico */}
         {historico.length > 0 && (
           <div className="pt-2">
             <p className="text-text-muted text-xs font-sans uppercase tracking-wide mb-2">Últimos dias lançados</p>

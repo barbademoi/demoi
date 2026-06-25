@@ -189,23 +189,24 @@ export async function buscarComandasDia(data: string): Promise<
 
 interface AcumuladoItem {
   barbeiro_id: string
-  comissao_acumulada: number
+  /** R$ faturado pelo barbeiro no mes. null = nao envia (modo nao captura). */
+  valor_faturamento: number | null
+  /** R$ de comissao do barbeiro no mes. null = nao envia (modo nao captura). */
+  valor_comissao: number | null
   numero_atendimentos: number
 }
 
 /**
  * Define/edita o ACUMULADO do mês (tela principal):
- *   - comissão acumulada por barbeiro (R$)
- *   - atendimentos acumulados por barbeiro (lancamentos — ticket individual)
- *   - faturamento acumulado da casa (R$)
- *   - atendimentos totais da casa (metas — ticket coletivo). É um campo
- *     próprio, editado direto pelo dono (não é a soma dos barbeiros), pra
- *     barbearias que só lançam o total da casa sem detalhar por barbeiro.
+ *   - valor_faturamento e/ou valor_comissao por barbeiro (R$, conforme
+ *     barbearias.modo_meta)
+ *   - comissao_acumulada e' espelhada do valor_base (faturamento ou comissao,
+ *     conforme barbearias.base_meta) — e' a chave do ranking/historico legado
+ *   - atendimentos acumulados por barbeiro
+ *   - faturamento acumulado + atendimentos totais da casa (tabela metas)
  *
- * Sobrescreve direto (não soma). Os campos de atendimento são
- * pré-preenchidos na UI com o valor atual, então re-salvar sem mexer
- * não altera nada. As comandas do dia (salvarComandasDia) continuam
- * somando em cima depois.
+ * Sobrescreve direto (não soma). Os valores nao enviados (null) ficam
+ * preservados — o upsert so atualiza as colunas presentes.
  */
 export async function definirAcumuladoMes(
   itens: AcumuladoItem[],
@@ -229,16 +230,43 @@ export async function definirAcumuladoMes(
   const trava = await estaFechado(supabase, barbearia_id, mes, ano)
   if (trava.fechado) return { error: 'Mês fechado. Reabra antes de editar.' }
 
-  // 1. Upsert comissão + atendimentos acumulados por barbeiro
-  const rowsLanc = itens.map(it => ({
-    barbearia_id,
-    barbeiro_id: it.barbeiro_id,
-    mes,
-    ano,
-    comissao_acumulada: Math.max(0, it.comissao_acumulada),
-    numero_atendimentos: Math.max(0, it.numero_atendimentos),
-    modo: 'direto',
-  }))
+  // Le modo_meta + base_meta da barbearia pra decidir qual valor (faturamento
+  // ou comissao) espelhar em comissao_acumulada — a chave de ranking/historico.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: cfgRaw } = await (supabase as any)
+    .from('barbearias')
+    .select('modo_meta, base_meta')
+    .eq('id', barbearia_id)
+    .single() as { data: { modo_meta: string | null; base_meta: string | null } | null }
+
+  const modoMeta = (cfgRaw?.modo_meta ?? 'faturamento') as 'faturamento' | 'comissao' | 'ambos'
+  const baseRaw = (cfgRaw?.base_meta ?? 'faturamento') as 'faturamento' | 'comissao'
+  // base efetivo: pra modo simples espelha o proprio modo; pra 'ambos' usa base_meta.
+  const base: 'faturamento' | 'comissao' = modoMeta === 'ambos'
+    ? baseRaw
+    : (modoMeta as 'faturamento' | 'comissao')
+
+  // 1. Upsert valor_faturamento/valor_comissao + comissao_acumulada (espelho do base)
+  //    + atendimentos por barbeiro.
+  //    Quando um valor vem null (modo nao captura), preserva o que ja estava
+  //    no banco — nao envia o campo.
+  const rowsLanc = itens.map(it => {
+    const fat = it.valor_faturamento != null ? Math.max(0, it.valor_faturamento) : null
+    const com = it.valor_comissao != null ? Math.max(0, it.valor_comissao) : null
+    const espelho = base === 'faturamento' ? fat : com
+    const row: Record<string, unknown> = {
+      barbearia_id,
+      barbeiro_id: it.barbeiro_id,
+      mes,
+      ano,
+      numero_atendimentos: Math.max(0, it.numero_atendimentos),
+      modo: 'direto',
+    }
+    if (fat != null) row.valor_faturamento = fat
+    if (com != null) row.valor_comissao = com
+    if (espelho != null) row.comissao_acumulada = espelho
+    return row
+  })
 
   if (rowsLanc.length > 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
