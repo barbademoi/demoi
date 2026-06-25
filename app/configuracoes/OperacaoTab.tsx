@@ -23,7 +23,29 @@ interface BarbeariaData {
   dia_fechamento: number | null
   mostrar_ticket_medio: boolean | null
   mostrar_faturamento_geral: boolean | null
+  modo_meta: 'faturamento' | 'comissao' | 'ambos' | null
+  base_meta: 'faturamento' | 'comissao' | null
 }
+
+type ModoMetaOpt = 'faturamento' | 'comissao' | 'ambos'
+
+const MODO_OPCOES: { value: ModoMetaOpt; titulo: string; descricao: string }[] = [
+  {
+    value: 'faturamento',
+    titulo: 'Faturamento',
+    descricao: 'Acompanhe o R$ que cada barbeiro faturou. Meta e ranking usam o faturamento.',
+  },
+  {
+    value: 'comissao',
+    titulo: 'Comissão',
+    descricao: 'Acompanhe o R$ que cada barbeiro recebeu como comissão. Meta e ranking usam a comissão.',
+  },
+  {
+    value: 'ambos',
+    titulo: 'Os dois',
+    descricao: 'Cada barbeiro lança faturamento E comissão. Você escolhe qual conta pra meta/ranking.',
+  },
+]
 
 type VisibilidadeRanking = 'completo' | 'posicoes' | 'proprio'
 
@@ -58,6 +80,11 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
   const [diaFechamento, setDiaFechamento] = useState<string>(String(barbearia.dia_fechamento ?? 1))
   const [mostrarTicket, setMostrarTicket] = useState<boolean>(barbearia.mostrar_ticket_medio ?? false)
   const [mostrarFatGeral, setMostrarFatGeral] = useState<boolean>(barbearia.mostrar_faturamento_geral ?? true)
+  const [modoMeta, setModoMeta] = useState<ModoMetaOpt>(barbearia.modo_meta ?? 'faturamento')
+  const [baseMeta, setBaseMeta] = useState<'faturamento' | 'comissao'>(barbearia.base_meta ?? 'faturamento')
+  const modoMetaOriginal = barbearia.modo_meta ?? 'faturamento'
+  const baseMetaOriginal = barbearia.base_meta ?? 'faturamento'
+  const modoMudou = modoMeta !== modoMetaOriginal || (modoMeta === 'ambos' && baseMeta !== baseMetaOriginal)
   const [sucesso, setSucesso] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -76,6 +103,8 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
     })
     formData.set('mostrar_ticket_medio', mostrarTicket ? 'true' : 'false')
     formData.set('mostrar_faturamento_geral', mostrarFatGeral ? 'true' : 'false')
+    formData.set('modo_meta', modoMeta)
+    formData.set('base_meta', modoMeta === 'ambos' ? baseMeta : modoMeta)
     startTransition(async () => {
       const result = await salvarOperacaoConfig(formData)
       if (result?.error) setErro(result.error)
@@ -280,6 +309,65 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
             </p>
           </div>
         </button>
+      </div>
+
+      <div>
+        <label className="label">Acompanhar desempenho por</label>
+        <p className="text-text-muted text-xs font-sans mb-3 leading-relaxed">
+          Como você quer acompanhar a equipe? Os barbeiros vão lançar o(s) valor(es) na mão — o sistema não calcula nada.
+        </p>
+        <input type="hidden" name="modo_meta" value={modoMeta} />
+        <div className="space-y-2">
+          {MODO_OPCOES.map(op => (
+            <label key={op.value} className={['flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all',
+              modoMeta === op.value ? 'border-primary bg-primary/5' : 'border-border bg-surface-2 hover:border-primary/40'].join(' ')}>
+              <input type="radio" name="modo_meta_radio" value={op.value} checked={modoMeta === op.value}
+                onChange={() => setModoMeta(op.value)} className="hidden" />
+              <div className={['w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5',
+                modoMeta === op.value ? 'border-primary' : 'border-border'].join(' ')}>
+                {modoMeta === op.value && <div className="w-2 h-2 rounded-full bg-primary" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-sans font-semibold text-text leading-snug">{op.titulo}</p>
+                <p className="text-xs font-sans text-text-muted leading-relaxed mt-0.5">{op.descricao}</p>
+              </div>
+            </label>
+          ))}
+        </div>
+
+        {modoMeta === 'ambos' && (
+          <div className="mt-4 p-4 rounded-xl border border-border bg-surface-2">
+            <p className="text-text text-xs font-sans font-semibold uppercase tracking-wide mb-1">
+              Meta e ranking contam por
+            </p>
+            <p className="text-text-muted text-xs font-sans mb-3 leading-relaxed">
+              Os dois valores ficam registrados, mas só um define meta/ranking. O outro fica de informação.
+            </p>
+            <input type="hidden" name="base_meta" value={baseMeta} />
+            <div className="grid grid-cols-2 gap-3">
+              {(['faturamento', 'comissao'] as const).map(op => (
+                <label key={op} className={['flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all',
+                  baseMeta === op ? 'border-primary bg-primary/5' : 'border-border bg-surface hover:border-primary/40'].join(' ')}>
+                  <input type="radio" name="base_meta_radio" value={op} checked={baseMeta === op}
+                    onChange={() => setBaseMeta(op)} className="hidden" />
+                  <div className={['w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0',
+                    baseMeta === op ? 'border-primary' : 'border-border'].join(' ')}>
+                    {baseMeta === op && <div className="w-2 h-2 rounded-full bg-primary" />}
+                  </div>
+                  <span className="text-sm font-sans text-text">{op === 'faturamento' ? 'Faturamento' : 'Comissão'}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {modoMudou && (
+          <div className="mt-4 p-3 rounded-xl border border-amber-500/40 bg-amber-500/10">
+            <p className="text-amber-200 text-xs font-sans leading-relaxed">
+              ⚠️ Isso muda como suas metas e ranking são calculados. Não apaga nem altera lançamentos antigos — só vale daqui pra frente.
+            </p>
+          </div>
+        )}
       </div>
 
       {erro && <p className="text-red-400 text-sm font-sans">{erro}</p>}
