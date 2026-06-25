@@ -25,11 +25,14 @@ function HeroVideo() {
         <div className="w-72 h-72 sm:w-96 sm:h-96 rounded-full blur-3xl opacity-20 bg-[#D4A85A]" />
       </div>
 
-      {/* Selo destacado acima do video */}
+      {/* Selo destacado acima do video — "ASSISTA: O SISTEMA RODANDO" */}
       <div className="relative z-10 mb-3 mx-auto inline-flex flex-col items-center justify-center w-full">
-        <div className="rounded-full bg-[#D4A85A]/15 border border-[#D4A85A]/40 px-5 py-2 text-center">
-          <p className="text-[#D4A85A] font-bold text-sm sm:text-base uppercase tracking-wider leading-tight">
-            Veja o sistema funcionando 👇
+        <div className="rounded-full bg-[#D4A85A]/15 border border-[#D4A85A]/40 px-4 py-1.5 text-center">
+          <p className="text-[#D4A85A] font-bold text-xs sm:text-sm uppercase tracking-wider leading-tight">
+            ▶ Assista: O sistema rodando
+          </p>
+          <p className="text-[#E6CB8A] text-[10px] sm:text-[11px] font-semibold leading-tight mt-0.5">
+            1 min · sem enrolação
           </p>
         </div>
       </div>
