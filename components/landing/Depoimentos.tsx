@@ -11,11 +11,11 @@ import { motion } from 'framer-motion'
 // perfeito. Sem JS pra reset — tudo CSS via framer-motion.
 
 const depoimentos = [
-  { src: '/feedbacks/feedback-1.png', alt: 'Depoimento Instagram — sucesso com gamificação' },
-  { src: '/feedbacks/feedback-2.png', alt: 'Depoimento ducorteflix — Bom dia, estudando' },
-  { src: '/feedbacks/feedback-3.png', alt: 'Depoimento Geison Cal — meta ouro atingida' },
-  { src: '/feedbacks/feedback-4.png', alt: 'Depoimento henrique.peres_ — os mlk pegaram firme' },
-  { src: '/feedbacks/feedback-5.png', alt: 'Depoimento lc_oficial.of — mais intuitivo que cashbarber' },
+  { src: '/prints/feedback-1.png', alt: 'Depoimento Instagram — sucesso com gamificação' },
+  { src: '/prints/feedback-2.png', alt: 'Depoimento ducorteflix — Bom dia, estudando' },
+  { src: '/prints/feedback-3.png', alt: 'Depoimento Geison Cal — meta ouro atingida' },
+  { src: '/prints/feedback-4.png', alt: 'Depoimento henrique.peres_ — os mlk pegaram firme' },
+  { src: '/prints/feedback-5.png', alt: 'Depoimento lc_oficial.of — mais intuitivo que cashbarber' },
 ]
 
 // duplica pra criar loop perfeito
