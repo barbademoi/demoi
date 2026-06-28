@@ -1,11 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import CTAButton from './CTAButton'
-import VideoModal from './VideoModal'
-
-const VIDEO_ID = 'mNh_84Wi-0U'
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 24 },
@@ -16,7 +12,6 @@ const fadeUp: Variants = {
 }
 
 export default function Hero() {
-  const [videoOpen, setVideoOpen] = useState(false)
   return (
     <section className="relative lg:min-h-screen bg-[#0A1929] flex items-center pt-16">
       <div
@@ -64,22 +59,8 @@ export default function Hero() {
               custom={4} variants={fadeUp} initial="hidden" animate="show"
               className="mt-7 flex flex-col items-center lg:items-start gap-3"
             >
-              <div className="flex flex-col sm:flex-row gap-3 items-center sm:items-stretch">
+              <div className="flex flex-col sm:flex-row gap-3 items-center">
                 <CTAButton id="cta-hero-oferta" gtmClass="gtm-cta-hero" />
-
-                {/* Botao secundario — abre modal com video de demonstracao */}
-                <button
-                  type="button"
-                  onClick={() => setVideoOpen(true)}
-                  aria-label="Ver o sistema por dentro — vídeo de demonstração"
-                  className="gtm-btn-video inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/30 px-6 py-4 text-base font-semibold text-white transition-colors"
-                  id="btn-hero-video"
-                >
-                  <svg viewBox="0 0 24 24" className="w-5 h-5 text-[#D4A85A] shrink-0" fill="currentColor">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                  Ver o sistema por dentro
-                </button>
               </div>
               <p className="text-sm text-[#A0AEC0]">
                 Acesso vitalício · Sem mensalidade · 7 dias de garantia
@@ -148,9 +129,6 @@ export default function Hero() {
           </motion.div>
         </div>
       </div>
-
-      {/* Modal — embed do YouTube so monta quando aberto */}
-      <VideoModal videoId={VIDEO_ID} open={videoOpen} onClose={() => setVideoOpen(false)} aspect="horizontal" />
     </section>
   )
 }
