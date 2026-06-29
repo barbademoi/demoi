@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { HOTMART_URL, TEXTO_CTA_COMPRA } from '@/lib/landingConfig'
+import { trackInitiateCheckout } from '@/lib/metaPixel'
 
 interface Props {
   variant?: 'primary' | 'dark' | 'large'
@@ -12,6 +13,8 @@ interface Props {
 
 // Botão de compra padronizado. Sempre aponta pra HOTMART_URL e usa o
 // texto canônico ("Quero garantir minha vaga por R$ 97").
+// Ao clicar, dispara InitiateCheckout no Meta Pixel pra alimentar o
+// algoritmo de otimização das campanhas.
 export function CtaCompra({ variant = 'primary', pulse = false, texto, className = '' }: Props) {
   const label = texto ?? TEXTO_CTA_COMPRA
   const isExterno = HOTMART_URL.startsWith('http')
@@ -30,6 +33,7 @@ export function CtaCompra({ variant = 'primary', pulse = false, texto, className
       href={HOTMART_URL}
       target={isExterno ? '_blank' : undefined}
       rel={isExterno ? 'noopener noreferrer' : undefined}
+      onClick={trackInitiateCheckout}
       className={cls}
       animate={pulse ? { scale: [1, 1.025, 1] } : undefined}
       transition={pulse ? { duration: 1.6, repeat: Infinity, repeatDelay: 4 } : undefined}

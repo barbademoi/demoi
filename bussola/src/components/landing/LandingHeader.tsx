@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { HOTMART_URL } from '@/lib/landingConfig'
+import { trackInitiateCheckout } from '@/lib/metaPixel'
 
 // Header fixo da landing, layout em 3 colunas:
 //   Entrar (esquerda) · Logo (centro) · Garantir acesso (direita)
@@ -67,6 +68,7 @@ export function LandingHeader() {
               href={HOTMART_URL}
               target={isExternoHotmart ? '_blank' : undefined}
               rel={isExternoHotmart ? 'noopener noreferrer' : undefined}
+              onClick={trackInitiateCheckout}
               className="inline-flex items-center bg-marrom text-white hover:bg-marrom-escuro transition-colors rounded-md font-semibold shadow-sm hover:shadow-md px-3 py-2 text-sm md:px-4 md:py-2.5 whitespace-nowrap"
             >
               <span className="hidden md:inline">Garantir acesso</span>
