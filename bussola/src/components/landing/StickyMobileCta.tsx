@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { HOTMART_URL } from '@/lib/landingConfig'
+import { trackInitiateCheckout } from '@/lib/metaPixel'
 
 // CTA fixo no rodapé do mobile. Aparece quando o usuário rolou ≥30% da
 // página. Pulse sutil a cada 6s. Respeita prefers-reduced-motion.
@@ -28,6 +29,7 @@ export function StickyMobileCta() {
           href={HOTMART_URL}
           target={HOTMART_URL.startsWith('http') ? '_blank' : undefined}
           rel={HOTMART_URL.startsWith('http') ? 'noopener noreferrer' : undefined}
+          onClick={trackInitiateCheckout}
           className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-marrom text-white text-center font-semibold py-3.5 px-4 shadow-[0_-6px_18px_rgba(0,0,0,0.18)]"
           initial={{ y: 80, opacity: 0 }}
           animate={{

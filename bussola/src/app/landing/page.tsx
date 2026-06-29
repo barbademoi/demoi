@@ -1,4 +1,5 @@
 import { LandingHeader } from '@/components/landing/LandingHeader'
+import { MetaPixel } from '@/components/landing/MetaPixel'
 import { Hero } from '@/components/landing/Hero'
 import { DemoVisual } from '@/components/landing/DemoVisual'
 import { FeaturesCarrossel } from '@/components/landing/FeaturesCarrossel'
@@ -20,6 +21,7 @@ import { StickyMobileCta } from '@/components/landing/StickyMobileCta'
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-background text-preto pt-14 md:pt-16 pb-20 md:pb-0">
+      <MetaPixel />
       <LandingHeader />
       <Hero />
       <DemoVisual />
