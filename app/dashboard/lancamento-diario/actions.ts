@@ -246,27 +246,80 @@ export async function definirAcumuladoMes(
     ? baseRaw
     : (modoMeta as 'faturamento' | 'comissao')
 
-  // 1. Upsert valor_faturamento/valor_comissao + comissao_acumulada (espelho do base)
-  //    + atendimentos por barbeiro.
-  //    Quando um valor vem null (modo nao captura), preserva o que ja estava
-  //    no banco — nao envia o campo.
-  const rowsLanc = itens.map(it => {
+  // ── GUARD ANTI-ZERAR ──────────────────────────────────────────────────────
+  // Antes de qualquer upsert, le o estado atual do DB. Se o submit vier com
+  // valores TUDO ZERO pra um barbeiro que ja tem valores gravados, IGNORA
+  // esse barbeiro — muito provavel que o dono abriu o form e clicou Salvar
+  // sem tocar (formulario vazio) ou uma race de fuso adulterou os valores.
+  // Nunca vamos zerar historico por engano.
+  const barbeiroIds = itens.map(i => i.barbeiro_id)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: existentesRaw } = await (supabase as any)
+    .from('lancamentos')
+    .select('barbeiro_id, comissao_acumulada, valor_faturamento, valor_comissao, numero_atendimentos')
+    .eq('barbearia_id', barbearia_id)
+    .eq('mes', mes)
+    .eq('ano', ano)
+    .in('barbeiro_id', barbeiroIds)
+
+  type ExistenteRow = {
+    barbeiro_id: string
+    comissao_acumulada: number | string | null
+    valor_faturamento: number | string | null
+    valor_comissao: number | string | null
+    numero_atendimentos: number | string | null
+  }
+  const existentesMap = new Map<string, {
+    ca: number; vf: number | null; vc: number | null; at: number
+  }>()
+  for (const r of (existentesRaw ?? []) as ExistenteRow[]) {
+    existentesMap.set(r.barbeiro_id, {
+      ca: Number(r.comissao_acumulada) || 0,
+      vf: r.valor_faturamento != null ? Number(r.valor_faturamento) : null,
+      vc: r.valor_comissao != null ? Number(r.valor_comissao) : null,
+      at: Number(r.numero_atendimentos) || 0,
+    })
+  }
+
+  const preservados: string[] = []
+
+  const rowsLanc: Record<string, unknown>[] = []
+  for (const it of itens) {
     const fat = it.valor_faturamento != null ? Math.max(0, it.valor_faturamento) : null
     const com = it.valor_comissao != null ? Math.max(0, it.valor_comissao) : null
+    const atend = Math.max(0, it.numero_atendimentos)
+    const existente = existentesMap.get(it.barbeiro_id)
+
+    if (existente) {
+      const incomingTudoZero =
+        (fat === null || fat === 0) &&
+        (com === null || com === 0) &&
+        atend === 0
+      const existenteTemValor =
+        existente.ca > 0 ||
+        (existente.vf ?? 0) > 0 ||
+        (existente.vc ?? 0) > 0 ||
+        existente.at > 0
+      if (incomingTudoZero && existenteTemValor) {
+        preservados.push(it.barbeiro_id)
+        continue // pula esse barbeiro — nao zera
+      }
+    }
+
     const espelho = base === 'faturamento' ? fat : com
     const row: Record<string, unknown> = {
       barbearia_id,
       barbeiro_id: it.barbeiro_id,
       mes,
       ano,
-      numero_atendimentos: Math.max(0, it.numero_atendimentos),
+      numero_atendimentos: atend,
       modo: 'direto',
     }
     if (fat != null) row.valor_faturamento = fat
     if (com != null) row.valor_comissao = com
     if (espelho != null) row.comissao_acumulada = espelho
-    return row
-  })
+    rowsLanc.push(row)
+  }
 
   if (rowsLanc.length > 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -276,30 +329,43 @@ export async function definirAcumuladoMes(
     if (errLanc) return { error: (errLanc as { message: string }).message }
   }
 
-  // 2. Faturamento + atendimentos da casa (metas) — só atualiza se a meta já existe.
-  //    Atendimentos da casa = campo coletivo editado direto pelo dono.
+  // 2. Faturamento + atendimentos da casa (metas) — só atualiza se a meta ja existe.
+  //    Mesmo guard: se incoming = 0 mas ja tem valor gravado, preserva.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
     .from('metas')
-    .select('id')
+    .select('id, faturamento_acumulado, numero_atendimentos')
     .eq('barbearia_id', barbearia_id)
     .eq('mes', mes)
     .eq('ano', ano)
-    .maybeSingle() as { data: { id: string } | null }
+    .maybeSingle() as { data: { id: string; faturamento_acumulado: number | string | null; numero_atendimentos: number | string | null } | null }
 
   if (metaRaw) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: errMeta } = await (supabase as any)
-      .from('metas')
-      .update({
-        faturamento_acumulado: Math.max(0, faturamentoCasa),
-        numero_atendimentos: Math.max(0, atendimentosCasa),
-      })
-      .eq('id', metaRaw.id)
-    if (errMeta) return { error: (errMeta as { message: string }).message }
+    const fatCasaExist = Number(metaRaw.faturamento_acumulado) || 0
+    const atendCasaExist = Number(metaRaw.numero_atendimentos) || 0
+    const fatCasaSubmit = Math.max(0, faturamentoCasa)
+    const atendCasaSubmit = Math.max(0, atendimentosCasa)
+
+    const metaPatch: Record<string, number> = {}
+    // Preserva se incoming = 0 mas DB ja tem valor
+    if (!(fatCasaSubmit === 0 && fatCasaExist > 0)) {
+      metaPatch.faturamento_acumulado = fatCasaSubmit
+    }
+    if (!(atendCasaSubmit === 0 && atendCasaExist > 0)) {
+      metaPatch.numero_atendimentos = atendCasaSubmit
+    }
+
+    if (Object.keys(metaPatch).length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: errMeta } = await (supabase as any)
+        .from('metas')
+        .update(metaPatch)
+        .eq('id', metaRaw.id)
+      if (errMeta) return { error: (errMeta as { message: string }).message }
+    }
   }
 
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/lancamento-diario')
-  return { ok: true }
+  return { ok: true, preservados: preservados.length }
 }

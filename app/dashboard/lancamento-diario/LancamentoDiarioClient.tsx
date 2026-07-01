@@ -201,8 +201,15 @@ export default function LancamentoDiarioClient({
     startSaveAcum(async () => {
       const res = await definirAcumuladoMes(itens, fatNum, atendCasaNum, mes, ano)
       if (res?.error) { setErroAcum(res.error); return }
-      setSucessoAcum(true)
-      setTimeout(() => setSucessoAcum(false), 2200)
+      // Se o guard-anti-zerar preservou algum barbeiro, avisa o dono.
+      const preservados = (res as { preservados?: number })?.preservados ?? 0
+      if (preservados > 0) {
+        setErroAcum(`⚠️ ${preservados} barbeiro(s) preservado(s) — os campos vieram vazios/0 e ja havia valor gravado. Digite valores explicitos pra atualizar.`)
+        setTimeout(() => setErroAcum(null), 6000)
+      } else {
+        setSucessoAcum(true)
+        setTimeout(() => setSucessoAcum(false), 2200)
+      }
     })
   }
 
