@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { calcProgresso, calcTier, dataLocalStr } from '@/lib/utils'
-import { cicloAtual, calcDiasUteisCiclo, cicloDeData } from '@/lib/ciclo'
+import { cicloAtual, calcDiasUteisCiclo, cicloDeData, hojeBrasil } from '@/lib/ciclo'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import { gerarInsightsBarbeiro } from '@/lib/insights'
 import { obterMensagemDiaria } from '@/lib/ia-mensagem'
@@ -62,7 +62,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
   console.log('[/b/[codigo]]', { codigo: params.codigo, barbearia_id: barbeiro.barbearia_id, visibilidade_ranking_lido: barbearia?.visibilidade_ranking, visibilidadeRanking })
   const diaFechamento = barbearia?.dia_fechamento ?? 1
 
-  const hoje = new Date()
+  const hoje = hojeBrasil()
   const cicloHoje = cicloAtual(diaFechamento, hoje)
   const mesAtual = cicloHoje.mesRef
   const anoAtual = cicloHoje.anoRef

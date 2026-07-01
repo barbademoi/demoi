@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { gerarLinkCodigo } from '@/lib/utils'
+import { hojeBrasil } from '@/lib/ciclo'
 
 export async function criarBarbeiro(formData: FormData) {
   const supabase = createClient()
@@ -140,7 +141,7 @@ export async function lancarComissao(formData: FormData) {
 
   const barbeiro_id = formData.get('barbeiro_id') as string
   const comissao_acumulada = parseFloat(formData.get('comissao_acumulada') as string)
-  const hoje = new Date()
+  const hoje = hojeBrasil()
   const mes = hoje.getMonth() + 1
   const ano = hoje.getFullYear()
 

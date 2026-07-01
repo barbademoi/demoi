@@ -5,6 +5,7 @@ import Sidebar from '@/components/dashboard/Sidebar'
 import PainelClient from './PainelClient'
 import FeedbackGate from '@/components/feedback/FeedbackGate'
 import { dataLocalStr } from '@/lib/utils'
+import { hojeBrasil } from '@/lib/ciclo'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,7 +35,7 @@ export default async function PainelFeedbacksPage({
 
   // Datas pra periodo
   const dias = Math.max(1, Math.min(365, parseInt(periodo) || 30))
-  const hoje = new Date()
+  const hoje = hojeBrasil()
   const inicio = new Date(hoje); inicio.setDate(inicio.getDate() - dias + 1)
   const inicioStr = dataLocalStr(inicio)
 
