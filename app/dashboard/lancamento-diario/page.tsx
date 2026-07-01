@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { cicloAtual, cicloDeData } from '@/lib/ciclo'
+import { cicloAtual, cicloDeData, hojeBrasil } from '@/lib/ciclo'
 import LancamentoDiarioClient from './LancamentoDiarioClient'
 import Sidebar from '@/components/dashboard/Sidebar'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
@@ -38,7 +38,7 @@ export default async function LancamentoDiarioPage({
 
   const barbearia = usuario!.barbearias
 
-  const hoje = new Date()
+  const hoje = hojeBrasil()
   const diaFechamento = barbearia.dia_fechamento ?? 1
   const mostrarFaturamentoGeral = barbearia.mostrar_faturamento_geral ?? true
   const modoMeta: ModoMeta = barbearia.modo_meta ?? 'comissao'

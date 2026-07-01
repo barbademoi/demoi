@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import CardsClient from './CardsClient'
-import { cicloDeData } from '@/lib/ciclo'
+import { cicloDeData, hojeBrasil } from '@/lib/ciclo'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
 type UsuarioComBarbearia = { barbearia_id: string; barbearias: { id: string; nome: string; dia_fechamento: number | null; mostrar_faturamento_geral: boolean | null } }
@@ -35,7 +35,7 @@ export default async function CardsPage({
   const barbearia = usuario.barbearias
   const diaFechamento = barbearia.dia_fechamento ?? 1
   const mostrarFaturamentoGeral = barbearia.mostrar_faturamento_geral ?? true
-  const hoje = new Date()
+  const hoje = hojeBrasil()
   // (mes, ano) = início do ciclo (do searchParam ou do hoje)
   const cicloHoje = cicloDeData(hoje, diaFechamento)
   const mesAtual = cicloHoje.mesRef

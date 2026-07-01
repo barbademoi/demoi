@@ -44,6 +44,26 @@ function daysBetween(a: Date, b: Date): number {
   return Math.round(ms / (1000 * 60 * 60 * 24)) + 1 // inclusive
 }
 
+/**
+ * Retorna um Date cujo valor local (getDate/getMonth/getFullYear/getHours)
+ * representa a data/hora ATUAL no fuso America/Sao_Paulo — INDEPENDENTE
+ * do fuso do servidor.
+ *
+ * Motivo: na Vercel, o servidor roda em UTC. `new Date()` la retorna hora
+ * UTC. Como o Brasil e' UTC-3, as 21h de Sao Paulo o servidor ja marca 00h
+ * do dia SEGUINTE. Se calcularmos o ciclo com essa data errada, a virada
+ * de mes/ciclo acontece 3h ANTES do que deveria.
+ *
+ * Aqui usamos toLocaleString com timeZone=America/Sao_Paulo pra pegar a
+ * data no fuso Brasil, e reparse pra Date. Assim getDate/getMonth/etc.
+ * retornam valores do calendario brasileiro.
+ */
+export function hojeBrasil(): Date {
+  const now = new Date()
+  const brStr = now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
+  return new Date(brStr)
+}
+
 function buildLabel(inicio: Date, fim: Date, diaFechamento: number): { label: string; labelCurto: string } {
   if (diaFechamento === 1) {
     // Mês calendário: usa o formato antigo "Maio 2026"
@@ -123,7 +143,7 @@ export function cicloDeData(data: Date, diaFechamento: number): Ciclo {
 /**
  * Ciclo que contém hoje.
  */
-export function cicloAtual(diaFechamento: number, hoje = new Date()): Ciclo {
+export function cicloAtual(diaFechamento: number, hoje = hojeBrasil()): Ciclo {
   return cicloDeData(hoje, diaFechamento)
 }
 
@@ -131,7 +151,7 @@ export function cicloAtual(diaFechamento: number, hoje = new Date()): Ciclo {
  * N ciclos anteriores ao ciclo atual (do mais antigo pro mais recente),
  * NÃO inclui o ciclo atual. Use cicloAtual + cicloNDiasAtras pra ter o conjunto completo.
  */
-export function cicloNDiasAtras(diaFechamento: number, n: number, hoje = new Date()): Ciclo[] {
+export function cicloNDiasAtras(diaFechamento: number, n: number, hoje = hojeBrasil()): Ciclo[] {
   const out: Ciclo[] = []
   // Pega o ciclo de uma data que está dentro do ciclo desejado (ex: meio do mês anterior)
   for (let i = n; i >= 1; i--) {

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { calcProgresso, dataLocalStr } from '@/lib/utils'
-import { cicloAtual, calcDiasUteisCiclo, cicloDeData } from '@/lib/ciclo'
+import { cicloAtual, calcDiasUteisCiclo, cicloDeData, hojeBrasil } from '@/lib/ciclo'
 import { getPlatformStats } from '@/lib/stats'
 import { buscarHistoricoMesesPorBarbeiros, buscarHistoricoBarbearia, type HistoricoMes } from '@/lib/historicoMeses'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
@@ -64,7 +64,7 @@ export default async function DashboardPage({
     console.error('[dashboard] barbearia não encontrada para usuario:', user.id)
     redirect('/login')
   }
-  const hoje = new Date()
+  const hoje = hojeBrasil()
   const diaFechamento = barbearia.dia_fechamento ?? 1
   const mostrarTicketMedio = barbearia.mostrar_ticket_medio ?? false
   const mostrarFaturamentoGeral = barbearia.mostrar_faturamento_geral ?? true

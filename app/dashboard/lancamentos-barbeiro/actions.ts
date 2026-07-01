@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { cicloDeData, cicloAtual } from '@/lib/ciclo'
+import { cicloDeData, cicloAtual, hojeBrasil } from '@/lib/ciclo'
 
 interface ServicoLancado { servico_id: string; quantidade: number }
 
@@ -176,7 +176,7 @@ export async function buscarLancamentosBarbeiroIntervalo(
   if (diasNoIntervalo > 366) return { error: 'Intervalo máximo: 12 meses.' as const }
 
   // Campanha do ciclo ATUAL (pra resolver serviços do form de "Adicionar").
-  const hoje = new Date()
+  const hoje = hojeBrasil()
   const cicloHoje = cicloAtual(diaFechamento, hoje)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: campAtualRaw } = await (supabase as any)
@@ -262,7 +262,7 @@ export async function buscarLancamentosBarbeiroIntervalo(
  * com o modal "Ver lançamentos" no dashboard.
  */
 export async function buscarLancamentosBarbeiro30Dias(barbeiroId: string) {
-  const hoje = new Date()
+  const hoje = hojeBrasil()
   const ha30 = new Date(hoje)
   ha30.setDate(ha30.getDate() - 30)
   const pad = (n: number) => String(n).padStart(2, '0')
