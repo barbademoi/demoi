@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { calcProgresso, calcTier, dataLocalStr } from '@/lib/utils'
 import { cicloAtual, calcDiasUteisCiclo, cicloDeData, hojeBrasil } from '@/lib/ciclo'
+import { garantirCampanhaCicloAtual } from '@/lib/campanha'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import { gerarInsightsBarbeiro } from '@/lib/insights'
 import { obterMensagemDiaria } from '@/lib/ia-mensagem'
@@ -181,6 +182,12 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
   })
 
   // ── Modo + Gamificação ─────────────────────────────────
+  // Se ainda nao existe campanha/modo_mes pra este ciclo mas o anterior tinha,
+  // COPIA — assim a config nao volta pro padrao na virada de mes. Roda so pro
+  // ciclo atual (ciclos passados via URL sao read-only).
+  if (ehPeriodoAtual) {
+    await garantirCampanhaCicloAtual(supabase, barbeiro.barbearia_id, mes, ano)
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: modoRaw } = await (supabase as any)
     .from('modo_mes').select('modo')
