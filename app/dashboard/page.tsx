@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { calcProgresso, dataLocalStr } from '@/lib/utils'
 import { cicloAtual, calcDiasUteisCiclo, cicloDeData, hojeBrasil } from '@/lib/ciclo'
+import { garantirCampanhaCicloAtual } from '@/lib/campanha'
 import { getPlatformStats } from '@/lib/stats'
 import { buscarHistoricoMesesPorBarbeiros, buscarHistoricoBarbearia, type HistoricoMes } from '@/lib/historicoMeses'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
@@ -247,6 +248,12 @@ export default async function DashboardPage({
   const barbeirosMetas = barbeiros.filter(b => b.tipo !== 'recepcionista')
 
   // ── Gamificação ──────────────────────────────────────────
+  // Se ainda nao existe campanha/modo_mes pra este ciclo mas o anterior tinha,
+  // COPIA — assim o dono nao vê "voltou pro padrao" na virada de mes. So
+  // dispara pro ciclo atual (nao pra ciclos passados navegados via URL).
+  if (ehPeriodoAtual) {
+    await garantirCampanhaCicloAtual(supabase, barbearia.id, mes, ano)
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: modoRaw } = await (supabase as any)
     .from('modo_mes').select('modo').eq('barbearia_id', barbearia.id).eq('mes', mes).eq('ano', ano).single()
