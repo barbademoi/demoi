@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useTrackingHandlers } from '@/lib/utms'
-import { trackInitiateCheckout } from '@/lib/pixel'
+import { trackInitiateCheckout, trackViewContent } from '@/lib/pixel'
 
 const URL_BM = 'https://pay.hotmart.com/D105833676F?sck=HOTMART_PRODUCT_PAGE&off=9rjhgvlk&hotfeature=32'
 const URL_COMBO = 'https://pay.hotmart.com/K106318479K'
@@ -57,10 +57,10 @@ export default function OfertaPage() {
   // Handlers mutam o href no instante do clique — UTMs sempre frescas.
   const trackingHandlers = useTrackingHandlers()
 
-  // Meta Pixel InitiateCheckout dispara quando a pagina de oferta abre —
-  // e' o momento em que o visitante entrou na intencao de compra.
+  // Ao abrir a pagina de oferta = visualizou o produto (ViewContent).
+  // InitiateCheckout so dispara no clique do CTA — la o valor certo (47/67).
   useEffect(() => {
-    trackInitiateCheckout(47)
+    trackViewContent('Oferta BarberMeta')
   }, [])
 
   return (
