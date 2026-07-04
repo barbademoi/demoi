@@ -140,14 +140,17 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     .order('comissao_acumulada', { ascending: false })
   const ranking = (rankingRaw ?? []) as unknown as LancamentoComNome[]
 
-  // Total de barbeiros ativos da barbearia (usado pela IA — mais preciso que ranking.length)
+  // Lista de barbeiros ativos da barbearia (id, nome, tipo). Usada tanto
+  // pra contar (IA) quanto pra completar o ranking de pontos em modo pontos
+  // — incluindo quem ainda nao pontuou (aparece com 0 pts).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { count: totalBarbeirosAtivos } = await (supabase as any)
+  const { data: barbeirosAtivosRaw } = await (supabase as any)
     .from('barbeiros')
-    .select('id', { count: 'exact', head: true })
+    .select('id, nome, tipo')
     .eq('barbearia_id', barbeiro.barbearia_id)
     .eq('ativo', true)
-    .neq('tipo', 'recepcionista')
+  const barbeirosAtivos = ((barbeirosAtivosRaw ?? []) as { id: string; nome: string; tipo: string }[])
+  const totalBarbeirosAtivos = barbeirosAtivos.filter(b => b.tipo !== 'recepcionista').length
 
   const comissao = lancamento?.comissao_acumulada ?? 0
   const progresso = metaInd ? {
@@ -250,8 +253,12 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
         pontosMap[cd.barbeiro_id] = (pontosMap[cd.barbeiro_id] ?? 0) + cd.quantidade * pts
       }
 
-      rankingPontos = Object.entries(pontosMap)
-        .map(([barbeiro_id, pontos]) => ({ barbeiro_id, pontos }))
+      // Ranking de pontos: inclui TODOS os barbeiros ativos (mesmo os que
+      // ainda nao lancaram nada — aparecem com 0 pts). Antes so aparecia
+      // quem tinha lancamento em controle_diario, entao no comeco do mes
+      // o barbeiro via so ele mesmo, sem noticia dos colegas.
+      rankingPontos = barbeirosAtivos
+        .map(b => ({ barbeiro_id: b.id, pontos: pontosMap[b.id] ?? 0 }))
         .sort((a, b) => b.pontos - a.pontos)
 
       // Meus controles do ciclo (pra histórico/detalhe): mesma lógica —
@@ -400,6 +407,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
           controlesDiario={controlesDiario}
           pontosTotal={pontosTotal}
           rankingPontos={rankingPontos}
+          barbeirosAtivos={barbeirosAtivos.filter(b => b.tipo !== 'recepcionista').map(b => ({ id: b.id, nome: b.nome }))}
           pontosMap={pontosMap}
           controleHoje={controleHoje}
           historico={historico}

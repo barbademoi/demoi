@@ -51,6 +51,9 @@ interface Props {
   controlesDiario: ControleDiario[]
   pontosTotal: number
   rankingPontos: PontosEntry[]
+  // Barbeiros ativos (nao-recepcionistas) usados como fallback pra achar nome
+  // no ranking de pontos quando o barbeiro nao tem lancamento em `ranking`.
+  barbeirosAtivos: Array<{ id: string; nome: string }>
   pontosMap: Record<string, number>
   controleHoje: Record<string, number>
   historico: { data: string; pontos: number; label: string }[]
@@ -84,7 +87,7 @@ export default function BarbeiroClient({
   metaColetiva, metaColetivaBronze, metaColetivaPrata,
   premioColetivo, premioColetivoBronze, premioColetivoPrata,
   insights, mensagemIA, tiersJaCelebrados, campanha, controlesDiario,
-  pontosTotal, rankingPontos, pontosMap, controleHoje, historico,
+  pontosTotal, rankingPontos, barbeirosAtivos, pontosMap, controleHoje, historico,
   visibilidadeRanking, isAutonomo, comissaoMesAnterior, historicoMeses,
   cicloLabel, diaFechamento, mostrarTicketMedio, mostrarFaturamentoGeral,
   feedbacksDoBarbeiro,
@@ -480,7 +483,9 @@ export default function BarbeiroClient({
                       {qualificados.map((r, i) => {
                         const isMe = r.barbeiro_id === barbeiro.id
                         const b = ranking.find(l => l.barbeiro_id === r.barbeiro_id)
-                        const nome = b?.barbeiros?.nome ?? '—'
+                        const nome = b?.barbeiros?.nome
+                          ?? barbeirosAtivos.find(x => x.id === r.barbeiro_id)?.nome
+                          ?? '—'
                         const premio = campanha.campanha_premios.find(p => p.posicao === i + 1)
                         const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null
                         return (
@@ -524,7 +529,9 @@ export default function BarbeiroClient({
                       {abaixoMin.map(r => {
                         const isMe = r.barbeiro_id === barbeiro.id
                         const b = ranking.find(l => l.barbeiro_id === r.barbeiro_id)
-                        const nome = b?.barbeiros?.nome ?? '—'
+                        const nome = b?.barbeiros?.nome
+                          ?? barbeirosAtivos.find(x => x.id === r.barbeiro_id)?.nome
+                          ?? '—'
                         const falta = min - r.pontos
                         return (
                           <div key={r.barbeiro_id} className={`flex items-center gap-3 px-3 py-2 rounded-xl
