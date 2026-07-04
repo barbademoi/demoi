@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import { DM_Serif_Display, DM_Sans } from 'next/font/google'
 import './globals.css'
+import MetaPixel from '@/components/MetaPixel'
 
 const dmSerif = DM_Serif_Display({
   subsets: ['latin'],
@@ -43,6 +44,7 @@ export default function RootLayout({
         </Script>
       </head>
       <body className="font-sans bg-background text-text antialiased min-h-screen">
+        <MetaPixel />
         {children}
       </body>
     </html>
