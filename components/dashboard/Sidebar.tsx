@@ -8,7 +8,10 @@ import BrandLogo from '@/components/BrandLogo'
 import { SUPORTE, whatsappUrl } from '@/lib/suporte'
 import { hasFeedback } from '@/lib/feedback/access'
 import { hasFinanceiro } from '@/lib/financeiro/supabaseStore'
+import { contarCondutaNaoLidas } from '@/lib/conduta/unread'
 import PreviewPlusModal from './PreviewPlusModal'
+
+const COMPORTAMENTO_HREF = '/dashboard/comportamento'
 
 interface Props {
   barbeariaNome: string
@@ -149,6 +152,8 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
     financeiro?: boolean
   }>({})
   const [showPreview, setShowPreview] = useState(false)
+  // Não lidas do módulo de comportamento (mensagens identificadas do barbeiro).
+  const [condutaNaoLidas, setCondutaNaoLidas] = useState(0)
 
   useEffect(() => {
     let cancel = false
@@ -157,6 +162,14 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
     }).catch(() => { /* sem cadeado em caso de erro */ })
     return () => { cancel = true }
   }, [])
+
+  // Reconta as não lidas a cada navegação (pathname muda) — reflete o dono
+  // abrindo a caixa e lendo as mensagens.
+  useEffect(() => {
+    let cancel = false
+    contarCondutaNaoLidas().then(n => { if (!cancel) setCondutaNaoLidas(n) }).catch(() => {})
+    return () => { cancel = true }
+  }, [pathname])
 
   return (
     <>
@@ -243,6 +256,11 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
               >
                 {item.icon}
                 <span className="flex-1 truncate">{item.label}</span>
+                {item.href === COMPORTAMENTO_HREF && condutaNaoLidas > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold shrink-0">
+                    {condutaNaoLidas}
+                  </span>
+                )}
                 {locked && (
                   <svg
                     viewBox="0 0 24 24"
