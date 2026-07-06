@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
 import { uploadFoto } from '@/lib/uploadFoto'
-import { adicionarBarbeiroConfig, desativarBarbeiroConfig, reativarBarbeiroConfig } from './actions'
+import { adicionarBarbeiroConfig, desativarBarbeiroConfig, reativarBarbeiroConfig, atualizarDiasBarbeiroConfig } from './actions'
 import type { Barbeiro } from '@/types/database'
 
 interface Props {
@@ -14,6 +14,7 @@ interface Props {
 export default function EquipeTab({ barbeiros: inicial, isAutonomo = false }: Props) {
   const [lista, setLista] = useState(inicial)
   const [novoNome, setNovoNome] = useState('')
+  const [novoDias, setNovoDias] = useState('')
   const [novoTipo, setNovoTipo] = useState<'barbeiro' | 'recepcionista'>('barbeiro')
   const [novaFotoUrl, setNovaFotoUrl] = useState<string | null>(null)
   const [novaFotoPreview, setNovaFotoPreview] = useState<string | null>(null)
@@ -41,11 +42,21 @@ export default function EquipeTab({ barbeiros: inicial, isAutonomo = false }: Pr
     const formData = new FormData()
     formData.set('nome', novoNome)
     formData.set('tipo', novoTipo)
+    formData.set('dias_trabalho_mes', novoDias)
     if (novaFotoUrl) formData.set('foto_url', novaFotoUrl)
     startTransition(async () => {
       const result = await adicionarBarbeiroConfig(formData)
       if (result?.error) { setErro(result.error); return }
-      setNovoNome(''); setNovaFotoUrl(null); setNovaFotoPreview(null); setMostrarForm(false)
+      setNovoNome(''); setNovoDias(''); setNovaFotoUrl(null); setNovaFotoPreview(null); setMostrarForm(false)
+    })
+  }
+
+  function handleSalvarDias(id: string, valor: string) {
+    setLista(prev => prev.map(b => b.id === id
+      ? { ...b, dias_trabalho_mes: valor.trim() === '' ? null : Math.min(31, Math.max(1, parseInt(valor, 10) || 0)) || null }
+      : b))
+    startTransition(async () => {
+      await atualizarDiasBarbeiroConfig(id, valor)
     })
   }
 
@@ -76,10 +87,30 @@ export default function EquipeTab({ barbeiros: inicial, isAutonomo = false }: Pr
               <p className="text-sm font-sans text-text truncate">{b.nome}</p>
               <p className="text-xs font-sans text-text-muted capitalize">{b.tipo}</p>
             </div>
+            {b.tipo !== 'recepcionista' && (
+              <div className="flex flex-col items-end shrink-0">
+                <label className="text-[10px] font-sans text-text-muted leading-none mb-1">Dias/mês</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="31"
+                  inputMode="numeric"
+                  placeholder="padrão"
+                  defaultValue={b.dias_trabalho_mes ?? ''}
+                  onBlur={e => {
+                    const atual = b.dias_trabalho_mes != null ? String(b.dias_trabalho_mes) : ''
+                    if (e.target.value.trim() !== atual) handleSalvarDias(b.id, e.target.value)
+                  }}
+                  disabled={isPending}
+                  title="Dias que vai trabalhar no mês. Em branco = usa o padrão da barbearia."
+                  className="input w-20 h-8 text-xs text-center px-1 py-0"
+                />
+              </div>
+            )}
             <button
               onClick={() => handleToggleAtivo(b.id, b.ativo)}
               disabled={isPending}
-              className="text-xs text-text-muted hover:text-red-400 font-sans transition-colors"
+              className="text-xs text-text-muted hover:text-red-400 font-sans transition-colors self-center"
             >
               Desativar
             </button>
@@ -138,6 +169,21 @@ export default function EquipeTab({ barbeiros: inicial, isAutonomo = false }: Pr
               </label>
             ))}
           </div>
+          {novoTipo !== 'recepcionista' && (
+            <div>
+              <label className="label">Dias que vai trabalhar no mês</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number" min="1" max="31" inputMode="numeric" placeholder="padrão"
+                  value={novoDias} onChange={e => setNovoDias(e.target.value)}
+                  className="input w-24 text-sm"
+                />
+                <p className="text-text-muted text-xs font-sans leading-relaxed flex-1">
+                  Em branco: usa o padrão da barbearia. Preencha só quem folga mais.
+                </p>
+              </div>
+            </div>
+          )}
           {erro && <p className="text-red-400 text-xs font-sans">{erro}</p>}
           <div className="flex gap-2">
             <button type="button" onClick={() => setMostrarForm(false)} className="btn-ghost text-sm flex-1">Cancelar</button>

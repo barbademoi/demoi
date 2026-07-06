@@ -25,6 +25,13 @@ export async function criarBarbeiro(formData: FormData) {
   const foto_url = (formData.get('foto_url') as string) || null
   const tipo = (formData.get('tipo') as string) === 'recepcionista' ? 'recepcionista' : 'barbeiro'
 
+  // Dias de trabalho no mês (opcional). Vazio → null (herda o padrão da casa).
+  const diasRaw = (formData.get('dias_trabalho_mes') as string ?? '').trim()
+  const diasParsed = parseInt(diasRaw, 10)
+  const dias_trabalho_mes = diasRaw !== '' && Number.isFinite(diasParsed)
+    ? Math.min(31, Math.max(1, diasParsed))
+    : null
+
   let link_codigo = ''
   for (let i = 0; i < 5; i++) {
     const candidato = gerarLinkCodigo()
@@ -41,7 +48,7 @@ export async function criarBarbeiro(formData: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from('barbeiros')
-    .insert({ barbearia_id: usuario.barbearia_id, nome, link_codigo, foto_url, tipo })
+    .insert({ barbearia_id: usuario.barbearia_id, nome, link_codigo, foto_url, tipo, dias_trabalho_mes })
 
   if (error) return { error: (error as { message: string }).message }
 

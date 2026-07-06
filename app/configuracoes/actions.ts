@@ -130,6 +130,7 @@ export async function adicionarBarbeiroConfig(formData: FormData) {
   if (!nome) return { error: 'Nome obrigatório.' }
   const foto_url = (formData.get('foto_url') as string) || null
   const tipo = (formData.get('tipo') as string) === 'recepcionista' ? 'recepcionista' : 'barbeiro'
+  const dias_trabalho_mes = parseDiasTrabalho(formData.get('dias_trabalho_mes') as string | null)
 
   const admin = createAdminClient()
   let link_codigo = ''
@@ -145,11 +146,43 @@ export async function adicionarBarbeiroConfig(formData: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (admin as any)
     .from('barbeiros')
-    .insert({ barbearia_id: barbeariaId, nome, link_codigo, foto_url, tipo })
+    .insert({ barbearia_id: barbeariaId, nome, link_codigo, foto_url, tipo, dias_trabalho_mes })
 
   if (error) return { error: 'Erro ao adicionar.' }
   revalidatePath('/configuracoes')
   return { ok: true }
+}
+
+// Parseia o campo "Dias que vai trabalhar no mês". Vazio → null (herda o
+// padrão da barbearia). Faixa 1..31.
+function parseDiasTrabalho(raw: string | null): number | null {
+  const s = (raw ?? '').trim()
+  if (s === '') return null
+  const n = parseInt(s, 10)
+  if (!Number.isFinite(n)) return null
+  return Math.min(31, Math.max(1, n))
+}
+
+// Atualiza só os dias de trabalho de um barbeiro (edição inline na Equipe).
+export async function atualizarDiasBarbeiroConfig(id: string, diasRaw: string | null) {
+  const supabase = createClient()
+  const barbeariaId = await getBarbeariaId()
+  if (!barbeariaId) return { error: 'Não autenticado.' }
+
+  const dias_trabalho_mes = parseDiasTrabalho(diasRaw)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('barbeiros')
+    .update({ dias_trabalho_mes })
+    .eq('id', id)
+    .eq('barbearia_id', barbeariaId)
+
+  if (error) return { error: 'Erro ao salvar.' }
+  revalidatePath('/configuracoes')
+  revalidatePath('/dashboard')
+  revalidatePath('/b/[codigo]', 'page')
+  return { ok: true, dias_trabalho_mes }
 }
 
 export async function desativarBarbeiroConfig(id: string) {

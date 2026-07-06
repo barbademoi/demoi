@@ -13,6 +13,7 @@ interface Props {
 export default function NovoBarbeiroModal({ tipo = 'barbeiro', onCriado }: Props) {
   const [open, setOpen] = useState(false)
   const [nome, setNome] = useState('')
+  const [dias, setDias] = useState('')
   const [linkGerado, setLinkGerado] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -31,6 +32,7 @@ export default function NovoBarbeiroModal({ tipo = 'barbeiro', onCriado }: Props
     setOpen(false)
     setLinkGerado(null)
     setNome('')
+    setDias('')
     setPreview(null)
     setErro(null)
   }
@@ -47,6 +49,7 @@ export default function NovoBarbeiroModal({ tipo = 'barbeiro', onCriado }: Props
         const fd = new FormData()
         fd.set('nome', nome)
         fd.set('tipo', tipo)
+        fd.set('dias_trabalho_mes', dias)
         if (foto_url) fd.set('foto_url', foto_url)
 
         const res = await criarBarbeiro(fd)
@@ -121,6 +124,18 @@ export default function NovoBarbeiroModal({ tipo = 'barbeiro', onCriado }: Props
                   placeholder={`Nome da ${labelTipo}`} required className="input"
                 />
               </div>
+              {tipo !== 'recepcionista' && (
+                <div>
+                  <label className="label">Dias que vai trabalhar no mês</label>
+                  <input
+                    type="number" min="1" max="31" inputMode="numeric" placeholder="padrão da barbearia"
+                    value={dias} onChange={e => setDias(e.target.value)} className="input"
+                  />
+                  <p className="text-text-muted text-xs font-sans mt-1">
+                    Em branco: usa o padrão da barbearia. Preencha só quem folga mais.
+                  </p>
+                </div>
+              )}
               {erro && <p className="text-red-400 text-xs font-sans">{erro}</p>}
               <div className="flex gap-2">
                 <button type="button" onClick={fechar} className="btn-ghost flex-1">Cancelar</button>
