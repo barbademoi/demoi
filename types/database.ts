@@ -11,6 +11,7 @@ export interface Database {
           cor_principal: string
           mostrar_ticket_medio: boolean
           mostrar_faturamento_geral: boolean
+          dias_trabalho_padrao: number | null
           created_at: string
         }
         Insert: {
@@ -20,6 +21,7 @@ export interface Database {
           cor_principal?: string
           mostrar_ticket_medio?: boolean
           mostrar_faturamento_geral?: boolean
+          dias_trabalho_padrao?: number | null
           created_at?: string
         }
         Update: {
@@ -28,6 +30,7 @@ export interface Database {
           cor_principal?: string
           mostrar_ticket_medio?: boolean
           mostrar_faturamento_geral?: boolean
+          dias_trabalho_padrao?: number | null
         }
         Relationships: []
       }
@@ -66,6 +69,7 @@ export interface Database {
           link_codigo: string
           ativo: boolean
           tipo: 'barbeiro' | 'recepcionista'
+          dias_trabalho_mes: number | null
           created_at: string
         }
         Insert: {
@@ -76,6 +80,7 @@ export interface Database {
           link_codigo: string
           ativo?: boolean
           tipo?: 'barbeiro' | 'recepcionista'
+          dias_trabalho_mes?: number | null
           created_at?: string
         }
         Update: {
@@ -84,6 +89,7 @@ export interface Database {
           link_codigo?: string
           ativo?: boolean
           tipo?: 'barbeiro' | 'recepcionista'
+          dias_trabalho_mes?: number | null
         }
         Relationships: [
           {
