@@ -59,13 +59,21 @@ export default function AdminTreinamentosClient({ treinamentos, stats }: Props) 
             <h1 className="font-serif text-2xl text-text">Treinamentos</h1>
             <p className="text-text-muted text-sm font-sans mt-0.5">Admin — gerenciar vídeos</p>
           </div>
-          <button
-            onClick={() => { setAdicionando(true); setEditando(null) }}
-            className="btn-primary text-sm"
-            disabled={isPending}
-          >
-            + Adicionar
-          </button>
+          <div className="flex items-center gap-3">
+            <a
+              href="/admin/contas"
+              className="text-xs text-text-muted hover:text-text font-sans transition-colors px-3 py-1.5 rounded-lg hover:bg-surface-2"
+            >
+              Contas →
+            </a>
+            <button
+              onClick={() => { setAdicionando(true); setEditando(null) }}
+              className="btn-primary text-sm"
+              disabled={isPending}
+            >
+              + Adicionar
+            </button>
+          </div>
         </div>
 
         {(stats.pendentes > 0 || stats.aprovadas_hoje > 0) && (
