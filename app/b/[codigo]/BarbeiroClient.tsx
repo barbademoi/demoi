@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useMemo, useTransition } from 'react'
 import { formatBRL, TIER_CONFIG, calcProgresso } from '@/lib/utils'
 import { calcularRitmo } from '@/lib/ritmo'
-import { marcarOcorrenciaCiente } from './conduta-actions'
+import { marcarOcorrenciaCiente, enviarMensagemBarbeiro, marcarMensagemLidaBarbeiro } from './conduta-actions'
 import { pegarRegrasGerais } from '@/lib/regras'
 import LancarDiaForm from './LancarDiaForm'
 import CelebracaoOverlay from '@/components/barbeiro/CelebracaoOverlay'
@@ -103,6 +103,15 @@ interface Props {
     cienteEm: string | null
   }>
   saldoConduta: number
+  mensagensConduta: Array<{
+    id: string
+    threadId: string
+    autor: 'barbeiro' | 'dono'
+    anonima: boolean
+    corpo: string
+    lidaEm: string | null
+    createdAt: string
+  }>
 }
 
 export default function BarbeiroClient({
@@ -121,6 +130,7 @@ export default function BarbeiroClient({
   comportamentoAtivo,
   ocorrenciasConduta,
   saldoConduta,
+  mensagensConduta,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
   // Recepcionista participa só das pontuações — esconde tudo de comissão/metas.
@@ -138,11 +148,48 @@ export default function BarbeiroClient({
   const [ackedIds, setAckedIds] = useState<Set<string>>(() => new Set<string>())
   const [condutaPending, startCondutaTransition] = useTransition()
   const isVista = (o: { id: string; cienteEm: string | null }) => !!o.cienteEm || ackedIds.has(o.id)
-  const condutaNaoVistas = comportamentoAtivo ? ocorrenciasConduta.filter(o => !isVista(o)).length : 0
   function handleCiente(id: string) {
     setAckedIds(prev => new Set(prev).add(id))
     startCondutaTransition(async () => { await marcarOcorrenciaCiente(barbeiro.link_codigo, id) })
   }
+
+  // Mensagens: envio (identificada/anônima) + check de leitura das respostas do dono.
+  const [msgTexto, setMsgTexto] = useState('')
+  const [msgAnonima, setMsgAnonima] = useState(false)
+  const [msgLidasLocal, setMsgLidasLocal] = useState<Set<string>>(() => new Set<string>())
+  const msgFoiLida = (m: { id: string; lidaEm: string | null }) => !!m.lidaEm || msgLidasLocal.has(m.id)
+  // Ordena por data pra virar uma conversa (as anônimas do próprio barbeiro entram como enviadas).
+  const mensagensOrdenadas = useMemo(
+    () => mensagensConduta.slice().sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+    [mensagensConduta],
+  )
+  const respostasNaoLidas = comportamentoAtivo ? mensagensConduta.filter(m => m.autor === 'dono' && !msgFoiLida(m)).length : 0
+  // Thread identificada aberta (pra continuar a conversa, se houver).
+  const threadIdentificada = mensagensConduta.find(m => !m.anonima)?.threadId
+
+  const condutaNaoVistas = comportamentoAtivo
+    ? ocorrenciasConduta.filter(o => !isVista(o)).length + respostasNaoLidas
+    : 0
+
+  function handleEnviarMensagem(e: React.FormEvent) {
+    e.preventDefault()
+    const corpo = msgTexto.trim()
+    if (!corpo) return
+    startCondutaTransition(async () => {
+      const r = await enviarMensagemBarbeiro({
+        linkCodigo: barbeiro.link_codigo,
+        corpo,
+        anonima: msgAnonima,
+        threadId: msgAnonima ? undefined : threadIdentificada,
+      })
+      if (!r?.error) { setMsgTexto(''); setMsgAnonima(false) }
+    })
+  }
+  function handleLerResposta(id: string) {
+    setMsgLidasLocal(prev => new Set(prev).add(id))
+    startCondutaTransition(async () => { await marcarMensagemLidaBarbeiro(barbeiro.link_codigo, id) })
+  }
+
   const [celebracaoFechada, setCelebracaoFechada] = useState(false)
 
   const posicaoPts = rankingPontos.findIndex(r => r.barbeiro_id === barbeiro.id)
@@ -908,6 +955,57 @@ export default function BarbeiroClient({
           <p className="text-text-muted text-[11px] font-sans px-1 leading-relaxed">
             &ldquo;Li e estou ciente&rdquo; significa que você viu o registro — não que concorda com ele.
           </p>
+
+          {/* ── Recados pro dono ── */}
+          <div className="pt-2 space-y-3">
+            <div className="px-1">
+              <h3 className="font-serif text-base text-text">Recados</h3>
+              <p className="text-text-muted text-xs font-sans mt-0.5">Fale direto com o dono. Só vocês dois veem.</p>
+            </div>
+
+            {mensagensOrdenadas.length > 0 && (
+              <div className="space-y-1.5">
+                {mensagensOrdenadas.map(m => {
+                  const meu = m.autor === 'barbeiro'
+                  const donoNaoLida = m.autor === 'dono' && !msgFoiLida(m)
+                  return (
+                    <div key={m.id} className={['flex', meu ? 'justify-end' : 'justify-start'].join(' ')}>
+                      <div className={['max-w-[85%] rounded-2xl px-3 py-2',
+                        meu ? 'bg-primary/15 text-text' : donoNaoLida ? 'bg-amber-500/10 border border-amber-500/40 text-text' : 'card-light'].join(' ')}>
+                        <p className={['text-sm font-sans whitespace-pre-line break-words', meu ? 'text-text' : 'text-on-cream'].join(' ')}>{m.corpo}</p>
+                        <p className={['text-[10px] font-sans mt-0.5', meu ? 'text-text-muted' : 'text-on-cream-muted'].join(' ')}>
+                          {meu ? (m.anonima ? 'Você (anônimo)' : 'Você') : 'Dono'} · {fmtDataHoraBR(m.createdAt)}
+                        </p>
+                        {donoNaoLida && (
+                          <button onClick={() => handleLerResposta(m.id)} disabled={condutaPending}
+                            className="mt-1.5 text-[11px] font-sans font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-60 px-2.5 py-1 rounded-lg transition-colors">
+                            Marcar como lida
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <form onSubmit={handleEnviarMensagem} className="card-light p-3 space-y-2">
+              <textarea value={msgTexto} onChange={e => setMsgTexto(e.target.value)} rows={3} maxLength={1000}
+                placeholder="Escreva pro dono…" className="input resize-none text-sm w-full" />
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={msgAnonima} onChange={e => setMsgAnonima(e.target.checked)} className="accent-amber-600" />
+                <span className="text-xs font-sans text-on-cream">Enviar como anônimo</span>
+              </label>
+              {msgAnonima && (
+                <p className="text-[11px] font-sans text-amber-700 bg-amber-500/10 rounded-lg px-2.5 py-1.5 leading-relaxed">
+                  O dono não verá seu nome. Anônimo é mão única — ele não poderá responder.
+                </p>
+              )}
+              <button type="submit" disabled={condutaPending || !msgTexto.trim()} className="btn-primary text-sm w-full">
+                {condutaPending ? 'Enviando…' : 'Enviar'}
+              </button>
+            </form>
+          </div>
         </div>
       )}
     </>

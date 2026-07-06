@@ -6,8 +6,21 @@ import {
   toggleComportamento,
   criarRegra, atualizarRegra, toggleRegraAtiva, excluirRegra,
   registrarOcorrencia, excluirOcorrencia,
+  responderMensagem, marcarMensagemLidaDono,
 } from './actions'
 import type { RegraConduta } from '@/types/database'
+
+interface MensagemView {
+  id: string
+  threadId: string
+  barbeiroId: string
+  barbeiroNome: string | null   // null quando anônima
+  autor: 'barbeiro' | 'dono'
+  anonima: boolean
+  corpo: string
+  lidaEm: string | null
+  createdAt: string
+}
 
 interface Barbeiro { id: string; nome: string; tipo: string }
 
@@ -39,6 +52,7 @@ interface Props {
   hojeStr: string
   ocorrencias: OcorrenciaView[]
   cicloNav: CicloNav
+  mensagens: MensagemView[]
 }
 
 function fmtSinal(v: number) {
@@ -51,7 +65,7 @@ function fmtData(iso: string) {
   return `${d}/${m}`
 }
 
-export default function ComportamentoClient({ ativoInicial, regrasIniciais, barbeiros, hojeStr, ocorrencias, cicloNav }: Props) {
+export default function ComportamentoClient({ ativoInicial, regrasIniciais, barbeiros, hojeStr, ocorrencias, cicloNav, mensagens }: Props) {
   const [ativo, setAtivo] = useState(ativoInicial)
   const [regras, setRegras] = useState<RegraConduta[]>(regrasIniciais)
   const [erro, setErro] = useState<string | null>(null)
@@ -83,6 +97,43 @@ export default function ComportamentoClient({ ativoInicial, regrasIniciais, barb
     if (!confirm('Excluir esta ocorrência do histórico?')) return
     setRemovidos(prev => new Set(prev).add(id))
     startTransition(async () => { await excluirOcorrencia(id) })
+  }
+
+  // ── Mensagens (caixa do dono) ──
+  const [respostas, setRespostas] = useState<Record<string, string>>({})
+  const [lidasLocal, setLidasLocal] = useState<Set<string>>(() => new Set<string>())
+  const foiLida = (m: MensagemView) => !!m.lidaEm || lidasLocal.has(m.id)
+
+  // Threads identificadas (não anônimas), agrupadas; e anônimas soltas.
+  const threadsIdent = useMemo(() => {
+    const map = new Map<string, MensagemView[]>()
+    for (const m of mensagens.filter(x => !x.anonima)) {
+      const arr = map.get(m.threadId) ?? []
+      arr.push(m); map.set(m.threadId, arr)
+    }
+    return Array.from(map.values())
+      .map(msgs => msgs.slice().sort((a, b) => a.createdAt.localeCompare(b.createdAt)))
+      .sort((a, b) => b[b.length - 1].createdAt.localeCompare(a[a.length - 1].createdAt))
+  }, [mensagens])
+  const anonimas = useMemo(
+    () => mensagens.filter(m => m.anonima).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [mensagens],
+  )
+  // Não lidas do dono = mensagens do barbeiro identificadas ainda não lidas.
+  const naoLidasDono = mensagens.filter(m => m.autor === 'barbeiro' && !m.anonima && !foiLida(m)).length
+
+  function handleMarcarLida(id: string) {
+    setLidasLocal(prev => new Set(prev).add(id))
+    startTransition(async () => { await marcarMensagemLidaDono(id) })
+  }
+  function handleResponder(threadId: string) {
+    const corpo = (respostas[threadId] ?? '').trim()
+    if (!corpo) return
+    startTransition(async () => {
+      const r = await responderMensagem(threadId, corpo)
+      if (r?.error) { setErro(r.error); return }
+      setRespostas(prev => ({ ...prev, [threadId]: '' }))
+    })
   }
 
   // Form nova regra
@@ -426,6 +477,85 @@ export default function ComportamentoClient({ ativoInicial, regrasIniciais, barb
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+          </section>
+
+          {/* ── Caixa de mensagens ── */}
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <h2 className="font-serif text-lg text-text">Caixa de mensagens</h2>
+              {naoLidasDono > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-amber-500 text-white text-[11px] font-bold">
+                  {naoLidasDono}
+                </span>
+              )}
+            </div>
+            <p className="text-text-muted text-xs font-sans leading-relaxed">
+              Recados que os barbeiros te mandam. Identificadas você pode responder; anônimas chegam sem nome e sem resposta.
+            </p>
+
+            {/* Conversas identificadas */}
+            {threadsIdent.length === 0 && anonimas.length === 0 && (
+              <p className="text-text-muted text-sm font-sans py-2">Nenhuma mensagem ainda.</p>
+            )}
+
+            {threadsIdent.map(thread => {
+              const nome = thread.find(m => m.barbeiroNome)?.barbeiroNome ?? '—'
+              const temNaoLida = thread.some(m => m.autor === 'barbeiro' && !foiLida(m))
+              return (
+                <div key={thread[0].threadId} className={['rounded-xl border p-3 space-y-2',
+                  temNaoLida ? 'border-amber-500/40 bg-amber-500/5' : 'border-border bg-surface-2'].join(' ')}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-sans font-semibold text-text truncate">{nome}</p>
+                    {temNaoLida && <span className="text-[11px] font-sans font-semibold text-amber-500">novo</span>}
+                  </div>
+                  <div className="space-y-1.5">
+                    {thread.map(m => (
+                      <div key={m.id} className={['flex', m.autor === 'dono' ? 'justify-end' : 'justify-start'].join(' ')}>
+                        <div className={['max-w-[85%] rounded-2xl px-3 py-2', m.autor === 'dono'
+                          ? 'bg-primary/15 text-text' : 'bg-surface border border-border text-text'].join(' ')}>
+                          <p className="text-sm font-sans whitespace-pre-line break-words">{m.corpo}</p>
+                          <p className="text-[10px] font-sans text-text-muted mt-0.5">
+                            {m.autor === 'dono' ? 'Você' : nome} · {fmtDataHora(m.createdAt)}
+                            {m.autor === 'dono' && (m.lidaEm ? ` · ✓ lido ${fmtDataHora(m.lidaEm)}` : ' · enviado')}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-end gap-2 pt-1">
+                    <textarea
+                      value={respostas[thread[0].threadId] ?? ''}
+                      onChange={e => setRespostas(prev => ({ ...prev, [thread[0].threadId]: e.target.value }))}
+                      rows={1} maxLength={1000} placeholder="Responder…"
+                      className="input resize-none text-sm flex-1" />
+                    <button onClick={() => handleResponder(thread[0].threadId)} disabled={isPending}
+                      className="btn-primary text-xs shrink-0">Responder</button>
+                    {temNaoLida && (
+                      <button
+                        onClick={() => thread.filter(m => m.autor === 'barbeiro' && !foiLida(m)).forEach(m => handleMarcarLida(m.id))}
+                        disabled={isPending}
+                        className="btn-ghost text-xs shrink-0">Marcar lida</button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+
+            {/* Anônimas — sem nome, sem resposta, sem check */}
+            {anonimas.length > 0 && (
+              <div className="pt-1 space-y-2">
+                <p className="text-text-muted text-xs font-sans uppercase tracking-wide">Anônimas</p>
+                {anonimas.map(m => (
+                  <div key={m.id} className="rounded-xl border border-border bg-surface-2 p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-sans font-semibold text-text-muted">🕶️ Anônima</span>
+                      <span className="text-[10px] font-sans text-text-muted">{fmtDataHora(m.createdAt)}</span>
+                    </div>
+                    <p className="text-sm font-sans text-text whitespace-pre-line break-words">{m.corpo}</p>
+                  </div>
+                ))}
               </div>
             )}
           </section>

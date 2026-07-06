@@ -185,5 +185,78 @@ export async function excluirOcorrencia(id: string) {
   if (error) return { error: 'Erro ao excluir.' }
 
   revalidatePath('/dashboard/comportamento')
+  revalidatePath('/b/[codigo]', 'page')
+  return { ok: true }
+}
+
+// ── Mensagens (lado do dono) ─────────────────────────────────────────────────
+// Dono marca uma mensagem do barbeiro como lida (sai do alerta na caixa).
+export async function marcarMensagemLidaDono(mensagemId: string) {
+  const supabase = createClient()
+  const barbeariaId = await getBarbeariaId()
+  if (!barbeariaId) return { error: 'Não autenticado.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('mensagens_conduta')
+    .update({ lida_em: new Date().toISOString() })
+    .eq('id', mensagemId)
+    .eq('barbearia_id', barbeariaId)
+    .eq('autor', 'barbeiro')   // dono só lê mensagem do barbeiro
+    .is('lida_em', null)
+  if (error) return { error: 'Erro ao salvar.' }
+
+  revalidatePath('/dashboard/comportamento')
+  return { ok: true }
+}
+
+// Dono responde uma conversa IDENTIFICADA. Responder já marca as mensagens do
+// barbeiro na thread como lidas. Anônimas não têm thread respondível.
+export async function responderMensagem(threadId: string, corpoRaw: string) {
+  const supabase = createClient()
+  const barbeariaId = await getBarbeariaId()
+  if (!barbeariaId) return { error: 'Não autenticado.' }
+  const corpo = (corpoRaw ?? '').trim().slice(0, 1000)
+  if (!corpo) return { error: 'Escreva uma resposta.' }
+
+  // A thread precisa ser desta barbearia e NÃO ser anônima. Pega o barbeiro_id.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: base } = await (supabase as any)
+    .from('mensagens_conduta')
+    .select('barbeiro_id, anonima')
+    .eq('thread_id', threadId)
+    .eq('barbearia_id', barbeariaId)
+    .eq('autor', 'barbeiro')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+  if (!base) return { error: 'Conversa não encontrada.' }
+  if (base.anonima) return { error: 'Mensagem anônima não pode ser respondida.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('mensagens_conduta')
+    .insert({
+      barbearia_id: barbeariaId,
+      barbeiro_id: base.barbeiro_id,
+      thread_id: threadId,
+      autor: 'dono',
+      anonima: false,
+      corpo,
+    })
+  if (error) return { error: 'Erro ao responder.' }
+
+  // Responder implica leitura das mensagens do barbeiro na thread.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase as any)
+    .from('mensagens_conduta')
+    .update({ lida_em: new Date().toISOString() })
+    .eq('thread_id', threadId)
+    .eq('barbearia_id', barbeariaId)
+    .eq('autor', 'barbeiro')
+    .is('lida_em', null)
+
+  revalidatePath('/dashboard/comportamento')
+  revalidatePath('/b/[codigo]', 'page')
   return { ok: true }
 }

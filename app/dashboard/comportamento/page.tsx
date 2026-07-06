@@ -82,6 +82,36 @@ export default async function ComportamentoPage({
     ocorrencias = (ocRaw ?? []) as OcorrenciaRow[]
   }
 
+  // Mensagens da barbearia (caixa do dono). Não é escopo de ciclo — é uma
+  // caixa de entrada. Para ANÔNIMAS, o nome NUNCA é enviado ao client.
+  let mensagens: Array<{
+    id: string; threadId: string; barbeiroId: string; barbeiroNome: string | null
+    autor: 'barbeiro' | 'dono'; anonima: boolean; corpo: string; lidaEm: string | null; createdAt: string
+  }> = []
+  if (barbearia.comportamento_ativo) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: msgRaw } = await (supabase as any)
+      .from('mensagens_conduta')
+      .select('id, thread_id, barbeiro_id, autor, anonima, corpo, lida_em, created_at, barbeiros(nome)')
+      .eq('barbearia_id', barbearia.id)
+      .order('created_at', { ascending: true })
+    mensagens = ((msgRaw ?? []) as Array<{
+      id: string; thread_id: string; barbeiro_id: string; autor: 'barbeiro' | 'dono'
+      anonima: boolean; corpo: string; lida_em: string | null; created_at: string; barbeiros: { nome: string } | null
+    }>).map(m => ({
+      id: m.id,
+      threadId: m.thread_id,
+      barbeiroId: m.barbeiro_id,
+      // Anônima: o nome NÃO vai pro client (nem via network/devtools).
+      barbeiroNome: m.anonima ? null : (m.barbeiros?.nome ?? '—'),
+      autor: m.autor,
+      anonima: m.anonima,
+      corpo: m.corpo,
+      lidaEm: m.lida_em,
+      createdAt: m.created_at,
+    }))
+  }
+
   return (
     <div className="min-h-screen flex">
       <Sidebar barbeariaNome={barbearia.nome} />
@@ -102,6 +132,7 @@ export default async function ComportamentoPage({
             cienteEm: o.ciente_em,
           }))}
           cicloNav={{ mes, ano, mesAtual, anoAtual, diaFechamento, podeVoltar, podeAvancar, label: ciclo.label }}
+          mensagens={mensagens}
         />
       </div>
     </div>

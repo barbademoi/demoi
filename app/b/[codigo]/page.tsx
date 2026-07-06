@@ -380,6 +380,19 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     saldoConduta = ocorrenciasConduta.reduce((s, o) => s + o.valor, 0)
   }
 
+  // Mensagens do barbeiro (canal com o dono). Escopo estrito por barbeiro_id.
+  let mensagensConduta: Array<{ id: string; threadId: string; autor: 'barbeiro' | 'dono'; anonima: boolean; corpo: string; lidaEm: string | null; createdAt: string }> = []
+  if (comportamentoAtivo) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: msgRaw } = await (admin as any)
+      .from('mensagens_conduta')
+      .select('id, thread_id, autor, anonima, corpo, lida_em, created_at')
+      .eq('barbeiro_id', barbeiro.id)
+      .order('created_at', { ascending: true })
+    mensagensConduta = ((msgRaw ?? []) as Array<{ id: string; thread_id: string; autor: 'barbeiro' | 'dono'; anonima: boolean; corpo: string; lida_em: string | null; created_at: string }>)
+      .map(m => ({ id: m.id, threadId: m.thread_id, autor: m.autor, anonima: m.anonima, corpo: m.corpo, lidaEm: m.lida_em, createdAt: m.created_at }))
+  }
+
   return (
     <div className="min-h-screen pb-16">
       <header className="border-b border-border bg-surface">
@@ -465,6 +478,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
           comportamentoAtivo={comportamentoAtivo}
           ocorrenciasConduta={ocorrenciasConduta}
           saldoConduta={saldoConduta}
+          mensagensConduta={mensagensConduta}
         />
       </main>
     </div>
