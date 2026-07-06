@@ -112,3 +112,74 @@ export async function excluirRegra(id: string) {
   revalidatePath('/dashboard/comportamento')
   return { ok: true }
 }
+
+// ── Ocorrências ──────────────────────────────────────────────────────────────
+// O dono seleciona um barbeiro e uma regra (ou lança um ajuste avulso com
+// descrição e valor). `valor` é gravado como SNAPSHOT (não muda se a regra
+// mudar depois). `descricao` guarda o nome da regra no momento (ou o texto
+// avulso), pra o histórico ficar legível mesmo se a regra for editada/apagada.
+export async function registrarOcorrencia(formData: FormData) {
+  const supabase = createClient()
+  const barbeariaId = await getBarbeariaId()
+  if (!barbeariaId) return { error: 'Não autenticado.' }
+
+  const barbeiro_id = (formData.get('barbeiro_id') as string ?? '').trim()
+  const regraIdRaw  = (formData.get('regra_id') as string ?? '').trim()
+  const data        = (formData.get('data') as string ?? '').trim()
+  if (!barbeiro_id) return { error: 'Escolha um barbeiro.' }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return { error: 'Data inválida.' }
+
+  // Barbeiro precisa ser da própria barbearia (defesa; RLS também protege).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: barb } = await (supabase as any)
+    .from('barbeiros').select('id').eq('id', barbeiro_id).eq('barbearia_id', barbeariaId).single()
+  if (!barb) return { error: 'Barbeiro inválido.' }
+
+  let regra_id: string | null = null
+  let descricao: string | null = null
+  let valor = 0
+
+  if (regraIdRaw && regraIdRaw !== 'avulso') {
+    // Regra existente: snapshot de nome + valor.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: regra } = await (supabase as any)
+      .from('regras_conduta').select('id, nome, valor')
+      .eq('id', regraIdRaw).eq('barbearia_id', barbeariaId).single()
+    if (!regra) return { error: 'Regra inválida.' }
+    regra_id = regra.id
+    descricao = regra.nome
+    valor = Number(regra.valor) || 0
+  } else {
+    // Ajuste avulso.
+    descricao = (formData.get('descricao') as string ?? '').trim().slice(0, 120)
+    valor = parseValor(formData.get('valor'))
+    if (!descricao) return { error: 'Descreva o ajuste avulso.' }
+    if (valor === 0) return { error: 'Informe um valor diferente de zero.' }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('ocorrencias_conduta')
+    .insert({ barbearia_id: barbeariaId, barbeiro_id, regra_id, descricao, valor, data })
+  if (error) return { error: 'Erro ao registrar.' }
+
+  revalidatePath('/dashboard/comportamento')
+  return { ok: true }
+}
+
+export async function excluirOcorrencia(id: string) {
+  const supabase = createClient()
+  const barbeariaId = await getBarbeariaId()
+  if (!barbeariaId) return { error: 'Não autenticado.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('ocorrencias_conduta')
+    .delete()
+    .eq('id', id)
+    .eq('barbearia_id', barbeariaId)
+  if (error) return { error: 'Erro ao excluir.' }
+
+  revalidatePath('/dashboard/comportamento')
+  return { ok: true }
+}

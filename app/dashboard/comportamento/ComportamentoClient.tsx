@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import {
   toggleComportamento,
   criarRegra, atualizarRegra, toggleRegraAtiva, excluirRegra,
+  registrarOcorrencia,
 } from './actions'
 import type { RegraConduta } from '@/types/database'
 
@@ -13,6 +14,7 @@ interface Props {
   ativoInicial: boolean
   regrasIniciais: RegraConduta[]
   barbeiros: Barbeiro[]
+  hojeStr: string
 }
 
 function fmtSinal(v: number) {
@@ -20,7 +22,7 @@ function fmtSinal(v: number) {
   return `${n > 0 ? '+' : ''}${n}`
 }
 
-export default function ComportamentoClient({ ativoInicial, regrasIniciais, barbeiros }: Props) {
+export default function ComportamentoClient({ ativoInicial, regrasIniciais, barbeiros, hojeStr }: Props) {
   const [ativo, setAtivo] = useState(ativoInicial)
   const [regras, setRegras] = useState<RegraConduta[]>(regrasIniciais)
   const [erro, setErro] = useState<string | null>(null)
@@ -33,6 +35,31 @@ export default function ComportamentoClient({ ativoInicial, regrasIniciais, barb
   const [editId, setEditId] = useState<string | null>(null)
   const [editNome, setEditNome] = useState('')
   const [editValor, setEditValor] = useState('')
+
+  // Registrar ocorrência
+  const [ocBarbeiro, setOcBarbeiro] = useState('')
+  const [ocRegra, setOcRegra] = useState('')        // id da regra ou 'avulso'
+  const [ocData, setOcData] = useState(hojeStr)
+  const [ocDescricao, setOcDescricao] = useState('')
+  const [ocValor, setOcValor] = useState('')
+  const [ocSucesso, setOcSucesso] = useState(false)
+  const regrasAtivas = regras.filter(r => r.ativo)
+
+  function handleRegistrar(e: React.FormEvent) {
+    e.preventDefault()
+    setErro(null); setOcSucesso(false)
+    const fd = new FormData()
+    fd.set('barbeiro_id', ocBarbeiro)
+    fd.set('regra_id', ocRegra)
+    fd.set('data', ocData)
+    if (ocRegra === 'avulso') { fd.set('descricao', ocDescricao); fd.set('valor', ocValor || '0') }
+    startTransition(async () => {
+      const r = await registrarOcorrencia(fd)
+      if (r?.error) { setErro(r.error); return }
+      setOcSucesso(true)
+      setOcRegra(''); setOcDescricao(''); setOcValor('')
+    })
+  }
 
   function handleToggle() {
     const novo = !ativo
@@ -194,11 +221,66 @@ export default function ComportamentoClient({ ativoInicial, regrasIniciais, barb
               <button type="submit" disabled={isPending} className="btn-primary text-sm shrink-0">Adicionar</button>
             </form>
           </section>
+
+          {/* ── Registrar ocorrência ── */}
+          <section className="space-y-3">
+            <div>
+              <h2 className="font-serif text-lg text-text">Registrar ocorrência</h2>
+              <p className="text-text-muted text-xs font-sans leading-relaxed">
+                Escolha um barbeiro e uma regra — ou lance um ajuste avulso. Fica só no histórico de conduta dele.
+              </p>
+            </div>
+
+            <form onSubmit={handleRegistrar} className="p-4 rounded-xl border border-border bg-surface-2 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Barbeiro</label>
+                  <select value={ocBarbeiro} onChange={e => setOcBarbeiro(e.target.value)} required className="input text-sm">
+                    <option value="">Selecione…</option>
+                    {barbeiros.map(b => <option key={b.id} value={b.id}>{b.nome}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Data</label>
+                  <input type="date" value={ocData} onChange={e => setOcData(e.target.value)} required className="input text-sm" />
+                </div>
+              </div>
+
+              <div>
+                <label className="label">Regra</label>
+                <select value={ocRegra} onChange={e => { setOcRegra(e.target.value); setOcSucesso(false) }} required className="input text-sm">
+                  <option value="">Selecione…</option>
+                  {regrasAtivas.map(r => (
+                    <option key={r.id} value={r.id}>{r.nome} ({fmtSinal(r.valor)})</option>
+                  ))}
+                  <option value="avulso">✎ Ajuste avulso…</option>
+                </select>
+              </div>
+
+              {ocRegra === 'avulso' && (
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
+                  <div>
+                    <label className="label">Descrição do ajuste</label>
+                    <input value={ocDescricao} onChange={e => setOcDescricao(e.target.value)} maxLength={120}
+                      placeholder="Ex: Ajudou a limpar a loja" className="input text-sm" />
+                  </div>
+                  <div className="sm:w-24">
+                    <label className="label">Valor</label>
+                    <input value={ocValor} onChange={e => setOcValor(e.target.value)} type="number" step="any"
+                      placeholder="+5 / -5" className="input text-sm text-center" />
+                  </div>
+                </div>
+              )}
+
+              {ocSucesso && <p className="text-green-500 text-sm font-sans">✅ Ocorrência registrada.</p>}
+
+              <button type="submit" disabled={isPending} className="btn-primary text-sm">
+                {isPending ? 'Registrando…' : 'Registrar'}
+              </button>
+            </form>
+          </section>
         </>
       )}
-
-      {/* barbeiros usado nas próximas etapas (registrar ocorrência) */}
-      <input type="hidden" data-barbeiros={barbeiros.length} />
     </main>
   )
 }

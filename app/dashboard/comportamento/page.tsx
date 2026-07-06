@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Sidebar from '@/components/dashboard/Sidebar'
 import ComportamentoClient from './ComportamentoClient'
+import { hojeBrasil } from '@/lib/ciclo'
+import { dataLocalStr } from '@/lib/utils'
 import type { RegraConduta } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
@@ -49,6 +51,7 @@ export default async function ComportamentoPage() {
           ativoInicial={barbearia.comportamento_ativo}
           regrasIniciais={regras}
           barbeiros={barbeiros}
+          hojeStr={dataLocalStr(hojeBrasil())}
         />
       </div>
     </div>
