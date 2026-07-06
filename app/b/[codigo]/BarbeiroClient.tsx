@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { formatBRL, TIER_CONFIG, calcProgresso } from '@/lib/utils'
 import { calcularRitmo } from '@/lib/ritmo'
+import { marcarOcorrenciaCiente } from './conduta-actions'
 import { pegarRegrasGerais } from '@/lib/regras'
 import LancarDiaForm from './LancarDiaForm'
 import CelebracaoOverlay from '@/components/barbeiro/CelebracaoOverlay'
@@ -15,6 +16,14 @@ import type {
 } from '@/types/database'
 
 type LancamentoComNome = Lancamento & { barbeiros: { nome: string } | null }
+
+function fmtDataCurta(iso: string) {
+  const [, m, d] = iso.split('-')
+  return `${d}/${m}`
+}
+function fmtDataHoraBR(iso: string) {
+  return new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
 
 interface PontosEntry { barbeiro_id: string; pontos: number }
 
@@ -83,6 +92,17 @@ interface Props {
   }>
   // Regras gerais editadas pela barbearia (null = usa default).
   regrasGerais: string[] | null
+  // ── Conduta privada (módulo comportamento) — só do próprio barbeiro ──
+  comportamentoAtivo: boolean
+  ocorrenciasConduta: Array<{
+    id: string
+    descricao: string | null
+    valor: number
+    observacao: string | null
+    data: string
+    cienteEm: string | null
+  }>
+  saldoConduta: number
 }
 
 export default function BarbeiroClient({
@@ -98,6 +118,9 @@ export default function BarbeiroClient({
   cicloLabel, diaFechamento, mostrarTicketMedio, mostrarFaturamentoGeral,
   feedbacksDoBarbeiro,
   regrasGerais,
+  comportamentoAtivo,
+  ocorrenciasConduta,
+  saldoConduta,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
   // Recepcionista participa só das pontuações — esconde tudo de comissão/metas.
@@ -108,8 +131,18 @@ export default function BarbeiroClient({
   // vendo progresso, ranking, regras e feedbacks). Bloqueio tambem aplicado
   // no servidor em lancarDiaBarbeiro.
   const barbeiroPodeLancar = campanha?.quem_lanca !== 'dono'
-  const [aba, setAba] = useState<'progresso' | 'lancar' | 'regras' | 'feedbacks'>('progresso')
+  const [aba, setAba] = useState<'progresso' | 'lancar' | 'regras' | 'feedbacks' | 'acompanhamento'>('progresso')
   const temFeedbacks = feedbacksDoBarbeiro.length > 0
+  // Conduta: alerta enquanto houver ocorrência não vista (ciente_em null).
+  // `ackedIds` dá o feedback otimista da ciência antes do refresh do server.
+  const [ackedIds, setAckedIds] = useState<Set<string>>(() => new Set<string>())
+  const [condutaPending, startCondutaTransition] = useTransition()
+  const isVista = (o: { id: string; cienteEm: string | null }) => !!o.cienteEm || ackedIds.has(o.id)
+  const condutaNaoVistas = comportamentoAtivo ? ocorrenciasConduta.filter(o => !isVista(o)).length : 0
+  function handleCiente(id: string) {
+    setAckedIds(prev => new Set(prev).add(id))
+    startCondutaTransition(async () => { await marcarOcorrenciaCiente(barbeiro.link_codigo, id) })
+  }
   const [celebracaoFechada, setCelebracaoFechada] = useState(false)
 
   const posicaoPts = rankingPontos.findIndex(r => r.barbeiro_id === barbeiro.id)
@@ -199,9 +232,9 @@ export default function BarbeiroClient({
         />
       )}
 
-      {/* Tabs — aparece quando modo inclui pontos OU quando há feedbacks
-          de clientes pra esse barbeiro (independente do modo da campanha). */}
-      {(mostraPontos || temFeedbacks) && (
+      {/* Tabs — aparece quando modo inclui pontos, quando há feedbacks, ou
+          quando o módulo de comportamento está ativo (aba "Meu acompanhamento"). */}
+      {(mostraPontos || temFeedbacks || comportamentoAtivo) && (
         <div className="flex border-b border-border mb-0 overflow-x-auto">
           {mostraPontos && (
             <button
@@ -239,12 +272,26 @@ export default function BarbeiroClient({
               ⭐ Feedbacks <span className="text-text-muted font-normal">({feedbacksDoBarbeiro.length})</span>
             </button>
           )}
+          {comportamentoAtivo && (
+            <button
+              onClick={() => setAba('acompanhamento')}
+              className={`flex-1 py-3.5 px-3 text-sm font-sans font-semibold transition-colors whitespace-nowrap inline-flex items-center justify-center gap-1.5
+                ${aba === 'acompanhamento' ? 'text-text border-b-2 border-primary' : 'text-text-muted hover:text-text'}`}
+            >
+              Meu acompanhamento
+              {condutaNaoVistas > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold">
+                  {condutaNaoVistas}
+                </span>
+              )}
+            </button>
+          )}
         </div>
       )}
 
       {/* ── ABA: PROGRESSO ── (default; ativa quando mostraPontos=false
-          tirando o caso em que o usuário clicou na aba de feedbacks) */}
-      {(aba === 'progresso' || (!mostraPontos && aba !== 'feedbacks')) && (
+          tirando o caso em que o usuário clicou em feedbacks/acompanhamento) */}
+      {(aba === 'progresso' || (!mostraPontos && aba !== 'feedbacks' && aba !== 'acompanhamento')) && (
         <div className="space-y-6 pt-2">
 
           {/* Card do barbeiro */}
@@ -790,6 +837,77 @@ export default function BarbeiroClient({
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ── ABA: MEU ACOMPANHAMENTO (conduta privada — só o próprio barbeiro) ── */}
+      {aba === 'acompanhamento' && comportamentoAtivo && (
+        <div className="space-y-4 pt-4">
+          <div className="px-1">
+            <h2 className="font-serif text-lg text-text">Meu acompanhamento</h2>
+            <p className="text-text-muted text-xs font-sans mt-0.5 leading-relaxed">
+              Registro de conduta feito pelo dono. É só seu — nenhum colega vê.
+              Não conta pra pontuação, meta ou ranking.
+            </p>
+          </div>
+
+          {/* Saldo do período (informativo) */}
+          <div className="card-light p-4 flex items-center justify-between">
+            <div>
+              <p className="text-on-cream-muted text-xs font-sans uppercase tracking-wide">Saldo do período</p>
+              <p className="text-on-cream-muted text-[11px] font-sans">{cicloLabel}</p>
+            </div>
+            <span className={['font-serif text-3xl tabular-nums', saldoConduta < 0 ? 'text-red-500' : saldoConduta > 0 ? 'text-green-600' : 'text-on-cream-muted'].join(' ')}>
+              {saldoConduta > 0 ? '+' : ''}{saldoConduta}
+            </span>
+          </div>
+
+          {ocorrenciasConduta.length === 0 ? (
+            <p className="text-text-muted text-sm font-sans px-1 py-2">Nenhum registro neste período.</p>
+          ) : (
+            <div className="space-y-2">
+              {ocorrenciasConduta.map(o => {
+                const vista = isVista(o)
+                return (
+                  <div key={o.id} className={['rounded-xl border p-4 space-y-2',
+                    vista ? 'card-light border-cream-border' : 'border-amber-500/40 bg-amber-500/5'].join(' ')}>
+                    <div className="flex items-center gap-3">
+                      <span className={['text-xs font-sans tabular-nums w-10 shrink-0', vista ? 'text-on-cream-muted' : 'text-amber-600'].join(' ')}>
+                        {fmtDataCurta(o.data)}
+                      </span>
+                      <p className={['flex-1 min-w-0 text-sm font-sans truncate', vista ? 'text-on-cream' : 'text-amber-800'].join(' ')}>
+                        {o.descricao ?? '—'}
+                      </p>
+                      <span className={['font-serif text-lg tabular-nums shrink-0', o.valor < 0 ? 'text-red-500' : 'text-green-600'].join(' ')}>
+                        {o.valor > 0 ? '+' : ''}{o.valor}
+                      </span>
+                    </div>
+                    {o.observacao && (
+                      <p className="text-sm font-sans text-on-cream leading-relaxed whitespace-pre-line pl-[3.25rem]">💬 {o.observacao}</p>
+                    )}
+                    <div className="pl-[3.25rem]">
+                      {vista ? (
+                        <p className="text-[11px] font-sans text-on-cream-muted">
+                          {o.cienteEm ? `✓ Você deu ciência em ${fmtDataHoraBR(o.cienteEm)}` : '✓ Ciência registrada'}
+                        </p>
+                      ) : (
+                        <button
+                          onClick={() => handleCiente(o.id)}
+                          disabled={condutaPending}
+                          className="text-xs font-sans font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-60 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          Li e estou ciente
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <p className="text-text-muted text-[11px] font-sans px-1 leading-relaxed">
+            &ldquo;Li e estou ciente&rdquo; significa que você viu o registro — não que concorda com ele.
+          </p>
         </div>
       )}
     </>

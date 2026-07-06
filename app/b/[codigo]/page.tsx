@@ -42,7 +42,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barbeariaRaw } = await (supabase as any)
-    .from('barbearias').select('nome, cor_principal, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais, dias_trabalho_padrao')
+    .from('barbearias').select('nome, cor_principal, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais, dias_trabalho_padrao, comportamento_ativo')
     .eq('id', barbeiro.barbearia_id).single()
   const barbearia = barbeariaRaw as {
     nome: string
@@ -54,6 +54,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     mostrar_faturamento_geral: boolean | null
     regras_gerais: string[] | null
     dias_trabalho_padrao: number | null
+    comportamento_ativo: boolean | null
   } | null
   const mostrarTicketMedio = barbearia?.mostrar_ticket_medio ?? false
   const mostrarFaturamentoGeral = barbearia?.mostrar_faturamento_geral ?? true
@@ -354,6 +355,31 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     brindes: { nome: string } | null
   }>
 
+  // ── Conduta privada do barbeiro (módulo comportamento) ─────────
+  // Só carrega se o dono ativou. Admin client + filtro estrito por
+  // barbeiro_id (resolvido do link secreto) — o barbeiro só vê o DELE,
+  // nunca a conduta de outro. Trilha isolada da venda/ranking.
+  const comportamentoAtivo = barbearia?.comportamento_ativo === true
+  let ocorrenciasConduta: Array<{ id: string; descricao: string | null; valor: number; observacao: string | null; data: string; cienteEm: string | null }> = []
+  let saldoConduta = 0
+  if (comportamentoAtivo) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: ocRaw } = await (admin as any)
+      .from('ocorrencias_conduta')
+      .select('id, descricao, valor, observacao, data, ciente_em')
+      .eq('barbeiro_id', barbeiro.id)
+      .gte('data', ciclo.inicioIso)
+      .lte('data', ciclo.fimIso)
+      .order('data', { ascending: false })
+      .order('created_at', { ascending: false })
+    const rows = (ocRaw ?? []) as Array<{ id: string; descricao: string | null; valor: number; observacao: string | null; data: string; ciente_em: string | null }>
+    ocorrenciasConduta = rows.map(o => ({
+      id: o.id, descricao: o.descricao, valor: Number(o.valor) || 0,
+      observacao: o.observacao, data: o.data, cienteEm: o.ciente_em,
+    }))
+    saldoConduta = ocorrenciasConduta.reduce((s, o) => s + o.valor, 0)
+  }
+
   return (
     <div className="min-h-screen pb-16">
       <header className="border-b border-border bg-surface">
@@ -436,6 +462,9 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
           mostrarFaturamentoGeral={mostrarFaturamentoGeral}
           feedbacksDoBarbeiro={feedbacksDoBarbeiro}
           regrasGerais={barbearia?.regras_gerais ?? null}
+          comportamentoAtivo={comportamentoAtivo}
+          ocorrenciasConduta={ocorrenciasConduta}
+          saldoConduta={saldoConduta}
         />
       </main>
     </div>
