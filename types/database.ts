@@ -12,6 +12,7 @@ export interface Database {
           mostrar_ticket_medio: boolean
           mostrar_faturamento_geral: boolean
           dias_trabalho_padrao: number | null
+          comportamento_ativo: boolean
           created_at: string
         }
         Insert: {
@@ -22,6 +23,7 @@ export interface Database {
           mostrar_ticket_medio?: boolean
           mostrar_faturamento_geral?: boolean
           dias_trabalho_padrao?: number | null
+          comportamento_ativo?: boolean
           created_at?: string
         }
         Update: {
@@ -31,6 +33,7 @@ export interface Database {
           mostrar_ticket_medio?: boolean
           mostrar_faturamento_geral?: boolean
           dias_trabalho_padrao?: number | null
+          comportamento_ativo?: boolean
         }
         Relationships: []
       }
@@ -272,6 +275,29 @@ export type Lancamento = Database['public']['Tables']['lancamentos']['Row']
 
 export type Tier = 'bronze' | 'prata' | 'ouro'
 export type ModoPontos = 'metas' | 'pontos' | 'ambos'
+
+// ── Comportamento (conduta) — trilha PRIVADA do dono ───
+// Isolada das vendas: não entra em pontuação, meta, projetado nem ranking.
+
+export interface RegraConduta {
+  id: string
+  barbearia_id: string
+  nome: string
+  valor: number      // com sinal: +10 reforço, -20 penalidade
+  ativo: boolean
+  created_at: string
+}
+
+export interface OcorrenciaConduta {
+  id: string
+  barbearia_id: string
+  barbeiro_id: string
+  regra_id: string | null   // null = ajuste avulso (usa descricao)
+  descricao: string | null
+  valor: number             // snapshot aplicado no registro
+  data: string              // 'YYYY-MM-DD' (BRT)
+  created_at: string
+}
 
 // ── Gamificação ────────────────────────────────────────
 
