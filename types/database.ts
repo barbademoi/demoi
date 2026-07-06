@@ -295,7 +295,21 @@ export interface OcorrenciaConduta {
   regra_id: string | null   // null = ajuste avulso (usa descricao)
   descricao: string | null
   valor: number             // snapshot aplicado no registro
+  observacao: string | null // texto do dono exibido ao barbeiro
   data: string              // 'YYYY-MM-DD' (BRT)
+  ciente_em: string | null  // timestamp da ciência do barbeiro; null = não visto
+  created_at: string
+}
+
+export interface MensagemConduta {
+  id: string
+  barbearia_id: string
+  barbeiro_id: string       // autor (se autor='barbeiro') ou destinatário (se 'dono')
+  thread_id: string
+  autor: 'barbeiro' | 'dono'
+  anonima: boolean          // só vale pra autor='barbeiro'
+  corpo: string
+  lida_em: string | null    // quando o destinatário leu; null = não lida
   created_at: string
 }
 
