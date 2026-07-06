@@ -157,13 +157,17 @@ export async function registrarOcorrencia(formData: FormData) {
     if (valor === 0) return { error: 'Informe um valor diferente de zero.' }
   }
 
+  // Observação opcional do dono — será exibida ao barbeiro.
+  const observacao = (formData.get('observacao') as string ?? '').trim().slice(0, 500) || null
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from('ocorrencias_conduta')
-    .insert({ barbearia_id: barbeariaId, barbeiro_id, regra_id, descricao, valor, data })
+    .insert({ barbearia_id: barbeariaId, barbeiro_id, regra_id, descricao, valor, observacao, data })
   if (error) return { error: 'Erro ao registrar.' }
 
   revalidatePath('/dashboard/comportamento')
+  revalidatePath('/b/[codigo]', 'page')
   return { ok: true }
 }
 

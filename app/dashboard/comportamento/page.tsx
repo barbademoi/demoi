@@ -73,7 +73,7 @@ export default async function ComportamentoPage({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: ocRaw } = await (supabase as any)
       .from('ocorrencias_conduta')
-      .select('id, barbearia_id, barbeiro_id, regra_id, descricao, valor, data, created_at, barbeiros(nome)')
+      .select('id, barbearia_id, barbeiro_id, regra_id, descricao, valor, observacao, data, ciente_em, created_at, barbeiros(nome)')
       .eq('barbearia_id', barbearia.id)
       .gte('data', ciclo.inicioIso)
       .lte('data', ciclo.fimIso)
@@ -97,7 +97,9 @@ export default async function ComportamentoPage({
             barbeiroNome: o.barbeiros?.nome ?? '—',
             descricao: o.descricao,
             valor: Number(o.valor) || 0,
+            observacao: o.observacao,
             data: o.data,
+            cienteEm: o.ciente_em,
           }))}
           cicloNav={{ mes, ano, mesAtual, anoAtual, diaFechamento, podeVoltar, podeAvancar, label: ciclo.label }}
         />

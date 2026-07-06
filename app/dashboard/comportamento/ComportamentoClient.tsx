@@ -17,7 +17,14 @@ interface OcorrenciaView {
   barbeiroNome: string
   descricao: string | null
   valor: number
+  observacao: string | null
   data: string
+  cienteEm: string | null
+}
+
+function fmtDataHora(iso: string) {
+  const d = new Date(iso)
+  return d.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 interface CicloNav {
@@ -92,6 +99,7 @@ export default function ComportamentoClient({ ativoInicial, regrasIniciais, barb
   const [ocData, setOcData] = useState(hojeStr)
   const [ocDescricao, setOcDescricao] = useState('')
   const [ocValor, setOcValor] = useState('')
+  const [ocObservacao, setOcObservacao] = useState('')
   const [ocSucesso, setOcSucesso] = useState(false)
   const regrasAtivas = regras.filter(r => r.ativo)
 
@@ -102,12 +110,13 @@ export default function ComportamentoClient({ ativoInicial, regrasIniciais, barb
     fd.set('barbeiro_id', ocBarbeiro)
     fd.set('regra_id', ocRegra)
     fd.set('data', ocData)
+    fd.set('observacao', ocObservacao)
     if (ocRegra === 'avulso') { fd.set('descricao', ocDescricao); fd.set('valor', ocValor || '0') }
     startTransition(async () => {
       const r = await registrarOcorrencia(fd)
       if (r?.error) { setErro(r.error); return }
       setOcSucesso(true)
-      setOcRegra(''); setOcDescricao(''); setOcValor('')
+      setOcRegra(''); setOcDescricao(''); setOcValor(''); setOcObservacao('')
     })
   }
 
@@ -322,6 +331,13 @@ export default function ComportamentoClient({ ativoInicial, regrasIniciais, barb
                 </div>
               )}
 
+              <div>
+                <label className="label">Observação pro barbeiro <span className="text-text-muted font-normal">(opcional)</span></label>
+                <textarea value={ocObservacao} onChange={e => setOcObservacao(e.target.value)} rows={2} maxLength={500}
+                  placeholder="Ex: Conversa combinada; se repetir, volta a descontar." className="input resize-none text-sm" />
+                <p className="text-text-muted text-[11px] font-sans mt-1">O barbeiro vê essa observação e precisa dar ciência (“Li e estou ciente”).</p>
+              </div>
+
               {ocSucesso && <p className="text-green-500 text-sm font-sans">✅ Ocorrência registrada.</p>}
 
               <button type="submit" disabled={isPending} className="btn-primary text-sm">
@@ -388,17 +404,25 @@ export default function ComportamentoClient({ ativoInicial, regrasIniciais, barb
                 </div>
                 <div className="space-y-1.5">
                   {ocFiltradas.map(o => (
-                    <div key={o.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-surface-2 border border-border">
-                      <span className="text-xs font-sans text-text-muted tabular-nums w-10 shrink-0">{fmtData(o.data)}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-sans text-text truncate">{o.descricao ?? '—'}</p>
-                        {filtroBarbeiro === 'todos' && <p className="text-xs font-sans text-text-muted truncate">{o.barbeiroNome}</p>}
+                    <div key={o.id} className="p-2.5 rounded-lg bg-surface-2 border border-border">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-sans text-text-muted tabular-nums w-10 shrink-0">{fmtData(o.data)}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-sans text-text truncate">{o.descricao ?? '—'}</p>
+                          {filtroBarbeiro === 'todos' && <p className="text-xs font-sans text-text-muted truncate">{o.barbeiroNome}</p>}
+                        </div>
+                        <span className={['font-serif text-base tabular-nums shrink-0', o.valor < 0 ? 'text-red-400' : 'text-green-500'].join(' ')}>
+                          {fmtSinal(o.valor)}
+                        </span>
+                        <button onClick={() => handleExcluirOcorrencia(o.id)} disabled={isPending}
+                          title="Excluir" className="text-xs text-text-muted hover:text-red-400 px-1.5 py-1 rounded transition-colors shrink-0">🗑</button>
                       </div>
-                      <span className={['font-serif text-base tabular-nums shrink-0', o.valor < 0 ? 'text-red-400' : 'text-green-500'].join(' ')}>
-                        {fmtSinal(o.valor)}
-                      </span>
-                      <button onClick={() => handleExcluirOcorrencia(o.id)} disabled={isPending}
-                        title="Excluir" className="text-xs text-text-muted hover:text-red-400 px-1.5 py-1 rounded transition-colors shrink-0">🗑</button>
+                      {o.observacao && (
+                        <p className="text-xs font-sans text-text-muted mt-1.5 pl-[3.25rem] leading-relaxed">💬 {o.observacao}</p>
+                      )}
+                      <p className={['text-[11px] font-sans mt-1 pl-[3.25rem]', o.cienteEm ? 'text-text-muted' : 'text-amber-500'].join(' ')}>
+                        {o.cienteEm ? `✓ Visto em ${fmtDataHora(o.cienteEm)}` : '⚠️ Ainda não visto'}
+                      </p>
                     </div>
                   ))}
                 </div>
