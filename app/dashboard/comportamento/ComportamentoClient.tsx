@@ -1,20 +1,37 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useMemo, useTransition } from 'react'
+import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import {
   toggleComportamento,
   criarRegra, atualizarRegra, toggleRegraAtiva, excluirRegra,
-  registrarOcorrencia,
+  registrarOcorrencia, excluirOcorrencia,
 } from './actions'
 import type { RegraConduta } from '@/types/database'
 
 interface Barbeiro { id: string; nome: string; tipo: string }
+
+interface OcorrenciaView {
+  id: string
+  barbeiro_id: string
+  barbeiroNome: string
+  descricao: string | null
+  valor: number
+  data: string
+}
+
+interface CicloNav {
+  mes: number; ano: number; mesAtual: number; anoAtual: number
+  diaFechamento: number; podeVoltar: boolean; podeAvancar: boolean; label: string
+}
 
 interface Props {
   ativoInicial: boolean
   regrasIniciais: RegraConduta[]
   barbeiros: Barbeiro[]
   hojeStr: string
+  ocorrencias: OcorrenciaView[]
+  cicloNav: CicloNav
 }
 
 function fmtSinal(v: number) {
@@ -22,11 +39,44 @@ function fmtSinal(v: number) {
   return `${n > 0 ? '+' : ''}${n}`
 }
 
-export default function ComportamentoClient({ ativoInicial, regrasIniciais, barbeiros, hojeStr }: Props) {
+function fmtData(iso: string) {
+  const [, m, d] = iso.split('-')
+  return `${d}/${m}`
+}
+
+export default function ComportamentoClient({ ativoInicial, regrasIniciais, barbeiros, hojeStr, ocorrencias, cicloNav }: Props) {
   const [ativo, setAtivo] = useState(ativoInicial)
   const [regras, setRegras] = useState<RegraConduta[]>(regrasIniciais)
   const [erro, setErro] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  // Painel: filtro por barbeiro (client-side). A lista vem do server (props) e
+  // é reatualizada via revalidatePath ao registrar/excluir. `removidos` dá o
+  // feedback otimista da exclusão enquanto o refresh não chega.
+  const [filtroBarbeiro, setFiltroBarbeiro] = useState<string>('todos')
+  const [removidos, setRemovidos] = useState<Set<string>>(() => new Set<string>())
+  const ocVisiveis = useMemo(() => ocorrencias.filter(o => !removidos.has(o.id)), [ocorrencias, removidos])
+
+  // Saldo do período por barbeiro (informativo — pro dono decidir bônus na mão).
+  const saldos = useMemo(() => {
+    const map = new Map<string, { nome: string; saldo: number; qtd: number }>()
+    for (const o of ocVisiveis) {
+      const cur = map.get(o.barbeiro_id) ?? { nome: o.barbeiroNome, saldo: 0, qtd: 0 }
+      cur.saldo += o.valor; cur.qtd += 1
+      map.set(o.barbeiro_id, cur)
+    }
+    return Array.from(map.entries())
+      .map(([id, v]) => ({ id, ...v }))
+      .sort((a, b) => b.saldo - a.saldo)
+  }, [ocVisiveis])
+
+  const ocFiltradas = filtroBarbeiro === 'todos' ? ocVisiveis : ocVisiveis.filter(o => o.barbeiro_id === filtroBarbeiro)
+
+  function handleExcluirOcorrencia(id: string) {
+    if (!confirm('Excluir esta ocorrência do histórico?')) return
+    setRemovidos(prev => new Set(prev).add(id))
+    startTransition(async () => { await excluirOcorrencia(id) })
+  }
 
   // Form nova regra
   const [novoNome, setNovoNome] = useState('')
@@ -278,6 +328,82 @@ export default function ComportamentoClient({ ativoInicial, regrasIniciais, barb
                 {isPending ? 'Registrando…' : 'Registrar'}
               </button>
             </form>
+          </section>
+
+          {/* ── Painel privado de conduta ── */}
+          <section className="space-y-3">
+            <div>
+              <h2 className="font-serif text-lg text-text">Histórico de conduta</h2>
+              <p className="text-text-muted text-xs font-sans leading-relaxed">
+                Saldo do período (só informativo). Nada disso vai pra pontuação, meta ou ranking.
+              </p>
+            </div>
+
+            <MonthNavigator
+              mesSel={cicloNav.mes}
+              anoSel={cicloNav.ano}
+              mesAtual={cicloNav.mesAtual}
+              anoAtual={cicloNav.anoAtual}
+              diaFechamento={cicloNav.diaFechamento}
+              podeVoltar={cicloNav.podeVoltar}
+              podeAvancar={cicloNav.podeAvancar}
+              hrefBase="/dashboard/comportamento"
+            />
+
+            {/* Saldo por barbeiro */}
+            {saldos.length === 0 ? (
+              <p className="text-text-muted text-sm font-sans py-2">Nenhuma ocorrência neste período.</p>
+            ) : (
+              <div className="space-y-2">
+                {saldos.map(s => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setFiltroBarbeiro(f => f === s.id ? 'todos' : s.id)}
+                    className={['w-full flex items-center gap-3 p-3 rounded-xl border transition-colors text-left',
+                      filtroBarbeiro === s.id ? 'border-primary bg-primary/5' : 'border-border bg-surface-2 hover:border-primary/40'].join(' ')}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-sans text-text truncate">{s.nome}</p>
+                      <p className="text-xs font-sans text-text-muted">{s.qtd} ocorrência{s.qtd !== 1 ? 's' : ''}</p>
+                    </div>
+                    <span className={['font-serif text-xl tabular-nums shrink-0', s.saldo < 0 ? 'text-red-400' : s.saldo > 0 ? 'text-green-500' : 'text-text-muted'].join(' ')}>
+                      {fmtSinal(s.saldo)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Lista de ocorrências (filtrada por barbeiro selecionado) */}
+            {ocVisiveis.length > 0 && (
+              <div className="pt-1">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-text-muted text-xs font-sans uppercase tracking-wide">
+                    Ocorrências {filtroBarbeiro !== 'todos' && `— ${saldos.find(s => s.id === filtroBarbeiro)?.nome ?? ''}`}
+                  </p>
+                  {filtroBarbeiro !== 'todos' && (
+                    <button onClick={() => setFiltroBarbeiro('todos')} className="text-xs text-text-muted hover:text-text font-sans">Ver todos</button>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  {ocFiltradas.map(o => (
+                    <div key={o.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-surface-2 border border-border">
+                      <span className="text-xs font-sans text-text-muted tabular-nums w-10 shrink-0">{fmtData(o.data)}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-sans text-text truncate">{o.descricao ?? '—'}</p>
+                        {filtroBarbeiro === 'todos' && <p className="text-xs font-sans text-text-muted truncate">{o.barbeiroNome}</p>}
+                      </div>
+                      <span className={['font-serif text-base tabular-nums shrink-0', o.valor < 0 ? 'text-red-400' : 'text-green-500'].join(' ')}>
+                        {fmtSinal(o.valor)}
+                      </span>
+                      <button onClick={() => handleExcluirOcorrencia(o.id)} disabled={isPending}
+                        title="Excluir" className="text-xs text-text-muted hover:text-red-400 px-1.5 py-1 rounded transition-colors shrink-0">🗑</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
         </>
       )}
