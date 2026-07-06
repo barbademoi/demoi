@@ -26,6 +26,7 @@ export interface BarbeariaConfig {
   mostrar_faturamento_geral: boolean | null
   modo_meta: 'faturamento' | 'comissao' | 'ambos' | null
   base_meta: 'faturamento' | 'comissao' | null
+  dias_trabalho_padrao: number | null
 }
 
 interface Props {

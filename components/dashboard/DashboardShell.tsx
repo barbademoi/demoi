@@ -27,6 +27,7 @@ type BarbeiroRow = {
   barbearia_id: string
   ativo: boolean
   created_at: string
+  dias_trabalho_mes: number | null
   comissao: number
   metaInd: MetaIndividual | null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -25,6 +25,7 @@ interface BarbeariaData {
   mostrar_faturamento_geral: boolean | null
   modo_meta: 'faturamento' | 'comissao' | 'ambos' | null
   base_meta: 'faturamento' | 'comissao' | null
+  dias_trabalho_padrao: number | null
 }
 
 type ModoMetaOpt = 'faturamento' | 'comissao' | 'ambos'
@@ -78,6 +79,9 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
     barbearia.visibilidade_ranking ?? 'completo'
   )
   const [diaFechamento, setDiaFechamento] = useState<string>(String(barbearia.dia_fechamento ?? 1))
+  const [diasTrabalhoPadrao, setDiasTrabalhoPadrao] = useState<string>(
+    barbearia.dias_trabalho_padrao != null ? String(barbearia.dias_trabalho_padrao) : ''
+  )
   const [mostrarTicket, setMostrarTicket] = useState<boolean>(barbearia.mostrar_ticket_medio ?? false)
   const [mostrarFatGeral, setMostrarFatGeral] = useState<boolean>(barbearia.mostrar_faturamento_geral ?? true)
   const [modoMeta, setModoMeta] = useState<ModoMetaOpt>(barbearia.modo_meta ?? 'comissao')
@@ -164,6 +168,34 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
         <p className="text-text-muted text-[11px] font-sans mt-2 leading-relaxed">
           Aceita de 1 a 28. <span className="text-amber-500">⚠️ Não mude no meio do mês</span> — pode deslocar dados já lançados.
         </p>
+      </div>
+
+      <div>
+        <label htmlFor="dias_trabalho_padrao" className="label">Dias de trabalho padrão no mês</label>
+        <p className="text-text-muted text-xs font-sans mb-2 leading-relaxed">
+          Quantos dias, em média, a barbearia trabalha no mês (ex: 26). Serve de
+          base pra calcular o ritmo esperado. Vale pra todos os barbeiros que não
+          tiverem um valor próprio no cadastro.
+        </p>
+        <div className="flex items-center gap-3">
+          <input
+            id="dias_trabalho_padrao"
+            name="dias_trabalho_padrao"
+            type="number"
+            min="1"
+            max="31"
+            inputMode="numeric"
+            placeholder="—"
+            value={diasTrabalhoPadrao}
+            onChange={e => setDiasTrabalhoPadrao(e.target.value)}
+            className="input w-24"
+          />
+          <p className="text-text-muted text-xs font-sans leading-relaxed flex-1">
+            {diasTrabalhoPadrao === ''
+              ? 'Em branco: o ritmo continua sendo calculado pelos dias úteis do ciclo (comportamento atual).'
+              : `Ritmo esperado distribuído sobre ${diasTrabalhoPadrao} dias de trabalho no mês.`}
+          </p>
+        </div>
       </div>
 
       <div>

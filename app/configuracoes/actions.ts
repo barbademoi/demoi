@@ -78,6 +78,14 @@ export async function salvarOperacaoConfig(formData: FormData) {
   const mostrar_ticket_medio = formData.get('mostrar_ticket_medio') === 'true'
   const mostrar_faturamento_geral = formData.get('mostrar_faturamento_geral') === 'true'
 
+  // Dias de trabalho padrão da barbearia (base do ritmo pra quem folga).
+  // Vazio → NULL = comportamento atual (cálculo por dias úteis do ciclo).
+  const diasTrabRaw = (formData.get('dias_trabalho_padrao') as string ?? '').trim()
+  const diasTrabParsed = parseInt(diasTrabRaw, 10)
+  const dias_trabalho_padrao = diasTrabRaw !== '' && Number.isFinite(diasTrabParsed)
+    ? Math.min(31, Math.max(1, diasTrabParsed))
+    : null
+
   const modoMetaRaw = (formData.get('modo_meta') as string) || 'comissao'
   const modo_meta = (['faturamento', 'comissao', 'ambos'].includes(modoMetaRaw) ? modoMetaRaw : 'comissao')
   const baseMetaRaw = (formData.get('base_meta') as string) || modo_meta
@@ -96,6 +104,7 @@ export async function salvarOperacaoConfig(formData: FormData) {
       mostrar_faturamento_geral,
       modo_meta,
       base_meta,
+      dias_trabalho_padrao,
       dias_trabalhados, horario_abertura, horario_fechamento, modalidade, tem_assinatura,
       visibilidade_ranking, dia_fechamento,
     })

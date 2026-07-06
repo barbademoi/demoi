@@ -23,6 +23,7 @@ type BarbeiroRow = {
   barbearia_id: string
   ativo: boolean
   created_at: string
+  dias_trabalho_mes: number | null
   comissao: number
   metaInd: MetaIndividual | null
   // passthrough for EditarBarbeiroModal / LancamentoForm
