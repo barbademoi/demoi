@@ -20,7 +20,7 @@ import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetal
 type UsuarioComBarbearia = {
   barbearia_id: string
   senha_temporaria: boolean
-  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null; dia_fechamento: number | null; mostrar_ticket_medio: boolean | null; mostrar_faturamento_geral: boolean | null; regras_gerais: string[] | null }
+  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null; dia_fechamento: number | null; mostrar_ticket_medio: boolean | null; mostrar_faturamento_geral: boolean | null; regras_gerais: string[] | null; dias_trabalho_padrao: number | null }
 }
 
 type MetaSimples = {
@@ -47,7 +47,7 @@ export default async function DashboardPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais)')
+    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais, dias_trabalho_padrao)')
     .eq('id', user.id)
     .single()
 
@@ -122,12 +122,14 @@ export default async function DashboardPage({
     : cicloDeData(new Date(ano, mes - 1, diaFechamento), diaFechamento)
 
   const diaAtual = hoje.getDate()
-  const { diasUteisCorridos, diasUteisRestantes, diasRestantesCiclo } =
+  const { diasUteisCorridos, diasUteisRestantes, diasTotaisCiclo, diasRestantesCiclo } =
     ehPeriodoAtual
       ? calcDiasUteisCiclo(ciclo.inicio, ciclo.fim, hoje)
       // Mês fechado/futuro: usa as datas-limite como se "hoje" fosse o fim do ciclo
       : calcDiasUteisCiclo(ciclo.inicio, ciclo.fim, ciclo.fim)
   const diasRestantes = diasRestantesCiclo
+  // Andamento do ciclo em dias corridos — base do ritmo por dias de trabalho.
+  const diasCorridosCiclo = diasTotaisCiclo - diasRestantesCiclo
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: metaRaw } = await (supabase as any)
@@ -407,6 +409,9 @@ export default async function DashboardPage({
       diasRestantes={diasRestantes}
       diasUteisCorridos={diasUteisCorridos}
       diasUteisRestantes={diasUteisRestantes}
+      diasTrabalhoPadrao={barbearia.dias_trabalho_padrao ?? null}
+      diasCorridosCiclo={diasCorridosCiclo}
+      totalDiasCiclo={diasTotaisCiclo}
       logoUploadSlot={<LogoUpload logoUrl={barbearia.logo_url} nomeAbrev={barbearia.nome[0]} />}
       faturamentoEditSlot={null}
       modoMesSlot={<ModoMesSelector modoAtual={modoAtual} mes={mes} ano={ano} />}

@@ -7,6 +7,7 @@ import { garantirCampanhaCicloAtual } from '@/lib/campanha'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import { gerarInsightsBarbeiro } from '@/lib/insights'
 import { obterMensagemDiaria } from '@/lib/ia-mensagem'
+import { resolverDiasTrabalho } from '@/lib/ritmo'
 import { buscarHistoricoMeses } from '@/lib/historicoMeses'
 import BrandLogo from '@/components/BrandLogo'
 import BarbeiroClient from './BarbeiroClient'
@@ -41,7 +42,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barbeariaRaw } = await (supabase as any)
-    .from('barbearias').select('nome, cor_principal, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais')
+    .from('barbearias').select('nome, cor_principal, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais, dias_trabalho_padrao')
     .eq('id', barbeiro.barbearia_id).single()
   const barbearia = barbeariaRaw as {
     nome: string
@@ -52,6 +53,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     mostrar_ticket_medio: boolean | null
     mostrar_faturamento_geral: boolean | null
     regras_gerais: string[] | null
+    dias_trabalho_padrao: number | null
   } | null
   const mostrarTicketMedio = barbearia?.mostrar_ticket_medio ?? false
   const mostrarFaturamentoGeral = barbearia?.mostrar_faturamento_geral ?? true
@@ -293,6 +295,13 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
   const diasCorridos = diasTotaisCiclo - diasRestantesCiclo
   const diasRestantes = diasRestantesCiclo
 
+  // Dias de trabalho do barbeiro (base do ritmo). Valor próprio > padrão da
+  // barbearia > null (null = cálculo legado por dias úteis do ciclo).
+  const diasTrabalhoMes = resolverDiasTrabalho(
+    barbeiro.dias_trabalho_mes,
+    barbearia?.dias_trabalho_padrao ?? null,
+  )
+
   const mensagemIA = await obterMensagemDiaria({
     barbeiro_id: barbeiro.id,
     nome: barbeiro.nome,
@@ -302,6 +311,9 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     diasCorridos,
     diasUteisCorridos,
     diasUteisRestantes,
+    diasTrabalhoMes,
+    diasCorridosCiclo: diasCorridos,
+    totalDiasCiclo: diasTotaisCiclo,
     posicaoRanking,            // 0 = não está no ranking; ia-mensagem.ts trata
     totalBarbeiros: totalBarbeirosAtivos ?? ranking.length,
   })
@@ -384,6 +396,9 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
           diasRestantes={diasRestantes}
           diasUteisCorridos={diasUteisCorridos}
           diasUteisRestantes={diasUteisRestantes}
+          diasTrabalhoMes={diasTrabalhoMes}
+          diasCorridosCiclo={diasCorridos}
+          totalDiasCiclo={diasTotaisCiclo}
           modo={modo}
           metaInd={metaInd}
           lancamento={lancamento}

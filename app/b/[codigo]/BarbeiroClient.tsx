@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { formatBRL, TIER_CONFIG, calcProgresso } from '@/lib/utils'
+import { calcularRitmo } from '@/lib/ritmo'
 import { pegarRegrasGerais } from '@/lib/regras'
 import LancarDiaForm from './LancarDiaForm'
 import CelebracaoOverlay from '@/components/barbeiro/CelebracaoOverlay'
@@ -26,6 +27,10 @@ interface Props {
   diasRestantes: number
   diasUteisCorridos: number
   diasUteisRestantes: number
+  // Base "dias de trabalho" (null → usa dias úteis, comportamento legado)
+  diasTrabalhoMes: number | null
+  diasCorridosCiclo: number
+  totalDiasCiclo: number
   modo: ModoPontos
   // metas
   metaInd: MetaIndividual | null
@@ -82,6 +87,7 @@ interface Props {
 
 export default function BarbeiroClient({
   barbeiro, barbeariaName: _, mes, ano, diaAtual, diasRestantes, diasUteisCorridos, diasUteisRestantes,
+  diasTrabalhoMes, diasCorridosCiclo, totalDiasCiclo,
   modo, metaInd, lancamento, progresso, ranking, posicaoRanking,
   faturamentoColetivo, progressoColetivo, progressoColetivoBronze, progressoColetivoPrata,
   metaColetiva, metaColetivaBronze, metaColetivaPrata,
@@ -150,8 +156,6 @@ export default function BarbeiroClient({
 
   // ── Contagem regressiva (2C) ─────────────────────────
   const diasNoMes = new Date(ano, mes, 0).getDate()
-  // Usa dias úteis (Seg-Sáb, sem feriados) para ritmo mais preciso
-  const ritmoAtual = diasUteisCorridos > 0 ? comissao / diasUteisCorridos : 0
 
   let tierId: 'bronze' | 'prata' | 'ouro' | null = null
   let metaFoco = 0
@@ -160,11 +164,25 @@ export default function BarbeiroClient({
     else if (comissao < metaInd.prata_comm) { tierId = 'prata'; metaFoco = metaInd.prata_comm }
     else if (comissao < metaInd.ouro_comm) { tierId = 'ouro'; metaFoco = metaInd.ouro_comm }
   }
-  const valorNecessarioPorDia = diasUteisRestantes > 0 && metaFoco > comissao
-    ? (metaFoco - comissao) / diasUteisRestantes
-    : 0
-  const ritmoOk = valorNecessarioPorDia === 0 || ritmoAtual >= valorNecessarioPorDia
-  const mostrarContagem = mostraMetas && metaInd !== null && diasUteisRestantes > 0 && diasNoMes > 0
+
+  // Ritmo/projetado com base nos DIAS DE TRABALHO do barbeiro (ou dias úteis
+  // do ciclo, se não configurado). A meta total em R$ não muda — só a base.
+  const ritmo = calcularRitmo({
+    comissao,
+    metaFoco,
+    diasCorridosCiclo,
+    totalDiasCiclo,
+    diasTrabalhoMes,
+    diasUteisCorridos,
+    diasUteisRestantes,
+  })
+  const ritmoAtual = ritmo.ritmoAtual
+  const valorNecessarioPorDia = ritmo.necessarioPorDia
+  const ritmoOk = ritmo.ritmoOk
+  const usaDiasTrabalho = ritmo.usaDiasTrabalho
+  const unidadeDia = usaDiasTrabalho ? 'dia de trabalho' : 'dia útil'
+  const diasBaseRestantes = Math.round(ritmo.baseRestantes)
+  const mostrarContagem = mostraMetas && metaInd !== null && ritmo.baseRestantes > 0 && diasNoMes > 0
 
   return (
     <>
@@ -294,7 +312,7 @@ export default function BarbeiroClient({
             <div className="card-light p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-on-cream-muted text-xs font-sans uppercase tracking-wide">
-                  Faltam {diasUteisRestantes} {diasUteisRestantes === 1 ? 'dia útil' : 'dias úteis'}
+                  Faltam {diasBaseRestantes} {diasBaseRestantes === 1 ? unidadeDia : `${unidadeDia}s`}
                 </p>
                 {tierId && (
                   <span className={`text-xs font-sans font-semibold ${TIER_CONFIG[tierId].textClass}`}>
@@ -307,7 +325,7 @@ export default function BarbeiroClient({
                 <>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-on-cream-muted text-xs font-sans">Necessário/dia útil para {TIER_CONFIG[tierId].label}</p>
+                      <p className="text-on-cream-muted text-xs font-sans">Necessário/{unidadeDia} para {TIER_CONFIG[tierId].label}</p>
                       <p className="font-serif text-2xl text-on-cream">{formatBRL(valorNecessarioPorDia)}</p>
                     </div>
                     <div className="text-right">
@@ -317,6 +335,15 @@ export default function BarbeiroClient({
                       </p>
                     </div>
                   </div>
+                  {/* Projeção de fechamento — extrapola o ritmo atual sobre a base
+                      de dias. Usa dias de trabalho quando configurado. */}
+                  <div className="flex items-center justify-between pt-1 border-t border-on-cream/10">
+                    <p className="text-on-cream-muted text-xs font-sans">
+                      Projeção de fechamento
+                      {usaDiasTrabalho ? ` (${ritmo.baseTotal} dias de trabalho)` : ''}
+                    </p>
+                    <p className="font-serif text-lg text-on-cream">{formatBRL(ritmo.projetado)}</p>
+                  </div>
                   <div className={`text-xs font-sans px-3 py-2 rounded-xl ${
                     ritmoOk
                       ? 'bg-green-500/10 text-green-700'
@@ -324,7 +351,7 @@ export default function BarbeiroClient({
                   }`}>
                     {ritmoOk
                       ? `✅ No ritmo certo para ${TIER_CONFIG[tierId].label}`
-                      : `⚠️ Precisa de ${formatBRL(valorNecessarioPorDia - ritmoAtual)}/dia útil a mais`}
+                      : `⚠️ Precisa de ${formatBRL(valorNecessarioPorDia - ritmoAtual)}/${unidadeDia} a mais`}
                   </div>
                 </>
               ) : tierId === null ? (

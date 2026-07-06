@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createAdminClient } from './supabase/admin'
 import { dataLocalStr } from './utils'
+import { calcularRitmo } from './ritmo'
 import type { MetaIndividual } from '@/types/database'
 
 interface Params {
@@ -12,6 +13,10 @@ interface Params {
   diasCorridos: number
   diasUteisRestantes: number
   diasUteisCorridos: number
+  // Base "dias de trabalho" (null → usa dias úteis, comportamento legado)
+  diasTrabalhoMes: number | null
+  diasCorridosCiclo: number
+  totalDiasCiclo: number
   posicaoRanking: number   // 1-based; 0 = não está no ranking este mês
   totalBarbeiros: number   // total de barbeiros ATIVOS da barbearia (não só quem lançou)
 }
@@ -31,10 +36,7 @@ export async function obterMensagemDiaria(params: Params): Promise<string | null
   if (cached?.mensagem) return cached.mensagem as string
 
   try {
-    const { nome, comissao, metaInd, diasRestantes, diasCorridos, diasUteisRestantes, diasUteisCorridos, posicaoRanking, totalBarbeiros } = params
-
-    // Usa dias úteis para ritmo — mais preciso para barbearia (Seg–Sáb)
-    const ritmoAtual = diasUteisCorridos > 0 ? comissao / diasUteisCorridos : 0
+    const { nome, comissao, metaInd, diasRestantes, diasCorridos, diasUteisRestantes, diasUteisCorridos, diasTrabalhoMes, diasCorridosCiclo, totalDiasCiclo, posicaoRanking, totalBarbeiros } = params
 
     const pct = (meta: number) => meta > 0 ? Math.round((comissao / meta) * 100) : 0
     const b = metaInd?.bronze_comm ?? 0
@@ -47,9 +49,20 @@ export async function obterMensagemDiaria(params: Params): Promise<string | null
     else if (p > 0 && comissao < p) { proximaMeta = p; proximaNivel = 'Prata' }
     else if (o > 0 && comissao < o) { proximaMeta = o; proximaNivel = 'Ouro' }
 
-    const necesarioPorDiaUtil = diasUteisRestantes > 0 && proximaMeta > comissao
-      ? Math.round((proximaMeta - comissao) / diasUteisRestantes)
-      : 0
+    // Ritmo com base nos dias de trabalho do barbeiro (ou dias úteis se não
+    // configurado). A "unidade de dia" muda conforme a base usada.
+    const ritmo = calcularRitmo({
+      comissao,
+      metaFoco: proximaMeta,
+      diasCorridosCiclo,
+      totalDiasCiclo,
+      diasTrabalhoMes,
+      diasUteisCorridos,
+      diasUteisRestantes,
+    })
+    const ritmoAtual = ritmo.ritmoAtual
+    const necesarioPorDiaUtil = Math.round(ritmo.necessarioPorDia)
+    const unidadeDia = ritmo.usaDiasTrabalho ? 'dia de trabalho' : 'dia útil'
 
     // Só inclui ranking se o dado é confiável
     const rankingValido = posicaoRanking >= 1 && posicaoRanking <= totalBarbeiros && totalBarbeiros >= 2
@@ -67,9 +80,11 @@ Meta Bronze: R$ ${Math.round(b)} (${pct(b)}% atingido)
 Meta Prata: R$ ${Math.round(p)} (${pct(p)}% atingido)
 Meta Ouro: R$ ${Math.round(o)} (${pct(o)}% atingido)
 Próxima meta a atingir: ${proximaNivel || 'todas atingidas'}${proximaNivel ? ` — faltam R$ ${Math.round(proximaMeta - comissao)}` : ''}
-Ritmo atual (dias úteis trabalhados): R$ ${Math.round(ritmoAtual)}/dia útil
-Ritmo necessário para próxima meta: R$ ${necesarioPorDiaUtil}/dia útil
-Dias úteis trabalhados no mês: ${diasUteisCorridos} | Dias úteis restantes: ${diasUteisRestantes}
+Ritmo atual: R$ ${Math.round(ritmoAtual)}/${unidadeDia}
+Ritmo necessário para próxima meta: R$ ${necesarioPorDiaUtil}/${unidadeDia}
+${ritmo.usaDiasTrabalho
+  ? `Dias de trabalho no mês: ${ritmo.baseTotal} | Dias de trabalho já decorridos: ${Math.round(ritmo.baseDecorridos)} | Restantes: ${Math.round(ritmo.baseRestantes)}`
+  : `Dias úteis trabalhados no mês: ${diasUteisCorridos} | Dias úteis restantes: ${diasUteisRestantes}`}
 Dias corridos: ${diasCorridos} | Dias corridos restantes: ${diasRestantes}
 ${rankingLine}
 

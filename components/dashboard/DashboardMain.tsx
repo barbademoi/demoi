@@ -12,6 +12,7 @@ import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior
 import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
 import TicketMedio from '@/components/autonomo/TicketMedio'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/utils'
+import { calcularRitmo } from '@/lib/ritmo'
 import type { MetaIndividual, ModoPontos, CampanhaComDetalhes } from '@/types/database'
 
 type BarbeiroRow = {
@@ -69,6 +70,9 @@ interface Props {
   diasRestantes: number
   diasUteisCorridos: number
   diasUteisRestantes: number
+  diasTrabalhoPadrao: number | null
+  diasCorridosCiclo: number
+  totalDiasCiclo: number
   faturamentoEditSlot: React.ReactNode
   mostrarTicketMedio: boolean
   mostrarFaturamentoGeral: boolean
@@ -115,6 +119,9 @@ export default function DashboardMain({
   diasRestantes,
   diasUteisCorridos,
   diasUteisRestantes,
+  diasTrabalhoPadrao,
+  diasCorridosCiclo,
+  totalDiasCiclo,
   faturamentoEditSlot,
   mostrarTicketMedio,
   mostrarFaturamentoGeral,
@@ -178,6 +185,9 @@ export default function DashboardMain({
           diasRestantes={diasRestantes}
           diasUteisCorridos={diasUteisCorridos}
           diasUteisRestantes={diasUteisRestantes}
+          diasTrabalhoPadrao={diasTrabalhoPadrao}
+          diasCorridosCiclo={diasCorridosCiclo}
+          totalDiasCiclo={totalDiasCiclo}
           faturamentoEditSlot={faturamentoEditSlot}
           mostrarTicketMedio={mostrarTicketMedio}
           mostrarFaturamentoGeral={mostrarFaturamentoGeral}
@@ -242,6 +252,9 @@ interface TodosProps {
   diasRestantes: number
   diasUteisCorridos: number
   diasUteisRestantes: number
+  diasTrabalhoPadrao: number | null
+  diasCorridosCiclo: number
+  totalDiasCiclo: number
   faturamentoEditSlot: React.ReactNode
   mostrarTicketMedio: boolean
   mostrarFaturamentoGeral: boolean
@@ -270,6 +283,9 @@ function TodosView({
   diasRestantes,
   diasUteisCorridos,
   diasUteisRestantes,
+  diasTrabalhoPadrao,
+  diasCorridosCiclo,
+  totalDiasCiclo,
   faturamentoEditSlot,
   mostrarTicketMedio,
   mostrarFaturamentoGeral,
@@ -277,10 +293,22 @@ function TodosView({
   faturamentoMesAnterior,
 }: TodosProps) {
   const falta = meta ? meta.meta_coletiva - faturamentoExibido : 0
-  // Usa dias úteis (Seg–Sáb, sem feriados) para ritmo mais preciso
-  const necesarioPorDia = diasUteisRestantes > 0 && falta > 0 ? falta / diasUteisRestantes : 0
-  const ritmoColetivo = diasUteisCorridos > 0 ? faturamentoExibido / diasUteisCorridos : 0
-  const ritmoOk = ritmoColetivo >= necesarioPorDia
+  // Ritmo coletivo com base nos dias de trabalho padrão da barbearia (ou dias
+  // úteis do ciclo, se não configurado). A meta coletiva em R$ não muda.
+  const ritmoColet = calcularRitmo({
+    comissao: faturamentoExibido,
+    metaFoco: meta?.meta_coletiva ?? 0,
+    diasCorridosCiclo,
+    totalDiasCiclo,
+    diasTrabalhoMes: diasTrabalhoPadrao,
+    diasUteisCorridos,
+    diasUteisRestantes,
+  })
+  const necesarioPorDia = ritmoColet.necessarioPorDia
+  const ritmoColetivo = ritmoColet.ritmoAtual
+  const ritmoOk = ritmoColet.ritmoOk
+  const unidadeDiaColet = ritmoColet.usaDiasTrabalho ? 'dia de trabalho' : 'dia'
+  const diasRestantesColet = Math.round(ritmoColet.baseRestantes)
 
   // Tiers da meta coletiva (só quando bronze/prata também foram configurados;
   // caso contrário cai no display legado de 1 barra)
@@ -377,11 +405,14 @@ function TodosView({
               </a>
 
               {/* Countdown — mostra ritmo R$/dia, então esconde quando faturamento geral está off */}
-              {mostrarFaturamentoGeral && diasUteisRestantes > 0 && falta > 0 && (
+              {mostrarFaturamentoGeral && diasRestantesColet > 0 && falta > 0 && (
                 <div className={`rounded-2xl border p-4 ${ritmoOk ? 'border-green-500/30 bg-green-500/5' : 'border-amber-500/30 bg-amber-500/5'}`}>
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-text-muted text-xs font-sans">
-                      <span className="text-text font-semibold">{diasUteisRestantes}</span> dias úteis restantes
+                      <span className="text-text font-semibold">{diasRestantesColet}</span>{' '}
+                      {ritmoColet.usaDiasTrabalho
+                        ? `${diasRestantesColet === 1 ? 'dia de trabalho' : 'dias de trabalho'} restantes`
+                        : `${diasRestantesColet === 1 ? 'dia útil restante' : 'dias úteis restantes'}`}
                     </p>
                     <p className={`text-xs font-sans font-semibold ${ritmoOk ? 'text-green-400' : 'text-amber-400'}`}>
                       {ritmoOk ? '✅ No ritmo' : '⚠️ Acelerar'}
@@ -389,7 +420,7 @@ function TodosView({
                   </div>
                   <div className="flex justify-between gap-4">
                     <div>
-                      <p className="text-text-muted text-xs font-sans">Necessário/dia</p>
+                      <p className="text-text-muted text-xs font-sans">Necessário/{unidadeDiaColet}</p>
                       <p className={`font-serif text-2xl ${ritmoOk ? 'text-green-400' : 'text-amber-400'}`}>
                         {formatBRL(necesarioPorDia)}
                       </p>

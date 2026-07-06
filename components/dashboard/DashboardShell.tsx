@@ -64,6 +64,9 @@ interface Props {
   diasRestantes: number
   diasUteisCorridos: number
   diasUteisRestantes: number
+  diasTrabalhoPadrao: number | null
+  diasCorridosCiclo: number
+  totalDiasCiclo: number
   // Server-rendered slots (can't hold state but can render)
   logoUploadSlot: React.ReactNode
   faturamentoEditSlot: React.ReactNode
@@ -102,6 +105,7 @@ export default function DashboardShell({
   modoAtual, campanha, pontosMap, pontosHojePorBarbeiro,
   rankingPontosBarb, rankingPontosRecep,
   diaAtual, diasRestantes, diasUteisCorridos, diasUteisRestantes,
+  diasTrabalhoPadrao, diasCorridosCiclo, totalDiasCiclo,
   logoUploadSlot, faturamentoEditSlot,
   modoMesSlot, novoBarbeiroSlot, novaRecepcionistaSlot,
   metasSlot, campanhaSlot, campanhaToggleSlot,
@@ -227,6 +231,9 @@ export default function DashboardShell({
             diasRestantes={diasRestantes}
             diasUteisCorridos={diasUteisCorridos}
             diasUteisRestantes={diasUteisRestantes}
+            diasTrabalhoPadrao={diasTrabalhoPadrao}
+            diasCorridosCiclo={diasCorridosCiclo}
+            totalDiasCiclo={totalDiasCiclo}
             faturamentoEditSlot={faturamentoEditSlot}
             mostrarTicketMedio={mostrarTicketMedio}
             mostrarFaturamentoGeral={mostrarFaturamentoGeral}
