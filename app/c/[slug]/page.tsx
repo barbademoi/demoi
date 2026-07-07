@@ -17,7 +17,7 @@ export default async function FeedbackClientePublicPage({ params }: Props) {
 
   if (!barb) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="bm-theme min-h-screen flex items-center justify-center p-6">
         <div className="card-light p-8 max-w-md text-center space-y-2">
           <p className="text-4xl">🔒</p>
           <h1 className="font-serif text-xl text-on-cream">Link não disponível</h1>
@@ -39,7 +39,7 @@ export default async function FeedbackClientePublicPage({ params }: Props) {
   const barbeiros = (barbRaw ?? []) as { id: string; nome: string; foto_url: string | null }[]
 
   return (
-    <div className="min-h-screen p-4 sm:p-6">
+    <div className="bm-theme min-h-screen p-4 sm:p-6">
       <div className="max-w-lg mx-auto">
         <header className="text-center mb-6">
           {barb.logo_url ? (

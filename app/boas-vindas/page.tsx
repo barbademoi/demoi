@@ -85,7 +85,7 @@ export default async function BoasVindasPage({ searchParams }: Props) {
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen flex items-center justify-center px-4">
+    <main className="bm-theme min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm animate-fade-in">
         <div className="text-center mb-10">
           <h1 className="font-serif text-4xl text-text mb-2">

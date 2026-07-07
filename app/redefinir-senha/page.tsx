@@ -19,7 +19,7 @@ export default function RedefinirSenhaPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4">
+    <main className="bm-theme min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm animate-fade-in">
 
         <div className="text-center mb-10">
