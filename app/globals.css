@@ -132,19 +132,21 @@
 }
 
 /* =====================================================================
-   REDESIGN "escuro legível" — PREVIEW, escopado SÓ na dashboard.
-   Regras plain-CSS (após o Tailwind) prefixadas com :where(.dash-redesign):
+   TEMA "escuro legível" (bm-theme) — PREVIEW. Escopado por classe: aplicado
+   na dashboard e, área por área, no resto do sistema (barbeiro, painel do
+   dono, telas públicas). Só entra onde .bm-theme envolve a árvore.
+   Regras plain-CSS (após o Tailwind) prefixadas com :where(.bm-theme):
    - :where() deixa a especificidade em (0,1,0), então variantes hover:/focus:
      (que têm pseudo-classe = maior especificidade) continuam ganhando;
    - vencem as utilities-base por ordem de fonte (este bloco vem depois);
-   - NÃO vazam pra outras telas (só o que está sob .dash-redesign);
+   - NÃO vazam pra outras telas (só o que está sob .bm-theme);
    - o :not([class*=":text-"]) evita mexer em textos com tamanho responsivo
      (ex.: text-sm sm:text-xl), preservando a responsividade.
    Mantém fundo espresso + latão. Não altera lógica/dados — só visual.
    ===================================================================== */
 
 /* Fonte de interface: Inter. Números editoriais seguem em .font-serif. */
-:where(.dash-redesign) {
+:where(.bm-theme) {
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   font-size: 16px;
   line-height: 1.5;
@@ -152,58 +154,58 @@
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-:where(.dash-redesign) .font-sans {
+:where(.bm-theme) .font-sans {
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
 }
 
 /* Sem pesos finos em lugar nenhum da interface. */
-:where(.dash-redesign) .font-light,
-:where(.dash-redesign) .font-thin {
+:where(.bm-theme) .font-light,
+:where(.bm-theme) .font-thin {
   font-weight: 500;
 }
 
 /* CONTRASTE FORTE. Texto principal: branco quente. Secundário: claro e
    legível (nada de cinza apagado). hover:/focus: continuam funcionando. */
-:where(.dash-redesign) .text-text { color: #F4EFE7; }
-:where(.dash-redesign) .text-text-muted { color: #C4BDB0; }
-:where(.dash-redesign) .placeholder\:text-text-muted::placeholder { color: #A79E90; }
+:where(.bm-theme) .text-text { color: #F4EFE7; }
+:where(.bm-theme) .text-text-muted { color: #C4BDB0; }
+:where(.bm-theme) .placeholder\:text-text-muted::placeholder { color: #A79E90; }
 
 /* TAMANHOS MAIORES (só onde NÃO há tamanho responsivo, pra não quebrar mobile).
    Números grandes em .font-serif ficam como estão. */
-:where(.dash-redesign) :not([class*=":text-"]).text-\[10px\],
-:where(.dash-redesign) :not([class*=":text-"]).text-\[11px\] {
+:where(.bm-theme) :not([class*=":text-"]).text-\[10px\],
+:where(.bm-theme) :not([class*=":text-"]).text-\[11px\] {
   font-size: 12px;
   line-height: 1.4;
 }
-:where(.dash-redesign) :not([class*=":text-"]).text-xs {
+:where(.bm-theme) :not([class*=":text-"]).text-xs {
   font-size: 0.8125rem;  /* 13px */
   line-height: 1.45;
 }
-:where(.dash-redesign) :not([class*=":text-"]).text-sm {
+:where(.bm-theme) :not([class*=":text-"]).text-sm {
   font-size: 0.9375rem;  /* 15px */
   line-height: 1.5;
 }
 
 /* Rótulos: mín. 12px, secundário legível. */
-:where(.dash-redesign) .label {
+:where(.bm-theme) .label {
   color: #C4BDB0;
   font-size: 12px;
   letter-spacing: 0.04em;
 }
 
 /* Input: texto claro e um pouco maior. */
-:where(.dash-redesign) .input {
+:where(.bm-theme) .input {
   color: #F4EFE7;
   font-size: 15px;
 }
 
 /* Foco sempre visível (acessibilidade) — anel em latão. */
-.dash-redesign a:focus-visible,
-.dash-redesign button:focus-visible,
-.dash-redesign input:focus-visible,
-.dash-redesign select:focus-visible,
-.dash-redesign textarea:focus-visible,
-.dash-redesign [tabindex]:focus-visible {
+.bm-theme a:focus-visible,
+.bm-theme button:focus-visible,
+.bm-theme input:focus-visible,
+.bm-theme select:focus-visible,
+.bm-theme textarea:focus-visible,
+.bm-theme [tabindex]:focus-visible {
   outline: 2px solid #E8A855;
   outline-offset: 2px;
   border-radius: 6px;
