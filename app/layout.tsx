@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { DM_Serif_Display, DM_Sans } from 'next/font/google'
+import { DM_Serif_Display, DM_Sans, Inter } from 'next/font/google'
 import './globals.css'
 import MetaPixel from '@/components/MetaPixel'
 
@@ -15,6 +15,15 @@ const dmSans = DM_Sans({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
   variable: '--font-dm-sans',
+  display: 'swap',
+})
+
+// Inter — fonte de interface do redesign (aplicada só onde referenciada,
+// via a var CSS; carregá-la aqui não muda nada por si só).
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
   display: 'swap',
 })
 
@@ -35,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR" className={`${dmSerif.variable} ${dmSans.variable}`}>
+    <html lang="pt-BR" className={`${dmSerif.variable} ${dmSans.variable} ${inter.variable}`}>
       <body className="font-sans bg-background text-text antialiased min-h-screen">
         <MetaPixel />
         {children}

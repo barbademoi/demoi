@@ -120,7 +120,7 @@ export default function DashboardShell({
   const [showConfig, setShowConfig] = useState(false)
 
   return (
-    <div className="min-h-screen flex">
+    <div className="dash-redesign min-h-screen flex">
       <BarbeariaWatermark logoUrl={barbeariaLogoUrl} />
       <Sidebar
         barbeariaNome={barbeariaNome}
