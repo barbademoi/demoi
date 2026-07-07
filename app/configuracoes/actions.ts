@@ -86,6 +86,14 @@ export async function salvarOperacaoConfig(formData: FormData) {
     ? Math.min(31, Math.max(1, diasTrabParsed))
     : null
 
+  // Piso mínimo de faturamento no ciclo anterior pra concorrer à Maior Evolução.
+  // Vazio/invalido → 500 (default). 0 = sem piso.
+  const evoMinRaw = (formData.get('evolucao_faturamento_minimo') as string ?? '').trim().replace(',', '.')
+  const evoMinParsed = parseFloat(evoMinRaw)
+  const evolucao_faturamento_minimo = evoMinRaw !== '' && Number.isFinite(evoMinParsed)
+    ? Math.max(0, evoMinParsed)
+    : 500
+
   const modoMetaRaw = (formData.get('modo_meta') as string) || 'comissao'
   const modo_meta = (['faturamento', 'comissao', 'ambos'].includes(modoMetaRaw) ? modoMetaRaw : 'comissao')
   const baseMetaRaw = (formData.get('base_meta') as string) || modo_meta
@@ -105,6 +113,7 @@ export async function salvarOperacaoConfig(formData: FormData) {
       modo_meta,
       base_meta,
       dias_trabalho_padrao,
+      evolucao_faturamento_minimo,
       dias_trabalhados, horario_abertura, horario_fechamento, modalidade, tem_assinatura,
       visibilidade_ranking, dia_fechamento,
     })

@@ -26,6 +26,7 @@ interface BarbeariaData {
   modo_meta: 'faturamento' | 'comissao' | 'ambos' | null
   base_meta: 'faturamento' | 'comissao' | null
   dias_trabalho_padrao: number | null
+  evolucao_faturamento_minimo: number
 }
 
 type ModoMetaOpt = 'faturamento' | 'comissao' | 'ambos'
@@ -81,6 +82,9 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
   const [diaFechamento, setDiaFechamento] = useState<string>(String(barbearia.dia_fechamento ?? 1))
   const [diasTrabalhoPadrao, setDiasTrabalhoPadrao] = useState<string>(
     barbearia.dias_trabalho_padrao != null ? String(barbearia.dias_trabalho_padrao) : ''
+  )
+  const [evolucaoMinimo, setEvolucaoMinimo] = useState<string>(
+    barbearia.evolucao_faturamento_minimo != null ? String(barbearia.evolucao_faturamento_minimo) : '500'
   )
   const [mostrarTicket, setMostrarTicket] = useState<boolean>(barbearia.mostrar_ticket_medio ?? false)
   const [mostrarFatGeral, setMostrarFatGeral] = useState<boolean>(barbearia.mostrar_faturamento_geral ?? true)
@@ -194,6 +198,37 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
             {diasTrabalhoPadrao === ''
               ? 'Em branco: o ritmo continua sendo calculado pelos dias úteis do ciclo (comportamento atual).'
               : `Ritmo esperado distribuído sobre ${diasTrabalhoPadrao} dias de trabalho no mês.`}
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="evolucao_faturamento_minimo" className="label">
+          Faturamento mínimo no mês anterior para concorrer a Maior Evolução
+        </label>
+        <p className="text-text-muted text-xs font-sans mb-2 leading-relaxed">
+          No widget “Destaques do mês”, só concorre ao destaque de <span className="text-text">Maior Evolução</span> quem
+          faturou acima desse piso no ciclo anterior. Evita crescimento % gigante vindo de base pequena
+          (ex.: R$ 50 → R$ 2.000). Vale só pra evolução.
+        </p>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="text-text-muted text-sm font-sans">R$</span>
+            <input
+              id="evolucao_faturamento_minimo"
+              name="evolucao_faturamento_minimo"
+              type="number"
+              min="0"
+              step="50"
+              inputMode="numeric"
+              placeholder="500"
+              value={evolucaoMinimo}
+              onChange={e => setEvolucaoMinimo(e.target.value)}
+              className="input w-28"
+            />
+          </div>
+          <p className="text-text-muted text-xs font-sans leading-relaxed flex-1">
+            Padrão: R$ 500. Deixe 0 pra não exigir piso.
           </p>
         </div>
       </div>

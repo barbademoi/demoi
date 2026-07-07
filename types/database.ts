@@ -13,6 +13,7 @@ export interface Database {
           mostrar_faturamento_geral: boolean
           dias_trabalho_padrao: number | null
           comportamento_ativo: boolean
+          evolucao_faturamento_minimo: number
           created_at: string
         }
         Insert: {
@@ -24,6 +25,7 @@ export interface Database {
           mostrar_faturamento_geral?: boolean
           dias_trabalho_padrao?: number | null
           comportamento_ativo?: boolean
+          evolucao_faturamento_minimo?: number
           created_at?: string
         }
         Update: {
@@ -34,6 +36,7 @@ export interface Database {
           mostrar_faturamento_geral?: boolean
           dias_trabalho_padrao?: number | null
           comportamento_ativo?: boolean
+          evolucao_faturamento_minimo?: number
         }
         Relationships: []
       }

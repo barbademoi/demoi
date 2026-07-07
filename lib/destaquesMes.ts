@@ -64,15 +64,19 @@ export async function calcularDestaquesMes(
 ): Promise<DestaquesMes> {
   const vazio: DestaquesMes = { pontuacao: null, faturamento: null, faturamentoLabel: 'Maior faturamento', evolucao: null }
 
-  // Config da barbearia (dia de fechamento + base da meta pro rótulo).
+  // Config da barbearia (dia de fechamento, base da meta pro rótulo, piso da evolução).
   const { data: cfg } = await supabase
     .from('barbearias')
-    .select('dia_fechamento, modo_meta, base_meta')
+    .select('dia_fechamento, modo_meta, base_meta, evolucao_faturamento_minimo')
     .eq('id', barbeariaId)
     .single()
   const diaFechamento = (cfg?.dia_fechamento as number | null) ?? 1
   const modoMeta = (cfg?.modo_meta ?? 'comissao') as 'faturamento' | 'comissao' | 'ambos'
   const baseMeta = (cfg?.base_meta ?? 'comissao') as 'faturamento' | 'comissao'
+  // Piso mínimo de faturamento no ciclo anterior pra concorrer à evolução.
+  const pisoEvolucao = cfg?.evolucao_faturamento_minimo != null
+    ? Number(cfg.evolucao_faturamento_minimo) || 0
+    : 500
   const base = modoMeta === 'ambos' ? baseMeta : (modoMeta as 'faturamento' | 'comissao')
   const faturamentoLabel = base === 'faturamento' ? 'Maior faturamento' : 'Maior comissão'
 
@@ -124,8 +128,11 @@ export async function calcularDestaquesMes(
     .map(([id, nome]) => {
       const atual = atualMap.get(id) ?? 0
       const prevCheio = prevMap.get(id) ?? 0
+      // PISO: só concorre quem faturou acima do mínimo no ciclo anterior.
+      // Combina com a regra de ter dado anterior (prevCheio > 0). Evita %
+      // gigante vindo de base pequena (ex.: R$ 50 → R$ 2.000).
+      if (prevCheio < pisoEvolucao || prevCheio <= 0) return null
       const prevProporcional = prevCheio * fator
-      // Sem dado no ciclo anterior (ex.: entrou agora) → fora do destaque.
       if (prevProporcional <= 0) return null
       const crescimento = ((atual - prevProporcional) / prevProporcional) * 100
       return { id, nome, crescimento }

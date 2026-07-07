@@ -11,9 +11,10 @@ interface CardProps {
   valorFmt: string | null
   empatadoCom?: string | null
   destaque?: boolean   // ênfase em latão
+  msgVazio?: string
 }
 
-function DestaqueCard({ emoji, rotulo, nome, valorFmt, empatadoCom, destaque }: CardProps) {
+function DestaqueCard({ emoji, rotulo, nome, valorFmt, empatadoCom, destaque, msgVazio }: CardProps) {
   const vazio = !nome || !valorFmt
   return (
     <div className={`card p-4 flex flex-col gap-1 ${destaque ? 'border-[#E8A855]/40' : ''}`}>
@@ -22,7 +23,7 @@ function DestaqueCard({ emoji, rotulo, nome, valorFmt, empatadoCom, destaque }: 
       </p>
       {vazio ? (
         <p className="text-text-muted text-sm font-sans mt-1 leading-snug">
-          Ainda sem dados suficientes neste ciclo.
+          {msgVazio ?? 'Ainda sem dados suficientes neste ciclo.'}
         </p>
       ) : (
         <>
@@ -68,6 +69,7 @@ export default function DestaquesMes({ destaques }: { destaques: DestaquesMes })
           valorFmt={destaques.evolucao?.valorFmt ?? null}
           empatadoCom={destaques.evolucao?.empatadoCom}
           destaque
+          msgVazio="Sem base de comparação suficiente neste ciclo."
         />
       </div>
     </section>
