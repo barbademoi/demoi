@@ -15,6 +15,8 @@ import ResumoReuniaoModal from '@/components/dashboard/ResumoReuniaoModal'
 import DashboardShell from '@/components/dashboard/DashboardShell'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import FecharMesButton from '@/components/dashboard/FecharMesButton'
+import DestaquesMes from '@/components/dashboard/DestaquesMes'
+import { calcularDestaquesMes } from '@/lib/destaquesMes'
 import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario } from '@/types/database'
 
 type UsuarioComBarbearia = {
@@ -65,6 +67,11 @@ export default async function DashboardPage({
     console.error('[dashboard] barbearia não encontrada para usuario:', user.id)
     redirect('/login')
   }
+
+  // Destaques do mês (privado do dono, sempre do CICLO ATUAL — independe do
+  // mês navegado). Mesma fonte do ranking; só leitura.
+  const destaques = await calcularDestaquesMes(supabase, barbearia.id)
+
   const hoje = hojeBrasil()
   const diaFechamento = barbearia.dia_fechamento ?? 1
   const mostrarTicketMedio = barbearia.mostrar_ticket_medio ?? false
@@ -390,6 +397,7 @@ export default async function DashboardPage({
           hrefBase="/dashboard"
         />
       }
+      destaquesSlot={<DestaquesMes destaques={destaques} />}
       mes={mes}
       ano={ano}
       meta={meta}

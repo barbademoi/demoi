@@ -91,6 +91,8 @@ interface Props {
   ehPeriodoAtual: boolean
   ehPeriodoPassado: boolean
   monthNavigatorSlot: React.ReactNode
+  // Widget "Destaques do mês" (privado do dono) — topo do dashboard
+  destaquesSlot: React.ReactNode
   // Travamento "Mês fechado"
   mesFechado: boolean
   mesFechadoEm: string | null
@@ -115,6 +117,7 @@ export default function DashboardShell({
   mostrarTicketMedio,
   mostrarFaturamentoGeral,
   ehPeriodoAtual, ehPeriodoPassado, monthNavigatorSlot,
+  destaquesSlot,
   mesFechado, mesFechadoEm, fecharMesSlot,
 }: Props) {
   const [showConfig, setShowConfig] = useState(false)
@@ -174,7 +177,8 @@ export default function DashboardShell({
           />
         ) : (
           <>
-            <div className="max-w-5xl mx-auto px-4 pt-6 pb-2 space-y-3">
+            <div className="max-w-5xl mx-auto px-4 pt-6 pb-2 space-y-4">
+              {destaquesSlot}
               {monthNavigatorSlot}
 
               {mesFechado && (
