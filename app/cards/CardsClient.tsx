@@ -104,7 +104,7 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="bm-theme min-h-screen">
       <header className="border-b border-border bg-surface sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4">

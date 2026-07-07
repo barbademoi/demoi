@@ -47,7 +47,7 @@ export default function ConfiguracoesClient({ barbearia, barbeiros, email }: Pro
   ]
 
   return (
-    <main className="min-h-screen px-4 py-10">
+    <main className="bm-theme min-h-screen px-4 py-10">
       <div className="max-w-lg mx-auto">
 
         <div className="flex items-center justify-between mb-8">
