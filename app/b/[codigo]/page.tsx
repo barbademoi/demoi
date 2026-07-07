@@ -394,7 +394,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
   }
 
   return (
-    <div className="min-h-screen pb-16">
+    <div className="bm-theme min-h-screen pb-16">
       <header className="border-b border-border bg-surface">
         <div className="max-w-lg mx-auto px-4 py-4 text-center">
           <BrandLogo size="md" />
