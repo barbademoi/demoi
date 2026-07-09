@@ -4,6 +4,7 @@ import { useState, useMemo, useTransition } from 'react'
 import { formatBRL, TIER_CONFIG, calcProgresso } from '@/lib/utils'
 import { calcularRitmo } from '@/lib/ritmo'
 import { marcarOcorrenciaCiente, enviarMensagemBarbeiro, marcarMensagemLidaBarbeiro } from './conduta-actions'
+import DiasEmAbertoAlerta from './DiasEmAbertoAlerta'
 import { pegarRegrasGerais } from '@/lib/regras'
 import LancarDiaForm from './LancarDiaForm'
 import CelebracaoOverlay from '@/components/barbeiro/CelebracaoOverlay'
@@ -112,6 +113,9 @@ interface Props {
     lidaEm: string | null
     createdAt: string
   }>
+  // Dias do ciclo atual sem lançamento / marcados como "não pontuei"
+  diasEmAberto: string[]
+  diasMarcados: string[]
 }
 
 export default function BarbeiroClient({
@@ -131,6 +135,8 @@ export default function BarbeiroClient({
   ocorrenciasConduta,
   saldoConduta,
   mensagensConduta,
+  diasEmAberto,
+  diasMarcados,
 }: Props) {
   const comissao = lancamento?.comissao_acumulada ?? 0
   // Recepcionista participa só das pontuações — esconde tudo de comissão/metas.
@@ -277,6 +283,18 @@ export default function BarbeiroClient({
           ano={ano}
           onClose={() => setCelebracaoFechada(true)}
         />
+      )}
+
+      {/* Alerta de dias sem lançamento (retroativo + "não pontuei") — topo */}
+      {(diasEmAberto.length > 0 || diasMarcados.length > 0) && (
+        <div className="mb-4">
+          <DiasEmAbertoAlerta
+            linkCodigo={barbeiro.link_codigo}
+            diasEmAberto={diasEmAberto}
+            diasMarcados={diasMarcados}
+            servicos={campanha?.campanha_servicos ?? []}
+          />
+        </div>
       )}
 
       {/* Tabs — aparece quando modo inclui pontos, quando há feedbacks, ou

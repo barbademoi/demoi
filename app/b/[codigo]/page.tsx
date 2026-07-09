@@ -393,6 +393,36 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
       .map(m => ({ id: m.id, threadId: m.thread_id, autor: m.autor, anonima: m.anonima, corpo: m.corpo, lidaEm: m.lida_em, createdAt: m.created_at }))
   }
 
+  // ── Dias em aberto (não perder lançamento) ─────────────────────
+  // Só faz sentido no CICLO ATUAL e quando o barbeiro pode lançar pontos.
+  // Dias do ciclo atual, do início até ONTEM (hoje é lançado pela aba normal),
+  // que ele NÃO lançou (sem controle_diario) e NÃO marcou "não pontuei".
+  const barbeiroPodeLancarPage = campanha?.quem_lanca !== 'dono'
+  let diasEmAberto: string[] = []
+  let diasMarcados: string[] = []
+  if (ehPeriodoAtual && campanha && barbeiroPodeLancarPage) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: marcRaw } = await (admin as any)
+      .from('dias_sem_pontuacao')
+      .select('data')
+      .eq('barbeiro_id', barbeiro.id)
+      .gte('data', ciclo.inicioIso)
+      .lte('data', ciclo.fimIso)
+    const marcados = new Set(((marcRaw ?? []) as { data: string }[]).map(r => r.data))
+    diasMarcados = Array.from(marcados).sort()
+
+    const lancadas = new Set(controlesDiario.map(c => c.data))
+    const ontem = new Date(hoje); ontem.setDate(ontem.getDate() - 1); ontem.setHours(12, 0, 0, 0)
+    const cursor = new Date(ciclo.inicio); cursor.setHours(12, 0, 0, 0)
+    const abertos: string[] = []
+    while (cursor <= ontem) {
+      const iso = dataLocalStr(cursor)
+      if (!lancadas.has(iso) && !marcados.has(iso)) abertos.push(iso)
+      cursor.setDate(cursor.getDate() + 1)
+    }
+    diasEmAberto = abertos
+  }
+
   return (
     <div className="bm-theme min-h-screen pb-16">
       <header className="border-b border-border bg-surface">
@@ -479,6 +509,8 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
           ocorrenciasConduta={ocorrenciasConduta}
           saldoConduta={saldoConduta}
           mensagensConduta={mensagensConduta}
+          diasEmAberto={diasEmAberto}
+          diasMarcados={diasMarcados}
         />
       </main>
     </div>
