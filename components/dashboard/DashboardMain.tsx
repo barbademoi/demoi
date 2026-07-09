@@ -493,7 +493,7 @@ function TodosView({
       {rankingBarbeiros.length > 0 && modoAtual !== 'pontos' && (
         <section>
           <h2 className="font-serif text-xl text-text mb-4">
-            💰 Barbeiros — Comissão <span className="text-text-muted text-base font-sans">— {cicloLabel}</span>
+            💰 Barbeiros — {nomeValor(modoMeta, baseMeta)} <span className="text-text-muted text-base font-sans">— {cicloLabel}</span>
           </h2>
           <div className="space-y-3">
             {rankingBarbeiros.map((barbeiro, idx) => (
