@@ -189,11 +189,9 @@ export default function ComportamentoClient({ ativoInicial, regrasIniciais, barb
     startTransition(async () => {
       const r = await criarRegra(fd)
       if (r?.error) { setErro(r.error); return }
-      // Recarrega via revalidate; espelha localmente pra resposta imediata.
-      setRegras(prev => [...prev, {
-        id: `tmp-${prev.length}-${novoNome}`, barbearia_id: '', nome: novoNome.trim().slice(0, 80),
-        valor: parseFloat((novoValor || '0').replace(',', '.')) || 0, ativo: true, created_at: '',
-      }])
+      // Usa a linha retornada com o id REAL — assim a regra já pode receber
+      // ocorrência sem precisar recarregar a página.
+      if (r?.regra) setRegras(prev => [...prev, r.regra])
       setNovoNome(''); setNovoValor('')
     })
   }

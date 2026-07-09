@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import type { RegraConduta } from '@/types/database'
 
 // Todas as ações abaixo são EXCLUSIVAS DO DONO. A leitura/escrita passa pelo
 // client autenticado (anon key + sessão) e a RLS (barbearia_id =
@@ -47,14 +48,19 @@ export async function criarRegra(formData: FormData) {
   const valor = parseValor(formData.get('valor'))
   if (!nome) return { error: 'Dê um nome pra regra.' }
 
+  // Retorna a linha criada (com o id REAL) pra o client não precisar de um id
+  // temporário — assim a regra recém-criada já pode receber ocorrência sem
+  // exigir reload da página.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const { data: regra, error } = await (supabase as any)
     .from('regras_conduta')
     .insert({ barbearia_id: barbeariaId, nome, valor, ativo: true })
-  if (error) return { error: 'Erro ao criar regra.' }
+    .select('id, barbearia_id, nome, valor, ativo, created_at')
+    .single()
+  if (error || !regra) return { error: 'Erro ao criar regra.' }
 
   revalidatePath('/dashboard/comportamento')
-  return { ok: true }
+  return { ok: true, regra: regra as RegraConduta }
 }
 
 export async function atualizarRegra(formData: FormData) {
