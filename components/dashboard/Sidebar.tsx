@@ -24,6 +24,8 @@ type NavItem = {
   label: string
   icon: ReactNode
   badge?: string
+  // Item em destaque permanente (fica realçado mesmo quando não está ativo).
+  destaque?: boolean
   // Itens marcados como adicional PLUS. Cadeado aparece se o usuario nao
   // tem acesso (nem grandfather nem grant ativo).
   requires?: 'feedback' | 'financeiro'
@@ -37,6 +39,18 @@ const navItems: NavItem[] = [
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
         <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    ),
+  },
+  {
+    href: '/treinamentos',
+    label: 'Aulas de uso',
+    badge: 'ASSISTA',
+    destaque: true,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+        <circle cx="12" cy="12" r="10" />
+        <polygon points="10 8 16 12 10 16 10 8" />
       </svg>
     ),
   },
@@ -126,16 +140,6 @@ const navItems: NavItem[] = [
         <circle cx="12" cy="12" r="10" />
         <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
         <line x1="12" y1="17" x2="12.01" y2="17" />
-      </svg>
-    ),
-  },
-  {
-    href: '/treinamentos',
-    label: 'Aulas de uso',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
-        <circle cx="12" cy="12" r="10" />
-        <polygon points="10 8 16 12 10 16 10 8" />
       </svg>
     ),
   },
@@ -261,7 +265,9 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
                   transition-colors
                   ${active
                     ? 'bg-primary/15 text-primary font-semibold'
-                    : 'text-text-muted hover:text-text hover:bg-surface-2'}
+                    : item.destaque
+                      ? 'bg-primary/10 text-primary font-semibold ring-1 ring-inset ring-primary/40 hover:bg-primary/20'
+                      : 'text-text-muted hover:text-text hover:bg-surface-2'}
                 `}
               >
                 {item.icon}
@@ -288,7 +294,11 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
                 )}
                 {item.badge && (
                   <span
-                    className="text-[9px] font-semibold tracking-wider px-1.5 py-0.5 rounded border border-[#D4A85A]/40 text-[#D4A85A]/80"
+                    className={
+                      item.destaque
+                        ? 'text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded bg-primary text-white shrink-0'
+                        : 'text-[9px] font-semibold tracking-wider px-1.5 py-0.5 rounded border border-[#D4A85A]/40 text-[#D4A85A]/80'
+                    }
                   >
                     {item.badge}
                   </span>
