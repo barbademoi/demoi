@@ -17,6 +17,28 @@ interface MetaBarbeiro {
   ouro_premio: string
 }
 
+type ModoMetaOpt = 'faturamento' | 'comissao' | 'ambos'
+
+// Base da meta (faturamento / comissão / os dois) — fica aqui, junto da
+// definição dos valores de meta, porque é o que define a régua de meta/ranking.
+const MODO_OPCOES: { value: ModoMetaOpt; titulo: string; descricao: string }[] = [
+  {
+    value: 'faturamento',
+    titulo: 'Faturamento',
+    descricao: 'Acompanhe o R$ que cada barbeiro faturou. Meta e ranking usam o faturamento.',
+  },
+  {
+    value: 'comissao',
+    titulo: 'Comissão',
+    descricao: 'Acompanhe o R$ que cada barbeiro recebeu como comissão. Meta e ranking usam a comissão.',
+  },
+  {
+    value: 'ambos',
+    titulo: 'Os dois',
+    descricao: 'Cada barbeiro lança faturamento E comissão. Você escolhe qual conta pra meta/ranking.',
+  },
+]
+
 interface Props {
   barbeiros: Barbeiro[]
   metasAtuais?: MetaIndividual[]
@@ -27,6 +49,8 @@ interface Props {
   premioColetivo?: string
   premioColetivoBronze?: string
   premioColetivoPrata?: string
+  modoMeta?: ModoMetaOpt
+  baseMeta?: 'faturamento' | 'comissao'
   mes: number
   ano: number
   herdadoDeMesAnterior?: boolean
@@ -54,6 +78,7 @@ export default function MetasModal({
   metaColetiva, metaColetivaBronze, metaColetivaPrata,
   faturamentoAcumulado,
   premioColetivo, premioColetivoBronze, premioColetivoPrata,
+  modoMeta = 'comissao', baseMeta = 'comissao',
   mes, ano, herdadoDeMesAnterior, diaFechamento = 1,
 }: Props) {
   const [open, setOpen] = useState(false)
@@ -92,6 +117,12 @@ export default function MetasModal({
   const [premioVal,       setPremioVal]       = useState(premioColetivo       ?? '')
   const [faturamentoVal, setFaturamentoVal] = useState(String(faturamentoAcumulado ?? ''))
   const [metas, setMetas] = useState<MetaBarbeiro[]>(() => mapMetasParaBarbeiros(barbeiros, metasAtuais))
+
+  // Base da meta (modo). Setting da barbearia (global, não por período) —
+  // não se altera ao navegar entre ciclos; preserva o valor já salvo.
+  const [modoSel, setModoSel] = useState<ModoMetaOpt>(modoMeta)
+  const [baseSel, setBaseSel] = useState<'faturamento' | 'comissao'>(baseMeta)
+  const modoMudou = modoSel !== modoMeta || (modoSel === 'ambos' && baseSel !== baseMeta)
 
   function updateMeta(id: string, field: keyof Omit<MetaBarbeiro, 'id' | 'nome'>, value: string) {
     setMetas(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m))
@@ -163,6 +194,8 @@ export default function MetasModal({
       fd.set('premio_coletivo_bronze', premioBronzeVal)
       fd.set('premio_coletivo_prata', premioPrataVal)
       fd.set('faturamento_acumulado', faturamentoVal)
+      fd.set('modo_meta', modoSel)
+      fd.set('base_meta', modoSel === 'ambos' ? baseSel : modoSel)
       fd.set('barbeiros', JSON.stringify(
         metas.map(m => ({
           id: m.id,
@@ -270,6 +303,66 @@ export default function MetasModal({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Base da meta (modo) — define a régua de meta/ranking */}
+          <div className="card p-4 space-y-3">
+            <div>
+              <h4 className="font-sans font-semibold text-text text-sm">Sua meta é baseada em:</h4>
+              <p className="text-text-muted text-xs font-sans mt-1 leading-relaxed">
+                Define a régua de meta e ranking. Os barbeiros lançam o(s) valor(es) na mão — o sistema não calcula nada.
+              </p>
+            </div>
+            <div className="space-y-2">
+              {MODO_OPCOES.map(op => (
+                <label key={op.value} className={['flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all',
+                  modoSel === op.value ? 'border-primary bg-primary/5' : 'border-border bg-surface-2 hover:border-primary/40'].join(' ')}>
+                  <input type="radio" name="modo_meta_radio" value={op.value} checked={modoSel === op.value}
+                    onChange={() => setModoSel(op.value)} className="hidden" />
+                  <div className={['w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5',
+                    modoSel === op.value ? 'border-primary' : 'border-border'].join(' ')}>
+                    {modoSel === op.value && <div className="w-2 h-2 rounded-full bg-primary" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-sans font-semibold text-text leading-snug">{op.titulo}</p>
+                    <p className="text-xs font-sans text-text-muted leading-relaxed mt-0.5">{op.descricao}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            {modoSel === 'ambos' && (
+              <div className="p-4 rounded-xl border border-border bg-surface-2">
+                <p className="text-text text-xs font-sans font-semibold uppercase tracking-wide mb-1">
+                  Meta e ranking contam por
+                </p>
+                <p className="text-text-muted text-xs font-sans mb-3 leading-relaxed">
+                  Os dois valores ficam registrados, mas só um define meta/ranking. O outro fica de informação.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {(['faturamento', 'comissao'] as const).map(op => (
+                    <label key={op} className={['flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all',
+                      baseSel === op ? 'border-primary bg-primary/5' : 'border-border bg-surface hover:border-primary/40'].join(' ')}>
+                      <input type="radio" name="base_meta_radio" value={op} checked={baseSel === op}
+                        onChange={() => setBaseSel(op)} className="hidden" />
+                      <div className={['w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0',
+                        baseSel === op ? 'border-primary' : 'border-border'].join(' ')}>
+                        {baseSel === op && <div className="w-2 h-2 rounded-full bg-primary" />}
+                      </div>
+                      <span className="text-sm font-sans text-text">{op === 'faturamento' ? 'Faturamento' : 'Comissão'}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {modoMudou && (
+              <div className="p-3 rounded-xl border border-amber-500/40 bg-amber-500/10">
+                <p className="text-amber-200 text-xs font-sans leading-relaxed">
+                  ⚠️ Isso muda como suas metas e ranking são calculados. Não apaga nem altera lançamentos antigos — só vale daqui pra frente.
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Meta coletiva (Bronze / Prata / Ouro) */}
           <div className="card p-4 space-y-3">
             <h4 className="font-sans font-semibold text-text text-sm">Meta coletiva</h4>

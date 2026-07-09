@@ -438,6 +438,8 @@ export default async function DashboardPage({
           premioColetivo={premioColetivoParaForm}
           premioColetivoBronze={premioColetivoBronzeParaForm}
           premioColetivoPrata={premioColetivoPrataParaForm}
+          modoMeta={barbearia.modo_meta ?? 'comissao'}
+          baseMeta={barbearia.base_meta ?? 'comissao'}
           mes={mes}
           ano={ano}
           herdadoDeMesAnterior={herdadoDeMesAnterior}

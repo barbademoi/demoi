@@ -149,6 +149,23 @@ export async function salvarMetas(formData: FormData) {
   const trava = await estaFechado(supabase, usuario.barbearia_id, mes, ano)
   if (trava.fechado) return { error: 'Mês fechado. Reabra antes de editar.' }
 
+  // Base da meta (modo) — setting global da barbearia. Mora aqui, junto da
+  // definição dos valores de meta. Só grava quando vier no form (defensivo).
+  const modoMetaRaw = formData.get('modo_meta') as string | null
+  if (modoMetaRaw != null) {
+    const modo_meta = (['faturamento', 'comissao', 'ambos'].includes(modoMetaRaw) ? modoMetaRaw : 'comissao')
+    const baseMetaRaw = (formData.get('base_meta') as string) || modo_meta
+    // base_meta só faz sentido quando modo=ambos. Nos modos simples, espelha o próprio modo.
+    const base_meta = modo_meta === 'ambos'
+      ? (['faturamento', 'comissao'].includes(baseMetaRaw) ? baseMetaRaw : 'comissao')
+      : (modo_meta as 'faturamento' | 'comissao')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any)
+      .from('barbearias')
+      .update({ modo_meta, base_meta })
+      .eq('id', usuario.barbearia_id)
+  }
+
   const meta_coletiva = parseFloat(formData.get('meta_coletiva') as string) || 0
   const meta_coletiva_bronze = parseFloat(formData.get('meta_coletiva_bronze') as string) || 0
   const meta_coletiva_prata = parseFloat(formData.get('meta_coletiva_prata') as string) || 0
@@ -264,5 +281,7 @@ export async function salvarMetas(formData: FormData) {
 
   revalidatePath('/dashboard')
   revalidatePath('/cards')
+  revalidatePath('/configuracoes')
+  revalidatePath('/b/[codigo]', 'page')
   return { ok: true, salvos, erros: erros.length > 0 ? erros : undefined }
 }

@@ -94,15 +94,11 @@ export async function salvarOperacaoConfig(formData: FormData) {
     ? Math.max(0, evoMinParsed)
     : 500
 
-  const modoMetaRaw = (formData.get('modo_meta') as string) || 'comissao'
-  const modo_meta = (['faturamento', 'comissao', 'ambos'].includes(modoMetaRaw) ? modoMetaRaw : 'comissao')
-  const baseMetaRaw = (formData.get('base_meta') as string) || modo_meta
-  // base_meta so faz sentido quando modo=ambos. Pra os modos simples, espelha o proprio modo.
-  const base_meta = modo_meta === 'ambos'
-    ? (['faturamento', 'comissao'].includes(baseMetaRaw) ? baseMetaRaw : 'comissao')
-    : (modo_meta as 'faturamento' | 'comissao')
+  // Obs.: modo_meta / base_meta NÃO são salvos aqui. A escolha "Sua meta é
+  // baseada em" mora agora na configuração de metas (MetasModal). Não tocar
+  // nesses campos aqui preserva o valor já salvo ao salvar a aba Operação.
 
-  console.log('[salvarOperacaoConfig]', { barbeariaId, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, modo_meta, base_meta })
+  console.log('[salvarOperacaoConfig]', { barbeariaId, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
@@ -110,8 +106,6 @@ export async function salvarOperacaoConfig(formData: FormData) {
     .update({
       mostrar_ticket_medio,
       mostrar_faturamento_geral,
-      modo_meta,
-      base_meta,
       dias_trabalho_padrao,
       evolucao_faturamento_minimo,
       dias_trabalhados, horario_abertura, horario_fechamento, modalidade, tem_assinatura,
