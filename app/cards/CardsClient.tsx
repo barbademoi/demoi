@@ -26,6 +26,8 @@ interface Props {
   faturamentoAcumulado: number
   progressoColetivo: number
   mostrarFaturamentoGeral: boolean
+  modoMeta: 'faturamento' | 'comissao' | 'ambos'
+  baseMeta: 'faturamento' | 'comissao'
   barbeariaName: string
   mes: number
   ano: number
@@ -40,7 +42,7 @@ interface Props {
   diaFechamento: number
 }
 
-export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe, faturamentoAcumulado, progressoColetivo, mostrarFaturamentoGeral, barbeariaName, mes, ano, mesCorrente, anoCorrente, ehPeriodoPassado, podeVoltar, podeAvancar, tipo, deltaMap, cicloLabel, diaFechamento }: Props) {
+export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe, faturamentoAcumulado, progressoColetivo, mostrarFaturamentoGeral, modoMeta, baseMeta, barbeariaName, mes, ano, mesCorrente, anoCorrente, ehPeriodoPassado, podeVoltar, podeAvancar, tipo, deltaMap, cicloLabel, diaFechamento }: Props) {
   const canvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map())
   const rankingCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [baixando, setBaixando] = useState(false)
@@ -228,6 +230,8 @@ export default function CardsClient({ barbeiros, meta, lancamentos, totalEquipe,
                       faturamentoAcumulado={faturamentoAcumulado}
                       progressoColetivo={progressoColetivo}
                       mostrarFaturamentoGeral={mostrarFaturamentoGeral}
+                      modoMeta={modoMeta}
+                      baseMeta={baseMeta}
                       mes={mesAtual}
                       ano={anoAtual}
                       cicloLabel={mesAtual === mes && anoAtual === ano ? cicloLabel : undefined}

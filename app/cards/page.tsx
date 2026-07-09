@@ -4,7 +4,7 @@ import CardsClient from './CardsClient'
 import { cicloDeData, hojeBrasil } from '@/lib/ciclo'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
-type UsuarioComBarbearia = { barbearia_id: string; barbearias: { id: string; nome: string; dia_fechamento: number | null; mostrar_faturamento_geral: boolean | null } }
+type UsuarioComBarbearia = { barbearia_id: string; barbearias: { id: string; nome: string; dia_fechamento: number | null; mostrar_faturamento_geral: boolean | null; modo_meta: 'faturamento' | 'comissao' | 'ambos' | null; base_meta: 'faturamento' | 'comissao' | null } }
 type MetaComIndividuais = {
   id: string
   meta_coletiva: number
@@ -25,7 +25,7 @@ export default async function CardsPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, barbearias(id, nome, dia_fechamento, mostrar_faturamento_geral)')
+    .select('barbearia_id, barbearias(id, nome, dia_fechamento, mostrar_faturamento_geral, modo_meta, base_meta)')
     .eq('id', user.id)
     .single()
 
@@ -157,6 +157,8 @@ export default async function CardsPage({
       faturamentoAcumulado={faturamentoAcumulado}
       progressoColetivo={progressoColetivo}
       mostrarFaturamentoGeral={mostrarFaturamentoGeral}
+      modoMeta={barbearia.modo_meta ?? 'comissao'}
+      baseMeta={barbearia.base_meta ?? 'comissao'}
       barbeariaName={barbearia.nome}
       mes={mes}
       ano={ano}

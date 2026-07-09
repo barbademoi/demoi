@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createAdminClient } from './supabase/admin'
 import { dataLocalStr } from './utils'
 import { calcularRitmo } from './ritmo'
+import { rotuloAcumulado } from './rotuloValor'
 import type { MetaIndividual } from '@/types/database'
 
 interface Params {
@@ -19,6 +20,9 @@ interface Params {
   totalDiasCiclo: number
   posicaoRanking: number   // 1-based; 0 = não está no ranking este mês
   totalBarbeiros: number   // total de barbeiros ATIVOS da barbearia (não só quem lançou)
+  // Modo da barbearia — define o rótulo do valor ("faturamento"/"comissão")
+  modoMeta?: 'faturamento' | 'comissao' | 'ambos'
+  baseMeta?: 'faturamento' | 'comissao'
 }
 
 export async function obterMensagemDiaria(params: Params): Promise<string | null> {
@@ -75,7 +79,7 @@ Tom: direto, humano, sem coach motivacional, sem exagero, sem emojis.
 REGRA CRÍTICA: use SOMENTE os dados fornecidos abaixo. Nunca invente ou infira posições, valores ou porcentagens.
 
 Nome: ${nome}
-Comissão acumulada no mês: R$ ${Math.round(comissao)}
+${rotuloAcumulado(params.modoMeta, params.baseMeta)} no mês: R$ ${Math.round(comissao)}
 Meta Bronze: R$ ${Math.round(b)} (${pct(b)}% atingido)
 Meta Prata: R$ ${Math.round(p)} (${pct(p)}% atingido)
 Meta Ouro: R$ ${Math.round(o)} (${pct(o)}% atingido)

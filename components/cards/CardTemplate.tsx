@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from 'react'
 import { formatBRL, TIER_CONFIG, calcProgresso, calcTier, nomeMes } from '@/lib/utils'
+import { rotuloAcumulado } from '@/lib/rotuloValor'
 import { gerarInsightsBarbeiro } from '@/lib/insights'
 import type { Barbeiro, MetaIndividual, Lancamento } from '@/types/database'
 
@@ -20,6 +21,8 @@ interface Props {
   ano: number
   cicloLabel?: string
   delta?: number | null
+  modoMeta?: 'faturamento' | 'comissao' | 'ambos'
+  baseMeta?: 'faturamento' | 'comissao'
   onCanvas?: (canvas: HTMLCanvasElement, nome: string) => void
 }
 
@@ -83,7 +86,7 @@ function drawMetallicBar(
 }
 
 export default function CardTemplate({
-  tipo, barbeiro, metaInd, lancamento, metaColetiva, premioColetivo, totalEquipe, faturamentoAcumulado, progressoColetivo, mostrarFaturamentoGeral = true, mes, ano, cicloLabel, delta, onCanvas
+  tipo, barbeiro, metaInd, lancamento, metaColetiva, premioColetivo, totalEquipe, faturamentoAcumulado, progressoColetivo, mostrarFaturamentoGeral = true, mes, ano, cicloLabel, delta, modoMeta = 'comissao', baseMeta = 'comissao', onCanvas
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -164,10 +167,10 @@ export default function CardTemplate({
     ctx.fillText(barbeiro.nome, 80, 345)
 
     if (tipo === 'resultado') {
-      // Comissão
-      ctx.font = `300 36px ${FONT_SANS}`
+      // Rótulo do acumulado conforme o modo (faturamento/comissão/base de "ambos")
+      ctx.font = `400 36px ${FONT_SANS}`
       ctx.fillStyle = '#8B8FA8'
-      ctx.fillText('Comissão acumulada', 80, 410)
+      ctx.fillText(rotuloAcumulado(modoMeta, baseMeta), 80, 410)
 
       ctx.font = `400 120px ${FONT_SERIF}`
       ctx.fillStyle = '#EEF0F6'
@@ -351,7 +354,7 @@ export default function CardTemplate({
 
     onCanvas?.(canvas, barbeiro.nome)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [barbeiro.id, tipo, lancamento?.comissao_acumulada, mes, ano, delta, cicloLabel, mostrarFaturamentoGeral, progressoColetivo])
+  }, [barbeiro.id, tipo, lancamento?.comissao_acumulada, mes, ano, delta, cicloLabel, mostrarFaturamentoGeral, progressoColetivo, modoMeta, baseMeta])
 
   return (
     <canvas

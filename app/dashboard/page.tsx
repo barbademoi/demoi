@@ -22,7 +22,7 @@ import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetal
 type UsuarioComBarbearia = {
   barbearia_id: string
   senha_temporaria: boolean
-  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null; dia_fechamento: number | null; mostrar_ticket_medio: boolean | null; mostrar_faturamento_geral: boolean | null; regras_gerais: string[] | null; dias_trabalho_padrao: number | null }
+  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null; dia_fechamento: number | null; mostrar_ticket_medio: boolean | null; mostrar_faturamento_geral: boolean | null; regras_gerais: string[] | null; dias_trabalho_padrao: number | null; modo_meta: 'faturamento' | 'comissao' | 'ambos' | null; base_meta: 'faturamento' | 'comissao' | null }
 }
 
 type MetaSimples = {
@@ -49,7 +49,7 @@ export default async function DashboardPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais, dias_trabalho_padrao)')
+    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais, dias_trabalho_padrao, modo_meta, base_meta)')
     .eq('id', user.id)
     .single()
 
@@ -379,6 +379,8 @@ export default async function DashboardPage({
       historicoBarbearia={historicoBarbeariaExibido}
       faturamentoMesAnterior={faturamentoMesAnterior}
       mostrarFaturamentoGeral={mostrarFaturamentoGeral}
+      modoMeta={barbearia.modo_meta ?? 'comissao'}
+      baseMeta={barbearia.base_meta ?? 'comissao'}
       statsBarbearias={platformStats.barbearias}
       statsBarbeiros={platformStats.barbeiros}
       barbeariaLogoUrl={barbearia.logo_url}

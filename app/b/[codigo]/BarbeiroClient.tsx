@@ -3,6 +3,7 @@
 import { useState, useMemo, useTransition } from 'react'
 import { formatBRL, TIER_CONFIG, calcProgresso } from '@/lib/utils'
 import { calcularRitmo } from '@/lib/ritmo'
+import { rotuloAcumulado } from '@/lib/rotuloValor'
 import { marcarOcorrenciaCiente, enviarMensagemBarbeiro, marcarMensagemLidaBarbeiro } from './conduta-actions'
 import DiasEmAbertoAlerta from './DiasEmAbertoAlerta'
 import BarbeiroNavDrawer, { type NavItem } from './NavBarbeiro'
@@ -43,6 +44,11 @@ interface Props {
   diasCorridosCiclo: number
   totalDiasCiclo: number
   modo: ModoPontos
+  // Modo da barbearia (rótulo do número principal segue isso)
+  modoMeta: 'faturamento' | 'comissao' | 'ambos'
+  baseMeta: 'faturamento' | 'comissao'
+  valorFaturamento: number
+  valorComissao: number
   // metas
   metaInd: MetaIndividual | null
   lancamento: Lancamento | null
@@ -122,7 +128,8 @@ interface Props {
 export default function BarbeiroClient({
   barbeiro, barbeariaName: _, mes, ano, diaAtual, diasRestantes, diasUteisCorridos, diasUteisRestantes,
   diasTrabalhoMes, diasCorridosCiclo, totalDiasCiclo,
-  modo, metaInd, lancamento, progresso, ranking, posicaoRanking,
+  modo, modoMeta, baseMeta, valorFaturamento, valorComissao,
+  metaInd, lancamento, progresso, ranking, posicaoRanking,
   faturamentoColetivo, progressoColetivo, progressoColetivoBronze, progressoColetivoPrata,
   metaColetiva, metaColetivaBronze, metaColetivaPrata,
   premioColetivo, premioColetivoBronze, premioColetivoPrata,
@@ -419,10 +426,35 @@ export default function BarbeiroClient({
             <h2 className="font-serif text-3xl text-text">{barbeiro.nome}</h2>
             <p className="text-text-muted text-sm font-sans mt-1">{cicloLabel}</p>
 
-            {mostraMetas && (
+            {mostraMetas && modoMeta !== 'ambos' && (
               <div className="mt-6">
-                <p className="text-text-muted text-xs font-sans uppercase tracking-wide mb-1">Comissão acumulada</p>
+                <p className="text-text-muted text-xs font-sans uppercase tracking-wide mb-1">{rotuloAcumulado(modoMeta, baseMeta)}</p>
                 <p className="font-serif text-5xl text-text">{formatBRL(comissao)}</p>
+              </div>
+            )}
+
+            {mostraMetas && modoMeta === 'ambos' && (
+              <div className="mt-6 flex flex-col sm:flex-row items-stretch justify-center gap-3">
+                {([
+                  { chave: 'faturamento' as const, rotulo: 'Faturamento', valor: valorFaturamento },
+                  { chave: 'comissao' as const, rotulo: 'Comissão', valor: valorComissao },
+                ]).map(item => {
+                  const ehBase = baseMeta === item.chave
+                  return (
+                    <div key={item.chave}
+                      className={`flex-1 rounded-2xl border px-4 py-3 ${ehBase ? 'border-primary/40 bg-primary/5' : 'border-border bg-surface-2'}`}>
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <p className="text-text-muted text-xs font-sans uppercase tracking-wide">{item.rotulo}</p>
+                        {ehBase && (
+                          <span className="text-[10px] font-sans font-semibold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-full">
+                            base da meta
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-serif text-3xl text-text">{formatBRL(item.valor)}</p>
+                    </div>
+                  )
+                })}
               </div>
             )}
 

@@ -87,7 +87,7 @@ export function gerarInsightsBarbeiro(params: {
     } else if (pctColetivo >= 85) {
       insights.push({ emoji: '⚡', texto: `Equipe a ${pctColetivo}% da meta! Faltam ${faltaCol} juntos — o prêmio coletivo está perto!` })
     } else if (pctColetivo >= 60) {
-      insights.push({ emoji: '📊', texto: `Equipe com ${pctColetivo}% da meta coletiva. Cada comissão sua ajuda a equipe a ganhar o prêmio!` })
+      insights.push({ emoji: '📊', texto: `Equipe com ${pctColetivo}% da meta coletiva. Cada lançamento seu ajuda a equipe a ganhar o prêmio!` })
     }
   }
 

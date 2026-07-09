@@ -42,7 +42,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barbeariaRaw } = await (supabase as any)
-    .from('barbearias').select('nome, cor_principal, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais, dias_trabalho_padrao, comportamento_ativo')
+    .from('barbearias').select('nome, cor_principal, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais, dias_trabalho_padrao, comportamento_ativo, modo_meta, base_meta')
     .eq('id', barbeiro.barbearia_id).single()
   const barbearia = barbeariaRaw as {
     nome: string
@@ -55,6 +55,8 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     regras_gerais: string[] | null
     dias_trabalho_padrao: number | null
     comportamento_ativo: boolean | null
+    modo_meta: 'faturamento' | 'comissao' | 'ambos' | null
+    base_meta: 'faturamento' | 'comissao' | null
   } | null
   const mostrarTicketMedio = barbearia?.mostrar_ticket_medio ?? false
   const mostrarFaturamentoGeral = barbearia?.mostrar_faturamento_geral ?? true
@@ -317,6 +319,8 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     totalDiasCiclo: diasTotaisCiclo,
     posicaoRanking,            // 0 = não está no ranking; ia-mensagem.ts trata
     totalBarbeiros: totalBarbeirosAtivos ?? ranking.length,
+    modoMeta: barbearia?.modo_meta ?? 'comissao',
+    baseMeta: barbearia?.base_meta ?? 'comissao',
   })
 
   // ── Celebrações já exibidas ────────────────────────────
@@ -469,6 +473,10 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
           diasCorridosCiclo={diasCorridos}
           totalDiasCiclo={diasTotaisCiclo}
           modo={modo}
+          modoMeta={barbearia?.modo_meta ?? 'comissao'}
+          baseMeta={barbearia?.base_meta ?? 'comissao'}
+          valorFaturamento={(lancamento as (typeof lancamento & { valor_faturamento?: number | null }))?.valor_faturamento ?? 0}
+          valorComissao={(lancamento as (typeof lancamento & { valor_comissao?: number | null }))?.valor_comissao ?? 0}
           metaInd={metaInd}
           lancamento={lancamento}
           progresso={progresso}

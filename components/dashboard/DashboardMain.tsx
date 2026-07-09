@@ -13,6 +13,7 @@ import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
 import TicketMedio from '@/components/autonomo/TicketMedio'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/utils'
 import { calcularRitmo } from '@/lib/ritmo'
+import { nomeValor } from '@/lib/rotuloValor'
 import type { MetaIndividual, ModoPontos, CampanhaComDetalhes } from '@/types/database'
 
 type BarbeiroRow = {
@@ -76,6 +77,8 @@ interface Props {
   faturamentoEditSlot: React.ReactNode
   mostrarTicketMedio: boolean
   mostrarFaturamentoGeral: boolean
+  modoMeta: 'faturamento' | 'comissao' | 'ambos'
+  baseMeta: 'faturamento' | 'comissao'
 }
 
 function tierBorderClass(tier: string | null) {
@@ -125,6 +128,8 @@ export default function DashboardMain({
   faturamentoEditSlot,
   mostrarTicketMedio,
   mostrarFaturamentoGeral,
+  modoMeta,
+  baseMeta,
 }: Props) {
   const todos = [...rankingBarbeiros, ...rankingRecepcionistas]
   // Em modo autônomo, força filtro no único barbeiro (não mostra pills nem ranking)
@@ -191,6 +196,8 @@ export default function DashboardMain({
           faturamentoEditSlot={faturamentoEditSlot}
           mostrarTicketMedio={mostrarTicketMedio}
           mostrarFaturamentoGeral={mostrarFaturamentoGeral}
+          modoMeta={modoMeta}
+          baseMeta={baseMeta}
           historicoBarbearia={historicoBarbearia}
           faturamentoMesAnterior={faturamentoMesAnterior}
         />
@@ -258,6 +265,8 @@ interface TodosProps {
   faturamentoEditSlot: React.ReactNode
   mostrarTicketMedio: boolean
   mostrarFaturamentoGeral: boolean
+  modoMeta: 'faturamento' | 'comissao' | 'ambos'
+  baseMeta: 'faturamento' | 'comissao'
   historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
   faturamentoMesAnterior: number
 }
@@ -289,6 +298,8 @@ function TodosView({
   faturamentoEditSlot,
   mostrarTicketMedio,
   mostrarFaturamentoGeral,
+  modoMeta,
+  baseMeta,
   historicoBarbearia,
   faturamentoMesAnterior,
 }: TodosProps) {
@@ -365,7 +376,7 @@ function TodosView({
               <div>
                 {mostrarFaturamentoGeral ? (
                   <>
-                    <p className="text-text-muted text-xs font-sans mb-1">Faturado no mês</p>
+                    <p className="text-text-muted text-xs font-sans mb-1">{nomeValor(modoMeta, baseMeta)} no mês</p>
                     <p className="font-serif text-4xl text-text">{formatBRL(faturamentoExibido)}</p>
                     {falta > 0 && (
                       <p className="text-text-muted text-sm font-sans mt-1">
