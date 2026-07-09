@@ -5,6 +5,7 @@ import { formatBRL, TIER_CONFIG, calcProgresso } from '@/lib/utils'
 import { calcularRitmo } from '@/lib/ritmo'
 import { marcarOcorrenciaCiente, enviarMensagemBarbeiro, marcarMensagemLidaBarbeiro } from './conduta-actions'
 import DiasEmAbertoAlerta from './DiasEmAbertoAlerta'
+import BarbeiroNavDrawer, { type NavItem } from './NavBarbeiro'
 import { pegarRegrasGerais } from '@/lib/regras'
 import LancarDiaForm from './LancarDiaForm'
 import CelebracaoOverlay from '@/components/barbeiro/CelebracaoOverlay'
@@ -147,7 +148,9 @@ export default function BarbeiroClient({
   // vendo progresso, ranking, regras e feedbacks). Bloqueio tambem aplicado
   // no servidor em lancarDiaBarbeiro.
   const barbeiroPodeLancar = campanha?.quem_lanca !== 'dono'
-  const [aba, setAba] = useState<'progresso' | 'lancar' | 'regras' | 'feedbacks' | 'acompanhamento'>('progresso')
+  type AbaId = 'progresso' | 'lancar' | 'regras' | 'feedbacks' | 'acompanhamento'
+  const [aba, setAba] = useState<AbaId>('progresso')
+  const [menuAberto, setMenuAberto] = useState(false)
   const temFeedbacks = feedbacksDoBarbeiro.length > 0
   // Conduta: alerta enquanto houver ocorrência não vista (ciente_em null).
   // `ackedIds` dá o feedback otimista da ciência antes do refresh do server.
@@ -176,6 +179,19 @@ export default function BarbeiroClient({
   const condutaNaoVistas = comportamentoAtivo
     ? ocorrenciasConduta.filter(o => !isVista(o)).length + respostasNaoLidas
     : 0
+
+  // Modelo único de navegação — abas (desktop) e drawer (mobile) usam a mesma
+  // lista. "Progresso" volta pra visão principal (funciona também em modo metas).
+  const navItens: NavItem[] = [
+    ...(mostraPontos || temFeedbacks || comportamentoAtivo ? [{ id: 'progresso', label: 'Progresso' }] : []),
+    ...(mostraPontos && barbeiroPodeLancar ? [{ id: 'lancar', label: 'Lançar dia' }] : []),
+    ...(mostraPontos && campanha ? [{ id: 'regras', label: 'Regras' }] : []),
+    ...(temFeedbacks ? [{ id: 'feedbacks', label: `Feedbacks (${feedbacksDoBarbeiro.length})` }] : []),
+    ...(comportamentoAtivo ? [{ id: 'acompanhamento', label: 'Meu acompanhamento', badge: condutaNaoVistas }] : []),
+  ]
+  const mostrarNav = navItens.length > 1
+  const temLancarRapido = mostraPontos && barbeiroPodeLancar
+  const labelAtual = navItens.find(i => i.id === aba)?.label ?? 'Progresso'
 
   function handleEnviarMensagem(e: React.FormEvent) {
     e.preventDefault()
@@ -297,62 +313,63 @@ export default function BarbeiroClient({
         </div>
       )}
 
-      {/* Tabs — aparece quando modo inclui pontos, quando há feedbacks, ou
-          quando o módulo de comportamento está ativo (aba "Meu acompanhamento"). */}
-      {(mostraPontos || temFeedbacks || comportamentoAtivo) && (
-        <div className="flex border-b border-border mb-0 overflow-x-auto">
-          {mostraPontos && (
+      {/* Navegação entre seções. DESKTOP = abas (cabe); MOBILE = botão Menu que
+          abre um drawer lateral (resolve texto cortado / abas escondidas). */}
+      {mostrarNav && (
+        <>
+          {/* Desktop: abas horizontais (comportamento atual) */}
+          <div className="hidden lg:flex border-b border-border mb-0 overflow-x-auto">
+            {navItens.map(it => (
+              <button
+                key={it.id}
+                onClick={() => setAba(it.id as AbaId)}
+                aria-current={aba === it.id ? 'page' : undefined}
+                className={`flex-1 py-3.5 px-3 text-sm font-sans font-semibold transition-colors whitespace-nowrap inline-flex items-center justify-center gap-1.5
+                  ${aba === it.id ? 'text-text border-b-2 border-primary' : 'text-text-muted hover:text-text'}`}
+              >
+                {it.label}
+                {it.badge != null && it.badge > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold">
+                    {it.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile: botão Menu + acesso rápido a "Lançar dia" */}
+          <div className="lg:hidden flex items-center gap-2 border-b border-border pb-3 mb-1">
             <button
-              onClick={() => setAba('progresso')}
-              className={`flex-1 py-3.5 text-sm font-sans font-semibold transition-colors whitespace-nowrap
-                ${aba === 'progresso' ? 'text-text border-b-2 border-primary' : 'text-text-muted hover:text-text'}`}
+              onClick={() => setMenuAberto(true)}
+              aria-label="Abrir menu de navegação"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-2 border border-border text-text font-sans font-semibold text-sm shrink-0"
             >
-              Progresso
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+              Menu
             </button>
-          )}
-          {mostraPontos && barbeiroPodeLancar && (
-            <button
-              onClick={() => setAba('lancar')}
-              className={`flex-1 py-3.5 text-sm font-sans font-semibold transition-colors whitespace-nowrap
-                ${aba === 'lancar' ? 'text-text border-b-2 border-primary' : 'text-text-muted hover:text-text'}`}
-            >
-              Lançar dia
-            </button>
-          )}
-          {mostraPontos && campanha && (
-            <button
-              onClick={() => setAba('regras')}
-              className={`flex-1 py-3.5 text-sm font-sans font-semibold transition-colors whitespace-nowrap
-                ${aba === 'regras' ? 'text-text border-b-2 border-primary' : 'text-text-muted hover:text-text'}`}
-            >
-              Regras
-            </button>
-          )}
-          {temFeedbacks && (
-            <button
-              onClick={() => setAba('feedbacks')}
-              className={`flex-1 py-3.5 px-3 text-sm font-sans font-semibold transition-colors whitespace-nowrap
-                ${aba === 'feedbacks' ? 'text-text border-b-2 border-primary' : 'text-text-muted hover:text-text'}`}
-            >
-              ⭐ Feedbacks <span className="text-text-muted font-normal">({feedbacksDoBarbeiro.length})</span>
-            </button>
-          )}
-          {comportamentoAtivo && (
-            <button
-              onClick={() => setAba('acompanhamento')}
-              className={`flex-1 py-3.5 px-3 text-sm font-sans font-semibold transition-colors whitespace-nowrap inline-flex items-center justify-center gap-1.5
-                ${aba === 'acompanhamento' ? 'text-text border-b-2 border-primary' : 'text-text-muted hover:text-text'}`}
-            >
-              Meu acompanhamento
-              {condutaNaoVistas > 0 && (
-                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold">
-                  {condutaNaoVistas}
-                </span>
-              )}
-            </button>
-          )}
-        </div>
+            <span className="flex-1 min-w-0 text-text-muted text-sm font-sans truncate">{labelAtual}</span>
+            {temLancarRapido && (
+              <button
+                onClick={() => setAba('lancar')}
+                className="btn-primary text-sm py-2 px-3 shrink-0"
+              >
+                Lançar dia
+              </button>
+            )}
+          </div>
+        </>
       )}
+
+      {/* Drawer mobile */}
+      <BarbeiroNavDrawer
+        open={menuAberto}
+        onClose={() => setMenuAberto(false)}
+        itens={navItens}
+        ativo={aba}
+        onSelecionar={(id) => setAba(id as AbaId)}
+      />
 
       {/* ── ABA: PROGRESSO ── (default; ativa quando mostraPontos=false
           tirando o caso em que o usuário clicou em feedbacks/acompanhamento) */}
