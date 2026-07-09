@@ -3,7 +3,19 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { cicloDeData } from '@/lib/ciclo'
+import { cicloDeData, cicloAtual, hojeBrasil } from '@/lib/ciclo'
+import { dataLocalStr } from '@/lib/utils'
+
+// Valida que uma data ('YYYY-MM-DD') cai no CICLO ATUAL e não é futura — no
+// fuso America/Sao_Paulo. Bloqueia retroativo em ciclo já fechado/anterior.
+function dataNoCicloAtual(dataIso: string, diaFechamento: number): { ok: boolean; erro?: string } {
+  const hoje = hojeBrasil()
+  const hojeIso = dataLocalStr(hoje)
+  const atual = cicloAtual(diaFechamento, hoje)
+  if (dataIso > hojeIso) return { ok: false, erro: 'Não dá pra lançar um dia no futuro.' }
+  if (dataIso < atual.inicioIso) return { ok: false, erro: 'Esse dia é de um ciclo já fechado. Só dá pra lançar dias do ciclo atual.' }
+  return { ok: true }
+}
 
 export async function marcarCelebracaoExibida(
   barbeiro_id: string,
@@ -42,6 +54,11 @@ export async function lancarDiaBarbeiro(params: {
   const ciclo = cicloDeData(new Date(params.data + 'T12:00:00'), diaFechamento)
   const mes = ciclo.mesRef
   const ano = ciclo.anoRef
+
+  // Retroativo seguro: só dias do ciclo atual (não futuro, não ciclo fechado).
+  // Vale pro lançamento normal (hoje) e pro retroativo — mesma régua BRT.
+  const guard = dataNoCicloAtual(params.data, diaFechamento)
+  if (!guard.ok) return { error: guard.erro }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: campRaw } = await (supabase as any)
@@ -82,6 +99,62 @@ export async function lancarDiaBarbeiro(params: {
     }
   }
 
+  // Lançou o dia → limpa qualquer marcação de "não pontuei" desse dia (via
+  // admin, pois a tabela tem RLS só-dono). Escopado pelo barbeiro do link.
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (admin as any).from('dias_sem_pontuacao')
+    .delete().eq('barbeiro_id', barbeiro_id).eq('data', params.data)
+
   revalidatePath('/b/' + params.linkCodigo)
+  return { ok: true }
+}
+
+// Resolve o barbeiro pelo link secreto (admin) — base das ações abaixo.
+async function resolverBarbeiroPorLink(linkCodigo: string) {
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (admin as any)
+    .from('barbeiros')
+    .select('id, barbearia_id, barbearias(dia_fechamento)')
+    .eq('link_codigo', linkCodigo).eq('ativo', true).single()
+  return data as { id: string; barbearia_id: string; barbearias: { dia_fechamento: number | null } | null } | null
+}
+
+// Barbeiro marca um dia como "não pontuei" (intencional). Para o alerta desse
+// dia. Só dias do ciclo atual. Escopo estrito por barbeiro do link.
+export async function marcarNaoPontuei(linkCodigo: string, data: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return { error: 'Data inválida.' }
+  const barb = await resolverBarbeiroPorLink(linkCodigo)
+  if (!barb) return { error: 'Barbeiro não encontrado.' }
+  const diaFechamento = barb.barbearias?.dia_fechamento ?? 1
+  const guard = dataNoCicloAtual(data, diaFechamento)
+  if (!guard.ok) return { error: guard.erro }
+
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (admin as any)
+    .from('dias_sem_pontuacao')
+    .upsert({ barbearia_id: barb.barbearia_id, barbeiro_id: barb.id, data }, { onConflict: 'barbeiro_id,data' })
+  if (error) return { error: 'Erro ao salvar.' }
+
+  revalidatePath('/b/' + linkCodigo)
+  return { ok: true }
+}
+
+// Reabre um dia marcado como "não pontuei" (reversível) — volta a ser um dia
+// em aberto que o barbeiro pode lançar.
+export async function reabrirDia(linkCodigo: string, data: string) {
+  const barb = await resolverBarbeiroPorLink(linkCodigo)
+  if (!barb) return { error: 'Barbeiro não encontrado.' }
+
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (admin as any)
+    .from('dias_sem_pontuacao')
+    .delete().eq('barbeiro_id', barb.id).eq('data', data)
+  if (error) return { error: 'Erro ao reabrir.' }
+
+  revalidatePath('/b/' + linkCodigo)
   return { ok: true }
 }
