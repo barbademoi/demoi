@@ -376,7 +376,10 @@ function TodosView({
               <div>
                 {mostrarFaturamentoGeral ? (
                   <>
-                    <p className="text-text-muted text-xs font-sans mb-1">{nomeValor(modoMeta, baseMeta)} no mês</p>
+                    {/* Meta Coletiva mede o FATURAMENTO da barbearia (o dono
+                        digita "Faturamento acumulado" nas Metas). Comissão é
+                        conceito por barbeiro — não entra aqui. */}
+                    <p className="text-text-muted text-xs font-sans mb-1">Faturamento no mês</p>
                     <p className="font-serif text-4xl text-text">{formatBRL(faturamentoExibido)}</p>
                     {falta > 0 && (
                       <p className="text-text-muted text-sm font-sans mt-1">
