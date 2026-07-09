@@ -176,8 +176,9 @@ export default function BarbeiroClient({
   // Thread identificada aberta (pra continuar a conversa, se houver).
   const threadIdentificada = mensagensConduta.find(m => !m.anonima)?.threadId
 
+  const novasOcorrenciasConduta = comportamentoAtivo ? ocorrenciasConduta.filter(o => !isVista(o)).length : 0
   const condutaNaoVistas = comportamentoAtivo
-    ? ocorrenciasConduta.filter(o => !isVista(o)).length + respostasNaoLidas
+    ? novasOcorrenciasConduta + respostasNaoLidas
     : 0
 
   // Modelo único de navegação — abas (desktop) e drawer (mobile) usam a mesma
@@ -310,6 +311,37 @@ export default function BarbeiroClient({
             diasMarcados={diasMarcados}
             servicos={campanha?.campanha_servicos ?? []}
           />
+        </div>
+      )}
+
+      {/* Novidade no "Meu acompanhamento" — registro/pontos ou mensagem do dono.
+          Destaca no topo (mesmo estilo dos dias em aberto). Some ao ficar em dia
+          ou quando já está na aba. */}
+      {comportamentoAtivo && condutaNaoVistas > 0 && aba !== 'acompanhamento' && (
+        <div className="mb-4">
+          <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-amber-200 font-sans font-semibold text-sm">
+                🔔 Você tem {condutaNaoVistas} {condutaNaoVistas === 1 ? 'novidade' : 'novidades'} no Meu acompanhamento
+              </p>
+              <p className="text-amber-200/80 text-xs font-sans mt-0.5 leading-relaxed">
+                {[
+                  novasOcorrenciasConduta > 0
+                    ? `${novasOcorrenciasConduta} ${novasOcorrenciasConduta === 1 ? 'registro novo' : 'registros novos'}`
+                    : null,
+                  respostasNaoLidas > 0
+                    ? `${respostasNaoLidas} ${respostasNaoLidas === 1 ? 'mensagem do dono' : 'mensagens do dono'}`
+                    : null,
+                ].filter(Boolean).join(' · ')}
+              </p>
+            </div>
+            <button
+              onClick={() => setAba('acompanhamento')}
+              className="text-xs font-sans font-semibold text-white bg-amber-600 hover:bg-amber-700 px-3 py-2 rounded-lg transition-colors shrink-0"
+            >
+              Ver
+            </button>
+          </div>
         </div>
       )}
 
