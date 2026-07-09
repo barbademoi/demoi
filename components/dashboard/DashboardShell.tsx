@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Sidebar from './Sidebar'
 import DashboardMain from './DashboardMain'
-import AvisoSimplificacao from './AvisoSimplificacao'
 import BarbeariaWatermark from './BarbeariaWatermark'
 import type { ModoPontos, CampanhaComDetalhes, MetaIndividual } from '@/types/database'
 
@@ -211,7 +210,6 @@ export default function DashboardShell({
                 </div>
               )}
             </div>
-            <AvisoSimplificacao />
             <DashboardMain
             isAutonomo={isAutonomo}
             cicloLabel={cicloLabel}

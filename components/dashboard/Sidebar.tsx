@@ -131,7 +131,7 @@ const navItems: NavItem[] = [
   },
   {
     href: '/treinamentos',
-    label: 'Treinamentos',
+    label: 'Aulas de uso',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
         <circle cx="12" cy="12" r="10" />
