@@ -39,7 +39,8 @@ function montarContexto(rx: RaioXReuniao): string {
   if (rx.mostrarFaturamentoGeral && rx.faturamentoGeral && rx.faturamentoGeral.some(m => m.valor > 0)) {
     b.push('FATURAMENTO GERAL DA CASA (últimos 6 meses, mês atual em andamento):')
     for (const m of rx.faturamentoGeral) {
-      const v = m.deltaPct == null ? '' : ` (${m.deltaPct >= 0 ? '+' : ''}${Math.round(m.deltaPct)}% vs. mês anterior)`
+      const ref = m.emAndamento ? 'vs. mesmo período do mês passado' : 'vs. mês anterior'
+      const v = m.deltaPct == null ? '' : ` (${m.deltaPct >= 0 ? '+' : ''}${Math.round(m.deltaPct)}% ${ref})`
       b.push(`- ${m.label}${m.emAndamento ? ' [parcial]' : ''}: ${fmtBRL(m.valor)}${v}`)
     }
   }

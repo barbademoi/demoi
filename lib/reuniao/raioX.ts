@@ -116,14 +116,20 @@ export async function gerarRaioXReuniao(
     const hist = await buscarHistoricoBarbearia(supabase, barbeariaId, ciclo.mesRef, ciclo.anoRef, 6, diaFechamento)
     faturamentoGeral = hist.map((h, i) => {
       const anterior = i > 0 ? hist[i - 1].comissao : null
-      const deltaPct = anterior != null && anterior > 0
-        ? ((h.comissao - anterior) / anterior) * 100
+      const emAndamento = h.mes === ciclo.mesRef && h.ano === ciclo.anoRef
+      // MÊS EM ANDAMENTO: compara o período decorrido contra o MESMO período
+      // do mês anterior — mesma lógica do "Panorama da equipe" (prorrateia o
+      // mês anterior pela fração de dias decorridos, `fator`), NÃO contra o
+      // mês fechado inteiro. Meses já fechados comparam full vs full.
+      const baseAnterior = anterior != null && emAndamento ? anterior * fator : anterior
+      const deltaPct = baseAnterior != null && baseAnterior > 0
+        ? ((h.comissao - baseAnterior) / baseAnterior) * 100
         : null
       return {
         label: h.label,
         valor: h.comissao,
         deltaPct,
-        emAndamento: h.mes === ciclo.mesRef && h.ano === ciclo.anoRef,
+        emAndamento,
       }
     })
   }

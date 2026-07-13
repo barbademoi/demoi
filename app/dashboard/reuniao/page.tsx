@@ -78,7 +78,7 @@ export default async function ReuniaoPage() {
             <section className="card p-6">
               <h2 className="font-serif text-lg text-text mb-1">🏠 Faturamento geral da casa</h2>
               <p className="text-text-muted text-xs font-sans mb-4">
-                Últimos 6 meses e a variação de um mês pro outro. O mês atual ainda está em andamento.
+                Últimos 6 meses e a variação de um mês pro outro. O mês atual está em andamento — a variação dele é vs. o <span className="font-semibold">mesmo período</span> do mês passado (mesmos dias decorridos).
               </p>
               {(() => {
                 const meses = rx.faturamentoGeral!
@@ -93,7 +93,9 @@ export default async function ReuniaoPage() {
                         <p className="font-serif text-3xl text-text tabular-nums">{formatBRL(atual.valor)}</p>
                         <DeltaPill pct={atual.deltaPct} />
                         {atual.deltaPct != null && (
-                          <span className="text-text-muted text-[11px] font-sans">vs. mês anterior</span>
+                          <span className="text-text-muted text-[11px] font-sans">
+                            {atual.emAndamento ? 'vs. mesmo período do mês passado' : 'vs. mês anterior'}
+                          </span>
                         )}
                       </div>
                     </div>
