@@ -20,6 +20,7 @@ import { cicloAtual, cicloDeData, hojeBrasil, calcDiasUteisCiclo } from './../ci
 import { calcularRitmo, resolverDiasTrabalho } from './../ritmo'
 import { gerarRelatorioPontos } from './../relatorioPontos'
 import { calcularDestaquesMes, type DestaquesMes } from './../destaquesMes'
+import { buscarHistoricoBarbearia } from './../historicoMeses'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseLike = any
@@ -40,6 +41,13 @@ export interface BarbeiroRaioX {
   motivoAtencao: string | null
 }
 
+export interface FaturamentoGeralMes {
+  label: string
+  valor: number
+  deltaPct: number | null   // variação vs. o mês anterior (null = sem base)
+  emAndamento: boolean       // true no ciclo atual (parcial, ainda em curso)
+}
+
 export interface RaioXReuniao {
   cicloLabel: string
   cicloAnteriorLabel: string
@@ -53,6 +61,10 @@ export interface RaioXReuniao {
   barbeiros: BarbeiroRaioX[]
   precisamAtencao: BarbeiroRaioX[]
   destaques: DestaquesMes
+  // Resumo do FATURAMENTO GERAL da casa (últimos 6 meses). Só quando o toggle
+  // "Mostrar faturamento geral" está ligado — senão vem null (não exibir).
+  mostrarFaturamentoGeral: boolean
+  faturamentoGeral: FaturamentoGeralMes[] | null
 }
 
 function diasDecorridosInclusive(inicio: Date, hoje: Date): number {
@@ -73,7 +85,7 @@ export async function gerarRaioXReuniao(
   // Config: ciclo + base da meta (rótulo) + dias de trabalho padrão da barbearia.
   const { data: cfg } = await supabase
     .from('barbearias')
-    .select('dia_fechamento, modo_meta, base_meta, dias_trabalho_padrao')
+    .select('dia_fechamento, modo_meta, base_meta, dias_trabalho_padrao, mostrar_faturamento_geral')
     .eq('id', barbeariaId)
     .single()
   const diaFechamento = (cfg?.dia_fechamento as number | null) ?? 1
@@ -82,6 +94,8 @@ export async function gerarRaioXReuniao(
   const base = modoMeta === 'ambos' ? baseMeta : (modoMeta as 'faturamento' | 'comissao')
   const baseLabel = base === 'faturamento' ? 'Faturamento' : 'Comissão'
   const padraoBarbearia = (cfg?.dias_trabalho_padrao as number | null) ?? null
+  // Respeita o toggle das configs: default true (mesma regra do dashboard).
+  const mostrarFaturamentoGeral = (cfg?.mostrar_faturamento_geral ?? true) as boolean
 
   const hoje = hojeBrasil()
   const ciclo = cicloAtual(diaFechamento, hoje)
@@ -92,6 +106,28 @@ export async function gerarRaioXReuniao(
   const fator = Math.min(1, diasDecorridos / cicloAnterior.totalDias)
   const { diasUteisCorridos, diasUteisRestantes } = calcDiasUteisCiclo(ciclo.inicio, ciclo.fim, hoje)
 
+  // ── Resumo do FATURAMENTO GERAL da casa (últimos 6 meses) ──
+  // Reutiliza buscarHistoricoBarbearia (mesma fonte do dashboard: soma de
+  // lancamentos.comissao_acumulada, ou metas.faturamento_acumulado quando o
+  // dono preencheu). Só monta se o toggle "Mostrar faturamento geral" estiver
+  // ligado — coerente com a regra que já existe no resto do sistema.
+  let faturamentoGeral: FaturamentoGeralMes[] | null = null
+  if (mostrarFaturamentoGeral) {
+    const hist = await buscarHistoricoBarbearia(supabase, barbeariaId, ciclo.mesRef, ciclo.anoRef, 6, diaFechamento)
+    faturamentoGeral = hist.map((h, i) => {
+      const anterior = i > 0 ? hist[i - 1].comissao : null
+      const deltaPct = anterior != null && anterior > 0
+        ? ((h.comissao - anterior) / anterior) * 100
+        : null
+      return {
+        label: h.label,
+        valor: h.comissao,
+        deltaPct,
+        emAndamento: h.mes === ciclo.mesRef && h.ano === ciclo.anoRef,
+      }
+    })
+  }
+
   const vazio: RaioXReuniao = {
     cicloLabel: ciclo.label,
     cicloAnteriorLabel: cicloAnterior.label,
@@ -99,6 +135,7 @@ export async function gerarRaioXReuniao(
     totalAtual: 0, totalMesmoPeriodoAnterior: 0, totalDeltaPct: null, totalProjetado: 0,
     barbeiros: [], precisamAtencao: [],
     destaques: { pontuacao: null, faturamento: null, faturamentoLabel: `Maior ${baseLabel.toLowerCase()}`, evolucao: null },
+    mostrarFaturamentoGeral, faturamentoGeral,
   }
 
   // Barbeiros ativos (exclui recepcionista do panorama de R$; pontos entram à parte).
@@ -208,5 +245,6 @@ export async function gerarRaioXReuniao(
     barbeiros: linhas,
     precisamAtencao,
     destaques,
+    mostrarFaturamentoGeral, faturamentoGeral,
   }
 }

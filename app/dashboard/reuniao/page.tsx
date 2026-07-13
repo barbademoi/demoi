@@ -73,6 +73,58 @@ export default async function ReuniaoPage() {
             </p>
           </div>
 
+          {/* Resumo do FATURAMENTO GERAL da casa — só quando o toggle está ligado */}
+          {rx.mostrarFaturamentoGeral && rx.faturamentoGeral && rx.faturamentoGeral.some(m => m.valor > 0) && (
+            <section className="card p-6">
+              <h2 className="font-serif text-lg text-text mb-1">🏠 Faturamento geral da casa</h2>
+              <p className="text-text-muted text-xs font-sans mb-4">
+                Últimos 6 meses e a variação de um mês pro outro. O mês atual ainda está em andamento.
+              </p>
+              {(() => {
+                const meses = rx.faturamentoGeral!
+                const atual = meses[meses.length - 1]
+                return (
+                  <>
+                    <div className="mb-4">
+                      <p className="text-text-muted text-[11px] font-sans uppercase tracking-wide mb-1">
+                        <span className="capitalize">{atual.label}</span> {atual.emAndamento && '(em andamento)'}
+                      </p>
+                      <div className="flex items-baseline gap-3">
+                        <p className="font-serif text-3xl text-text tabular-nums">{formatBRL(atual.valor)}</p>
+                        <DeltaPill pct={atual.deltaPct} />
+                        {atual.deltaPct != null && (
+                          <span className="text-text-muted text-[11px] font-sans">vs. mês anterior</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm font-sans border-collapse">
+                        <thead>
+                          <tr className="text-text-muted text-xs uppercase tracking-wide">
+                            <th className="text-left font-semibold py-2 pr-2">Mês</th>
+                            <th className="text-right font-semibold py-2 px-2 whitespace-nowrap">Faturamento</th>
+                            <th className="text-right font-semibold py-2 pl-2 whitespace-nowrap">Variação</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {meses.map((m, i) => (
+                            <tr key={i} className="border-t border-border">
+                              <td className="py-2 pr-2 text-text capitalize">
+                                {m.label}{m.emAndamento && <span className="text-text-muted text-xs"> · parcial</span>}
+                              </td>
+                              <td className="py-2 px-2 text-right tabular-nums text-text">{formatBRL(m.valor)}</td>
+                              <td className="py-2 pl-2 text-right"><DeltaPill pct={m.deltaPct} /></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )
+              })()}
+            </section>
+          )}
+
           {rx.barbeiros.length === 0 ? (
             <div className="card p-6">
               <p className="text-text-muted text-sm font-sans">Ainda não há dados da equipe neste período.</p>

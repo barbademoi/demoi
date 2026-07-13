@@ -163,17 +163,31 @@ export default function ReuniaoClient({
                 <button
                   type="button"
                   onClick={() => toggle(n)}
+                  role="checkbox"
+                  aria-checked={n.feito}
                   aria-label={n.feito ? 'Desmarcar' : 'Marcar'}
                   className={[
-                    'w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors',
-                    n.feito ? 'bg-primary border-primary text-white' : 'border-border hover:border-primary/50',
+                    // Alvo de toque confortável (28px) com a caixinha de 24px dentro.
+                    'shrink-0 -my-0.5 p-0.5 flex items-center justify-center rounded-md',
+                    'transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A85A]/60',
                   ].join(' ')}
                 >
-                  {n.feito && (
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
+                  <span
+                    className={[
+                      'w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors',
+                      n.feito
+                        // Marcada: preenchida em latão, check escuro pra contraste óbvio.
+                        ? 'bg-[#D4A85A] border-[#D4A85A] text-[#0B0A08]'
+                        // Desmarcada: borda bem visível sobre o fundo escuro.
+                        : 'border-[#8B8FA8] bg-transparent hover:border-[#D4A85A]',
+                    ].join(' ')}
+                  >
+                    {n.feito && (
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </span>
                 </button>
 
                 {editId === n.id ? (

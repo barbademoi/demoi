@@ -35,6 +35,15 @@ function montarContexto(rx: RaioXReuniao): string {
   const deltaTxt = rx.totalDeltaPct == null ? 'sem base anterior' : `${rx.totalDeltaPct >= 0 ? '+' : ''}${Math.round(rx.totalDeltaPct)}% vs. mesmo período do mês passado`
   b.push(`EQUIPE — ${rx.baseLabel} acumulado: ${fmtBRL(rx.totalAtual)} (${deltaTxt}); mesmo período do mês passado: ${fmtBRL(rx.totalMesmoPeriodoAnterior)}; projeção de fechamento: ${fmtBRL(rx.totalProjetado)}`)
 
+  // Faturamento geral da casa (últimos 6 meses) — só quando o toggle está ligado.
+  if (rx.mostrarFaturamentoGeral && rx.faturamentoGeral && rx.faturamentoGeral.some(m => m.valor > 0)) {
+    b.push('FATURAMENTO GERAL DA CASA (últimos 6 meses, mês atual em andamento):')
+    for (const m of rx.faturamentoGeral) {
+      const v = m.deltaPct == null ? '' : ` (${m.deltaPct >= 0 ? '+' : ''}${Math.round(m.deltaPct)}% vs. mês anterior)`
+      b.push(`- ${m.label}${m.emAndamento ? ' [parcial]' : ''}: ${fmtBRL(m.valor)}${v}`)
+    }
+  }
+
   b.push('POR BARBEIRO (número já apurado pelo sistema):')
   for (const l of rx.barbeiros) {
     const d = l.deltaPct == null ? 's/ base anterior' : `${l.deltaPct >= 0 ? '+' : ''}${Math.round(l.deltaPct)}% vs. mesmo período`
@@ -81,7 +90,7 @@ export async function gerarPautaReuniao(): Promise<{ texto: string } | { error: 
   const prompt = `Você é um assistente de gestão de barbearias. Com base APENAS nos números já apurados abaixo (não invente, não recalcule, não crie valores que não estão aqui), escreva uma pauta prática pro dono conduzir a reunião com a equipe.
 
 Estrutura:
-1. RESUMO DO MÊS (2-4 linhas): como a equipe está vs. o mesmo período do mês passado e a projeção de fechamento.
+1. RESUMO DO MÊS (2-4 linhas): como a equipe está vs. o mesmo período do mês passado e a projeção de fechamento. Se houver "FATURAMENTO GERAL DA CASA", comente a evolução da casa mês a mês (tendência de alta/queda), lembrando que o mês atual é parcial.
 2. PONTOS DE ATENÇÃO POR BARBEIRO: cite nominalmente quem precisa de atenção e por quê (ex.: "Fulano caiu X% vs. mesmo período").
 3. QUEM PUXA O TIME: destaque quem está indo bem.
 4. SUGESTÕES DE PAUTA: 3 a 5 tópicos objetivos pra reunião.
