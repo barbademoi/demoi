@@ -8,6 +8,7 @@ import BrandLogo from '@/components/BrandLogo'
 import { SUPORTE, whatsappUrl } from '@/lib/suporte'
 import { hasFeedback } from '@/lib/feedback/access'
 import { hasFinanceiro } from '@/lib/financeiro/supabaseStore'
+import { hasReuniao } from '@/lib/reuniao/access'
 import { contarCondutaNaoLidas } from '@/lib/conduta/unread'
 import PreviewPlusModal from './PreviewPlusModal'
 
@@ -29,6 +30,9 @@ type NavItem = {
   // Itens marcados como adicional PLUS. Cadeado aparece se o usuario nao
   // tem acesso (nem grandfather nem grant ativo).
   requires?: 'feedback' | 'financeiro'
+  // Item em PREVIEW restrito (allowlist por e-mail). Fica ESCONDIDO pra quem
+  // não tem acesso — não mostra cadeado. Habilitado só pra conta do dono.
+  previewReuniao?: boolean
 }
 
 const navItems: NavItem[] = [
@@ -144,6 +148,20 @@ const navItems: NavItem[] = [
     ),
   },
   {
+    href: '/dashboard/reuniao',
+    label: 'Reunião',
+    badge: 'PREVIEW',
+    previewReuniao: true,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+  },
+  {
     href: '/configuracoes',
     label: 'Configurações',
     icon: (
@@ -164,6 +182,7 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
   const [access, setAccess] = useState<{
     feedback?: boolean
     financeiro?: boolean
+    reuniao?: boolean
   }>({})
   const [showPreview, setShowPreview] = useState(false)
   // Não lidas do módulo de comportamento (mensagens identificadas do barbeiro).
@@ -171,8 +190,8 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
 
   useEffect(() => {
     let cancel = false
-    Promise.all([hasFeedback(), hasFinanceiro()]).then(([f, fi]) => {
-      if (!cancel) setAccess({ feedback: f, financeiro: fi })
+    Promise.all([hasFeedback(), hasFinanceiro(), hasReuniao()]).then(([f, fi, re]) => {
+      if (!cancel) setAccess({ feedback: f, financeiro: fi, reuniao: re })
     }).catch(() => { /* sem cadeado em caso de erro */ })
     return () => { cancel = true }
   }, [])
@@ -243,6 +262,9 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
         {/* Nav */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
+            // Item de PREVIEW restrito: só aparece pra quem tem acesso
+            // (allowlist). Enquanto verifica (undefined) fica escondido.
+            if (item.previewReuniao && access.reuniao !== true) return null
             const active = pathname === item.href && !showFerramentas
             // Cadeado: so se o item exige acesso E ja sabemos que nao tem.
             // Enquanto undefined (verificando), nao mostra nada — evita
