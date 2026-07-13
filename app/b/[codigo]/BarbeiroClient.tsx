@@ -4,6 +4,7 @@ import { useState, useMemo, useTransition } from 'react'
 import { formatBRL, TIER_CONFIG, calcProgresso } from '@/lib/utils'
 import { calcularRitmo } from '@/lib/ritmo'
 import { rotuloAcumulado } from '@/lib/rotuloValor'
+import type { RelatorioPontosBarbeiro } from '@/lib/relatorioPontos'
 import { marcarOcorrenciaCiente, enviarMensagemBarbeiro, marcarMensagemLidaBarbeiro } from './conduta-actions'
 import DiasEmAbertoAlerta from './DiasEmAbertoAlerta'
 import BarbeiroNavDrawer, { type NavItem } from './NavBarbeiro'
@@ -79,6 +80,7 @@ interface Props {
   pontosMap: Record<string, number>
   controleHoje: Record<string, number>
   historico: { data: string; pontos: number; label: string }[]
+  relatorioPontos: RelatorioPontosBarbeiro
   visibilidadeRanking: 'completo' | 'posicoes' | 'proprio'
   isAutonomo: boolean
   comissaoMesAnterior: number
@@ -135,6 +137,7 @@ export default function BarbeiroClient({
   premioColetivo, premioColetivoBronze, premioColetivoPrata,
   insights, mensagemIA, tiersJaCelebrados, campanha, controlesDiario,
   pontosTotal, rankingPontos, barbeirosAtivos, pontosMap, controleHoje, historico,
+  relatorioPontos,
   visibilidadeRanking, isAutonomo, comissaoMesAnterior, historicoMeses,
   cicloLabel, diaFechamento, mostrarTicketMedio, mostrarFaturamentoGeral,
   feedbacksDoBarbeiro,
@@ -155,7 +158,7 @@ export default function BarbeiroClient({
   // vendo progresso, ranking, regras e feedbacks). Bloqueio tambem aplicado
   // no servidor em lancarDiaBarbeiro.
   const barbeiroPodeLancar = campanha?.quem_lanca !== 'dono'
-  type AbaId = 'progresso' | 'lancar' | 'regras' | 'feedbacks' | 'acompanhamento'
+  type AbaId = 'progresso' | 'lancar' | 'regras' | 'conferencia' | 'feedbacks' | 'acompanhamento'
   const [aba, setAba] = useState<AbaId>('progresso')
   const [menuAberto, setMenuAberto] = useState(false)
   const temFeedbacks = feedbacksDoBarbeiro.length > 0
@@ -194,6 +197,7 @@ export default function BarbeiroClient({
     ...(mostraPontos || temFeedbacks || comportamentoAtivo ? [{ id: 'progresso', label: 'Progresso' }] : []),
     ...(mostraPontos && barbeiroPodeLancar ? [{ id: 'lancar', label: 'Lançar dia' }] : []),
     ...(mostraPontos && campanha ? [{ id: 'regras', label: 'Regras' }] : []),
+    ...(mostraPontos && campanha ? [{ id: 'conferencia', label: 'Conferência' }] : []),
     ...(temFeedbacks ? [{ id: 'feedbacks', label: `Feedbacks (${feedbacksDoBarbeiro.length})` }] : []),
     ...(comportamentoAtivo ? [{ id: 'acompanhamento', label: 'Meu acompanhamento', badge: condutaNaoVistas }] : []),
   ]
@@ -920,6 +924,64 @@ export default function BarbeiroClient({
                   {campanha.regras_personalizadas}
                 </p>
               </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── ABA: CONFERÊNCIA DE PONTOS (individual — só o próprio barbeiro) ──
+          De onde vieram SEUS pontos no período. Mesma fonte do ranking, então
+          o total bate com sua pontuação. Só leitura. */}
+      {aba === 'conferencia' && mostraPontos && campanha && (
+        <div className="space-y-4 pt-2">
+          <div className="px-1">
+            <h2 className="font-serif text-lg text-text">Conferência de pontos</h2>
+            <p className="text-text-muted text-xs font-sans mt-0.5 leading-relaxed">
+              De onde vieram seus pontos em <span className="capitalize">{cicloLabel}</span>. O total bate com sua pontuação no ranking.
+            </p>
+          </div>
+
+          <div className="card p-5">
+            {relatorioPontos.atividades.length === 0 ? (
+              <p className="text-text-muted text-sm font-sans py-2">
+                Você ainda não pontuou neste período.
+              </p>
+            ) : (
+              <>
+                <p className="text-text-muted text-xs font-sans mb-3">
+                  {relatorioPontos.totalLancamentos} lançamento{relatorioPontos.totalLancamentos !== 1 ? 's' : ''} no período.
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm font-sans border-collapse">
+                    <thead>
+                      <tr className="text-text-muted text-xs uppercase tracking-wide">
+                        <th className="text-left font-semibold py-2 pr-2">Atividade</th>
+                        <th className="text-right font-semibold py-2 px-2 whitespace-nowrap">Qtd</th>
+                        <th className="text-right font-semibold py-2 px-2 whitespace-nowrap">Pts/un.</th>
+                        <th className="text-right font-semibold py-2 pl-2 whitespace-nowrap">Pontos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {relatorioPontos.atividades.map(a => (
+                        <tr key={a.servicoId} className="border-t border-border">
+                          <td className="py-2 pr-2 text-text">
+                            <span className="mr-1">{a.emoji}</span>{a.nome}
+                          </td>
+                          <td className="py-2 px-2 text-right tabular-nums text-text">{a.qtd}</td>
+                          <td className="py-2 px-2 text-right tabular-nums text-text-muted">{a.pontosUnit}</td>
+                          <td className="py-2 pl-2 text-right tabular-nums font-semibold text-text">{a.pontosTotais}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-border">
+                        <td className="py-2 pr-2 font-serif text-text" colSpan={3}>Seu total</td>
+                        <td className="py-2 pl-2 text-right tabular-nums font-serif text-lg text-primary">{relatorioPontos.total}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         </div>

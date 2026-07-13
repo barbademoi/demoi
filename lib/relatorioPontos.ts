@@ -128,3 +128,75 @@ export async function gerarRelatorioPontos(
 
   return { atividadesEquipe, totalEquipe, totalLancamentos, barbeiros }
 }
+
+export interface RelatorioPontosBarbeiro {
+  atividades: AtividadeLinha[]
+  total: number            // === pontuação do barbeiro no ranking do período
+  totalLancamentos: number // soma das quantidades do barbeiro
+}
+
+/**
+ * Versão INDIVIDUAL do relatório — só o próprio barbeiro (link /b/[codigo]).
+ *
+ * PRIVACIDADE: a query de `controle_diario` é filtrada por `barbeiro_id`, então
+ * NUNCA retorna lançamento de colega — o escopo é garantido no servidor, não só
+ * escondido na tela. O barbeiro é identificado pelo segredo `link_codigo`
+ * (resolvido antes de chamar esta função), mesmo padrão de feedbacks/conduta.
+ *
+ * FONTE ÚNICA: mesmas tabelas, mesma janela de ciclo (inicioIso/fimIso, fuso
+ * America/Sao_Paulo) e mesma regra de agregação do ranking de pontos. Logo
+ * `total` bate exatamente com a pontuação do barbeiro no ranking do período —
+ * não há cálculo por caminho paralelo.
+ */
+export async function gerarRelatorioPontosBarbeiro(
+  supabase: SupabaseLike,
+  barbeariaId: string,
+  barbeiroId: string,
+  inicioIso: string,
+  fimIso: string,
+): Promise<RelatorioPontosBarbeiro> {
+  const vazio: RelatorioPontosBarbeiro = { atividades: [], total: 0, totalLancamentos: 0 }
+
+  // Todas as campanhas da barbearia (mesmo critério do ranking).
+  const { data: todasCampRaw } = await supabase
+    .from('campanha').select('id').eq('barbearia_id', barbeariaId)
+  const todasCampIds = ((todasCampRaw ?? []) as { id: string }[]).map(c => c.id)
+  if (todasCampIds.length === 0) return vazio
+
+  // Serviços (id → nome/emoji/pontos) cobrindo TODAS as campanhas.
+  const { data: servRaw } = await supabase
+    .from('campanha_servicos').select('id, nome, emoji, pontos').in('campanha_id', todasCampIds)
+  const servInfo = new Map<string, ServicoInfo>()
+  for (const s of (servRaw ?? []) as { id: string; nome: string; emoji: string | null; pontos: number }[]) {
+    servInfo.set(s.id, { nome: s.nome, emoji: s.emoji ?? '•', pontos: Number(s.pontos) || 0 })
+  }
+  const infoDoServico = (id: string): ServicoInfo => servInfo.get(id) ?? { nome: 'Atividade removida', emoji: '•', pontos: 0 }
+
+  // SÓ os lançamentos DESTE barbeiro — filtro por barbeiro_id no servidor.
+  const { data: controlesRaw } = await supabase
+    .from('controle_diario')
+    .select('servico_id, quantidade')
+    .eq('barbeiro_id', barbeiroId)
+    .in('campanha_id', todasCampIds)
+    .gte('data', inicioIso)
+    .lte('data', fimIso)
+  const controles = (controlesRaw ?? []) as { servico_id: string; quantidade: number }[]
+
+  const porAtividade = new Map<string, AtividadeLinha>()
+  let totalLancamentos = 0
+  for (const cd of controles) {
+    const qtd = Number(cd.quantidade) || 0
+    if (qtd === 0) continue
+    totalLancamentos += qtd
+    const info = infoDoServico(cd.servico_id)
+    const linha = porAtividade.get(cd.servico_id)
+      ?? { servicoId: cd.servico_id, nome: info.nome, emoji: info.emoji, pontosUnit: info.pontos, qtd: 0, pontosTotais: 0 }
+    linha.qtd += qtd
+    linha.pontosTotais += qtd * info.pontos
+    porAtividade.set(cd.servico_id, linha)
+  }
+
+  const atividades = Array.from(porAtividade.values()).sort(ordenarAtividades)
+  const total = atividades.reduce((s, a) => s + a.pontosTotais, 0)
+  return { atividades, total, totalLancamentos }
+}

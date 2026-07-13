@@ -12,6 +12,7 @@ import { buscarHistoricoMeses } from '@/lib/historicoMeses'
 import BrandLogo from '@/components/BrandLogo'
 import BarbeiroClient from './BarbeiroClient'
 import { computeHistorico } from './pontos-utils'
+import { gerarRelatorioPontosBarbeiro, type RelatorioPontosBarbeiro } from '@/lib/relatorioPontos'
 import type {
   Barbeiro, MetaIndividual, Lancamento,
   ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario,
@@ -282,6 +283,13 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     }
   }
 
+  // Relatório de conferência INDIVIDUAL (só deste barbeiro). Mesma fonte/janela
+  // do ranking de pontos — o total bate com `pontosTotal`. Filtra por
+  // barbeiro_id no servidor: nunca traz lançamento de colega. Só em modo pontos.
+  const relatorioPontos: RelatorioPontosBarbeiro = modo !== 'metas'
+    ? await gerarRelatorioPontosBarbeiro(supabase, barbeiro.barbearia_id, barbeiro.id, ciclo.inicioIso, ciclo.fimIso)
+    : { atividades: [], total: 0, totalLancamentos: 0 }
+
   const dataHojeStr = dataLocalStr(hoje)
   const controleHoje = controlesDiario
     .filter(cd => cd.data === dataHojeStr)
@@ -503,6 +511,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
           pontosMap={pontosMap}
           controleHoje={controleHoje}
           historico={historico}
+          relatorioPontos={relatorioPontos}
           visibilidadeRanking={visibilidadeRanking}
           isAutonomo={isAutonomo}
           comissaoMesAnterior={comissaoMesAnterior}
