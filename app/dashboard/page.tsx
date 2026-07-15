@@ -336,9 +336,12 @@ export default async function DashboardPage({
     }
   }
 
+  // Desempate determinístico: pontos desc, depois nome (pt-BR) — mesmo critério
+  // da página do barbeiro, pra 1º/2º não trocarem de lugar num empate.
+  const nomePorId = (id: string) => barbeiros.find(b => b.id === id)?.nome ?? ''
   const rankingPontos = Object.entries(pontosMap)
     .map(([id, pts]) => ({ id, pts }))
-    .sort((a, b) => b.pts - a.pts)
+    .sort((a, b) => b.pts - a.pts || nomePorId(a.id).localeCompare(nomePorId(b.id), 'pt-BR'))
 
   const rankingPontosBarb  = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo !== 'recepcionista')
   const rankingPontosRecep = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo === 'recepcionista')

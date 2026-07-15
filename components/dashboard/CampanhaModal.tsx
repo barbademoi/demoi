@@ -103,12 +103,14 @@ export default function CampanhaModal({ campanha, mes, ano, regrasGeraisDb }: Pr
     .map((_, i) => i)
     .filter(i => i !== idxAssinatura)
 
+  // `posicao` SEMPRE reflete a ordem visual (índice+1). Antes o remove não
+  // renumerava, então o "1º" que o dono via na tela salvava um posicao antigo
+  // (ex.: 3) — e o prêmio caía no lugar errado no ranking do barbeiro.
   function addPremio() {
-    const nextPos = (premios[premios.length - 1]?.posicao ?? 0) + 1
-    setPremios(p => [...p, { posicao: nextPos, valor: 0 }])
+    setPremios(p => [...p, { posicao: p.length + 1, valor: 0 }])
   }
   function removePremio(i: number) {
-    setPremios(p => p.filter((_, idx) => idx !== i))
+    setPremios(p => p.filter((_, idx) => idx !== i).map((pr, idx) => ({ ...pr, posicao: idx + 1 })))
   }
   function updatePremioValor(i: number, valor: number) {
     setPremios(p => p.map((pr, idx) => idx === i ? { ...pr, valor } : pr))
@@ -117,7 +119,10 @@ export default function CampanhaModal({ campanha, mes, ano, regrasGeraisDb }: Pr
   function salvar() {
     setErro(null)
     startTransition(async () => {
-      const res = await salvarCampanha({ mes, ano, minPontos, minPontosRecep, bonusAssinQtd: bonusQtd, bonusAssinValor: bonusValor, regrasPersonalizadas, quemLanca, servicos, premios })
+      // Garante que o posicao gravado = ordem visual (índice+1), à prova de
+      // qualquer estado antigo dessincronizado.
+      const premiosOrdenados = premios.map((p, i) => ({ posicao: i + 1, valor: p.valor }))
+      const res = await salvarCampanha({ mes, ano, minPontos, minPontosRecep, bonusAssinQtd: bonusQtd, bonusAssinValor: bonusValor, regrasPersonalizadas, quemLanca, servicos, premios: premiosOrdenados })
       if (res?.error) { setErro(res.error); return }
       setOpen(false)
     })

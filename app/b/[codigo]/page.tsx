@@ -263,9 +263,12 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
       // ainda nao lancaram nada — aparecem com 0 pts). Antes so aparecia
       // quem tinha lancamento em controle_diario, entao no comeco do mes
       // o barbeiro via so ele mesmo, sem noticia dos colegas.
+      // Desempate determinístico: pontos desc, depois nome (pt-BR) — evita que
+      // um empate no topo troque 1º/2º de forma arbitrária (e, com isso, o prêmio).
       rankingPontos = barbeirosAtivos
-        .map(b => ({ barbeiro_id: b.id, pontos: pontosMap[b.id] ?? 0 }))
-        .sort((a, b) => b.pontos - a.pontos)
+        .map(b => ({ barbeiro_id: b.id, nome: b.nome, pontos: pontosMap[b.id] ?? 0 }))
+        .sort((a, b) => b.pontos - a.pontos || a.nome.localeCompare(b.nome, 'pt-BR'))
+        .map(({ barbeiro_id, pontos }) => ({ barbeiro_id, pontos }))
 
       // Meus controles do ciclo (pra histórico/detalhe): mesma lógica —
       // filtra por barbeiro + data, não por campanha_id.

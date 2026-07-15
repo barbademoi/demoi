@@ -516,7 +516,7 @@ function TodosView({
       {rankingBarbeiros.length > 0 && modoAtual !== 'metas' && campanha && (() => {
         const min = campanha.min_pontos
         const ordPorPontos = [...rankingBarbeiros].sort(
-          (a, b) => (pontosMap[b.id] ?? 0) - (pontosMap[a.id] ?? 0),
+          (a, b) => (pontosMap[b.id] ?? 0) - (pontosMap[a.id] ?? 0) || a.nome.localeCompare(b.nome, 'pt-BR'),
         )
         const qualificados = ordPorPontos.filter(b => (pontosMap[b.id] ?? 0) >= min)
         const abaixoMin = ordPorPontos.filter(b => (pontosMap[b.id] ?? 0) < min)
@@ -577,7 +577,7 @@ function TodosView({
       {rankingRecepcionistas.length > 0 && modoAtual !== 'metas' && campanha && (() => {
         const minRecep = campanha.min_pontos_recep
         const ordPorPontos = [...rankingRecepcionistas].sort(
-          (a, b) => (pontosMap[b.id] ?? 0) - (pontosMap[a.id] ?? 0),
+          (a, b) => (pontosMap[b.id] ?? 0) - (pontosMap[a.id] ?? 0) || a.nome.localeCompare(b.nome, 'pt-BR'),
         )
         const qualificados = ordPorPontos.filter(b => (pontosMap[b.id] ?? 0) >= minRecep)
         const abaixoMin = ordPorPontos.filter(b => (pontosMap[b.id] ?? 0) < minRecep)

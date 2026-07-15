@@ -231,7 +231,14 @@ export default function BarbeiroClient({
     ? (barbeiro.tipo === 'recepcionista' ? campanha.min_pontos_recep : campanha.min_pontos)
     : 0
   const qualificado = campanha ? pontosTotal >= minPontosEfetivo : false
-  const premioAtual = campanha?.campanha_premios.find(p => p.posicao === posicaoPts + 1)
+  // Prêmios ORDENADOS por posição: o N-ésimo prêmio vai pro N-ésimo colocado,
+  // pela ORDEM (não pelo valor bruto de `posicao`). Assim campanhas antigas com
+  // `posicao` dessincronizado (bug de config) ainda exibem no lugar certo — o
+  // 1º prêmio vai pro 1º do ranking.
+  const premiosOrdenados = campanha
+    ? [...campanha.campanha_premios].sort((a, b) => a.posicao - b.posicao)
+    : []
+  const premioAtual = posicaoPts >= 0 ? premiosOrdenados[posicaoPts] : undefined
 
   // Contagem de assinaturas para bônus.
   // Antes usava heurística por nome (`s.nome.includes('assinatura')`), que
@@ -710,7 +717,7 @@ export default function BarbeiroClient({
                         const nome = b?.barbeiros?.nome
                           ?? barbeirosAtivos.find(x => x.id === r.barbeiro_id)?.nome
                           ?? '—'
-                        const premio = campanha.campanha_premios.find(p => p.posicao === i + 1)
+                        const premio = premiosOrdenados[i]
                         const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null
                         return (
                           <div key={r.barbeiro_id} className={`flex items-center gap-3 px-3 py-2 rounded-xl
