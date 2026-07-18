@@ -1,11 +1,11 @@
 import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
-import Depoimentos from '@/components/landing/Depoimentos'
-import TudoQueFaz from '@/components/landing/TudoQueFaz'
+import Dor from '@/components/landing/Dor'
 import AntesDepois from '@/components/landing/AntesDepois'
-import ParaQuem from '@/components/landing/ParaQuem'
+import Solucao from '@/components/landing/Solucao'
+import TudoQueFaz from '@/components/landing/TudoQueFaz'
+import Depoimentos from '@/components/landing/Depoimentos'
 import Funcionalidades from '@/components/landing/Funcionalidades'
-import VideoAulas from '@/components/landing/VideoAulas'
 import ProvasSocial from '@/components/landing/ProvasSocial'
 import Preco from '@/components/landing/Preco'
 import FAQ from '@/components/landing/FAQ'
@@ -21,21 +21,24 @@ export const metadata = {
 
 export default function LandingPage() {
   return (
-    <div className="bg-[#0A1929] min-h-screen">
+    <div className="min-h-screen bg-[#0A1929]">
       <Navbar />
-      <Hero />
-      <Depoimentos />
-      <TudoQueFaz />
-      <AntesDepois />
-      <ParaQuem />
-      <Funcionalidades />
-      <VideoAulas />
-      <ProvasSocial />
-      <Preco />
-      <FAQ />
-      <CTAFinal />
+      <main>
+        <Hero />
+        <Dor />
+        <AntesDepois />
+        <Solucao />
+        <TudoQueFaz />
+        <Depoimentos />
+        <Funcionalidades />
+        <ProvasSocial />
+        <Preco />
+        <FAQ />
+        <CTAFinal />
+      </main>
       <Footer />
       <MobileStickyCTA />
     </div>
   )
 }
+sed: --: No such file or directory
