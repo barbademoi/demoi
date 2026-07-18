@@ -31,4 +31,3 @@ export default function ProvasSocial() {
     </section>
   )
 }
-sed: --: No such file or directory
