@@ -41,4 +41,3 @@ export default function LandingPage() {
     </div>
   )
 }
-sed: --: No such file or directory
