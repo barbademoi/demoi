@@ -30,7 +30,19 @@ export default function Hero() {
             metas e posição no ranking. Quem está atrás, acelera sozinho.
           </p>
 
-          <div className="mt-8 flex flex-col items-center gap-3 lg:items-start">
+          <div className="mx-auto mt-6 flex max-w-xl items-start gap-3 rounded-2xl border border-[#D4A85A]/35 bg-[#D4A85A]/[0.08] px-4 py-4 text-left lg:mx-0">
+            <span aria-hidden="true" className="text-2xl">🎓</span>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wider text-[#D4A85A]">
+                8 aulas que valem ouro
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-[#E2E8F0] sm:text-base">
+                Eu te mostro, na prática, como faço meu time vender mais usando o BarberMeta.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-7 flex flex-col items-center gap-3 lg:items-start">
             <CTAButton id="cta-hero-oferta" gtmClass="gtm-cta-hero" />
             <p className="text-sm text-[#A0AEC0]">Acesso vitalício · Sem mensalidade · 7 dias de garantia</p>
           </div>
