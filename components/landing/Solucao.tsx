@@ -1,4 +1,3 @@
-sed: --: No such file or directory
 const passos = [
   { num: '1', titulo: 'Você configura', texto: 'Cadastra a equipe, as metas Bronze, Prata e Ouro e a premiação de cada nível.' },
   { num: '2', titulo: 'Cada barbeiro recebe um link', texto: 'Sem app e sem senha. Ele abre no celular e vê comissão, ritmo, metas e ranking.' },
