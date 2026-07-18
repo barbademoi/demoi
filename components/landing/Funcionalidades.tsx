@@ -50,7 +50,7 @@ const grupos = [
   {
     grupo: 'Aprendizado incluso',
     itens: [
-      '6 aulas curtas com Carlos Henrique, dono que usa o sistema',
+      '8 aulas práticas com Carlos Henrique mostrando como faz o time vender mais usando o BarberMeta',
       '2 tipos de metas e gamificação explicados na prática',
       'Tutoriais em vídeo dentro do dashboard',
     ],
