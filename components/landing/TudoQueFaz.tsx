@@ -1,4 +1,3 @@
-sed: --: No such file or directory
 const beneficios = [
   { icon: '📱', titulo: 'Clareza para cada barbeiro', texto: 'Link individual, sem senha, com meta, ritmo, comissão e ranking.' },
   { icon: '🏆', titulo: 'Metas que viram jogo', texto: 'Bronze, Prata e Ouro, meta coletiva e campanha de pontos.' },
