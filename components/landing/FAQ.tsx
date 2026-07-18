@@ -1,108 +1,33 @@
-'use client'
-
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-
 const perguntas = [
-  {
-    q: 'Preciso instalar alguma coisa?',
-    a: 'Não. Funciona no navegador, no celular ou no computador. Você recebe um login por email depois da compra.',
-  },
-  {
-    q: 'Meus barbeiros vão saber mexer?',
-    a: 'Sim. Quem usa WhatsApp consegue usar o BarberMeta. Cada barbeiro só precisa abrir um link e ver os próprios números.',
-  },
-  {
-    q: 'Como cada barbeiro acessa o sistema?',
-    a: 'Cada barbeiro recebe um link único. Abre no celular, sem criar conta ou lembrar senha. É só abrir e ver.',
-  },
-  {
-    q: 'Posso adicionar barbeiro depois?',
-    a: 'Sim, quantos quiser, quando quiser. Sem custo extra.',
-  },
-  {
-    q: 'Funciona pra barbeiro que trabalha sozinho?',
-    a: 'Sim. Na primeira vez que você entrar, o sistema pergunta se você tem equipe ou trabalha sozinho. Se você trabalha sozinho, o sistema se adapta — você vê suas próprias metas, seu histórico mês a mês e seu progresso sem ranking de equipe.',
-  },
-  {
-    q: 'Funciona pra recepcionista também?',
-    a: 'Funciona. Você pode cadastrar barbeiros e recepcionistas, cada um com sua meta e seu link próprio.',
-  },
-  {
-    q: 'Funciona no celular, computador ou tablet?',
-    a: 'Funciona em qualquer um. O sistema é otimizado pra celular — você cadastra equipe, configura metas e lança comissão direto do smartphone. Mas se preferir, abre no computador ou tablet sem perder nada. Não precisa instalar nada.',
-  },
-  {
-    q: 'E se eu não souber configurar? Tem alguém pra ajudar?',
-    a: 'Sim. Depois da compra você recebe acesso aos vídeos de treinamento e suporte direto no WhatsApp (35) 99824-8211. Em 30 minutos você está com tudo rodando.',
-  },
-  {
-    q: 'E se eu não gostar? Como funciona o reembolso?',
-    a: 'Você tem 7 dias após a compra pra pedir reembolso. Manda mensagem no WhatsApp do suporte e a Hotmart devolve o valor cheio, sem pergunta.',
-  },
-  {
-    q: 'A Hotmart cobra algum imposto extra?',
-    a: 'Não. O preço de R$ 47 é o valor final. Sem taxa, sem cobrança recorrente, sem surpresa.',
-  },
+  { q: 'Preciso instalar alguma coisa?', a: 'Não. Funciona no navegador, no celular, computador ou tablet. Você recebe um login por email depois da compra.' },
+  { q: 'Como cada barbeiro acessa? Eles vão saber mexer?', a: 'Cada barbeiro recebe um link único, sem conta e sem senha. Quem usa WhatsApp consegue usar: é só abrir no celular e ver os próprios números.' },
+  { q: 'Posso adicionar barbeiros ou recepcionistas depois?', a: 'Sim. Você pode cadastrar barbeiros e recepcionistas, cada um com sua meta e seu link próprio, quantos quiser e sem custo extra.' },
+  { q: 'Funciona para quem trabalha sozinho?', a: 'Sim. Na primeira vez, o sistema pergunta se você tem equipe ou trabalha sozinho. No modo autônomo, você vê suas metas, histórico mês a mês e progresso sem ranking de equipe.' },
+  { q: 'E se eu não souber configurar?', a: 'Depois da compra, você recebe acesso aos vídeos de treinamento e suporte direto no WhatsApp (35) 99824-8211. Em 30 minutos você está com tudo rodando.' },
+  { q: 'A Hotmart cobra imposto ou taxa extra?', a: 'Não. O preço de R$ 47 é o valor final. Sem taxa, sem cobrança recorrente e sem surpresa.' },
+  { q: 'E se eu não gostar?', a: 'Você tem 7 dias após a compra para pedir reembolso. Manda mensagem no WhatsApp do suporte e a Hotmart devolve o valor cheio, sem pergunta.' },
 ]
-
-function Item({ q, a }: { q: string; a: string }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="border-b border-white/8 last:border-0">
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between gap-4 py-5 text-left group"
-      >
-        <span className="text-white font-medium text-base group-hover:text-[#D4A85A] transition-colors">
-          {q}
-        </span>
-        <span className={`text-[#D4A85A] text-xl shrink-0 transition-transform duration-200 ${open ? 'rotate-45' : ''}`}>
-          +
-        </span>
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="overflow-hidden"
-          >
-            <p className="pb-5 text-[#A0AEC0] text-base leading-relaxed">{a}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
 
 export default function FAQ() {
   return (
-    <section className="bg-[#0F1F2D] py-16 px-4 sm:px-6">
-      <div className="max-w-2xl mx-auto">
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="text-3xl font-bold text-white text-center mb-10"
-        >
-          Dúvidas frequentes
-        </motion.h2>
+    <section className="bg-[#0F1F2D] px-4 py-16 sm:px-6 sm:py-20">
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-10 text-center">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#D4A85A]">FAQ</p>
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">Dúvidas frequentes</h2>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="rounded-2xl border border-white/8 bg-[#0A1929] px-6"
-        >
-          {perguntas.map(({ q, a }) => (
-            <Item key={q} q={q} a={a} />
+        <div className="rounded-2xl border border-white/10 bg-[#0A1929] px-5 sm:px-7">
+          {perguntas.map((pergunta) => (
+            <details key={pergunta.q} className="group border-b border-white/10 last:border-0">
+              <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 py-4 font-medium text-white transition-colors hover:text-[#D4A85A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4A85A] [&::-webkit-details-marker]:hidden">
+                <span>{pergunta.q}</span>
+                <span aria-hidden="true" className="shrink-0 text-xl text-[#D4A85A] transition-transform group-open:rotate-45">+</span>
+              </summary>
+              <p className="pb-5 pr-8 text-base leading-relaxed text-[#A0AEC0]">{pergunta.a}</p>
+            </details>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   )

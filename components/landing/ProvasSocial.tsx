@@ -1,70 +1,32 @@
-'use client'
-
-import { motion } from 'framer-motion'
-
-const fadeIn = (delay = 0) => ({
-  initial: { opacity: 0, y: 20 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true },
-  transition: { duration: 0.5, delay },
-})
-
 export default function ProvasSocial() {
   return (
-    <section className="bg-[#0A1929] py-16 px-4 sm:px-6">
-      <div className="max-w-4xl mx-auto">
+    <section className="bg-[#0F1F2D] px-4 py-16 sm:px-6 sm:py-20">
+      <div className="mx-auto max-w-4xl">
+        <div className="mx-auto mb-10 max-w-2xl text-center">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#D4A85A]">Minha história</p>
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">Funcionou primeiro na minha barbearia.</h2>
+        </div>
 
-        <motion.h2
-          {...fadeIn()}
-          className="text-3xl sm:text-4xl font-bold text-white text-center mb-10"
-        >
-          Funcionou primeiro na{' '}
-          <span className="text-[#D4A85A]">minha barbearia.</span>
-        </motion.h2>
-
-        <motion.div
-          {...fadeIn(0.1)}
-          className="rounded-2xl border border-white/8 bg-[#0F1F2D] p-8 sm:p-10"
-        >
-          <div className="flex flex-col sm:flex-row gap-8 items-center sm:items-start">
-
-            {/* retrato */}
-            <div className="shrink-0 w-40 sm:w-52">
+        <article className="rounded-3xl border border-white/10 bg-[#0A1929] p-6 sm:p-10">
+          <div className="flex flex-col items-center gap-7 sm:flex-row sm:items-start sm:gap-10">
+            <div className="w-36 shrink-0 sm:w-48">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/prints/foto-pensativo.png"
-                alt="Carlos Henrique — Demôi Barbearia"
-                className="w-full h-auto rounded-2xl shadow-xl"
-              />
+              <img src="/prints/foto-pensativo.png" width="400" height="500" alt="Carlos Henrique, criador do BarberMeta" className="h-auto w-full rounded-2xl shadow-xl" loading="lazy" />
             </div>
-
-            {/* depoimento */}
-            <div className="flex-1">
-              <p className="text-[#E2E8F0] text-base sm:text-lg leading-relaxed">
-                Sou Carlos Henrique, dono da{' '}
-                <strong className="text-white">Demôi Barbearia</strong> em Cássia&nbsp;/&nbsp;MG.
-                Tenho 7 barbeiros.
+            <div>
+              <p className="text-base leading-relaxed text-[#E2E8F0] sm:text-lg">
+                Sou Carlos Henrique, dono da <strong className="text-white">Demôi Barbearia</strong> em Cássia / MG. Tenho 7 barbeiros.
               </p>
-              <p className="text-[#A0AEC0] text-base leading-relaxed mt-4">
-                Antes, mandava meta no grupo do WhatsApp e ninguém abria. Cobrança no fim do mês
-                virou rotina chata. A equipe trabalhava no piloto automático.
+              <p className="mt-4 text-base leading-relaxed text-[#A0AEC0]">
+                Antes, mandava meta no grupo do WhatsApp e ninguém abria. A cobrança no fim do mês virou rotina chata e a equipe trabalhava no piloto automático.
               </p>
-              <p className="text-[#A0AEC0] text-base leading-relaxed mt-3">
-                Construí o BarberMeta pra resolver isso na minha própria casa. Hoje minha equipe
-                se cobra sozinha. Quem tá atrás vê o ranking e corre.
+              <p className="mt-4 text-base leading-relaxed text-[#A0AEC0]">
+                Construí o BarberMeta para resolver isso na minha própria casa. Hoje, minha equipe se cobra sozinha: quem está atrás vê o ranking e corre.
               </p>
-              <p className="text-[#E2E8F0] text-base leading-relaxed mt-3 font-medium">
-                Tô compartilhando porque funcionou aqui. Vai funcionar aí também.
-              </p>
-              <p className="mt-5 text-sm text-[#A0AEC0]">
-                <span className="font-semibold text-white">Carlos Henrique</span>
-                {' '}· Demôi Barbearia · Cássia / MG
-              </p>
+              <p className="mt-5 text-sm text-[#A0AEC0]"><strong className="text-white">Carlos Henrique</strong> · Demôi Barbearia · Cássia / MG</p>
             </div>
-
           </div>
-        </motion.div>
-
+        </article>
       </div>
     </section>
   )

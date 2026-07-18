@@ -1,88 +1,33 @@
-'use client'
-
-import { motion } from 'framer-motion'
 import PhoneMockup from './PhoneMockup'
-import Carousel from './Carousel'
 
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 24 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true },
-  transition: { duration: 0.5, delay },
-})
-
-const slides = [
-  {
-    badge: '✗ Antes',
-    badgeClass: 'bg-red-950/40 border border-red-800/40 text-red-400',
-    img: '/prints/img_6056.png',
-    alt: 'Grupo do WhatsApp com mensagens manuais de controle diário dos barbeiros',
-    legenda:
-      'Cada barbeiro digitava à mão. Demorava 10 min e ninguém conseguia ver o próprio progresso de ponto/meta.',
-  },
-  {
-    badge: '✓ Depois',
-    badgeClass: 'bg-green-950/40 border border-green-800/40 text-green-400',
-    img: '/prints/img_6057.png',
-    alt: 'Tela do BarberMeta pra lançar serviços do dia com botões + e -',
-    legenda:
-      'Toca +/− nos serviços, o total calcula sozinho. Lançamento do dia em 30 segundos, pelo celular.',
-  },
-  {
-    badge: '★ Resultado',
-    badgeClass: 'bg-[#D4A85A]/15 border border-[#D4A85A]/40 text-[#D4A85A]',
-    img: '/prints/img_6058.png',
-    alt: 'Dashboard do barbeiro mostrando ritmo necessário, pontuação do mês e insights',
-    legenda:
-      'Cada barbeiro vê o próprio ritmo, o que falta pra bater Bronze/Prata/Ouro, e onde está no ranking.',
-  },
+const demonstracao = [
+  { badge: 'Antes', badgeClass: 'border-red-800/40 bg-red-950/40 text-red-400', img: '/prints/img_6056.png', width: 900, height: 1679, alt: 'Grupo do WhatsApp com mensagens manuais de controle diário dos barbeiros', legenda: 'Cada barbeiro digitava à mão. A informação se perdia e ninguém via o próprio progresso.' },
+  { badge: 'Lançamento', badgeClass: 'border-emerald-800/40 bg-emerald-950/40 text-emerald-400', img: '/prints/img_6057.png', width: 900, height: 1367, alt: 'Tela do BarberMeta para lançar serviços do dia', legenda: 'Toca + ou − nos serviços e o total calcula sozinho. Tudo pelo celular.' },
+  { badge: 'Acompanhamento', badgeClass: 'border-[#D4A85A]/40 bg-[#D4A85A]/15 text-[#D4A85A]', img: '/prints/img_6058.png', width: 900, height: 1488, alt: 'Dashboard do barbeiro mostrando ritmo, pontuação e metas', legenda: 'Cada barbeiro vê o ritmo, quanto falta para a meta e sua posição no ranking.' },
 ]
 
 export default function AntesDepois() {
   return (
-    <section className="bg-[#0A1929] py-16 px-4 sm:px-6">
-      <div className="max-w-3xl mx-auto">
-
-        <motion.h2
-          {...fadeUp()}
-          className="text-3xl sm:text-4xl font-bold text-white text-center mb-3"
-        >
-          Como era na <span className="text-[#D4A85A]">minha</span> barbearia.
-        </motion.h2>
-        <motion.p
-          {...fadeUp(0.1)}
-          className="text-center text-[#A0AEC0] text-base sm:text-lg mb-10 max-w-2xl mx-auto"
-        >
-          Antes do BarberMeta, cada barbeiro mandava o controle diário num
-          grupo do WhatsApp. Contas erradas, info perdida, ninguém via o ranking.
-        </motion.p>
-
-        <motion.div {...fadeUp(0.2)}>
-          <Carousel autoRotate={5500} showArrows>
-            {slides.map((s) => (
-              <div key={s.img} className="flex flex-col items-center px-4 sm:px-8">
-                <span
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-5 ${s.badgeClass}`}
-                >
-                  {s.badge}
-                </span>
-                <PhoneMockup maxWidth={250}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={s.img}
-                    alt={s.alt}
-                    className="block w-full h-auto"
-                    loading="lazy"
-                  />
-                </PhoneMockup>
-                <p className="text-[#A0AEC0] text-sm text-center mt-5 max-w-md leading-relaxed">
-                  {s.legenda}
-                </p>
-              </div>
-            ))}
-          </Carousel>
-        </motion.div>
-
+    <section className="bg-[#0A1929] px-4 py-16 sm:px-6 sm:py-20">
+      <div className="mx-auto max-w-6xl">
+        <div className="mx-auto mb-10 max-w-2xl text-center">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#D4A85A]">Demonstração</p>
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">Do controle perdido ao progresso visível.</h2>
+          <p className="mt-4 text-base leading-relaxed text-[#A0AEC0] sm:text-lg">Antes do BarberMeta, o controle diário ficava num grupo do WhatsApp. Agora, lançamento e acompanhamento ficam no mesmo fluxo.</p>
+        </div>
+        <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0">
+          {demonstracao.map((item) => (
+            <article key={item.img} className="w-[84vw] max-w-[320px] shrink-0 snap-center rounded-2xl border border-white/10 bg-[#0F1F2D] p-5 sm:w-auto sm:max-w-none">
+              <span className={`mb-5 inline-flex rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider ${item.badgeClass}`}>{item.badge}</span>
+              <PhoneMockup maxWidth={230}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={item.img} width={item.width} height={item.height} alt={item.alt} className="block h-auto w-full" loading="lazy" />
+              </PhoneMockup>
+              <p className="mt-5 text-center text-sm leading-relaxed text-[#A0AEC0]">{item.legenda}</p>
+            </article>
+          ))}
+        </div>
+        <p className="mt-2 text-center text-xs text-[#A0AEC0] sm:hidden">Deslize para ver as telas →</p>
       </div>
     </section>
   )
