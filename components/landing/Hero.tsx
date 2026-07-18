@@ -1,4 +1,3 @@
-sed: --: No such file or directory
 import CTAButton from './CTAButton'
 
 export default function Hero() {
