@@ -1,4 +1,3 @@
-sed: --: No such file or directory
 const depoimentos = [
   { src: '/prints/feedback-1.png', alt: 'Depoimento no Instagram sobre o uso da gamificação' },
   { src: '/prints/feedback-2.png', alt: 'Depoimento de cliente estudando o BarberMeta' },
