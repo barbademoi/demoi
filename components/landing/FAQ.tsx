@@ -1,4 +1,3 @@
-sed: --: No such file or directory
 const perguntas = [
   { q: 'Preciso instalar alguma coisa?', a: 'Não. Funciona no navegador, no celular, computador ou tablet. Você recebe um login por email depois da compra.' },
   { q: 'Como cada barbeiro acessa? Eles vão saber mexer?', a: 'Cada barbeiro recebe um link único, sem conta e sem senha. Quem usa WhatsApp consegue usar: é só abrir no celular e ver os próprios números.' },
