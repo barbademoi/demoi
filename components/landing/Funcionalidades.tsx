@@ -1,37 +1,13 @@
-'use client'
-
-import { motion } from 'framer-motion'
+sed: --: No such file or directory
 import CTAButton from './CTAButton'
-import BrowserMockup from './BrowserMockup'
-import PhoneMockup from './PhoneMockup'
-import Carousel from './Carousel'
 
-const fadeIn = (delay = 0) => ({
-  initial: { opacity: 0, y: 20 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true },
-  transition: { duration: 0.5, delay },
-})
-
-const smallCards = [
-  {
-    emoji: '⚡',
-    titulo: 'Lançamento em 2 minutos',
-    texto: 'Registra o faturamento do dia em 1 tela. Sem planilha, sem app complicado.',
-  },
-  {
-    emoji: '🖼️',
-    titulo: 'Cards prontos pra WhatsApp',
-    texto: 'Baixa o card de cada barbeiro e manda no grupo. Bonito, profissional.',
-  },
-  {
-    emoji: '🏅',
-    titulo: 'Campanha de pontos',
-    texto: 'Configure quais serviços pontuam e quantos pontos. Assinatura, hidratação, produto vendido.',
-  },
+const destaques = [
+  { emoji: '🏆', titulo: 'Ranking ao vivo', texto: 'Cada barbeiro vê onde está. Quem está atrás, corre sem você precisar falar.' },
+  { emoji: '📱', titulo: 'Link individual', texto: 'Acessa pelo celular, sem senha, e acompanha comissão, ritmo e metas.' },
+  { emoji: '🎯', titulo: 'Meta coletiva', texto: 'Defina uma meta geral com premiação para todo mundo puxar junto.' },
 ]
 
-const tudoQueFaz = [
+const grupos = [
   {
     grupo: 'Metas e comissão',
     itens: [
@@ -49,8 +25,8 @@ const tudoQueFaz = [
       'Cada barbeiro tem seu próprio link público — sem senha, sem app',
       'Vê comissão acumulada, ritmo e posição no ranking',
       'Mensagem motivadora diária gerada por IA',
-      'Configuração de visibilidade do ranking (completo · só posição · só o próprio)',
-      'Configuração pra mostrar/esconder faturamento geral e ticket médio',
+      'Visibilidade do ranking configurável (completo · só posição · só o próprio)',
+      'Opção para mostrar ou esconder faturamento geral e ticket médio',
     ],
   },
   {
@@ -58,307 +34,101 @@ const tudoQueFaz = [
     itens: [
       'Configure quais serviços pontuam e quanto cada um vale',
       'Slot fixo de assinatura com bônus por quantidade vendida',
-      'Pontos mínimos pra participar (separado pra barbeiro e recepcionista)',
+      'Pontos mínimos separados para barbeiro e recepcionista',
       'Premiação por posição no ranking de pontos',
       'Regras gerais editáveis pelo dono',
-    ],
-  },
-  {
-    grupo: 'Feedback de Cliente + brindes',
-    plus: true,
-    itens: [
-      'Link público pra cliente avaliar (com QR Code e botão de WhatsApp)',
-      'Brindes sorteados ponderados por peso (você define a chance de cada um)',
-      'Validade configurável do brinde (15 / 30 / 60 / 90 dias)',
-      'Brinde mínimo garantido (cliente nunca sai sem nada)',
-      'Direcionamento de 4+ estrelas pra Google Reviews',
-      'Brinde aparece no link do barbeiro pra ele oferecer no próximo atendimento',
-      'Painel filtrado por período, estrela, barbeiro e brinde',
-      'Gamificação opcional: feedback positivo dá pontos pro barbeiro',
-    ],
-  },
-  {
-    grupo: 'Controle Financeiro',
-    plus: true,
-    itens: [
-      'Caixa (banco, dinheiro, Pix) — quanto tem em cada um',
-      'Contas a pagar (única, fixa mensal, parcelada)',
-      'Contas a receber',
-      'Folha da equipe com sincronização automática do BarberMeta',
-      'Quanto sobra no mês (demonstrativo claro)',
-      'Empresa + Pessoal separados',
-      'Tudo na nuvem, sincroniza entre aparelhos',
     ],
   },
   {
     grupo: 'Comunicação e operação',
     itens: [
       'Lançamento diário em 1 tela (2 minutos)',
-      'Cards prontos pra mandar no WhatsApp do grupo',
-      'Resumo de reunião gerado por IA pro início do mês',
-      'Modo Equipe ou Modo Sozinho (autônomo) — o sistema se adapta',
+      'Cards prontos para mandar no WhatsApp do grupo',
+      'Resumo de reunião gerado por IA para o início do mês',
+      'Modo Equipe ou Modo Sozinho (autônomo)',
     ],
   },
   {
     grupo: 'Aprendizado incluso',
     itens: [
-      '6 aulas curtas com Carlos Henrique (dono que usa o sistema)',
-      '2 tipos de metas + gamificação explicados na prática',
+      '6 aulas curtas com Carlos Henrique, dono que usa o sistema',
+      '2 tipos de metas e gamificação explicados na prática',
       'Tutoriais em vídeo dentro do dashboard',
+    ],
+  },
+  {
+    grupo: 'Feedback de Cliente + brindes',
+    plus: true,
+    itens: [
+      'Link público para cliente avaliar, com QR Code e botão de WhatsApp',
+      'Brindes sorteados por peso e validade configurável',
+      'Brinde mínimo garantido',
+      'Direcionamento de 4+ estrelas para Google Reviews',
+      'Brinde aparece no link do barbeiro para o próximo atendimento',
+      'Painel filtrado por período, estrela, barbeiro e brinde',
+      'Gamificação opcional: feedback positivo dá pontos ao barbeiro',
+    ],
+  },
+  {
+    grupo: 'Controle Financeiro',
+    plus: true,
+    itens: [
+      'Caixa (banco, dinheiro e Pix)',
+      'Contas a pagar: única, fixa mensal e parcelada',
+      'Contas a receber',
+      'Folha da equipe com sincronização automática do BarberMeta',
+      'Demonstrativo de quanto sobra no mês',
+      'Empresa e pessoal separados',
+      'Tudo na nuvem, sincronizado entre aparelhos',
     ],
   },
 ]
 
 export default function Funcionalidades() {
   return (
-    <section id="funcionalidades" className="bg-[#0F1F2D] py-20 px-4 sm:px-6 scroll-mt-20">
-      <div className="max-w-5xl mx-auto">
+    <section id="funcionalidades" className="scroll-mt-20 bg-[#0A1929] px-4 py-16 sm:px-6 sm:py-20">
+      <div className="mx-auto max-w-5xl">
+        <div className="mx-auto mb-10 max-w-2xl text-center">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#D4A85A]">Funcionalidades</p>
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">O BarberMeta no centro da operação.</h2>
+          <p className="mt-4 text-base text-[#A0AEC0] sm:text-lg">Comece pelo essencial. Abra os grupos abaixo para conferir a lista completa.</p>
+        </div>
 
-        <motion.h2
-          {...fadeIn()}
-          className="text-3xl sm:text-4xl font-bold text-white text-center mb-3"
-        >
-          Tudo que você precisa,{' '}
-          <span className="text-[#D4A85A]">nada que você não precisa.</span>
-        </motion.h2>
-        <motion.p
-          {...fadeIn(0.1)}
-          className="text-center text-[#A0AEC0] text-lg mb-12"
-        >
-          Simples de usar.
-        </motion.p>
-
-        {/* ── carrossel dos 3 destaques principais ── */}
-        <motion.div {...fadeIn(0.1)} className="mb-12">
-          <Carousel autoRotate={5000} showArrows>
-            {/* slide 1 — Ranking ao vivo */}
-            <div className="rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col sm:flex-row items-center max-w-3xl mx-auto">
-              <div className="p-6 sm:p-8 flex flex-col justify-center sm:w-1/2 text-center sm:text-left">
-                <span className="text-3xl mb-3">🏆</span>
-                <h3 className="text-white font-bold text-xl mb-2">Ranking ao vivo</h3>
-                <p className="text-[#A0AEC0] text-sm sm:text-base leading-relaxed">
-                  Cada barbeiro vê onde está. Quem tá atrás, corre. Sem você precisar falar nada.
-                </p>
-              </div>
-              <div className="sm:w-1/2 flex items-center justify-center p-5">
-                <BrowserMockup url="barbermeta.com.br/dashboard" maxWidth={340}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/prints/01-dashboard-ranking.png"
-                    alt="Ranking ao vivo dos barbeiros"
-                    className="block w-full h-auto"
-                  />
-                </BrowserMockup>
-              </div>
-            </div>
-
-            {/* slide 2 — Link individual */}
-            <div className="rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col sm:flex-row items-center max-w-3xl mx-auto">
-              <div className="p-6 sm:p-8 flex flex-col justify-center sm:w-1/2 text-center sm:text-left order-2 sm:order-1">
-                <span className="text-3xl mb-3">📱</span>
-                <h3 className="text-white font-bold text-xl mb-2">Link individual por barbeiro</h3>
-                <p className="text-[#A0AEC0] text-sm sm:text-base leading-relaxed">
-                  Cada barbeiro tem seu próprio link. Acessa pelo celular, vê comissão, ritmo e metas — sem senha.
-                </p>
-              </div>
-              <div className="sm:w-1/2 flex items-center justify-center p-5 order-1 sm:order-2">
-                <PhoneMockup maxWidth={210}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/prints/03-barbeiro-individual.png"
-                    alt="Página individual do barbeiro"
-                    className="block w-full h-auto"
-                  />
-                </PhoneMockup>
-              </div>
-            </div>
-
-            {/* slide 3 — Meta coletiva */}
-            <div className="rounded-2xl border border-white/8 bg-[#0A1929] overflow-hidden flex flex-col sm:flex-row items-center max-w-3xl mx-auto">
-              <div className="p-6 sm:p-8 flex flex-col justify-center sm:w-1/2 text-center sm:text-left">
-                <span className="text-3xl mb-3">🎯</span>
-                <h3 className="text-white font-bold text-xl mb-2">Meta coletiva da equipe</h3>
-                <p className="text-[#A0AEC0] text-sm sm:text-base leading-relaxed">
-                  Defina uma meta geral pra barbearia com premiação. Todo mundo puxa junto.
-                </p>
-              </div>
-              <div className="sm:w-1/2 flex items-center justify-center p-5">
-                <BrowserMockup url="barbermeta.com.br/dashboard" maxWidth={320}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/prints/05-meta-coletiva.png"
-                    alt="Meta coletiva da barbearia"
-                    className="block w-full h-auto"
-                  />
-                </BrowserMockup>
-              </div>
-            </div>
-          </Carousel>
-        </motion.div>
-
-        {/* 3 cards pequenos sem print */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {smallCards.map((c, i) => (
-            <motion.div
-              key={c.titulo}
-              {...fadeIn(0.1 + i * 0.08)}
-              className="rounded-2xl border border-white/8 bg-[#0A1929] p-6 flex flex-col gap-3"
-            >
-              <span className="text-3xl">{c.emoji}</span>
-              <h3 className="text-white font-bold text-base">{c.titulo}</h3>
-              <p className="text-[#A0AEC0] text-sm leading-relaxed">{c.texto}</p>
-            </motion.div>
+        <div className="mb-10 grid gap-4 sm:grid-cols-3">
+          {destaques.map((item) => (
+            <article key={item.titulo} className="rounded-2xl border border-[#D4A85A]/25 bg-[#D4A85A]/[0.06] p-5">
+              <span aria-hidden="true" className="text-3xl">{item.emoji}</span>
+              <h3 className="mt-4 font-bold text-white">{item.titulo}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-[#A0AEC0]">{item.texto}</p>
+            </article>
           ))}
         </div>
 
-        {/* ── DESTAQUE: Estratégia de Feedback Premiado ── */}
-        <motion.div
-          {...fadeIn(0.4)}
-          className="mt-16 rounded-3xl border border-[#D4A85A]/30 bg-gradient-to-br from-[#0A1929] to-[#1A1410] overflow-hidden"
-        >
-          <div className="p-7 sm:p-10">
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#D4A85A] text-[#0F1117] px-3 py-1 text-xs font-bold mb-4">
-              <span>⭐</span>
-              <span>EXCLUSIVO DO PLUS</span>
-            </div>
-            <h3 className="text-2xl sm:text-3xl font-bold text-white mb-3">
-              Estratégia de <span className="text-[#D4A85A]">Feedback Premiado</span>
-            </h3>
-            <p className="text-[#A0AEC0] text-base sm:text-lg leading-relaxed max-w-3xl">
-              Transforma cada cliente em fã com uma estratégia simples: ele avalia → ganha um brinde → o barbeiro
-              vê o brinde no celular dele → oferece no próximo atendimento. <span className="text-white font-semibold">O cliente volta.</span>
-            </p>
-            <p className="text-[#D4A85A] text-sm mt-3 font-semibold">
-              Incluso no Combo R$ 67 · Ou adicional R$ 29 pra quem já tem BarberMeta
-            </p>
-          </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {grupos.map((grupo) => (
+            <details key={grupo.grupo} className={`group rounded-2xl border p-5 ${grupo.plus ? 'border-[#D4A85A]/40 bg-[#1A1410]' : 'border-white/10 bg-[#0F1F2D]'}`}>
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4A85A] [&::-webkit-details-marker]:hidden">
+                <span className="flex items-center gap-2">
+                  {grupo.grupo}
+                  {grupo.plus && <span className="rounded-full bg-[#D4A85A] px-2 py-0.5 text-[10px] font-bold uppercase text-[#0F1117]">Plus</span>}
+                </span>
+                <span aria-hidden="true" className="text-xl text-[#D4A85A] transition-transform group-open:rotate-45">+</span>
+              </summary>
+              <ul className="mt-4 space-y-2.5 border-t border-white/10 pt-4">
+                {grupo.itens.map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm leading-relaxed text-[#A0AEC0]">
+                    <span aria-hidden="true" className="mt-0.5 shrink-0 text-[#D4A85A]">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))}
+        </div>
 
-          {/* carrossel das 3 etapas */}
-          <div className="bg-white/5 px-3 py-4 sm:px-6 sm:py-6">
-            <Carousel autoRotate={5500} showArrows>
-              {/* Etapa 1 — Dono configura */}
-              <div className="flex flex-col sm:flex-row gap-5 items-center max-w-3xl mx-auto px-3 sm:px-6">
-                <div className="sm:w-1/2 text-center sm:text-left">
-                  <div className="flex items-center justify-center sm:justify-start gap-2 mb-3">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#D4A85A]/20 text-[#D4A85A] font-bold text-sm">1</span>
-                    <h4 className="text-white font-bold text-base">Dono configura</h4>
-                  </div>
-                  <p className="text-[#A0AEC0] text-sm leading-relaxed">
-                    Cadastra os brindes com o peso de cada um. Define validade (15 / 30 / 60 / 90 dias) e gera o link público.
-                  </p>
-                </div>
-                <div className="sm:w-1/2 flex justify-center">
-                  <BrowserMockup url="barbermeta.com.br/feedback" maxWidth={280}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/prints/feedback-config.png"
-                      alt="Tela de configuração do feedback de cliente"
-                      className="block w-full h-auto"
-                    />
-                  </BrowserMockup>
-                </div>
-              </div>
-
-              {/* Etapa 2 — Cliente avalia */}
-              <div className="flex flex-col sm:flex-row gap-5 items-center max-w-3xl mx-auto px-3 sm:px-6">
-                <div className="sm:w-1/2 text-center sm:text-left">
-                  <div className="flex items-center justify-center sm:justify-start gap-2 mb-3">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#D4A85A]/20 text-[#D4A85A] font-bold text-sm">2</span>
-                    <h4 className="text-white font-bold text-base">Cliente avalia e ganha</h4>
-                  </div>
-                  <p className="text-[#A0AEC0] text-sm leading-relaxed">
-                    Acessa pelo QR Code ou WhatsApp, deixa estrelas + comentário e ganha um brinde sorteado na hora.
-                    Quem dá 4+ estrelas vai pro Google Reviews.
-                  </p>
-                </div>
-                <div className="sm:w-1/2 flex justify-center">
-                  <BrowserMockup url="barbermeta.com.br/feedback/painel" maxWidth={280}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/prints/feedback-painel.png"
-                      alt="Painel do dono com feedbacks recebidos"
-                      className="block w-full h-auto"
-                    />
-                  </BrowserMockup>
-                </div>
-              </div>
-
-              {/* Etapa 3 — Barbeiro oferece */}
-              <div className="flex flex-col sm:flex-row gap-5 items-center max-w-3xl mx-auto px-3 sm:px-6">
-                <div className="sm:w-1/2 text-center sm:text-left">
-                  <div className="flex items-center justify-center sm:justify-start gap-2 mb-3">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#D4A85A]/20 text-[#D4A85A] font-bold text-sm">3</span>
-                    <h4 className="text-white font-bold text-base">Barbeiro vê e oferece</h4>
-                  </div>
-                  <p className="text-[#A0AEC0] text-sm leading-relaxed">
-                    No link dele aparece quem avaliou, qual brinde ganhou e o código. Ele oferece no próximo
-                    atendimento — cliente volta pra usar.
-                  </p>
-                </div>
-                <div className="sm:w-1/2 flex justify-center">
-                  <PhoneMockup maxWidth={200}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/prints/feedback-barbeiro.png"
-                      alt="Tela do barbeiro mostrando o brinde do cliente"
-                      className="block w-full h-auto"
-                    />
-                  </PhoneMockup>
-                </div>
-              </div>
-            </Carousel>
-          </div>
-        </motion.div>
-
-        {/* ── Lista completa do que o sistema faz ── */}
-        <motion.div
-          {...fadeIn(0.5)}
-          className="mt-16"
-        >
-          <h3 className="text-2xl sm:text-3xl font-bold text-white text-center mb-3">
-            Tudo o que o sistema faz
-          </h3>
-          <p className="text-center text-[#A0AEC0] text-base mb-10">
-            Lista completa, sem letrinha miúda.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {tudoQueFaz.map((g) => (
-              <div
-                key={g.grupo}
-                className={`rounded-2xl border p-6 ${g.plus
-                  ? 'border-[#D4A85A]/50 bg-gradient-to-br from-[#0A1929] to-[#1A1410]'
-                  : 'border-white/8 bg-[#0A1929]'}`}
-              >
-                <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
-                  <h4 className="text-[#D4A85A] font-bold text-base">{g.grupo}</h4>
-                  {g.plus && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#D4A85A] text-[#0F1117] text-[10px] font-bold uppercase tracking-wider px-2 py-0.5">
-                      ⭐ Plus
-                    </span>
-                  )}
-                </div>
-                <ul className="space-y-2.5">
-                  {g.itens.map((item) => (
-                    <li key={item} className="flex items-start gap-2.5 text-[#A0AEC0] text-sm leading-relaxed">
-                      <span className="text-[#D4A85A] mt-0.5 shrink-0">✓</span>
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* CTA */}
-        <motion.div
-          {...fadeIn(0.6)}
-          className="mt-12 flex justify-center"
-        >
+        <div className="mt-10 flex justify-center">
           <CTAButton id="cta-funcionalidades-oferta" gtmClass="gtm-cta-funcionalidades" />
-        </motion.div>
-
+        </div>
       </div>
     </section>
   )
