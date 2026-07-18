@@ -181,6 +181,11 @@ export default function DashboardShell({
         ) : (
           <>
             <div className="max-w-5xl mx-auto px-4 pt-6 pb-2 space-y-4">
+              <blockquote className="rounded-2xl border border-primary/25 bg-primary/[0.06] px-5 py-4 text-center">
+                <p className="font-serif text-base sm:text-lg text-text leading-relaxed">
+                  “Cada atendimento de hoje aproxima sua equipe da meta de amanhã.”
+                </p>
+              </blockquote>
               {destaquesSlot}
               {monthNavigatorSlot}
 
