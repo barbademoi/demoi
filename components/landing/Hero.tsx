@@ -55,7 +55,7 @@ export default function Hero() {
                 src="/prints/mobile-dashboard-hero.jpg"
                 alt="Dashboard do BarberMeta no celular mostrando a meta coletiva"
                 className="block h-auto w-full"
-                fetchPriority="high"
+                loading="eager"
               />
             </div>
 
