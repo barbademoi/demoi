@@ -3,7 +3,7 @@ const beneficios = [
   { icon: '🏆', titulo: 'Metas que viram jogo', texto: 'Bronze, Prata e Ouro, meta coletiva e campanha de pontos.' },
   { icon: '⚡', titulo: 'Operação simples', texto: 'Lançamento diário em uma tela e cards prontos para o WhatsApp.' },
   { icon: '👥', titulo: 'Para equipe ou autônomo', texto: 'O sistema se adapta a quem tem equipe e a quem trabalha sozinho.' },
-  { icon: '🎓', titulo: 'Aprendizado incluso', texto: '6 aulas curtas e tutoriais em vídeo dentro do dashboard.' },
+  { icon: '🎓', titulo: 'Aprendizado incluso', texto: '8 aulas que valem ouro e tutoriais em vídeo dentro do dashboard.' },
   { icon: '♾️', titulo: 'Sem mensalidade', texto: 'Pagamento único, acesso para a equipe e atualizações vitalícias.' },
 ]
 
