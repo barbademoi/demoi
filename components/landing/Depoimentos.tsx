@@ -1,78 +1,30 @@
-'use client'
-
-import { motion } from 'framer-motion'
-
-// Secao de depoimentos em formato "marquee": rolagem horizontal continua
-// que loopa infinitamente. Pausa no hover. Bom pra muitos prints sem
-// ocupar muito espaco vertical na pagina.
-//
-// Como funciona: duplico a lista 2x dentro do container e animo um
-// translateX de -50% (so a primeira metade), criando o efeito de loop
-// perfeito. Sem JS pra reset — tudo CSS via framer-motion.
-
+sed: --: No such file or directory
 const depoimentos = [
-  { src: '/prints/feedback-1.png', alt: 'Depoimento Instagram — sucesso com gamificação' },
-  { src: '/prints/feedback-2.png', alt: 'Depoimento ducorteflix — Bom dia, estudando' },
-  { src: '/prints/feedback-3.png', alt: 'Depoimento Geison Cal — meta ouro atingida' },
-  { src: '/prints/feedback-4.png', alt: 'Depoimento henrique.peres_ — os mlk pegaram firme' },
-  { src: '/prints/feedback-5.png', alt: 'Depoimento lc_oficial.of — mais intuitivo que cashbarber' },
+  { src: '/prints/feedback-1.png', alt: 'Depoimento no Instagram sobre o uso da gamificação' },
+  { src: '/prints/feedback-2.png', alt: 'Depoimento de cliente estudando o BarberMeta' },
+  { src: '/prints/feedback-3.png', alt: 'Depoimento de cliente com a meta ouro atingida' },
+  { src: '/prints/feedback-4.png', alt: 'Depoimento de cliente sobre o engajamento da equipe' },
+  { src: '/prints/feedback-5.png', alt: 'Depoimento de cliente sobre a facilidade de uso' },
 ]
-
-// duplica pra criar loop perfeito
-const trilho = [...depoimentos, ...depoimentos]
 
 export default function Depoimentos() {
   return (
-    <section className="bg-[#0A1929] border-y border-white/10 py-12 sm:py-16 overflow-hidden">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 mb-7 text-center">
-        <span className="inline-block rounded-full bg-[#D4A85A]/15 border border-[#D4A85A]/40 px-3 py-1 text-xs font-bold text-[#D4A85A] uppercase tracking-wider mb-3">
-          💬 Quem ja usa fala
-        </span>
-        <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
-          O que estao falando do BarberMeta
-        </h2>
-        <p className="text-[#A0AEC0] text-sm sm:text-base mt-2">
-          Mensagens reais de barbeiros e donos usando o sistema.
-        </p>
+    <section className="overflow-hidden bg-[#0F1F2D] py-16 sm:py-20">
+      <div className="mx-auto mb-10 max-w-3xl px-4 text-center sm:px-6">
+        <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#D4A85A]">Provas reais</p>
+        <h2 className="text-3xl font-bold text-white sm:text-4xl">O que estão falando do BarberMeta.</h2>
+        <p className="mt-4 text-base text-[#A0AEC0]">Mensagens reais de barbeiros e donos usando o sistema.</p>
       </div>
 
-      {/* Trilho do marquee */}
-      <div
-        className="relative group"
-        style={{
-          maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
-          WebkitMaskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
-        }}
-      >
-        <motion.div
-          className="flex gap-5 sm:gap-7 w-max group-hover:[animation-play-state:paused]"
-          animate={{ x: ['0%', '-50%'] }}
-          transition={{
-            duration: 60,
-            ease: 'linear',
-            repeat: Infinity,
-          }}
-        >
-          {trilho.map((d, i) => (
-            <div
-              key={`${d.src}-${i}`}
-              className="shrink-0 w-[200px] sm:w-[240px] rounded-2xl overflow-hidden border border-white/10 bg-[#0F1117] shadow-2xl shadow-black/40"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={d.src}
-                alt={d.alt}
-                className="block w-full h-auto"
-                loading="lazy"
-              />
-            </div>
-          ))}
-        </motion.div>
+      <div className="mx-auto flex max-w-6xl snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:gap-6 sm:px-6">
+        {depoimentos.map((depoimento) => (
+          <figure key={depoimento.src} className="w-[72vw] max-w-[250px] shrink-0 snap-center overflow-hidden rounded-2xl border border-white/10 bg-[#0F1117] shadow-xl shadow-black/30 sm:w-[240px]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={depoimento.src} alt={depoimento.alt} className="block h-auto w-full" loading="lazy" />
+          </figure>
+        ))}
       </div>
-
-      <p className="text-center text-[#A0AEC0] text-xs mt-7 px-4">
-        Prints publicados com autorização dos clientes.
-      </p>
+      <p className="mt-4 px-4 text-center text-xs text-[#A0AEC0]">Prints publicados com autorização dos clientes.</p>
     </section>
   )
 }
