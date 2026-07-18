@@ -28,4 +28,3 @@ export default function CTAFinal() {
     </section>
   )
 }
-sed: --: No such file or directory
