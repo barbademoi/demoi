@@ -1,3 +1,4 @@
+sed: --: No such file or directory
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -21,7 +22,7 @@ export default function MobileStickyCTA() {
         ${visible ? 'translate-y-0' : 'translate-y-full'}
       `}
     >
-      <CTAButton className="w-full text-center justify-center" size="md" id="cta-sticky-mobile-oferta" gtmClass="gtm-cta-sticky" />
+      <CTAButton className="block w-full [&>span]:block [&>span]:w-full [&>span]:text-center" size="md" id="cta-sticky-mobile-oferta" gtmClass="gtm-cta-sticky" />
     </div>
   )
 }
