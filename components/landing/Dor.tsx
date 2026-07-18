@@ -1,4 +1,3 @@
-sed: --: No such file or directory
 const dores = [
   { emoji: '😤', titulo: 'Cobrança chata todo fim de mês', texto: 'Você precisa cobrar quem não bateu meta. A conversa pesa e a relação esfria.' },
   { emoji: '💬', titulo: 'Texto no WhatsApp não motiva', texto: 'A meta vai no grupo, ninguém abre e, no dia 15, ninguém lembra mais.' },
