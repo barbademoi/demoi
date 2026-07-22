@@ -1,10 +1,8 @@
 const perguntas = [
-  { q: 'Preciso instalar alguma coisa?', a: 'Não. Funciona no navegador, no celular, computador ou tablet. Você recebe um login por email depois da compra.' },
   { q: 'Como cada barbeiro acessa? Eles vão saber mexer?', a: 'Cada barbeiro recebe um link único, sem conta e sem senha. Quem usa WhatsApp consegue usar: é só abrir no celular e ver os próprios números.' },
   { q: 'Posso adicionar barbeiros ou recepcionistas depois?', a: 'Sim. Você pode cadastrar barbeiros e recepcionistas, cada um com sua meta e seu link próprio, quantos quiser e sem custo extra.' },
   { q: 'Funciona para quem trabalha sozinho?', a: 'Sim. Na primeira vez, o sistema pergunta se você tem equipe ou trabalha sozinho. No modo autônomo, você vê suas metas, histórico mês a mês e progresso sem ranking de equipe.' },
   { q: 'E se eu não souber configurar?', a: 'Depois da compra, você recebe acesso aos vídeos de treinamento e suporte direto no WhatsApp (35) 99824-8211. Em 30 minutos você está com tudo rodando.' },
-  { q: 'A Hotmart cobra imposto ou taxa extra?', a: 'Não. O preço de R$ 47 é o valor final. Sem taxa, sem cobrança recorrente e sem surpresa.' },
   { q: 'E se eu não gostar?', a: 'Você tem 7 dias após a compra para pedir reembolso. Manda mensagem no WhatsApp do suporte e a Hotmart devolve o valor cheio, sem pergunta.' },
 ]
 

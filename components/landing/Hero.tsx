@@ -16,13 +16,13 @@ export default function Hero() {
       <div className="relative mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[1.08fr_.92fr] lg:gap-16">
         <div className="text-center lg:text-left">
           <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#D4A85A]/40 bg-[#D4A85A]/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#D4A85A]">
-            <span aria-hidden="true">🎯</span>
-            Metas que cada barbeiro acompanha sozinho
+            <span aria-hidden="true">🔥</span>
+            +600 barbearias já usam
           </span>
 
           <h1 className="text-4xl font-bold leading-[1.08] text-white sm:text-5xl lg:text-6xl">
-            Cada barbeiro acompanha a própria meta pelo celular.{' '}
-            <span className="text-[#D4A85A]">Sem você precisar cobrar.</span>
+            Seu time vende mais quando enxerga a própria meta.{' '}
+            <span className="text-[#D4A85A]">Sem você cobrar ninguém.</span>
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-[#A0AEC0] sm:text-lg lg:mx-0">
@@ -30,24 +30,22 @@ export default function Hero() {
             metas e posição no ranking. Quem está atrás, acelera sozinho.
           </p>
 
-          <div className="mx-auto mt-6 flex max-w-xl items-start gap-3 rounded-2xl border border-[#D4A85A]/35 bg-[#D4A85A]/[0.08] px-4 py-4 text-left lg:mx-0">
-            <span aria-hidden="true" className="text-2xl">🎓</span>
-            <div>
-              <p className="text-sm font-bold uppercase tracking-wider text-[#D4A85A]">
-                8 aulas que valem ouro
-              </p>
-              <p className="mt-1 text-sm leading-relaxed text-[#E2E8F0] sm:text-base">
-                Eu te mostro, na prática, como faço meu time vender mais usando o BarberMeta.
-              </p>
-            </div>
-          </div>
-
           <div className="mt-7 flex flex-col items-center gap-3 lg:items-start">
             <CTAButton id="cta-hero-oferta" gtmClass="gtm-cta-hero" />
             <p className="text-sm text-[#A0AEC0]">Acesso vitalício · Sem mensalidade · 7 dias de garantia</p>
           </div>
 
-          <div className="mx-auto mt-6 flex max-w-xl items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-left lg:mx-0">
+          <div className="mx-auto mt-6 flex max-w-xl items-start gap-3 rounded-2xl border border-[#D4A85A]/40 bg-[#D4A85A]/[0.08] px-4 py-4 text-left lg:mx-0">
+            <span aria-hidden="true" className="text-2xl">📱</span>
+            <div>
+              <p className="text-base font-bold text-white sm:text-lg">Você não lança nada.</p>
+              <p className="mt-1 text-sm leading-relaxed text-[#E2E8F0] sm:text-base">
+                Cada barbeiro lança o próprio dia pelo celular, em 2 minutos. Você só acompanha.
+              </p>
+            </div>
+          </div>
+
+          <div className="mx-auto mt-4 flex max-w-xl items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-left lg:mx-0">
             <span aria-hidden="true" className="mt-0.5 shrink-0">ℹ️</span>
             <p className="text-sm leading-relaxed text-[#A0AEC0]">
               <strong className="text-white">Não precisa trocar seu sistema de gestão.</strong>{' '}

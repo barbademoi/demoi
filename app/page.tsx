@@ -2,8 +2,6 @@ import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
 import Dor from '@/components/landing/Dor'
 import AntesDepois from '@/components/landing/AntesDepois'
-import Solucao from '@/components/landing/Solucao'
-import TudoQueFaz from '@/components/landing/TudoQueFaz'
 import Depoimentos from '@/components/landing/Depoimentos'
 import Funcionalidades from '@/components/landing/Funcionalidades'
 import ProvasSocial from '@/components/landing/ProvasSocial'
@@ -27,8 +25,6 @@ export default function LandingPage() {
         <Hero />
         <Dor />
         <AntesDepois />
-        <Solucao />
-        <TudoQueFaz />
         <Depoimentos />
         <Funcionalidades />
         <ProvasSocial />

@@ -15,13 +15,7 @@ export default function ProvasSocial() {
             </div>
             <div>
               <p className="text-base leading-relaxed text-[#E2E8F0] sm:text-lg">
-                Sou Carlos Henrique, dono da <strong className="text-white">Demôi Barbearia</strong> em Cássia / MG. Tenho 7 barbeiros.
-              </p>
-              <p className="mt-4 text-base leading-relaxed text-[#A0AEC0]">
-                Antes, mandava meta no grupo do WhatsApp e ninguém abria. A cobrança no fim do mês virou rotina chata e a equipe trabalhava no piloto automático.
-              </p>
-              <p className="mt-4 text-base leading-relaxed text-[#A0AEC0]">
-                Construí o BarberMeta para resolver isso na minha própria casa. Hoje, minha equipe se cobra sozinha: quem está atrás vê o ranking e corre.
+                Sou Carlos Henrique, dono da <strong className="text-white">Demôi Barbearia</strong> em Cássia / MG, com 7 barbeiros. Criei o BarberMeta pra resolver isso na minha própria casa. Hoje minha equipe se cobra sozinha.
               </p>
               <p className="mt-5 text-sm text-[#A0AEC0]"><strong className="text-white">Carlos Henrique</strong> · Demôi Barbearia · Cássia / MG</p>
             </div>

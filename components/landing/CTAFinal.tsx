@@ -9,10 +9,10 @@ export default function CTAFinal() {
         <div className="flex-1 text-center lg:text-left">
           <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#D4A85A]">Comece agora</p>
           <h2 className="text-3xl font-bold leading-tight text-white sm:text-4xl">
-            No próximo mês, cada barbeiro pode acompanhar a própria meta.
+            No próximo mês, seu time pode estar vendendo mais.
           </h2>
           <p className="mt-5 text-base leading-relaxed text-[#A0AEC0] sm:text-lg">
-            Por R$ {PRECO}, uma vez para sempre, você tira a meta do WhatsApp e coloca o progresso na mão da equipe.
+            Por R$ {PRECO}, uma vez para sempre, você tira a meta do WhatsApp e coloca o progresso na mão da equipe — e para de cobrar.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3 lg:items-start">
             <CTAButton label={`Quero o BarberMeta agora — R$ ${PRECO}`} id="cta-final-oferta" gtmClass="gtm-cta-final" />
