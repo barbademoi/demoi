@@ -38,3 +38,16 @@ export function trackInitiateCheckout(value: number, currency = 'BRL') {
 export function trackLead() {
   track('Lead')
 }
+
+// Evento PERSONALIZADO (trackCustom) — não é evento padrão de compra.
+// Usado no botão secundário de WhatsApp do hero pra medir cliques de contato.
+function trackCustom(event: string, params?: Record<string, unknown>) {
+  if (typeof window === 'undefined') return
+  if (typeof window.fbq !== 'function') return
+  if (params) window.fbq('trackCustom', event, params)
+  else window.fbq('trackCustom', event)
+}
+
+export function trackContatoWhatsApp() {
+  trackCustom('Contato_WhatsApp')
+}
