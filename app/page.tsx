@@ -1,6 +1,5 @@
 import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
-import VideoHeroSection from '@/components/landing/VideoHeroSection'
 import Dor from '@/components/landing/Dor'
 import AntesDepois from '@/components/landing/AntesDepois'
 import Depoimentos from '@/components/landing/Depoimentos'
@@ -24,7 +23,6 @@ export default function LandingPage() {
       <Navbar />
       <main>
         <Hero />
-        <VideoHeroSection />
         <Dor />
         <AntesDepois />
         <Depoimentos />
