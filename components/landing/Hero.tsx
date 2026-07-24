@@ -1,6 +1,3 @@
-import CTAButton from './CTAButton'
-import WhatsappHeroButton from './WhatsappHeroButton'
-import VideoHeroButton from './VideoHeroButton'
 
 export default function Hero() {
   return (
@@ -32,14 +29,7 @@ export default function Hero() {
             metas e posição no ranking. Quem está atrás, acelera sozinho.
           </p>
 
-          <div className="mt-7 flex flex-col items-center gap-3 lg:items-start">
-            <div className="flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center lg:justify-start">
-              <CTAButton id="cta-hero-oferta" gtmClass="gtm-cta-hero" />
-              <VideoHeroButton />
-              <WhatsappHeroButton />
-            </div>
-            <p className="text-sm text-[#A0AEC0]">Acesso vitalício · Sem mensalidade · 7 dias de garantia</p>
-          </div>
+          <p className="mt-7 text-sm text-[#A0AEC0]">Acesso vitalício · Sem mensalidade · 7 dias de garantia</p>
 
           <div className="mx-auto mt-6 flex max-w-xl items-start gap-3 rounded-2xl border border-[#D4A85A]/40 bg-[#D4A85A]/[0.08] px-4 py-4 text-left lg:mx-0">
             <span aria-hidden="true" className="text-2xl">📱</span>
