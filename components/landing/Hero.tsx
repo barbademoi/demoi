@@ -1,5 +1,6 @@
 import CTAButton from './CTAButton'
 import WhatsappHeroButton from './WhatsappHeroButton'
+import VideoHeroButton from './VideoHeroButton'
 
 export default function Hero() {
   return (
@@ -32,8 +33,9 @@ export default function Hero() {
           </p>
 
           <div className="mt-7 flex flex-col items-center gap-3 lg:items-start">
-            <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
+            <div className="flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center lg:justify-start">
               <CTAButton id="cta-hero-oferta" gtmClass="gtm-cta-hero" />
+              <VideoHeroButton />
               <WhatsappHeroButton />
             </div>
             <p className="text-sm text-[#A0AEC0]">Acesso vitalício · Sem mensalidade · 7 dias de garantia</p>

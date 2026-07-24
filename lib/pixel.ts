@@ -51,3 +51,7 @@ function trackCustom(event: string, params?: Record<string, unknown>) {
 export function trackContatoWhatsApp() {
   trackCustom('Contato_WhatsApp')
 }
+
+export function trackPlayVideoHero() {
+  trackCustom('Play_Video_Hero')
+}
