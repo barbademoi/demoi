@@ -55,3 +55,7 @@ export function trackContatoWhatsApp() {
 export function trackPlayVideoHero() {
   trackCustom('Play_Video_Hero')
 }
+
+export function trackPlayVideoHeroSom() {
+  trackCustom('Play_Video_Hero_Som')
+}

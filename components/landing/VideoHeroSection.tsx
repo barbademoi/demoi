@@ -1,74 +1,116 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import CTAButton from './CTAButton'
 import WhatsappHeroButton from './WhatsappHeroButton'
-import { trackPlayVideoHero } from '@/lib/pixel'
+import { trackPlayVideoHeroSom } from '@/lib/pixel'
 
-// Seção de VÍDEO logo abaixo do hero: player VERTICAL (9:16) visível na página,
-// mas com LAZY-LOAD — mostra a miniatura + play; o iframe do YouTube só carrega
-// e toca DEPOIS do clique (não pesa a página). O vídeo toca DENTRO da página.
-// Logo abaixo, o CTA de compra principal.
+// Vídeo 16:9 HORIZONTAL logo abaixo do hero. Toca DENTRO da página, começa
+// SOZINHO e MUDO (autoplay só é permitido mudo), em LOOP. Um aviso sobreposto
+// "🔊 Clique para ativar o som" dá unMute no MESMO player (sem reiniciar) via
+// a IFrame Player API do YouTube. Logo abaixo, o CTA de compra principal.
 const VIDEO_ID = '7ENkgsYi2-w'
-const EMBED_SRC = `https://www.youtube-nocookie.com/embed/${VIDEO_ID}?rel=0&modestbranding=1&playsinline=1&autoplay=1`
-const THUMB = `https://i.ytimg.com/vi/${VIDEO_ID}/hqdefault.jpg`
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type YTPlayer = any
+
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    YT?: any
+    onYouTubeIframeAPIReady?: () => void
+  }
+}
 
 export default function VideoHeroSection() {
-  const [playing, setPlaying] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const playerRef = useRef<YTPlayer>(null)
+  const [mudo, setMudo] = useState(true)
 
-  function play() {
-    setPlaying(true)
-    trackPlayVideoHero()
+  useEffect(() => {
+    let cancelado = false
+
+    function criarPlayer() {
+      if (cancelado || !containerRef.current || !window.YT?.Player) return
+      playerRef.current = new window.YT.Player(containerRef.current, {
+        // Domínio de privacidade (nocookie).
+        host: 'https://www.youtube-nocookie.com',
+        videoId: VIDEO_ID,
+        playerVars: {
+          autoplay: 1,
+          mute: 1,
+          loop: 1,
+          playlist: VIDEO_ID, // necessário pro loop de vídeo único
+          controls: 1,
+          rel: 0,
+          modestbranding: 1,
+          playsinline: 1,
+        },
+        events: {
+          onReady: (e: { target: YTPlayer }) => {
+            // Garante mudo + play (alguns navegadores exigem o mute explícito).
+            e.target.mute()
+            e.target.playVideo()
+          },
+        },
+      })
+    }
+
+    if (window.YT?.Player) {
+      criarPlayer()
+    } else {
+      // Encadeia o callback global sem sobrescrever quem já registrou.
+      const anterior = window.onYouTubeIframeAPIReady
+      window.onYouTubeIframeAPIReady = () => { anterior?.(); criarPlayer() }
+      if (!document.getElementById('yt-iframe-api')) {
+        const s = document.createElement('script')
+        s.id = 'yt-iframe-api'
+        s.src = 'https://www.youtube.com/iframe_api'
+        document.body.appendChild(s)
+      }
+    }
+
+    return () => {
+      cancelado = true
+      try { playerRef.current?.destroy?.() } catch { /* noop */ }
+    }
+  }, [])
+
+  function ativarSom() {
+    const p = playerRef.current
+    if (p) {
+      p.unMute?.()
+      p.setVolume?.(100)
+      p.playVideo?.()
+    }
+    setMudo(false)
+    trackPlayVideoHeroSom()
   }
 
   return (
     <section className="bg-[#0A1929] px-4 pb-6 pt-8 sm:px-6 sm:pt-10">
       <div className="mx-auto max-w-6xl text-center">
-        <h2 className="text-2xl font-bold text-white sm:text-3xl">Veja o sistema por dentro</h2>
-
-        {/* Player vertical contido (tipo um celular no meio da seção). max-w
-            garante que nunca estoura a largura no mobile. */}
-        <div className="mx-auto mt-6 w-full max-w-[300px] sm:max-w-[320px]">
-          <div className="relative aspect-[9/16] overflow-hidden rounded-[28px] border-4 border-[#0F1117] bg-black shadow-2xl shadow-black/50">
-            {playing ? (
-              <iframe
-                src={EMBED_SRC}
-                title="BarberMeta por dentro"
-                className="absolute inset-0 h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
-            ) : (
+        {/* Player 16:9 contido e centralizado; responsivo, nunca estoura a tela. */}
+        <div className="mx-auto w-full max-w-3xl">
+          <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl shadow-black/50">
+            <div ref={containerRef} className="absolute inset-0 h-full w-full" />
+            {mudo && (
               <button
                 type="button"
-                onClick={play}
-                aria-label="Dar play no vídeo"
-                className="group absolute inset-0 h-full w-full"
+                onClick={ativarSom}
+                aria-label="Clique para ativar o som do vídeo"
+                className="absolute left-1/2 top-4 z-10 -translate-x-1/2 animate-pulse rounded-full bg-[#D4A85A] px-4 py-2 text-sm font-bold text-black shadow-lg transition-transform hover:scale-105"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={THUMB}
-                  alt="Prévia do BarberMeta em vídeo"
-                  className="absolute inset-0 h-full w-full object-cover"
-                  loading="lazy"
-                />
-                <span className="absolute inset-0 bg-black/30 transition-colors group-hover:bg-black/20" />
-                <span className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#D4A85A] text-black shadow-lg transition-transform group-hover:scale-105">
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="ml-1 h-7 w-7" aria-hidden="true">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </span>
+                🔊 Clique para ativar o som
               </button>
             )}
           </div>
         </div>
 
-        {/* CTA de compra principal — logo após o vídeo. Mesmo link/tracking do
-            botão que ficava no hero. */}
+        {/* CTA de compra principal — logo após o vídeo. Mesmo link/tracking. */}
         <div className="mt-8 flex flex-col items-center gap-3">
           <CTAButton id="cta-hero-oferta" gtmClass="gtm-cta-hero" />
           <WhatsappHeroButton />
-          <p className="text-sm text-[#A0AEC0]">Acesso vitalício · Sem mensalidade · 7 dias de garantia</p>
         </div>
       </div>
     </section>
