@@ -469,7 +469,7 @@ export default function BarbeiroClient({
                   {premio.campanhaFaltaPts > 0 && (
                     <p className="text-on-cream text-sm font-sans flex items-start gap-2">
                       <span aria-hidden>🏆</span>
-                      <span>Faltam <span className="font-semibold">{premio.campanhaFaltaPts} pts</span> pra entrar na premiação da campanha.</span>
+                      <span>Faltam <span className="font-semibold">{premio.campanhaFaltaPts} pts</span> pra entrar na premiação da campanha de <span className="font-semibold">+{formatBRL(premio.campanhaProxPremio)}</span>.</span>
                     </p>
                   )}
                 </div>
