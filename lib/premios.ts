@@ -27,18 +27,14 @@ const TIERS_ORDEM: Tier[] = ['bronze', 'prata', 'ouro']
  */
 export function parseValorPremio(txt: string | null | undefined): number {
   if (!txt) return 0
-  let s = String(txt).replace(/[^\d.,]/g, '')
-  if (!s) return 0
-  const temVirgula = s.includes(',')
-  const temPonto = s.includes('.')
-  if (temVirgula && temPonto) {
-    s = s.replace(/\./g, '').replace(',', '.')            // 1.200,50 -> 1200.50
-  } else if (temVirgula) {
-    s = s.replace(',', '.')                               // 250,50 -> 250.50
-  } else if (temPonto && /^\d{1,3}(\.\d{3})+$/.test(s)) {
-    s = s.replace(/\./g, '')                              // 1.200 -> 1200 (milhar)
-  }
-  const n = parseFloat(s)
+  const texto = String(txt)
+  // Em textos mistos ("1 folga + R$ 100"), prioriza o trecho marcado como
+  // moeda pra não transformar números descritivos em um prêmio inexistente.
+  const trechoMoeda = texto.match(/R\$\s*(\d[\d.\s]*(?:,\d{1,2})?)/i)?.[1]
+  const trecho = trechoMoeda ?? texto.match(/\d[\d.\s]*(?:,\d{1,2})?/)?.[0]
+  if (!trecho) return 0
+  const normalizado = trecho.replace(/\s/g, '').replace(/\./g, '').replace(',', '.')
+  const n = Number(normalizado)
   return Number.isFinite(n) && n > 0 ? n : 0
 }
 
@@ -81,6 +77,7 @@ export interface PremioBarbeiro {
   // Campanha de pontos
   campanhaAtingida: boolean
   campanhaPremio: number
+  campanhaProxPremio: number    // prêmio projetado se atingir o mínimo
   campanhaFaltaPts: number      // pontos que faltam pra qualificar (0 se já)
   // Totais
   jaGarantido: number           // metaPremio + campanhaPremio
@@ -119,6 +116,21 @@ export function calcularPremiacao(
     if (val > 0) campanhaPremioPorBarbeiro.set(b.id, val)
   })
 
+  // Projeção da campanha: mantém os pontos de quem já qualificou e leva cada
+  // não qualificado apenas até o mínimo. Assim cada posição recebe no máximo
+  // um prêmio e o potencial total não duplica valores.
+  const projetadosCampanha = campanha
+    ? barbeiros
+        .map(b => ({ ...b, pontos: Math.max(b.pontos, minDe(b.tipo)) }))
+        .filter(b => campanha.min_pontos > 0 || campanha.min_pontos_recep > 0 || b.pontos > 0)
+        .sort((a, b) => b.pontos - a.pontos || a.nome.localeCompare(b.nome, 'pt-BR'))
+    : []
+  const campanhaPotencialPorBarbeiro = new Map<string, number>()
+  projetadosCampanha.forEach((b, i) => {
+    const val = premiosOrd[i]?.valor ?? 0
+    if (val > 0) campanhaPotencialPorBarbeiro.set(b.id, val)
+  })
+
   const linhas: PremioBarbeiro[] = barbeiros.map(b => {
     // ── Meta: maior nível atingido ──
     const m = b.meta
@@ -147,13 +159,21 @@ export function calcularPremiacao(
 
     // ── Campanha ──
     const campanhaPremio = campanhaPremioPorBarbeiro.get(b.id) ?? 0
+    const campanhaProxPremio = campanhaPremio > 0
+      ? 0
+      : (campanhaPotencialPorBarbeiro.get(b.id) ?? 0)
     const min = minDe(b.tipo)
     const qualificado = campanha ? b.pontos >= min : false
-    const campanhaFaltaPts = campanha && !qualificado ? Math.max(0, min - b.pontos) : 0
+    const campanhaFaltaPts = campanha && !qualificado && campanhaProxPremio > 0
+      ? Math.max(0, min - b.pontos)
+      : 0
 
     const jaGarantido = metaPremio + campanhaPremio
-    // Potencial = sobe UM degrau de meta (troca o prêmio atual pelo do próximo).
-    const potencialProximo = campanhaPremio + (proxMetaTier ? proxMetaPremio : metaPremio)
+    // Potencial = próximo degrau de cada trilha aberta. Meta substitui o tier
+    // atual; campanha soma separadamente, assim como no "já garantido".
+    const potencialMeta = proxMetaTier ? proxMetaPremio : metaPremio
+    const potencialCampanha = campanhaPremio || campanhaProxPremio
+    const potencialProximo = potencialMeta + potencialCampanha
 
     return {
       barbeiroId: b.id,
@@ -167,6 +187,7 @@ export function calcularPremiacao(
       proxMetaFalta,
       campanhaAtingida: campanhaPremio > 0,
       campanhaPremio,
+      campanhaProxPremio,
       campanhaFaltaPts,
       jaGarantido,
       potencialProximo,
