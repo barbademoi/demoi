@@ -191,7 +191,7 @@ export default function DashboardShell({
                   “Cada atendimento de hoje aproxima sua equipe da meta de amanhã.”
                 </p>
               </blockquote>
-              <PremiacaoDono premiacao={premiacao} />
+              <PremiacaoDono premiacao={premiacao} baseMeta={baseMeta} />
               {destaquesSlot}
               {monthNavigatorSlot}
 
