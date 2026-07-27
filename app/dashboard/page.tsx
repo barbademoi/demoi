@@ -13,6 +13,7 @@ import CampanhaModal from '@/components/dashboard/CampanhaModal'
 import CampanhaToggle from '@/components/dashboard/CampanhaToggle'
 import ResumoReuniaoModal from '@/components/dashboard/ResumoReuniaoModal'
 import DashboardShell from '@/components/dashboard/DashboardShell'
+import { calcularPremiacao } from '@/lib/premios'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import FecharMesButton from '@/components/dashboard/FecharMesButton'
 import DestaquesMes from '@/components/dashboard/DestaquesMes'
@@ -352,6 +353,27 @@ export default async function DashboardPage({
   const rankingPontosBarb  = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo !== 'recepcionista')
   const rankingPontosRecep = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo === 'recepcionista')
 
+  // ── PREMIAÇÃO DO MÊS (bloco do dono) ───────────────────────────────────
+  // MESMA função da tela do barbeiro (lib/premios) → o "já garantido" total é
+  // exatamente a soma dos individuais que cada barbeiro vê no link dele.
+  const premiacao = calcularPremiacao(
+    ranking.map(b => ({
+      id: b.id, nome: b.nome, tipo: b.tipo,
+      comissao: b.comissao,
+      pontos: pontosMap[b.id] ?? 0,
+      meta: b.metaInd ? {
+        bronze_comm: b.metaInd.bronze_comm, bronze_premio: b.metaInd.bronze_premio,
+        prata_comm: b.metaInd.prata_comm, prata_premio: b.metaInd.prata_premio,
+        ouro_comm: b.metaInd.ouro_comm, ouro_premio: b.metaInd.ouro_premio,
+      } : null,
+    })),
+    campanha ? {
+      min_pontos: campanha.min_pontos,
+      min_pontos_recep: campanha.min_pontos_recep,
+      premios: campanha.campanha_premios.map(p => ({ posicao: p.posicao, valor: Number(p.valor) || 0 })),
+    } : null,
+  )
+
   const platformStats = await getPlatformStats()
   const isAutonomo = barbearia.modalidade === 'sozinho'
 
@@ -379,6 +401,7 @@ export default async function DashboardPage({
 
   return (
     <DashboardShell
+      premiacao={premiacao}
       barbeariaNome={barbearia.nome}
       cicloLabel={ciclo.label}
       isAutonomo={isAutonomo}

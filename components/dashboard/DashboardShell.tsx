@@ -4,7 +4,9 @@ import { useState } from 'react'
 import Sidebar from './Sidebar'
 import DashboardMain from './DashboardMain'
 import BarbeariaWatermark from './BarbeariaWatermark'
+import PremiacaoDono from './PremiacaoDono'
 import type { ModoPontos, CampanhaComDetalhes, MetaIndividual } from '@/types/database'
+import type { PremiacaoResumo } from '@/lib/premios'
 
 type MetaSimples = {
   id: string
@@ -34,6 +36,8 @@ type BarbeiroRow = {
 }
 
 interface Props {
+  // Premiação do mês (bloco do dono no topo)
+  premiacao: PremiacaoResumo
   // Barbearia
   barbeariaNome: string
   cicloLabel: string
@@ -102,6 +106,7 @@ interface Props {
 }
 
 export default function DashboardShell({
+  premiacao,
   barbeariaNome, cicloLabel, isAutonomo, comissaoMesAnterior, historicoMeses, historicoPorBarbeiro,
   historicoBarbearia, faturamentoMesAnterior, mes, ano,
   meta, faturamentoExibido, progressoColetivo, progressoColetivoBronze, progressoColetivoPrata,
@@ -186,6 +191,7 @@ export default function DashboardShell({
                   “Cada atendimento de hoje aproxima sua equipe da meta de amanhã.”
                 </p>
               </blockquote>
+              <PremiacaoDono premiacao={premiacao} />
               {destaquesSlot}
               {monthNavigatorSlot}
 
