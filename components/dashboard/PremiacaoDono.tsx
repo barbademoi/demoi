@@ -31,7 +31,7 @@ export default function PremiacaoDono({ premiacao }: { premiacao: PremiacaoResum
         <div className="rounded-xl border border-border bg-surface-2 p-4">
           <p className="text-text-muted text-[11px] font-sans uppercase tracking-wide">Potencial <span className="text-amber-500">· projeção</span></p>
           <p className="font-serif text-3xl text-text-muted tabular-nums mt-1">{formatBRL(premiacao.totalPotencial)}</p>
-          <p className="text-text-muted text-xs font-sans mt-1">se todos baterem o próximo degrau de meta em aberto.</p>
+          <p className="text-text-muted text-xs font-sans mt-1">se todos baterem os próximos degraus de meta e campanha em aberto.</p>
         </div>
       </div>
 
@@ -68,11 +68,17 @@ export default function PremiacaoDono({ premiacao }: { premiacao: PremiacaoResum
                       </td>
                       <td className="py-2 px-2 text-right tabular-nums text-text">{b.jaGarantido > 0 ? formatBRL(b.jaGarantido) : '—'}</td>
                       <td className="py-2 pl-2 text-text-muted">
-                        {b.proxMetaTier
-                          ? <span>+{formatBRL(b.proxMetaPremio)} (meta {b.proxMetaTierLabel}, faltam {formatBRL(b.proxMetaFalta)})</span>
-                          : b.campanhaFaltaPts > 0
-                          ? <span>campanha: faltam {b.campanhaFaltaPts} pts</span>
-                          : <span className="text-green-500">tudo destravado 🔥</span>}
+                        <div className="space-y-1">
+                          {b.proxMetaTier && (
+                            <p>+{formatBRL(b.proxMetaPremio)} (meta {b.proxMetaTierLabel}, faltam {formatBRL(b.proxMetaFalta)})</p>
+                          )}
+                          {b.campanhaFaltaPts > 0 && b.campanhaProxPremio > 0 && (
+                            <p>+{formatBRL(b.campanhaProxPremio)} (campanha, faltam {b.campanhaFaltaPts} pts)</p>
+                          )}
+                          {!b.proxMetaTier && b.campanhaFaltaPts === 0 && (
+                            <p className="text-green-500">tudo destravado 🔥</p>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

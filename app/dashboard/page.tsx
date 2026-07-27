@@ -367,7 +367,7 @@ export default async function DashboardPage({
         ouro_comm: b.metaInd.ouro_comm, ouro_premio: b.metaInd.ouro_premio,
       } : null,
     })),
-    campanha ? {
+    campanha && campanha.ativo !== false ? {
       min_pontos: campanha.min_pontos,
       min_pontos_recep: campanha.min_pontos_recep,
       premios: campanha.campanha_premios.map(p => ({ posicao: p.posicao, valor: Number(p.valor) || 0 })),
