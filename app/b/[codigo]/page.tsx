@@ -13,6 +13,7 @@ import BrandLogo from '@/components/BrandLogo'
 import BarbeiroClient from './BarbeiroClient'
 import { computeHistorico } from './pontos-utils'
 import { gerarRelatorioPontosBarbeiro, type RelatorioPontosBarbeiro } from '@/lib/relatorioPontos'
+import { calcularPremiacao } from '@/lib/premios'
 import type {
   Barbeiro, MetaIndividual, Lancamento,
   ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario,
@@ -443,6 +444,36 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     diasEmAberto = abertos
   }
 
+  // ── PREMIAÇÃO (bloco acima da comissão) ────────────────────────────────
+  // Mesma função do dashboard (lib/premios) — garante que o "já garantido"
+  // que o barbeiro vê é idêntico ao que o dono soma. Só o próprio barbeiro tem
+  // meta conhecida aqui; os pontos de todos (via ranking) definem a campanha.
+  const comissaoPorBarbeiro = new Map<string, number>()
+  for (const l of ranking) comissaoPorBarbeiro.set(l.barbeiro_id, Number(l.comissao_acumulada) || 0)
+  const premioInputs = barbeirosAtivos.map(b => ({
+    id: b.id,
+    nome: b.nome,
+    tipo: b.tipo,
+    comissao: comissaoPorBarbeiro.get(b.id) ?? 0,
+    pontos: pontosMap[b.id] ?? 0,
+    meta: b.id === barbeiro.id && metaInd ? {
+      bronze_comm: metaInd.bronze_comm, bronze_premio: metaInd.bronze_premio,
+      prata_comm: metaInd.prata_comm, prata_premio: metaInd.prata_premio,
+      ouro_comm: metaInd.ouro_comm, ouro_premio: metaInd.ouro_premio,
+    } : null,
+  }))
+  const campanhaPremioInput = campanha ? {
+    min_pontos: campanha.min_pontos,
+    min_pontos_recep: campanha.min_pontos_recep,
+    premios: campanha.campanha_premios.map(p => ({ posicao: p.posicao, valor: Number(p.valor) || 0 })),
+  } : null
+  const resumoPremiacao = calcularPremiacao(premioInputs, campanhaPremioInput)
+  const meuPremio = resumoPremiacao.barbeiros.find(x => x.barbeiroId === barbeiro.id) ?? null
+  const mostrarPremiacao = resumoPremiacao.temPremiacao && !!meuPremio && (
+    meuPremio.jaGarantido > 0 || meuPremio.proxMetaPremio > 0 ||
+    (campanhaPremioInput?.premios.some(p => p.valor > 0) ?? false)
+  )
+
   return (
     <div className="bm-theme min-h-screen pb-16">
       <header className="border-b border-border bg-surface">
@@ -520,6 +551,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
           controleHoje={controleHoje}
           historico={historico}
           relatorioPontos={relatorioPontos}
+          premio={mostrarPremiacao ? meuPremio : null}
           visibilidadeRanking={visibilidadeRanking}
           isAutonomo={isAutonomo}
           comissaoMesAnterior={comissaoMesAnterior}

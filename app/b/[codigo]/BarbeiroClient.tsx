@@ -5,6 +5,7 @@ import { formatBRL, TIER_CONFIG, calcProgresso } from '@/lib/utils'
 import { calcularRitmo } from '@/lib/ritmo'
 import { rotuloAcumulado } from '@/lib/rotuloValor'
 import type { RelatorioPontosBarbeiro } from '@/lib/relatorioPontos'
+import type { PremioBarbeiro } from '@/lib/premios'
 import { marcarOcorrenciaCiente, enviarMensagemBarbeiro, marcarMensagemLidaBarbeiro } from './conduta-actions'
 import DiasEmAbertoAlerta from './DiasEmAbertoAlerta'
 import BarbeiroNavDrawer, { type NavItem } from './NavBarbeiro'
@@ -81,6 +82,7 @@ interface Props {
   controleHoje: Record<string, number>
   historico: { data: string; pontos: number; label: string }[]
   relatorioPontos: RelatorioPontosBarbeiro
+  premio: PremioBarbeiro | null
   visibilidadeRanking: 'completo' | 'posicoes' | 'proprio'
   isAutonomo: boolean
   comissaoMesAnterior: number
@@ -137,7 +139,7 @@ export default function BarbeiroClient({
   premioColetivo, premioColetivoBronze, premioColetivoPrata,
   insights, mensagemIA, tiersJaCelebrados, campanha, controlesDiario,
   pontosTotal, rankingPontos, barbeirosAtivos, pontosMap, controleHoje, historico,
-  relatorioPontos,
+  relatorioPontos, premio,
   visibilidadeRanking, isAutonomo, comissaoMesAnterior, historicoMeses,
   cicloLabel, diaFechamento, mostrarTicketMedio, mostrarFaturamentoGeral,
   feedbacksDoBarbeiro,
@@ -425,6 +427,61 @@ export default function BarbeiroClient({
           tirando o caso em que o usuário clicou em feedbacks/acompanhamento) */}
       {(aba === 'progresso' || (!mostraPontos && aba !== 'feedbacks' && aba !== 'acompanhamento')) && (
         <div className="space-y-6 pt-2">
+
+          {/* ── PREMIAÇÃO: quanto já garantiu + próximo degrau ── */}
+          {premio && (
+            <div className="card-light p-6">
+              <h3 className="font-serif text-lg text-on-cream mb-3">💰 Seus prêmios este mês</h3>
+
+              {premio.jaGarantido > 0 ? (
+                <div className="rounded-xl border border-green-600/30 bg-green-500/10 p-4">
+                  <p className="text-green-700 text-xs font-sans font-semibold uppercase tracking-wide">Já garantido</p>
+                  <div className="mt-1.5 space-y-1">
+                    {premio.metaPremio > 0 && (
+                      <p className="text-on-cream text-sm font-sans">
+                        <span className="font-semibold text-green-700">+{formatBRL(premio.metaPremio)}</span> — meta {premio.metaTierLabel} batida
+                      </p>
+                    )}
+                    {premio.campanhaPremio > 0 && (
+                      <p className="text-on-cream text-sm font-sans">
+                        <span className="font-semibold text-green-700">+{formatBRL(premio.campanhaPremio)}</span> — campanha de pontos
+                      </p>
+                    )}
+                  </div>
+                  <p className="mt-3 font-serif text-2xl text-green-700">
+                    +{formatBRL(premio.jaGarantido)} <span className="font-sans text-sm text-on-cream-muted">a mais no seu bolso este mês</span>
+                  </p>
+                </div>
+              ) : (
+                <p className="text-on-cream-muted text-sm font-sans">Você ainda não garantiu prêmio este mês — dá pra destravar abaixo. 👇</p>
+              )}
+
+              {/* Próximo degrau */}
+              {(premio.proxMetaTier || premio.campanhaFaltaPts > 0) ? (
+                <div className="mt-4 space-y-2">
+                  <p className="text-on-cream-muted text-xs font-sans uppercase tracking-wide">Próximo degrau</p>
+                  {premio.proxMetaTier && (
+                    <p className="text-on-cream text-sm font-sans flex items-start gap-2">
+                      <span aria-hidden>🎯</span>
+                      <span>Faltam <span className="font-semibold">{formatBRL(premio.proxMetaFalta)}</span> pra garantir <span className="font-semibold">+{formatBRL(premio.proxMetaPremio)}</span> da meta {premio.proxMetaTierLabel}.</span>
+                    </p>
+                  )}
+                  {premio.campanhaFaltaPts > 0 && (
+                    <p className="text-on-cream text-sm font-sans flex items-start gap-2">
+                      <span aria-hidden>🏆</span>
+                      <span>Faltam <span className="font-semibold">{premio.campanhaFaltaPts} pts</span> pra entrar na premiação da campanha.</span>
+                    </p>
+                  )}
+                </div>
+              ) : premio.jaGarantido > 0 ? (
+                <p className="mt-4 text-on-cream text-sm font-sans font-semibold">Você destravou todos os prêmios! 🔥</p>
+              ) : null}
+
+              <p className="mt-4 text-on-cream-muted text-[11px] font-sans leading-relaxed">
+                Prêmio previsto conforme as metas definidas pela sua barbearia.
+              </p>
+            </div>
+          )}
 
           {/* Card do barbeiro */}
           <div className="card p-6 text-center">
