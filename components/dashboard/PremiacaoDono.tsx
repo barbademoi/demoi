@@ -7,11 +7,26 @@ import type { PremiacaoResumo } from '@/lib/premios'
 // Bloco "PREMIAÇÃO DO MÊS" do dono — ótica de CUSTO/compromisso a pagar.
 // Total já garantido (soma dos individuais dos barbeiros) + potencial (projeção)
 // + detalhe por barbeiro ao expandir. Só o dono vê. Some se não há premiação.
-export default function PremiacaoDono({ premiacao }: { premiacao: PremiacaoResumo }) {
+export default function PremiacaoDono({
+  premiacao,
+  baseMeta,
+}: {
+  premiacao: PremiacaoResumo
+  baseMeta: 'faturamento' | 'comissao'
+}) {
   const [aberto, setAberto] = useState(false)
   if (!premiacao.temPremiacao) return null
 
   const comPremio = premiacao.barbeiros.filter(b => b.jaGarantido > 0 || b.potencialProximo > 0)
+  const acrescimoPremios = Math.max(0, premiacao.totalPotencial - premiacao.totalJaGarantido)
+  const potencialLabel = baseMeta === 'faturamento'
+    ? 'Potencial de faturamento'
+    : 'Potencial de comissões'
+  const niveis = [
+    { nome: 'Bronze', valor: premiacao.potencialMetasEquipe.bronze, classe: 'metal-text-bronze' },
+    { nome: 'Prata', valor: premiacao.potencialMetasEquipe.prata, classe: 'metal-text-silver' },
+    { nome: 'Ouro', valor: premiacao.potencialMetasEquipe.ouro, classe: 'metal-text-gold' },
+  ]
 
   return (
     <section className="card p-6 border border-[#D4A85A]/30">
@@ -22,16 +37,47 @@ export default function PremiacaoDono({ premiacao }: { premiacao: PremiacaoResum
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <div className="rounded-xl border border-green-600/30 bg-green-500/5 p-4">
           <p className="text-text-muted text-[11px] font-sans uppercase tracking-wide">Já garantido (a pagar)</p>
           <p className="font-serif text-3xl text-text tabular-nums mt-1">{formatBRL(premiacao.totalJaGarantido)}</p>
-          <p className="text-text-muted text-xs font-sans mt-1">metas batidas + campanha, somando todos os barbeiros.</p>
+          <p className="text-text-muted text-xs font-sans mt-1">Valor que a barbearia já deve pagar por metas batidas e campanha.</p>
+
+          <div className="mt-4 rounded-lg border border-amber-500/25 bg-amber-500/[0.06] p-3">
+            <p className="text-amber-400 text-[11px] font-sans font-semibold uppercase tracking-wide">
+              Projeção do custo com prêmios
+            </p>
+            <p className="text-text text-sm font-sans mt-1 leading-relaxed">
+              Se todos avançarem nos próximos níveis, o total de prêmios pode chegar a{' '}
+              <strong className="tabular-nums">{formatBRL(premiacao.totalPotencial)}</strong>.
+            </p>
+            <p className="text-text-muted text-xs font-sans mt-1 leading-relaxed">
+              Esse total já inclui os {formatBRL(premiacao.totalJaGarantido)} garantidos acima.
+              Acréscimo possível neste cenário: {formatBRL(acrescimoPremios)}.
+            </p>
+          </div>
         </div>
+
         <div className="rounded-xl border border-border bg-surface-2 p-4">
-          <p className="text-text-muted text-[11px] font-sans uppercase tracking-wide">Potencial <span className="text-amber-500">· projeção</span></p>
-          <p className="font-serif text-3xl text-text-muted tabular-nums mt-1">{formatBRL(premiacao.totalPotencial)}</p>
-          <p className="text-text-muted text-xs font-sans mt-1">se todos baterem os próximos degraus de meta e campanha em aberto.</p>
+          <p className="text-text-muted text-[11px] font-sans uppercase tracking-wide">
+            {potencialLabel} <span className="text-amber-500">· projeção</span>
+          </p>
+          <div className="grid grid-cols-3 gap-2 mt-3">
+            {niveis.map(nivel => (
+              <div key={nivel.nome} className="min-w-0 rounded-lg border border-border bg-surface px-2 py-3 text-center">
+                <p className={`text-[10px] sm:text-[11px] font-sans uppercase tracking-wide ${nivel.classe}`}>
+                  {nivel.nome}
+                </p>
+                <p className="text-sm sm:text-base font-serif text-text tabular-nums mt-1 break-words">
+                  {nivel.valor > 0 ? formatBRL(nivel.valor) : '—'}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="text-text-muted text-xs font-sans mt-3 leading-relaxed">
+            Soma das metas individuais configuradas se toda a equipe atingir Bronze, Prata ou Ouro.
+            Não é valor de prêmio a pagar.
+          </p>
         </div>
       </div>
 
