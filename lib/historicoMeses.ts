@@ -88,12 +88,21 @@ export async function buscarHistoricoBarbearia(
 ): Promise<HistoricoMes[]> {
   const periodos = calcularPeriodos(mesAtual, anoAtual, quantidade)
 
+  // Só barbeiro ATIVO entra na soma da casa — barbeiro inativado (soft-delete)
+  // não pode inflar o total (comissão fantasma). Quando o dono preencheu o
+  // faturamento manual (meta.faturamento_acumulado), esse valor tem precedência
+  // abaixo, então shops com faturamento manual não são afetados.
+  const { data: barbAtivosRaw } = await supabase
+    .from('barbeiros').select('id').eq('barbearia_id', barbeariaId).eq('ativo', true)
+  const idsAtivos = ((barbAtivosRaw ?? []) as { id: string }[]).map(b => b.id)
+
   // Em paralelo: pra cada mês, busca SUM(lancamentos) e meta.faturamento_acumulado
   const queries = periodos.flatMap(p => [
     supabase
       .from('lancamentos')
       .select('comissao_acumulada, numero_atendimentos')
       .eq('barbearia_id', barbeariaId)
+      .in('barbeiro_id', idsAtivos)
       .eq('mes', p.mes)
       .eq('ano', p.ano),
     supabase

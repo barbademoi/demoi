@@ -222,7 +222,13 @@ export default async function DashboardPage({
     .eq('ano', ano)
 
   const barbeiros = (barbeirosRaw ?? []) as Barbeiro[]
-  const lancamentos = (lancamentosRaw ?? []) as Lancamento[]
+  const lancamentosTodos = (lancamentosRaw ?? []) as Lancamento[]
+  // Só lançamentos de barbeiro ATIVO entram na soma/ranking. Barbeiro
+  // inativado (soft-delete) some da lista mas seus lançamentos ficavam
+  // inflando o total da casa ("comissão fantasma"). Filtra pra bater com o
+  // ranking (que já itera só os ativos).
+  const idsAtivos = new Set(barbeiros.map(b => b.id))
+  const lancamentos = lancamentosTodos.filter(l => idsAtivos.has(l.barbeiro_id))
 
   const totalComissoes = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
   const faturamentoReal = (meta?.faturamento_acumulado ?? 0) > 0 ? meta!.faturamento_acumulado : totalComissoes

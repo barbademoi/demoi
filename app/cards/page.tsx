@@ -98,7 +98,11 @@ export default async function CardsPage({
     .eq('ano', ano)
 
   const barbeiros = (barbeirosRaw ?? []) as Barbeiro[]
-  const lancamentos = (lancamentosRaw ?? []) as Lancamento[]
+  const lancamentosTodos = (lancamentosRaw ?? []) as Lancamento[]
+  // Só lançamentos de barbeiro ATIVO entram na soma — barbeiro inativado
+  // (soft-delete) não pode inflar o total da casa (comissão fantasma).
+  const idsAtivos = new Set(barbeiros.map(b => b.id))
+  const lancamentos = lancamentosTodos.filter(l => idsAtivos.has(l.barbeiro_id))
   const totalEquipeReal = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
   const faturamentoAcumuladoReal = (meta as unknown as { faturamento_acumulado?: number })?.faturamento_acumulado ?? 0
   // Faturamento da casa = manual (meta.faturamento_acumulado) > 0 senão soma das comissões.

@@ -144,7 +144,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     .from('lancamentos').select('barbeiro_id, comissao_acumulada, barbeiros(nome)')
     .eq('barbearia_id', barbeiro.barbearia_id).eq('mes', mes).eq('ano', ano)
     .order('comissao_acumulada', { ascending: false })
-  const ranking = (rankingRaw ?? []) as unknown as LancamentoComNome[]
+  const rankingBruto = (rankingRaw ?? []) as unknown as LancamentoComNome[]
 
   // Lista de barbeiros ativos da barbearia (id, nome, tipo). Usada tanto
   // pra contar (IA) quanto pra completar o ranking de pontos em modo pontos
@@ -157,6 +157,11 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     .eq('ativo', true)
   const barbeirosAtivos = ((barbeirosAtivosRaw ?? []) as { id: string; nome: string; tipo: string }[])
   const totalBarbeirosAtivos = barbeirosAtivos.filter(b => b.tipo !== 'recepcionista').length
+
+  // Ranking/total só com barbeiro ATIVO: barbeiro inativado (soft-delete) não
+  // aparece na lista nem infla o total da equipe (comissão fantasma).
+  const idsAtivos = new Set(barbeirosAtivos.map(b => b.id))
+  const ranking = rankingBruto.filter(l => idsAtivos.has(l.barbeiro_id))
 
   const comissao = lancamento?.comissao_acumulada ?? 0
   const progresso = metaInd ? {
