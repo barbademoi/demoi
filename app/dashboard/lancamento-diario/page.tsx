@@ -170,8 +170,17 @@ export default async function LancamentoDiarioPage({
         <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
           <header>
             <h1 className="font-serif text-2xl sm:text-3xl text-text">Lançamento diário</h1>
-            <p className="text-text-muted text-sm font-sans mt-1">
-              {ciclo.label}
+            <p className="text-text-muted text-sm font-sans mt-2 flex items-center gap-2 flex-wrap">
+              <span>Editando:</span>
+              <span className={[
+                'inline-flex items-center rounded-lg px-2.5 py-1 text-sm font-semibold font-sans capitalize border',
+                ehPeriodoAtual
+                  ? 'bg-primary/15 text-primary border-primary/30'
+                  : 'bg-amber-500/15 text-amber-300 border-amber-500/40',
+              ].join(' ')}>
+                {ciclo.label}
+              </span>
+              {ehPeriodoAtual && <span className="text-text-muted text-xs">(mês atual)</span>}
             </p>
           </header>
 
@@ -201,6 +210,7 @@ export default async function LancamentoDiarioPage({
           )}
 
           <LancamentoDiarioClient
+            key={`${mes}-${ano}`}
             barbeiros={barbeiros}
             comandasDiarias={comandasDiarias}
             acumuladoPorBarbeiro={acumuladoPorBarbeiro}
