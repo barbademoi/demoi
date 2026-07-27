@@ -104,32 +104,47 @@ export function calcularPremiacao(
   const minDe = (tipo: string) =>
     tipo === 'recepcionista' ? (campanha?.min_pontos_recep ?? 0) : (campanha?.min_pontos ?? 0)
 
-  // Ranking dos QUALIFICADOS (pontos desc, desempate por nome — consistente).
-  const qualificados = campanha
-    ? barbeiros
-        .filter(b => b.pontos >= minDe(b.tipo) && (campanha.min_pontos > 0 || campanha.min_pontos_recep > 0 || b.pontos > 0))
-        .sort((a, b) => b.pontos - a.pontos || a.nome.localeCompare(b.nome, 'pt-BR'))
-    : []
+  // A interface atual mantém rankings independentes para barbeiros e
+  // recepcionistas. A premiação reinicia na 1ª posição dentro de cada grupo.
+  const grupos = ['barbeiro', 'recepcionista'] as const
+  const pertenceAoGrupo = (tipo: string, grupo: typeof grupos[number]) =>
+    grupo === 'recepcionista' ? tipo === 'recepcionista' : tipo !== 'recepcionista'
+  const ordenar = (lista: BarbeiroPremioInput[]) =>
+    lista.sort((a, b) => b.pontos - a.pontos || a.nome.localeCompare(b.nome, 'pt-BR'))
+
   const campanhaPremioPorBarbeiro = new Map<string, number>()
-  qualificados.forEach((b, i) => {
-    const val = premiosOrd[i]?.valor ?? 0
-    if (val > 0) campanhaPremioPorBarbeiro.set(b.id, val)
-  })
+  if (campanha) {
+    for (const grupo of grupos) {
+      const qualificados = ordenar(barbeiros.filter(b =>
+        pertenceAoGrupo(b.tipo, grupo) &&
+        b.pontos >= minDe(b.tipo) &&
+        (minDe(b.tipo) > 0 || b.pontos > 0)
+      ))
+      qualificados.forEach((b, i) => {
+        const val = premiosOrd[i]?.valor ?? 0
+        if (val > 0) campanhaPremioPorBarbeiro.set(b.id, val)
+      })
+    }
+  }
 
   // Projeção da campanha: mantém os pontos de quem já qualificou e leva cada
-  // não qualificado apenas até o mínimo. Assim cada posição recebe no máximo
-  // um prêmio e o potencial total não duplica valores.
-  const projetadosCampanha = campanha
-    ? barbeiros
-        .map(b => ({ ...b, pontos: Math.max(b.pontos, minDe(b.tipo)) }))
-        .filter(b => campanha.min_pontos > 0 || campanha.min_pontos_recep > 0 || b.pontos > 0)
-        .sort((a, b) => b.pontos - a.pontos || a.nome.localeCompare(b.nome, 'pt-BR'))
-    : []
+  // não qualificado apenas até o mínimo. As posições continuam exclusivas
+  // dentro de cada um dos dois rankings existentes.
   const campanhaPotencialPorBarbeiro = new Map<string, number>()
-  projetadosCampanha.forEach((b, i) => {
-    const val = premiosOrd[i]?.valor ?? 0
-    if (val > 0) campanhaPotencialPorBarbeiro.set(b.id, val)
-  })
+  if (campanha) {
+    for (const grupo of grupos) {
+      const projetados = ordenar(
+        barbeiros
+          .filter(b => pertenceAoGrupo(b.tipo, grupo))
+          .map(b => ({ ...b, pontos: Math.max(b.pontos, minDe(b.tipo)) }))
+          .filter(b => minDe(b.tipo) > 0 || b.pontos > 0)
+      )
+      projetados.forEach((b, i) => {
+        const val = premiosOrd[i]?.valor ?? 0
+        if (val > 0) campanhaPotencialPorBarbeiro.set(b.id, val)
+      })
+    }
+  }
 
   const linhas: PremioBarbeiro[] = barbeiros.map(b => {
     // ── Meta: maior nível atingido ──

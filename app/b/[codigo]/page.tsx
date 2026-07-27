@@ -158,6 +158,8 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     .eq('ativo', true)
   const barbeirosAtivos = ((barbeirosAtivosRaw ?? []) as { id: string; nome: string; tipo: string }[])
   const totalBarbeirosAtivos = barbeirosAtivos.filter(b => b.tipo !== 'recepcionista').length
+  const mesmoGrupoPontos = (tipo: string) =>
+    barbeiro.tipo === 'recepcionista' ? tipo === 'recepcionista' : tipo !== 'recepcionista'
 
   // Ranking/total só com barbeiro ATIVO: barbeiro inativado (soft-delete) não
   // aparece na lista nem infla o total da equipe (comissão fantasma).
@@ -272,6 +274,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
       // Desempate determinístico: pontos desc, depois nome (pt-BR) — evita que
       // um empate no topo troque 1º/2º de forma arbitrária (e, com isso, o prêmio).
       rankingPontos = barbeirosAtivos
+        .filter(b => mesmoGrupoPontos(b.tipo))
         .map(b => ({ barbeiro_id: b.id, nome: b.nome, pontos: pontosMap[b.id] ?? 0 }))
         .sort((a, b) => b.pontos - a.pontos || a.nome.localeCompare(b.nome, 'pt-BR'))
         .map(({ barbeiro_id, pontos }) => ({ barbeiro_id, pontos }))
@@ -546,7 +549,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
           controlesDiario={controlesDiario}
           pontosTotal={pontosTotal}
           rankingPontos={rankingPontos}
-          barbeirosAtivos={barbeirosAtivos.filter(b => b.tipo !== 'recepcionista').map(b => ({ id: b.id, nome: b.nome }))}
+          barbeirosAtivos={barbeirosAtivos.filter(b => mesmoGrupoPontos(b.tipo)).map(b => ({ id: b.id, nome: b.nome }))}
           pontosMap={pontosMap}
           controleHoje={controleHoje}
           historico={historico}
