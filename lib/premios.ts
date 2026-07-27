@@ -88,6 +88,12 @@ export interface PremiacaoResumo {
   temPremiacao: boolean         // há algum prêmio cadastrado com valor > 0
   totalJaGarantido: number
   totalPotencial: number
+  /** Soma das metas individuais da equipe em cada nível. */
+  potencialMetasEquipe: {
+    bronze: number
+    prata: number
+    ouro: number
+  }
   barbeiros: PremioBarbeiro[]
 }
 
@@ -212,6 +218,24 @@ export function calcularPremiacao(
   const totalJaGarantido = linhas.reduce((s, l) => s + l.jaGarantido, 0)
   const totalPotencial = linhas.reduce((s, l) => s + l.potencialProximo, 0)
 
+  // Potencial geral da equipe: quanto a barbearia movimenta na base escolhida
+  // (faturamento ou comissão) se todos atingirem cada nível individual.
+  // Recepcionistas ficam naturalmente de fora porque não possuem meta individual.
+  const somarMetasDoNivel = (nivel: Tier): number => barbeiros.reduce((soma, b) => {
+    if (!b.meta) return soma
+    const valor = nivel === 'ouro'
+      ? b.meta.ouro_comm
+      : nivel === 'prata'
+        ? b.meta.prata_comm
+        : b.meta.bronze_comm
+    return soma + (Number(valor) > 0 ? Number(valor) : 0)
+  }, 0)
+  const potencialMetasEquipe = {
+    bronze: somarMetasDoNivel('bronze'),
+    prata: somarMetasDoNivel('prata'),
+    ouro: somarMetasDoNivel('ouro'),
+  }
+
   // Há premiação cadastrada? (prêmio de campanha > 0 OU algum prêmio de meta com R$)
   const temCampanha = premiosOrd.length > 0
   const temMeta = barbeiros.some(b => b.meta && (
@@ -224,6 +248,7 @@ export function calcularPremiacao(
     temPremiacao: temCampanha || temMeta,
     totalJaGarantido,
     totalPotencial,
+    potencialMetasEquipe,
     barbeiros: linhas,
   }
 }
