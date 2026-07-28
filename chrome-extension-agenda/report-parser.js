@@ -9,13 +9,22 @@
       'rendimento total bruto',
       'faturamento bruto',
       'total bruto',
+      'total',
     ],
     comissaoAcumulada: [
       'total em comissoes',
       'total de comissoes',
       'comissao total',
+      'comissoes',
+      'comissao',
     ],
   }
+
+  const CABECALHOS_DETALHADOS = [
+    'total detalhado',
+    'faturamento detalhado',
+    'detalhamento por profissional',
+  ]
 
   function normalizar(texto) {
     return String(texto ?? '')
@@ -66,10 +75,10 @@
   function periodoDoTexto(texto) {
     const normalizado = normalizar(texto)
     const intervaloBr = normalizado.match(
-      /periodo:?\s*(\d{2})[-/](\d{2})[-/](\d{4})\s+a\s+(\d{2})[-/](\d{2})[-/](\d{4})/,
+      /(?:periodo:?\s*)?(\d{2})[-/](\d{2})[-/](\d{4})\s*(?:a|ate|-|–|—)\s*(\d{2})[-/](\d{2})[-/](\d{4})/,
     )
     const intervaloIso = normalizado.match(
-      /periodo:?\s*(\d{4})-(\d{2})-(\d{2})\s+a\s+(\d{4})-(\d{2})-(\d{2})/,
+      /(?:periodo:?\s*)?(\d{4})-(\d{2})-(\d{2})\s*(?:a|ate|–|—)\s*(\d{4})-(\d{2})-(\d{2})/,
     )
     const intervalo = intervaloBr ?? (intervaloIso
       ? [
@@ -136,76 +145,192 @@
     )
   }
 
-  function tabelaDoDocumento(documento, periodo) {
-    for (const tabela of documento.querySelectorAll('table')) {
-      const linhas = [...tabela.querySelectorAll('tr')]
-        .map(linha => [...linha.querySelectorAll('th, td')]
-          .map(celula => celula.innerText?.trim() ?? celula.textContent?.trim() ?? ''))
-        .filter(celulas => celulas.length > 1)
+  function textosMonetarios(celulas) {
+    return celulas.flatMap(celula =>
+      String(celula).match(/R\$\s*[\d.]+,\d{2}/gi) ?? [],
+    )
+  }
 
-      const indiceCabecalho = linhas.findIndex(celulas =>
-        celulas.some(celula => normalizar(celula) === 'profissional') &&
-        celulas.some(celula => normalizar(celula) === 'total'),
-      )
-      if (indiceCabecalho < 0) continue
+  function linhasDaTabela(tabela) {
+    return [...tabela.querySelectorAll('tr')]
+      .map(linha => [...linha.querySelectorAll('th, td')]
+        .map(celula =>
+          celula.innerText?.trim() ?? celula.textContent?.trim() ?? '',
+        ))
+      .filter(celulas => celulas.length > 1)
+  }
 
-      const cabecalho = linhas[indiceCabecalho]
+  function cabecalhoDaTabela(linhas) {
+    const indiceClassico = linhas.findIndex(celulas =>
+      celulas.some(celula => normalizar(celula) === 'profissional') &&
+      celulas.some(celula => normalizar(celula) === 'total'),
+    )
+    if (indiceClassico >= 0) {
+      const cabecalho = linhas[indiceClassico]
       const inicioNomes = cabecalho.findIndex(
         celula => normalizar(celula) === 'profissional',
       ) + 1
       const fimNomes = cabecalho.findIndex(
         celula => normalizar(celula) === 'total',
       )
-      const nomes = cabecalho.slice(inicioNomes, fimNomes)
-        .map(nome => nome.replace(/\s+/g, ' ').trim())
-        .filter(Boolean)
+      return {
+        indice: indiceClassico,
+        inicioNomes,
+        fimNomes,
+      }
+    }
+
+    const indiceDetalhado = linhas.findIndex(celulas =>
+      corresponde(celulas[0], CABECALHOS_DETALHADOS),
+    )
+    if (indiceDetalhado < 0) return null
+    return {
+      indice: indiceDetalhado,
+      inicioNomes: 1,
+      fimNomes: linhas[indiceDetalhado].length,
+    }
+  }
+
+  function nomesDoCabecalho(linhas, cabecalho) {
+    return linhas[cabecalho.indice]
+      .slice(cabecalho.inicioNomes, cabecalho.fimNomes)
+      .map(nome => nome.replace(/\s+/g, ' ').trim())
+      .filter(nome => nome && !/R\$/i.test(nome))
+  }
+
+  function trilhasDasLinhas(linhas, quantidade) {
+    const trilhas = {}
+    for (const [campo, alternativas] of Object.entries(LABELS)) {
+      const candidatas = linhas.filter(celulas =>
+        celulas.some(celula => corresponde(celula, alternativas)),
+      )
+      for (const linha of candidatas) {
+        const valores = textosMonetarios(linha)
+        if (valores.length < quantidade) continue
+        try {
+          trilhas[campo] = valores.slice(0, quantidade).map(dinheiro)
+          break
+        } catch {
+          // A próxima linha com o mesmo rótulo ainda pode ser a detalhada.
+        }
+      }
+    }
+    return trilhas
+  }
+
+  function leituraDasTrilhas(periodo, nomes, trilhas) {
+    if (
+      nomes.length === 0 ||
+      Object.keys(LABELS).some(campo =>
+        !Array.isArray(trilhas[campo]) ||
+        trilhas[campo].length !== nomes.length,
+      )
+    ) {
+      return null
+    }
+    return conferirProfissionais(
+      periodo,
+      nomes.map((nomeRelatorio, indice) => ({
+        nomeRelatorio,
+        servicosAcumulado: trilhas.servicosAcumulado[indice],
+        produtosAcumulado: trilhas.produtosAcumulado[indice],
+        assinaturasAcumulado: trilhas.assinaturasAcumulado[indice],
+        faturamentoAcumulado: trilhas.faturamentoAcumulado[indice],
+        comissaoAcumulada: trilhas.comissaoAcumulada[indice],
+      })),
+    )
+  }
+
+  function tabelaDoDocumento(documento, periodo) {
+    const tabelas = [...documento.querySelectorAll('table')]
+      .map(linhasDaTabela)
+      .filter(linhas => linhas.length > 0)
+    const todasAsLinhas = tabelas.flat()
+
+    for (const linhas of tabelas) {
+      const cabecalho = cabecalhoDaTabela(linhas)
+      if (!cabecalho) continue
+      const nomes = nomesDoCabecalho(linhas, cabecalho)
       if (nomes.length === 0) continue
 
-      const trilhas = {}
-      let tabelaValida = true
-      for (const [campo, alternativas] of Object.entries(LABELS)) {
-        const linha = linhas.find(celulas =>
-          corresponde(celulas[0], alternativas) ||
-          celulas.some((celula, indice) =>
-            indice < inicioNomes && corresponde(celula, alternativas)),
-        )
-        if (!linha) {
-          tabelaValida = false
-          break
-        }
+      // A comissão pode aparecer em outra grade, mas conserva a mesma ordem
+      // dos profissionais. Por isso as trilhas são procuradas na página toda.
+      const leitura = leituraDasTrilhas(
+        periodo,
+        nomes,
+        trilhasDasLinhas(todasAsLinhas, nomes.length),
+      )
+      if (leitura) return leitura
+    }
+    return null
+  }
 
-        const textosMonetarios = linha.filter(celula =>
-          /R\$\s*[\d.]+,\d{2}/i.test(celula),
+  function linhasDoTexto(texto) {
+    return String(texto)
+      .split(/\n+/)
+      .map(linha => linha.replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+  }
+
+  function valoresDepoisDoRotulo(linhas, indice, quantidade) {
+    const valores = []
+    for (let atual = indice; atual < linhas.length; atual += 1) {
+      if (
+        atual > indice &&
+        Object.values(LABELS).some(alternativas =>
+          corresponde(linhas[atual], alternativas),
         )
-        const origem = textosMonetarios.length >= nomes.length
-          ? textosMonetarios
-          : linha.slice(inicioNomes)
-        try {
-          trilhas[campo] = origem.slice(0, nomes.length).map(dinheiro)
-        } catch {
-          tabelaValida = false
-          break
-        }
-        if (trilhas[campo].length !== nomes.length) {
-          tabelaValida = false
+      ) {
+        break
+      }
+      valores.push(...textosMonetarios([linhas[atual]]))
+      if (valores.length >= quantidade) {
+        return valores.slice(0, quantidade).map(dinheiro)
+      }
+    }
+    return null
+  }
+
+  function tabelaDoTexto(texto, periodo) {
+    const linhas = linhasDoTexto(texto)
+    const indiceCabecalho = linhas.findIndex(linha =>
+      corresponde(linha, CABECALHOS_DETALHADOS),
+    )
+    if (indiceCabecalho < 0) return null
+
+    const indicePrimeiraTrilha = linhas.findIndex((linha, indice) =>
+      indice > indiceCabecalho &&
+      corresponde(linha, LABELS.servicosAcumulado),
+    )
+    if (indicePrimeiraTrilha < 0) return null
+
+    const nomes = linhas
+      .slice(indiceCabecalho + 1, indicePrimeiraTrilha)
+      .filter(linha =>
+        !/R\$/i.test(linha) &&
+        !Object.values(LABELS).some(alternativas =>
+          corresponde(linha, alternativas),
+        ),
+      )
+      .filter((nome, indice, todos) =>
+        todos.findIndex(item => normalizar(item) === normalizar(nome)) === indice,
+      )
+    if (nomes.length === 0 || nomes.length > 100) return null
+
+    const trilhas = {}
+    for (const [campo, alternativas] of Object.entries(LABELS)) {
+      const indices = linhas
+        .map((linha, indice) => corresponde(linha, alternativas) ? indice : -1)
+        .filter(indice => indice >= indicePrimeiraTrilha)
+      for (const indice of indices) {
+        const valores = valoresDepoisDoRotulo(linhas, indice, nomes.length)
+        if (valores?.length === nomes.length) {
+          trilhas[campo] = valores
           break
         }
       }
-      if (!tabelaValida) continue
-
-      return conferirProfissionais(
-        periodo,
-        nomes.map((nomeRelatorio, indice) => ({
-          nomeRelatorio,
-          servicosAcumulado: trilhas.servicosAcumulado[indice],
-          produtosAcumulado: trilhas.produtosAcumulado[indice],
-          assinaturasAcumulado: trilhas.assinaturasAcumulado[indice],
-          faturamentoAcumulado: trilhas.faturamentoAcumulado[indice],
-          comissaoAcumulada: trilhas.comissaoAcumulada[indice],
-        })),
-      )
     }
-    return null
+    return leituraDasTrilhas(periodo, nomes, trilhas)
   }
 
   function chaveCorrespondente(objeto, alternativas) {
@@ -386,6 +511,15 @@
           return {
             ok: true,
             leitura: leituraTabela,
+            origem: 'html',
+            pareceAgenda,
+          }
+        }
+        const leituraVisual = tabelaDoTexto(texto, periodo)
+        if (leituraVisual) {
+          return {
+            ok: true,
+            leitura: leituraVisual,
             origem: 'html',
             pareceAgenda,
           }
