@@ -9,4 +9,3 @@ const destino = join(process.cwd(), 'public/vendor/pdf.worker.min.mjs')
 
 mkdirSync(dirname(destino), { recursive: true })
 copyFileSync(origem, destino)
-
