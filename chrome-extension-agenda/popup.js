@@ -9,6 +9,7 @@
   const campoEndpoint = document.querySelector('#endpoint')
   const status = document.querySelector('#status')
   const configuracoes = document.querySelector('#configuracoes')
+  const versaoExtensao = document.querySelector('#versao-extensao')
 
   function mostrarStatus(mensagem, tipo = '') {
     status.hidden = false
@@ -28,6 +29,8 @@
   }
 
   async function carregarConfiguracao() {
+    versaoExtensao.textContent =
+      `Uso próprio · v${chrome.runtime.getManifest().version}`
     const salvo = await chrome.storage.local.get([
       'barberMetaToken',
       'barberMetaEndpoint',
@@ -164,6 +167,7 @@
         'Abra o Agenda Serviço e deixe o relatório de faturamento total aberto.',
       )
     }
+    if (extracao?.error) throw new Error(extracao.error)
     throw new Error(
       'Não encontrei os números do relatório. Abra o “Relatório de faturamento total” com o período do dia e tente novamente.',
     )

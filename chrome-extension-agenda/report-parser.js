@@ -333,6 +333,197 @@
     return leituraDasTrilhas(periodo, nomes, trilhas)
   }
 
+  function textoDiretoDoElemento(elemento) {
+    const direto = [...(elemento.childNodes ?? [])]
+      .filter(no => no.nodeType === 3)
+      .map(no => no.textContent ?? '')
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+    if (direto) return direto
+    if ((elemento.children?.length ?? 0) > 0) return ''
+    return (elemento.innerText ?? elemento.textContent ?? '')
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+
+  function elementosDoLayout(documento) {
+    const janela = documento.defaultView
+    if (
+      !documento.body?.querySelectorAll ||
+      typeof janela?.getComputedStyle !== 'function'
+    ) {
+      return []
+    }
+
+    return [...documento.body.querySelectorAll('*')]
+      .flatMap(elemento => {
+        if (typeof elemento.getBoundingClientRect !== 'function') return []
+        const estilo = janela.getComputedStyle(elemento)
+        if (
+          estilo.display === 'none' ||
+          estilo.visibility === 'hidden' ||
+          estilo.opacity === '0'
+        ) {
+          return []
+        }
+        const retangulo = elemento.getBoundingClientRect()
+        const texto = textoDiretoDoElemento(elemento)
+        if (
+          !texto ||
+          texto.length > 160 ||
+          retangulo.width <= 0 ||
+          retangulo.height <= 0
+        ) {
+          return []
+        }
+        return [{
+          texto,
+          normalizado: normalizar(texto),
+          top: retangulo.top,
+          bottom: retangulo.bottom,
+          left: retangulo.left,
+          right: retangulo.right,
+          width: retangulo.width,
+          height: retangulo.height,
+          centroX: retangulo.left + (retangulo.width / 2),
+          centroY: retangulo.top + (retangulo.height / 2),
+        }]
+      })
+  }
+
+  function elementosMonetariosNaLinha(elementos, rotulo, marcador) {
+    const toleranciaVertical = Math.max(24, rotulo.height * 0.8)
+    const candidatos = elementos
+      .filter(item =>
+        item.left >= marcador.right - 12 &&
+        Math.abs(item.centroY - rotulo.centroY) <= toleranciaVertical &&
+        textosMonetarios([item.texto]).length > 0,
+      )
+      .sort((a, b) => a.centroX - b.centroX)
+
+    return candidatos.filter((item, indice, todos) =>
+      todos.findIndex(outro =>
+        Math.abs(outro.centroX - item.centroX) < 3 &&
+        Math.abs(outro.centroY - item.centroY) < 3 &&
+        outro.texto === item.texto,
+      ) === indice,
+    )
+  }
+
+  function rotulosDoCampoNoLayout(elementos, marcador, campo, alternativas) {
+    return elementos
+      .filter(item =>
+        item.top > marcador.bottom &&
+        item.left < marcador.right + 80 &&
+        corresponde(item.texto, alternativas) &&
+        !(
+          campo === 'faturamentoAcumulado' &&
+          item.normalizado.includes('comiss')
+        ),
+      )
+      .sort((a, b) => a.top - b.top)
+  }
+
+  function nomesPelasColunas(elementos, marcador, rotulo, valores) {
+    const candidatos = elementos.filter(item =>
+      item.top >= marcador.top - 12 &&
+      item.bottom <= rotulo.top + 6 &&
+      item.left >= marcador.right - 12 &&
+      !/R\$/i.test(item.texto) &&
+      !Object.values(LABELS).some(alternativas =>
+        corresponde(item.texto, alternativas),
+      ) &&
+      !corresponde(item.texto, CABECALHOS_DETALHADOS),
+    )
+
+    const usados = new Set()
+    return valores.map(valor => {
+      const limiteHorizontal = Math.max(100, valor.width * 2)
+      const possiveis = candidatos
+        .filter(item =>
+          !usados.has(item) &&
+          Math.abs(item.centroX - valor.centroX) <= limiteHorizontal,
+        )
+        .sort((a, b) => {
+          const distanciaA =
+            Math.abs(a.centroX - valor.centroX) +
+            (Math.abs(a.bottom - rotulo.top) * 0.08)
+          const distanciaB =
+            Math.abs(b.centroX - valor.centroX) +
+            (Math.abs(b.bottom - rotulo.top) * 0.08)
+          return distanciaA - distanciaB
+        })
+      const escolhido = possiveis[0]
+      if (!escolhido) return null
+      usados.add(escolhido)
+      return escolhido.texto
+    })
+  }
+
+  function tabelaPeloLayout(documento, periodo) {
+    const elementos = elementosDoLayout(documento)
+    const marcadores = elementos
+      .filter(item => corresponde(item.texto, CABECALHOS_DETALHADOS))
+      .sort((a, b) => a.top - b.top)
+
+    for (const marcador of marcadores) {
+      const rotulosServicos = rotulosDoCampoNoLayout(
+        elementos,
+        marcador,
+        'servicosAcumulado',
+        LABELS.servicosAcumulado,
+      )
+      const linhasServicos = rotulosServicos
+        .map(rotulo => ({
+          rotulo,
+          valores: elementosMonetariosNaLinha(elementos, rotulo, marcador),
+        }))
+        .filter(item => item.valores.length > 0)
+        .sort((a, b) => b.valores.length - a.valores.length)
+      const primeiraLinha = linhasServicos[0]
+      if (!primeiraLinha) continue
+
+      const nomes = nomesPelasColunas(
+        elementos,
+        marcador,
+        primeiraLinha.rotulo,
+        primeiraLinha.valores,
+      )
+      if (
+        nomes.some(nome => !nome) ||
+        new Set(nomes.map(normalizar)).size !== nomes.length
+      ) {
+        continue
+      }
+
+      const trilhas = {}
+      for (const [campo, alternativas] of Object.entries(LABELS)) {
+        const linhas = rotulosDoCampoNoLayout(
+          elementos,
+          marcador,
+          campo,
+          alternativas,
+        )
+          .map(rotulo => ({
+            rotulo,
+            valores: elementosMonetariosNaLinha(elementos, rotulo, marcador),
+          }))
+          .filter(item => item.valores.length === nomes.length)
+          .sort((a, b) => a.rotulo.top - b.rotulo.top)
+        if (linhas[0]) {
+          trilhas[campo] = linhas[0].valores.map(item =>
+            dinheiro(textosMonetarios([item.texto])[0]),
+          )
+        }
+      }
+
+      const leitura = leituraDasTrilhas(periodo, nomes, trilhas)
+      if (leitura) return leitura
+    }
+    return null
+  }
+
   function chaveCorrespondente(objeto, alternativas) {
     return Object.keys(objeto).find(chave => {
       const normalizada = normalizar(
@@ -524,6 +715,15 @@
             pareceAgenda,
           }
         }
+        const leituraLayout = tabelaPeloLayout(documento, periodo)
+        if (leituraLayout) {
+          return {
+            ok: true,
+            leitura: leituraLayout,
+            origem: 'html',
+            pareceAgenda,
+          }
+        }
       }
 
       for (const script of documento.querySelectorAll(
@@ -542,8 +742,9 @@
         ok: false,
         pareceAgenda,
         loginNecessario: false,
-        error:
-          'A tabela-resumo não está visível nesta aba.',
+        error: periodo
+          ? 'Reconheci o período, mas não consegui alinhar todas as colunas de valores do relatório.'
+          : 'Não consegui reconhecer o período mensal do relatório.',
       }
     } catch (erro) {
       return {

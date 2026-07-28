@@ -39,15 +39,69 @@ function tabela(linhas) {
 }
 
 function documento({ texto, tabelas = [] }) {
+  const elementos = []
   return {
     title: 'Agenda Serviço — Relatório',
-    body: { innerText: texto },
+    body: {
+      innerText: texto,
+      querySelectorAll() {
+        return elementos
+      },
+    },
     documentElement: { innerText: texto },
     querySelector() {
       return null
     },
     querySelectorAll(seletor) {
       if (seletor === 'table') return tabelas
+      return []
+    },
+  }
+}
+
+function elementoLayout(texto, left, top, width = 80, height = 30) {
+  return {
+    innerText: texto,
+    textContent: texto,
+    childNodes: [{ nodeType: 3, textContent: texto }],
+    children: [],
+    getBoundingClientRect() {
+      return {
+        left,
+        top,
+        right: left + width,
+        bottom: top + height,
+        width,
+        height,
+      }
+    },
+  }
+}
+
+function documentoVisual({ texto, elementos }) {
+  return {
+    title: 'Agenda Serviço — Relatório',
+    body: {
+      innerText: texto,
+      querySelectorAll() {
+        return elementos
+      },
+    },
+    documentElement: { innerText: texto },
+    defaultView: {
+      getComputedStyle() {
+        return {
+          display: 'block',
+          visibility: 'visible',
+          opacity: '1',
+        }
+      },
+    },
+    querySelector() {
+      return null
+    },
+    querySelectorAll(seletor) {
+      if (seletor === 'table') return []
       return []
     },
   }
@@ -111,5 +165,41 @@ const resultadoVisual = contexto.AgendaReportParser.parseDocument(documento({
 assert.equal(resultadoVisual.ok, true)
 assert.equal(resultadoVisual.leitura.periodoFim, '2026-07-28')
 assert.equal(resultadoVisual.leitura.profissionais.length, 2)
+
+const resultadoLayout = contexto.AgendaReportParser.parseDocument(
+  documentoVisual({
+    texto:
+      'Agenda Serviço 01/07/2026 - 28/07/2026 Total detalhado Zé Caíque',
+    elementos: [
+      elementoLayout('Total detalhado', 20, 100, 180, 60),
+      elementoLayout('Zé', 250, 125),
+      elementoLayout('Caíque', 370, 125),
+      elementoLayout('Serviços', 40, 200, 140, 50),
+      elementoLayout('R$ 4.000,00', 240, 200, 100, 50),
+      elementoLayout('R$ 3.000,00', 360, 200, 100, 50),
+      elementoLayout('Produtos', 40, 260, 140, 50),
+      elementoLayout('R$ 500,00', 240, 260, 100, 50),
+      elementoLayout('R$ 200,00', 360, 260, 100, 50),
+      elementoLayout('Assinaturas', 40, 320, 140, 50),
+      elementoLayout('R$ 1.500,00', 240, 320, 100, 50),
+      elementoLayout('R$ 800,00', 360, 320, 100, 50),
+      elementoLayout('Total', 40, 380, 140, 50),
+      elementoLayout('R$ 6.000,00', 240, 380, 100, 50),
+      elementoLayout('R$ 4.000,00', 360, 380, 100, 50),
+      elementoLayout('Comissões', 40, 440, 140, 50),
+      elementoLayout('R$ 3.000,00', 240, 440, 100, 50),
+      elementoLayout('R$ 2.000,00', 360, 440, 100, 50),
+    ],
+  }),
+)
+assert.equal(resultadoLayout.ok, true)
+assert.equal(resultadoLayout.leitura.periodoFim, '2026-07-28')
+assert.deepEqual(
+  Array.from(
+    resultadoLayout.leitura.profissionais,
+    profissional => profissional.nomeRelatorio,
+  ),
+  ['Zé', 'Caíque'],
+)
 
 console.log('Leitor da extensão validado no formato real do Agenda Serviço.')
