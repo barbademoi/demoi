@@ -231,8 +231,17 @@ export default async function DashboardPage({
   const idsAtivos = new Set(barbeiros.map(b => b.id))
   const lancamentos = lancamentosTodos.filter(l => idsAtivos.has(l.barbeiro_id))
 
-  const totalComissoes = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
-  const faturamentoReal = (meta?.faturamento_acumulado ?? 0) > 0 ? meta!.faturamento_acumulado : totalComissoes
+  // A meta coletiva mede sempre o faturamento bruto da barbearia. O campo
+  // `comissao_acumulada` acompanha a base de meta/ranking e, portanto, não
+  // pode ser usado como fallback quando a barbearia está no modo comissão.
+  const totalFaturamentoBruto = lancamentos.reduce(
+    (s: number, l: Lancamento) =>
+      s + (Number((l as Lancamento & { valor_faturamento?: number | null }).valor_faturamento) || 0),
+    0,
+  )
+  const faturamentoReal = (meta?.faturamento_acumulado ?? 0) > 0
+    ? meta!.faturamento_acumulado
+    : totalFaturamentoBruto
   // % calculado a partir do faturamento real — preservado mesmo quando
   // o R$ é ocultado, pra alimentar o anel/barra de progresso da UI.
   const progressoColetivo = meta ? calcProgresso(faturamentoReal, meta.meta_coletiva) : 0

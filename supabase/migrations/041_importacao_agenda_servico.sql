@@ -515,7 +515,10 @@ begin
   loop
     update public.metas m
     set faturamento_acumulado = coalesce((
-      select round(sum(l.comissao_acumulada), 2)
+      -- A meta coletiva mede sempre o faturamento bruto da barbearia.
+      -- `comissao_acumulada` e' apenas o espelho da base escolhida para
+      -- metas/ranking individuais e pode representar comissão.
+      select round(sum(coalesce(l.valor_faturamento, 0)), 2)
       from public.lancamentos l
       join public.barbeiros b on b.id = l.barbeiro_id
       where l.barbearia_id = v_barbearia_id
@@ -632,7 +635,9 @@ begin
 
   update public.metas m
   set faturamento_acumulado = coalesce((
-    select round(sum(l.comissao_acumulada), 2)
+    -- Trocar o modo muda meta/ranking individual, nunca o faturamento
+    -- coletivo da barbearia.
+    select round(sum(coalesce(l.valor_faturamento, 0)), 2)
     from public.lancamentos l
     join public.barbeiros b on b.id = l.barbeiro_id
     where l.barbearia_id = v_barbearia_id
