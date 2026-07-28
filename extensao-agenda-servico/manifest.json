@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "BarberMeta — Atualizar infos (Agenda Serviço)",
+  "version": "1.0.0",
+  "description": "Pega o relatório do Agenda Serviço (usando a sessão que já está logada no seu navegador) e envia pro BarberMeta. Uso próprio, sem senha.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": [
+    "https://barbermeta.com.br/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Atualizar infos no BarberMeta"
+  }
+}

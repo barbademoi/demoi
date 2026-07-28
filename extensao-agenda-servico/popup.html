@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    :root { color-scheme: dark; }
+    body { width: 320px; margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #0F1117; color: #EEF0F6; }
+    .wrap { padding: 16px; }
+    h1 { font-size: 15px; margin: 0 0 2px; }
+    p.sub { font-size: 12px; color: #8B8FA8; margin: 0 0 14px; }
+    button { width: 100%; border: 0; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; }
+    #go { background: #D4A85A; color: #0F1117; }
+    #go:disabled { opacity: .5; cursor: default; }
+    #status { margin-top: 12px; font-size: 13px; line-height: 1.45; white-space: pre-wrap; }
+    .ok { color: #22C55E; } .err { color: #F87171; } .muted { color: #8B8FA8; }
+    details { margin-top: 14px; } summary { font-size: 12px; color: #8B8FA8; cursor: pointer; }
+    label { display: block; font-size: 11px; color: #8B8FA8; margin: 8px 0 3px; }
+    input { width: 100%; box-sizing: border-box; padding: 8px; border-radius: 8px; border: 1px solid #1E2028; background: #161820; color: #EEF0F6; font-size: 12px; }
+    .save { background: #1E2028; color: #EEF0F6; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Atualizar infos no BarberMeta</h1>
+    <p class="sub">Deixe a aba do <b>Agenda Serviço</b> aberta e logada, na tela do relatório.</p>
+    <button id="go">Atualizar infos</button>
+    <div id="status" class="muted">Pronto.</div>
+
+    <details>
+      <summary>Configurar (uma vez)</summary>
+      <label>URL do BarberMeta</label>
+      <input id="cfgUrl" placeholder="https://barbermeta.com.br" />
+      <label>Token de importação (AGENDA_IMPORT_TOKEN)</label>
+      <input id="cfgToken" type="password" placeholder="cole o token" />
+      <button class="save" id="salvar">Salvar config</button>
+    </details>
+  </div>
+  <script src="extrator.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
