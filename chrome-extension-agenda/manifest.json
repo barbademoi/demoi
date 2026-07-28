@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Agenda Serviço → BarberMeta",
   "description": "Atualiza o BarberMeta com o relatório aberto no Agenda Serviço, usando apenas a sessão atual do navegador.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "minimum_chrome_version": "116",
   "permissions": [
     "activeTab",
