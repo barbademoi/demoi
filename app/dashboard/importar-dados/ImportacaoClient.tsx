@@ -296,14 +296,14 @@ export default function ImportacaoClient({
           <div>
             <h2 className="font-serif text-xl text-text">1. Selecione o arquivo</h2>
             <p className="text-text-muted text-xs font-sans mt-1">
-              CSV ou Excel (.xlsx), até 15 MB. Todas as colunas serão lidas.
+              CSV, Excel (.xlsx) ou PDF textual, até 15 MB. Todas as colunas identificadas serão lidas.
             </p>
           </div>
 
           <label className="block rounded-xl border border-dashed border-primary/40 bg-primary/[0.04] p-6 text-center cursor-pointer hover:bg-primary/[0.08] transition-colors">
             <input
               type="file"
-              accept=".csv,.txt,.xlsx,.xls"
+              accept=".csv,.txt,.xlsx,.xls,.pdf,application/pdf"
               className="sr-only"
               onChange={e => selecionarArquivo(e.target.files?.[0])}
               disabled={lendo}
@@ -314,6 +314,13 @@ export default function ImportacaoClient({
             </p>
             <p className="text-text-muted text-xs font-sans mt-1">O arquivo é processado no seu navegador.</p>
           </label>
+
+          <div className="rounded-xl border border-border bg-surface-2 p-3">
+            <p className="text-text-muted text-xs font-sans leading-relaxed">
+              PDFs precisam ter texto selecionável. Relatórios escaneados como imagem ainda precisam ser
+              exportados novamente como PDF textual, CSV ou Excel.
+            </p>
+          </div>
 
           {arquivo && (
             <>

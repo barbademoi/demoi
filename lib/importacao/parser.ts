@@ -105,10 +105,17 @@ export async function lerArquivo(file: File): Promise<ArquivoLido> {
   } else if (extensao === 'xlsx') {
     const { default: readXlsxFile } = await import('read-excel-file/browser')
     matriz = await readXlsxFile(file) as unknown as Celula[][]
+  } else if (extensao === 'pdf') {
+    const { lerPdf } = await import('./pdf')
+    const arquivo = await lerPdf(file)
+    if (arquivo.totalLinhas > MAX_LINHAS) {
+      throw new Error(`O arquivo tem mais de ${MAX_LINHAS.toLocaleString('pt-BR')} linhas.`)
+    }
+    return arquivo
   } else if (extensao === 'xls') {
-    throw new Error('Excel antigo (.xls) não é suportado. Salve como .xlsx ou CSV.')
+    throw new Error('Excel antigo (.xls) não é suportado. Salve como .xlsx, CSV ou PDF.')
   } else {
-    throw new Error('Formato não suportado. Envie um arquivo CSV ou Excel (.xlsx).')
+    throw new Error('Formato não suportado. Envie um arquivo CSV, Excel (.xlsx) ou PDF.')
   }
 
   if (matriz.length < 2) throw new Error('O arquivo precisa ter cabeçalho e pelo menos uma linha de dados.')

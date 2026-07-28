@@ -85,7 +85,7 @@ export default async function ImportarDadosPage() {
               </span>
             </div>
             <p className="text-text-muted text-sm font-sans mt-2 leading-relaxed">
-              Importe CSV ou Excel com mapeamento manual. Ciclo aceito:{' '}
+              Importe CSV, Excel ou PDF com mapeamento manual. Ciclo aceito:{' '}
               <span className="text-text font-semibold capitalize">{ciclo.label}</span>.
             </p>
           </header>
