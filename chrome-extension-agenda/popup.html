@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Atualizar BarberMeta</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <div class="brand">
+        <span class="brand-mark">BM</span>
+        <div>
+          <strong>Agenda → BarberMeta</strong>
+          <small>Uso próprio</small>
+        </div>
+      </div>
+
+      <h1>Atualizar infos</h1>
+      <p class="intro">
+        Abra o relatório de faturamento total no Agenda Serviço e clique abaixo.
+      </p>
+
+      <button id="atualizar" class="primary" type="button">
+        Atualizar infos no BarberMeta
+      </button>
+
+      <div id="status" class="status" hidden aria-live="polite"></div>
+
+      <details id="configuracoes">
+        <summary>Configuração da integração</summary>
+        <label for="token">Token privado do BarberMeta</label>
+        <input
+          id="token"
+          type="password"
+          autocomplete="off"
+          placeholder="Cole o token uma única vez"
+        >
+        <label for="endpoint">Endereço do BarberMeta</label>
+        <input
+          id="endpoint"
+          type="url"
+          value="https://barbermeta.com.br/api/importacao-agenda/extensao"
+        >
+        <button id="salvar" class="secondary" type="button">Salvar</button>
+      </details>
+
+      <p class="privacy">
+        A senha do Agenda nunca é lida nem armazenada. A extensão usa a sessão
+        que já está aberta no Chrome.
+      </p>
+    </main>
+    <script src="report-parser.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

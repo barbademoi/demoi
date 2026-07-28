@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Agenda Serviço → BarberMeta",
+  "description": "Atualiza o BarberMeta com o relatório aberto no Agenda Serviço, usando apenas a sessão atual do navegador.",
+  "version": "0.1.0",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
+  "host_permissions": [
+    "https://barbermeta.com.br/*",
+    "https://www.barbermeta.com.br/*",
+    "https://*.vercel.app/*"
+  ],
+  "action": {
+    "default_title": "Atualizar infos no BarberMeta",
+    "default_popup": "popup.html"
+  }
+}
