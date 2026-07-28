@@ -1,5 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    // O leitor do Agenda usa PDF.js somente no servidor. Mantê-lo externo
+    // garante que os arquivos auxiliares do pacote sejam enviados junto da
+    // função da Vercel, em vez de virarem um chunk dinâmico não rastreado.
+    serverComponentsExternalPackages: ['pdfjs-dist'],
+    outputFileTracingIncludes: {
+      '/api/importacao-agenda/leitura': [
+        './node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',
+      ],
+    },
+  },
   images: {
     remotePatterns: [
       {

@@ -85,6 +85,7 @@ export async function lerRelatorioAgendaPdf(
       await documento.destroy()
     }
   } catch (erro) {
+    console.error('[importacao-agenda] Falha ao ler a página 1 do PDF:', erro)
     if (erro instanceof Error && (
       erro.message.includes('Agenda Serviço') ||
       erro.message.includes('período') ||
