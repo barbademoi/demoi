@@ -74,8 +74,8 @@ const navItems: NavItem[] = [
     ),
   },
   {
-    href: '/dashboard/importar-dados',
-    label: 'Importar dados',
+    href: '/dashboard/importar-relatorio',
+    label: 'Importar relatório',
     badge: 'TESTE',
     previewImportacao: true,
     icon: (
