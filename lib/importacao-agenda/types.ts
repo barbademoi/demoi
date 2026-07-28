@@ -5,6 +5,9 @@ export interface ItemTextoAgendaPdf {
 
 export interface ProfissionalRelatorioAgenda {
   nomeRelatorio: string
+  servicosAcumulado: number
+  produtosAcumulado: number
+  assinaturasAcumulado: number
   faturamentoAcumulado: number
   comissaoAcumulada: number
 }
@@ -14,6 +17,9 @@ export interface LeituraRelatorioAgenda {
   periodoFim: string
   profissionais: ProfissionalRelatorioAgenda[]
   totais: {
+    servicosAcumulado: number
+    produtosAcumulado: number
+    assinaturasAcumulado: number
     faturamentoAcumulado: number
     comissaoAcumulada: number
   }

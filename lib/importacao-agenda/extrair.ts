@@ -107,6 +107,47 @@ function validarTotal(
   }
 }
 
+function extrairLinhaMonetaria(
+  linhas: LinhaTexto[],
+  termo: string,
+  quantidadeProfissionais: number,
+): { valores: number[]; total: number } {
+  const linha = acharLinha(linhas, termo)
+  if (!linha) {
+    throw new Error(`O relatório precisa conter a linha "${termo}".`)
+  }
+
+  const valoresComTotal = valoresBrl(textoLinha(linha))
+  if (valoresComTotal.length !== quantidadeProfissionais + 1) {
+    throw new Error(
+      `A quantidade de valores na linha "${termo}" não corresponde às colunas de profissionais.`,
+    )
+  }
+
+  const total = valoresComTotal.at(-1) ?? 0
+  const valores = valoresComTotal.slice(0, -1)
+  validarTotal(valores, total, termo)
+  return { valores, total }
+}
+
+function validarComposicaoFaturamento(
+  servicos: number[],
+  produtos: number[],
+  assinaturas: number[],
+  faturamentos: number[],
+): void {
+  for (let indice = 0; indice < faturamentos.length; indice += 1) {
+    const composicao = Math.round(
+      (servicos[indice] + produtos[indice] + assinaturas[indice]) * 100,
+    ) / 100
+    if (Math.abs(composicao - faturamentos[indice]) > 0.05) {
+      throw new Error(
+        'O faturamento bruto não confere com serviços + produtos + assinaturas. Exporte novamente o relatório no Agenda Serviço.',
+      )
+    }
+  }
+}
+
 /**
  * Leitor estrito do formato "Relatório de faturamento total" do Agenda Serviço.
  * Recebe somente os itens de texto da página 1 e falha fechado quando o formato
@@ -173,44 +214,43 @@ export function extrairRelatorioAgenda(
     throw new Error('Os nomes dos profissionais na página 1 são inválidos ou repetidos.')
   }
 
-  const linhaFaturamento = acharLinha(linhas, 'Rendimento total bruto')
-  const linhaComissao = acharLinha(linhas, 'Total em comissões')
-  if (!linhaFaturamento || !linhaComissao) {
-    throw new Error(
-      'O relatório precisa conter as linhas "Rendimento total bruto" e "Total em comissões".',
-    )
-  }
-
-  const faturamentoComTotal = valoresBrl(textoLinha(linhaFaturamento))
-  const comissaoComTotal = valoresBrl(textoLinha(linhaComissao))
-  const quantidadeEsperada = nomes.length + 1
-  if (
-    faturamentoComTotal.length !== quantidadeEsperada ||
-    comissaoComTotal.length !== quantidadeEsperada
-  ) {
-    throw new Error(
-      'A quantidade de valores não corresponde às colunas de profissionais. Nenhum dado foi gravado.',
-    )
-  }
-
-  const totalFaturamento = faturamentoComTotal.at(-1) ?? 0
-  const totalComissao = comissaoComTotal.at(-1) ?? 0
-  const faturamentos = faturamentoComTotal.slice(0, -1)
-  const comissoes = comissaoComTotal.slice(0, -1)
-  validarTotal(faturamentos, totalFaturamento, 'faturamento')
-  validarTotal(comissoes, totalComissao, 'comissão')
+  const servicos = extrairLinhaMonetaria(linhas, 'Serviços', nomes.length)
+  const produtos = extrairLinhaMonetaria(linhas, 'Produtos', nomes.length)
+  const assinaturas = extrairLinhaMonetaria(linhas, 'Assinaturas', nomes.length)
+  const faturamento = extrairLinhaMonetaria(
+    linhas,
+    'Rendimento total bruto',
+    nomes.length,
+  )
+  const comissao = extrairLinhaMonetaria(
+    linhas,
+    'Total em comissões',
+    nomes.length,
+  )
+  validarComposicaoFaturamento(
+    servicos.valores,
+    produtos.valores,
+    assinaturas.valores,
+    faturamento.valores,
+  )
 
   return {
     periodoInicio,
     periodoFim,
     profissionais: nomes.map((nomeRelatorio, indice) => ({
       nomeRelatorio,
-      faturamentoAcumulado: faturamentos[indice],
-      comissaoAcumulada: comissoes[indice],
+      servicosAcumulado: servicos.valores[indice],
+      produtosAcumulado: produtos.valores[indice],
+      assinaturasAcumulado: assinaturas.valores[indice],
+      faturamentoAcumulado: faturamento.valores[indice],
+      comissaoAcumulada: comissao.valores[indice],
     })),
     totais: {
-      faturamentoAcumulado: totalFaturamento,
-      comissaoAcumulada: totalComissao,
+      servicosAcumulado: servicos.total,
+      produtosAcumulado: produtos.total,
+      assinaturasAcumulado: assinaturas.total,
+      faturamentoAcumulado: faturamento.total,
+      comissaoAcumulada: comissao.total,
     },
   }
 }
