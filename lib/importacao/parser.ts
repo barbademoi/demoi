@@ -6,7 +6,8 @@ import type {
 
 const MAX_ARQUIVO_BYTES = 15 * 1024 * 1024
 const MAX_LINHAS = 50_000
-const MAX_LANCAMENTOS_AGREGADOS = 5_000
+// Mantém o payload da Server Action abaixo do limite padrão de 1 MB.
+const MAX_LANCAMENTOS_AGREGADOS = 2_000
 
 type Celula = string | number | boolean | Date | null
 
@@ -103,7 +104,7 @@ export async function lerArquivo(file: File): Promise<ArquivoLido> {
     matriz = parseCsv(await file.text())
   } else if (extensao === 'xlsx') {
     const { default: readXlsxFile } = await import('read-excel-file/browser')
-    matriz = await readXlsxFile(file) as Celula[][]
+    matriz = await readXlsxFile(file) as unknown as Celula[][]
   } else if (extensao === 'xls') {
     throw new Error('Excel antigo (.xls) não é suportado. Salve como .xlsx ou CSV.')
   } else {
@@ -286,18 +287,18 @@ export function agregarLinhas(
     }
   }
 
-  const linhas = [...agrupadas.values()].sort((a, b) =>
+  const linhas = Array.from(agrupadas.values()).sort((a, b) =>
     a.data.localeCompare(b.data) || a.nomeArquivo.localeCompare(b.nomeArquivo, 'pt-BR'),
   )
   if (linhas.length > MAX_LANCAMENTOS_AGREGADOS) {
     throw new Error(`A importação gerou mais de ${MAX_LANCAMENTOS_AGREGADOS.toLocaleString('pt-BR')} lançamentos. Divida o arquivo.`)
   }
-  const nomesEncontrados = [...new Set(linhas.map(l => l.nomeArquivo))]
+  const nomesEncontrados = Array.from(new Set(linhas.map(l => l.nomeArquivo)))
     .sort((a, b) => a.localeCompare(b, 'pt-BR'))
   return { linhas, nomesEncontrados, avisos }
 }
 
 export async function hashArquivo(file: File): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer())
-  return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('')
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
