@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { estaFechado } from '@/lib/mesFechado'
+import { emailTemImportacao } from '@/lib/importacao/access'
 import type { MetaIndividual } from '@/types/database'
 
 /**
@@ -277,6 +278,18 @@ export async function salvarMetas(formData: FormData) {
 
   if (erros.length > 0 && salvos === 0) {
     return { error: erros[0] }
+  }
+
+  // O relatório do Agenda guarda faturamento e comissão separadamente.
+  // Quando o dono de teste troca a base, apenas resincroniza o espelho usado
+  // por meta/ranking; nenhuma das duas trilhas é perdida.
+  if (modoMetaRaw != null && emailTemImportacao(user.email ?? null)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: syncError } = await (supabase as any)
+      .rpc('sincronizar_base_importacao_agenda')
+    if (syncError) {
+      console.error('[importacao-agenda] Falha ao sincronizar a nova base:', syncError)
+    }
   }
 
   revalidatePath('/dashboard')
