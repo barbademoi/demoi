@@ -26,6 +26,12 @@
     'detalhamento por profissional',
   ]
 
+  const ROTULOS_TOTAIS_BARBEARIA = new Set([
+    'casa',
+    'total da casa',
+    'total geral',
+  ])
+
   function normalizar(texto) {
     return String(texto ?? '')
       .normalize('NFD')
@@ -108,18 +114,30 @@
   }
 
   function conferirProfissionais(periodo, profissionais) {
-    if (!periodo || profissionais.length === 0 || profissionais.length > 100) {
+    const profissionaisIndividuais = profissionais.filter(profissional =>
+      !ROTULOS_TOTAIS_BARBEARIA.has(
+        normalizar(profissional.nomeRelatorio),
+      ),
+    )
+
+    if (
+      !periodo ||
+      profissionaisIndividuais.length === 0 ||
+      profissionaisIndividuais.length > 100
+    ) {
       throw new Error(
         'Não encontrei o período e a tabela-resumo completa do relatório.',
       )
     }
 
-    const nomes = profissionais.map(item => normalizar(item.nomeRelatorio))
+    const nomes = profissionaisIndividuais.map(item =>
+      normalizar(item.nomeRelatorio),
+    )
     if (nomes.some(nome => !nome) || new Set(nomes).size !== nomes.length) {
       throw new Error('Os nomes dos profissionais estão vazios ou repetidos.')
     }
 
-    for (const profissional of profissionais) {
+    for (const profissional of profissionaisIndividuais) {
       const composicao = Math.round((
         profissional.servicosAcumulado +
         profissional.produtosAcumulado +
@@ -134,7 +152,7 @@
 
     return {
       ...periodo,
-      profissionais,
+      profissionais: profissionaisIndividuais,
     }
   }
 
