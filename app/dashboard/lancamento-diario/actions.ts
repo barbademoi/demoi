@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { estaFechado } from '@/lib/mesFechado'
 import { cicloDeData } from '@/lib/ciclo'
+import { buscarConfiguracaoValores, montarPatchValores } from '@/lib/lancamentos/valores'
 
 interface ComandaItem {
   barbeiro_id: string
@@ -230,21 +231,9 @@ export async function definirAcumuladoMes(
   const trava = await estaFechado(supabase, barbearia_id, mes, ano)
   if (trava.fechado) return { error: 'Mês fechado. Reabra antes de editar.' }
 
-  // Le modo_meta + base_meta da barbearia pra decidir qual valor (faturamento
-  // ou comissao) espelhar em comissao_acumulada — a chave de ranking/historico.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: cfgRaw } = await (supabase as any)
-    .from('barbearias')
-    .select('modo_meta, base_meta')
-    .eq('id', barbearia_id)
-    .single() as { data: { modo_meta: string | null; base_meta: string | null } | null }
-
-  const modoMeta = (cfgRaw?.modo_meta ?? 'comissao') as 'faturamento' | 'comissao' | 'ambos'
-  const baseRaw = (cfgRaw?.base_meta ?? 'comissao') as 'faturamento' | 'comissao'
-  // base efetivo: pra modo simples espelha o proprio modo; pra 'ambos' usa base_meta.
-  const base: 'faturamento' | 'comissao' = modoMeta === 'ambos'
-    ? baseRaw
-    : (modoMeta as 'faturamento' | 'comissao')
+  // Mesma fonte usada pela importação: decide qual valor espelha a chave
+  // legada de meta/ranking (`comissao_acumulada`).
+  const { baseMeta: base } = await buscarConfiguracaoValores(supabase as any, barbearia_id)
 
   // ── GUARD ANTI-ZERAR ──────────────────────────────────────────────────────
   // Antes de qualquer upsert, le o estado atual do DB. Se o submit vier com
@@ -306,7 +295,6 @@ export async function definirAcumuladoMes(
       }
     }
 
-    const espelho = base === 'faturamento' ? fat : com
     const row: Record<string, unknown> = {
       barbearia_id,
       barbeiro_id: it.barbeiro_id,
@@ -314,10 +302,8 @@ export async function definirAcumuladoMes(
       ano,
       numero_atendimentos: atend,
       modo: 'direto',
+      ...montarPatchValores(fat, com, base),
     }
-    if (fat != null) row.valor_faturamento = fat
-    if (com != null) row.valor_comissao = com
-    if (espelho != null) row.comissao_acumulada = espelho
     rowsLanc.push(row)
   }
 

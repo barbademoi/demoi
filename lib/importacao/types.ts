@@ -24,6 +24,15 @@ export interface LinhaMapeadaCliente extends LinhaAgregadaCliente {
   barbeiroId: string
 }
 
+export interface PedidoPreviewImportacao {
+  arquivoNome: string
+  arquivoHash: string
+  tipoValor: TipoValorImportado
+  linhasArquivo: number
+  linhasValidas: number
+  linhas: LinhaMapeadaCliente[]
+}
+
 export interface AvisosAgregacao {
   linhasVazias: number
   nomesVazios: number
@@ -72,6 +81,10 @@ export interface PreviewImportacao {
   tipoValor: TipoValorImportado
   arquivoNome: string
   arquivoHash: string
+}
+
+export interface PedidoConfirmacaoImportacao extends PedidoPreviewImportacao {
+  acoes: Array<{ chave: string; acao: AcaoConflito }>
 }
 
 export interface ResultadoConfirmacao {
