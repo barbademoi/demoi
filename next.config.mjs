@@ -9,6 +9,12 @@ const nextConfig = {
       '/api/importacao-agenda/leitura': [
         './node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',
       ],
+      '/api/importacao-agenda/previsualizar': [
+        './node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',
+      ],
+      '/api/importacao-agenda/confirmar': [
+        './node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',
+      ],
     },
   },
   images: {
