@@ -108,12 +108,12 @@ function documentoVisual({ texto, elementos }) {
 }
 
 const gradeReal = tabela([
-  linha('Total detalhado', 'Zé', 'Caíque'),
-  linha('Serviços', 'R$ 4.000,00', 'R$ 3.000,00'),
-  linha('Produtos', 'R$ 500,00', 'R$ 200,00'),
-  linha('Assinaturas', 'R$ 1.500,00', 'R$ 800,00'),
-  linha('Total', 'R$ 6.000,00', 'R$ 4.000,00'),
-  linha('Comissões', 'R$ 3.000,00', 'R$ 2.000,00'),
+  linha('Total detalhado', 'Casa', 'Zé', 'Caíque'),
+  linha('Serviços', 'R$ 10.000,00', 'R$ 4.000,00', 'R$ 3.000,00'),
+  linha('Produtos', 'R$ 1.000,00', 'R$ 500,00', 'R$ 200,00'),
+  linha('Assinaturas', 'R$ 2.000,00', 'R$ 1.500,00', 'R$ 800,00'),
+  linha('Total', 'R$ 13.000,00', 'R$ 6.000,00', 'R$ 4.000,00'),
+  linha('Comissões', 'R$ 6.500,00', 'R$ 3.000,00', 'R$ 2.000,00'),
 ])
 
 const resultadoGrade = contexto.AgendaReportParser.parseDocument(documento({
