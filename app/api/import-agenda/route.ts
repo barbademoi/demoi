@@ -18,7 +18,10 @@ import { estaFechado } from '@/lib/mesFechado'
  * {
  *   referencia: "YYYY-MM-DD",           // dia do relatório (define o ciclo)
  *   barbeiros: [{ nome, faturamento?, comissao?, servicos?, produtos?,
- *                 assinaturas?, atendimentos? }]   // ACUMULADO do ciclo
+ *                 assinaturas?, atendimentos? }],  // ACUMULADO do ciclo
+ *   casa?: { faturamento?, servicos?, produtos?, assinaturas? }  // totais da
+ *                 // barbearia (fonte JSON confiável do Agenda Serviço); quando
+ *                 // presente, define o faturamento da meta da casa direto.
  * }
  */
 
@@ -43,6 +46,13 @@ interface BarbeiroPayload {
   atendimentos?: number
 }
 
+interface CasaPayload {
+  faturamento?: number
+  servicos?: number
+  produtos?: number
+  assinaturas?: number
+}
+
 export async function POST(request: NextRequest) {
   // ── 1. Token ──────────────────────────────────────────────────────────────
   const token = process.env.AGENDA_IMPORT_TOKEN
@@ -58,12 +68,13 @@ export async function POST(request: NextRequest) {
   }
 
   // ── 2. Payload ────────────────────────────────────────────────────────────
-  let body: { referencia?: string; barbeiros?: BarbeiroPayload[] }
+  let body: { referencia?: string; barbeiros?: BarbeiroPayload[]; casa?: CasaPayload }
   try { body = await request.json() } catch { return NextResponse.json({ error: 'JSON inválido.' }, { status: 400 }) }
   const referencia = String(body.referencia ?? '').slice(0, 10)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(referencia)) return NextResponse.json({ error: 'referencia inválida (YYYY-MM-DD).' }, { status: 400 })
   const barbeirosPayload = Array.isArray(body.barbeiros) ? body.barbeiros : []
   if (barbeirosPayload.length === 0) return NextResponse.json({ error: 'Nenhum barbeiro no payload.' }, { status: 400 })
+  const casa = body.casa && typeof body.casa === 'object' ? body.casa : null
 
   const supabase: Supa = createAdminClient()
 
@@ -137,8 +148,11 @@ export async function POST(request: NextRequest) {
     .from('metas').select('id, faturamento_acumulado, numero_atendimentos')
     .eq('barbearia_id', barbeariaId).eq('mes', mes).eq('ano', ano).maybeSingle()
   if (metaRaw) {
+    // Faturamento da casa: prefere o total oficial do Agenda Serviço (casa.faturamento,
+    // via endpoint JSON) e cai pra soma dos barbeiros só se ele não veio.
+    const fatCasa = casa && num(casa.faturamento) > 0 ? num(casa.faturamento) : somaFatCasa
     const patch: Record<string, number> = {}
-    if (somaFatCasa > 0) patch.faturamento_acumulado = somaFatCasa
+    if (fatCasa > 0) patch.faturamento_acumulado = fatCasa
     if (somaAtendCasa > 0) patch.numero_atendimentos = somaAtendCasa
     if (Object.keys(patch).length > 0) await supabase.from('metas').update(patch).eq('id', metaRaw.id)
   }

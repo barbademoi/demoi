@@ -92,7 +92,7 @@ botao.addEventListener('click', async () => {
       resp = await fetch(`${url}/api/import-agenda`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-        body: JSON.stringify({ referencia: resultado.referencia, barbeiros }),
+        body: JSON.stringify({ referencia: resultado.referencia, barbeiros, casa: resultado.casa || null }),
       })
       dados = await resp.json().catch(() => ({}))
     } catch (e) {

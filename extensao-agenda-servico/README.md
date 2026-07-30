@@ -25,39 +25,35 @@ avisa sem quebrar nada.
 
 ---
 
-## PARTE 0 — de onde vêm os dados (leia antes de usar de verdade)
+## PARTE 0 — de onde vêm os dados (já investigado no agendas.link)
 
-O extrator já tenta **os dois caminhos automaticamente**, mas só o segundo
-funciona sem ajuste:
+Investigado pelo Network do Agenda Serviço (`agendas.link`). Conclusão:
 
-- **CASO A — endpoint JSON interno (ideal):** se a página do Agenda Serviço monta
-  o relatório chamando uma API JSON própria, a extensão chama **a mesma URL** com
-  `credentials:'include'` (usa seu login) e recebe os números limpos. Você
-  precisa **descobrir e preencher essa URL** — veja "Como capturar" abaixo.
-- **CASO B — só HTML na tela (padrão que já funciona):** se o relatório é uma
-  tabela renderizada, o parser genérico lê a tabela mapeando as colunas pelos
-  títulos. Funciona sem você mexer em nada, desde que a tela mostre uma tabela
-  com uma coluna de nome + faturamento/comissão.
+- **Totais da CASA → endpoint JSON interno (CASO A).** A extensão chama, na
+  própria sessão logada, `get-dados-faturamento-bruto.ajax.php`, que devolve
+  `{ faturamento_total, faturamento_servicos, faturamento_assinaturas,
+  faturamento_produtos }`. Números oficiais, limpos.
+- **Por barbeiro → montado na tela (CASO B).** Os endpoints JSON do Agenda
+  Serviço são **só a nível de casa ou de cadastro** (`getDadosFuncionarios` =
+  id/nome/% comissão; `getDadosServicosParaFuncionarios` = configuração).
+  **Nenhum devolve o valor em R$ por barbeiro** — esse detalhe (tabela "Total
+  detalhado" + cards) é calculado na página. Então a extensão lê essa tabela
+  renderizada na mesma aba logada.
 
-> **Por que preciso capturar?** Não tenho como abrir/inspecionar o *seu* Agenda
-> Serviço daqui. Por isso a extensão vem preparada pros dois casos, e você decide
-> qual usar depois de olhar a rede uma vez.
+O extrator já faz isso automaticamente: totais da casa via JSON + por barbeiro
+lendo a tabela "Total detalhado" (barbeiros nas colunas, métricas nas linhas).
+Como tentativa extra, ainda chama `getPagamento.ajax.php` — se um dia ele
+responder com comissão por barbeiro, entra no lugar da leitura de tela.
 
-### Como capturar (5 min, uma vez)
+### Se algum número sair errado
 
-1. Abra o Agenda Serviço, vá até o relatório de faturamento.
-2. `F12` → aba **Network** (Rede) → filtro **Fetch/XHR**.
-3. Recarregue o relatório (ou troque o período) e veja as requisições que
-   aparecem.
-4. **Se aparecer uma requisição que retorna JSON com os números** (CASO A):
-   - Copie a URL (ex.: `/api/relatorios/faturamento?inicio=...&fim=...`).
-   - Abra `extrator.js` e coloque a URL em `ENDPOINTS_JSON`.
-   - Olhe o formato do JSON e ajuste `mapearJson()` se os nomes dos campos forem
-     diferentes (ex.: `total_bruto` em vez de `faturamento`).
-5. **Se não houver JSON, só o HTML da tabela** (CASO B):
-   - Não precisa mexer em nada. Se as colunas não forem reconhecidas, ajuste os
-     sinônimos em `COLUNAS` (dentro de `extrator.js`) com os títulos exatos que
-     aparecem na sua tela.
+Abra `extrator.js` e ajuste:
+- **`EP_CASA`** — caminho(s) do endpoint de totais da casa (já preenchido).
+- **`classificar()`** — sinônimos das colunas/linhas (serviços, produtos,
+  assinaturas, comissão…) caso a sua tela use outros títulos.
+- Rode uma vez com o relatório aberto: o popup mostra quantos barbeiros casaram
+  e quais ficaram "sem correspondência", então dá pra ver na hora se algo saiu
+  torto.
 
 ---
 

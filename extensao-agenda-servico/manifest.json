@@ -5,7 +5,8 @@
   "description": "Pega o relatório do Agenda Serviço (usando a sessão que já está logada no seu navegador) e envia pro BarberMeta. Uso próprio, sem senha.",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
-    "https://barbermeta.com.br/*"
+    "https://barbermeta.com.br/*",
+    "https://agendas.link/*"
   ],
   "action": {
     "default_popup": "popup.html",

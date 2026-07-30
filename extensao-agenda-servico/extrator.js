@@ -2,113 +2,179 @@
  * EXTRATOR — roda DENTRO da página do Agenda Serviço (via chrome.scripting),
  * então reaproveita a sessão já logada (cookies) SEM pedir senha.
  *
- * ⚠️ AJUSTE AQUI conforme o SEU Agenda Serviço (PARTE 0 — ver README):
- *  - CASO A (tem endpoint JSON interno): preencha ENDPOINTS_JSON com a(s) URL(s)
- *    que a página chama pra montar o relatório. A extensão chama a MESMA URL com
- *    `credentials:'include'` (usa seu login) e recebe os números limpos.
- *  - CASO B (só HTML na tela): o parser genérico lê a tabela-resumo do relatório
- *    mapeando as COLUNAS pelos títulos (AJUSTE os sinônimos em COLUNAS).
+ * PARTE 0 (confirmada pelo Network do agendas.link):
+ *  - Os endpoints JSON do Agenda Serviço são a nível de CASA ou de cadastro:
+ *      • get-dados-faturamento-bruto.ajax.php → totais da CASA
+ *        { faturamento_total, faturamento_servicos, faturamento_assinaturas,
+ *          faturamento_produtos }
+ *      • getDadosFuncionarios.ajax.php → cadastro (id_funcionario, nome, % comissão)
+ *      • getDadosServicosParaFuncionarios / details-faturamento-total → config/casa
+ *    NENHUM devolve o valor em R$ POR BARBEIRO.
+ *  - O detalhamento por barbeiro (tabela "Total detalhado" + cards) é montado
+ *    na TELA. Então: totais da casa vêm do JSON; por barbeiro, lemos a tabela
+ *    renderizada (mesma sessão logada). getPagamento fica como tentativa extra.
  *
- * Retorna { ok, referencia:'YYYY-MM-DD', barbeiros:[{nome, faturamento, comissao,
- *   servicos, produtos, assinaturas, atendimentos}], via:'json'|'html' } ou
- * { ok:false, motivo } quando não achou o relatório / não está logado.
+ * Retorna:
+ *  { ok:true, via, referencia:'YYYY-MM-DD',
+ *    casa:{ faturamento, servicos, produtos, assinaturas },
+ *    barbeiros:[{ nome, faturamento, comissao, servicos, produtos,
+ *                 assinaturas, atendimentos }] }
+ *  ou { ok:false, motivo } quando não achou o relatório / não está logado.
  * ==========================================================================*/
 async function extrairAgendaServico() {
-  // ── CONFIG (ajuste pro seu Agenda Serviço) ──
-  const ENDPOINTS_JSON = [
-    // ex.: '/api/relatorio/faturamento?inicio=...&fim=...'
-    // Deixe vazio se o Agenda Serviço não tiver endpoint JSON (usa HTML).
+  // ── Endpoints JSON confirmados (relativos → usam a origem/sessão da página) ──
+  const EP_CASA = [
+    '/painel-adm/public/pages/relatorio/ajax/get-dados-faturamento-bruto.ajax.php',
+    '/painel-adm/public/pages/ajax/relatorio/get-dados-faturamento-bruto.ajax.php',
   ]
-  const COLUNAS = {
-    nome:        ['barbeiro', 'profissional', 'colaborador', 'funcionario', 'nome'],
-    faturamento: ['faturamento', 'bruto', 'total', 'faturado', 'receita'],
-    comissao:    ['comissao', 'comissão'],
-    servicos:    ['servico', 'serviço', 'servicos', 'serviços'],
-    produtos:    ['produto', 'produtos'],
-    assinaturas: ['assinatura', 'assinaturas', 'plano', 'clube'],
-    atendimentos:['atendimento', 'atendimentos', 'comanda', 'comandas', 'qtd'],
-  }
+  // Tentativa (best-effort) de comissão por barbeiro via JSON. Se responder
+  // com lista por id_funcionario/nome + valor em R$, usamos; senão, DOM.
+  const EP_PAGTO = [
+    '/painel-adm/public/pages/template/ajax/getPagamento.ajax.php',
+  ]
 
   const brNum = (s) => {
     if (s == null) return 0
+    if (typeof s === 'number') return Number.isFinite(s) ? s : 0
     const m = String(s).replace(/[^\d.,-]/g, '')
     if (!m) return 0
     const norm = m.replace(/\./g, '').replace(',', '.')
     const n = Number(norm)
     return Number.isFinite(n) ? n : 0
   }
-  const hojeBR = () => {
-    const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
-    return p // en-CA já dá YYYY-MM-DD
-  }
+  const hojeBR = () =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
   const semAcento = (t) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
-  const casa = (titulo, sinonimos) => sinonimos.some(s => semAcento(titulo).includes(semAcento(s)))
+  const texto = (el) => (el?.textContent || '').replace(/\s+/g, ' ').trim()
 
-  // ── CASO A: endpoint JSON interno (reusa a sessão logada) ──
-  for (const url of ENDPOINTS_JSON) {
+  // Classifica um rótulo (de linha ou coluna) numa das nossas métricas.
+  const classificar = (label) => {
+    const t = semAcento(label)
+    if (!t) return null
+    if (/comiss/.test(t)) return 'comissao'
+    if (/servic/.test(t)) return 'servicos'
+    if (/produto/.test(t)) return 'produtos'
+    if (/assinatura|clube|plano/.test(t)) return 'assinaturas'
+    if (/atendimento|comanda|qtd/.test(t)) return 'atendimentos'
+    if (/faturamento|total/.test(t)) return 'faturamento'
+    return null
+  }
+
+  const referencia = hojeBR()
+
+  // ── 1. Totais da CASA (JSON confiável) ──
+  let casa = null
+  for (const url of EP_CASA) {
     try {
       const r = await fetch(url, { credentials: 'include', headers: { accept: 'application/json' } })
       if (!r.ok) continue
-      const data = await r.json()
-      const barbeiros = mapearJson(data)
-      if (barbeiros.length) return { ok: true, via: 'json', referencia: hojeBR(), barbeiros }
-    } catch { /* tenta o próximo / cai pro HTML */ }
+      const d = await r.json()
+      if (d && (d.faturamento_total != null || d.faturamento_servicos != null)) {
+        casa = {
+          faturamento: brNum(d.faturamento_total),
+          servicos: brNum(d.faturamento_servicos),
+          produtos: brNum(d.faturamento_produtos),
+          assinaturas: brNum(d.faturamento_assinaturas),
+        }
+        break
+      }
+    } catch { /* segue */ }
   }
 
-  // ── CASO B: parse da tabela HTML renderizada ──
-  const tabelas = Array.from(document.querySelectorAll('table'))
-  for (const tabela of tabelas) {
-    const headCells = Array.from(tabela.querySelectorAll('thead th, thead td, tr:first-child th, tr:first-child td'))
-      .map(c => c.textContent || '')
-    if (headCells.length < 2) continue
-    // mapeia índice de cada coluna que reconhecemos
-    const idx = {}
-    for (const [chave, sinonimos] of Object.entries(COLUNAS)) {
-      const i = headCells.findIndex(h => casa(h, sinonimos))
-      if (i >= 0) idx[chave] = i
-    }
-    if (idx.nome == null || (idx.faturamento == null && idx.comissao == null)) continue
-
-    const linhas = Array.from(tabela.querySelectorAll('tbody tr'))
-    const barbeiros = []
-    for (const tr of linhas) {
-      const cels = Array.from(tr.querySelectorAll('td')).map(c => c.textContent || '')
-      const nome = (cels[idx.nome] || '').trim()
-      if (!nome) continue
-      if (/total|geral|soma/i.test(nome)) continue // linha de total
-      barbeiros.push({
-        nome,
-        faturamento: idx.faturamento != null ? brNum(cels[idx.faturamento]) : 0,
-        comissao:    idx.comissao    != null ? brNum(cels[idx.comissao])    : 0,
-        servicos:    idx.servicos    != null ? brNum(cels[idx.servicos])    : 0,
-        produtos:    idx.produtos    != null ? brNum(cels[idx.produtos])    : 0,
-        assinaturas: idx.assinaturas != null ? brNum(cels[idx.assinaturas]) : 0,
-        atendimentos:idx.atendimentos!= null ? brNum(cels[idx.atendimentos]): 0,
-      })
-    }
-    if (barbeiros.length) return { ok: true, via: 'html', referencia: hojeBR(), barbeiros }
+  // ── 2. Comissão por barbeiro (best-effort JSON) ──
+  const comissaoPorNome = new Map() // nome normalizado -> R$
+  for (const url of EP_PAGTO) {
+    try {
+      const r = await fetch(url, { credentials: 'include', headers: { accept: 'application/json' } })
+      if (!r.ok) continue
+      const d = await r.json()
+      const arr = Array.isArray(d) ? d : Array.isArray(d?.data) ? d.data : []
+      for (const it of arr) {
+        const val = brNum(it.valor ?? it.comissao_valor ?? it.valor_comissao ?? it.total)
+        if (val > 0 && it.nome) comissaoPorNome.set(semAcento(it.nome), val)
+      }
+    } catch { /* segue */ }
   }
 
-  // Nada encontrado → provavelmente não está na tela do relatório ou não logou.
-  return { ok: false, motivo: 'nao_encontrado' }
+  // ── 3. Por barbeiro: tabela "Total detalhado" renderizada ──
+  const barbeiros = lerBarbeirosDaTela()
+  for (const b of barbeiros) {
+    const c = comissaoPorNome.get(semAcento(b.nome))
+    if ((!b.comissao || b.comissao === 0) && c) b.comissao = c
+  }
 
-  // Mapeia um JSON genérico do Agenda Serviço pra nossa estrutura.
-  // AJUSTE conforme o formato real do endpoint (README, PARTE 0).
-  function mapearJson(data) {
-    const arr = Array.isArray(data) ? data
-      : Array.isArray(data?.dados) ? data.dados
-      : Array.isArray(data?.itens) ? data.itens
-      : Array.isArray(data?.result) ? data.result
-      : Array.isArray(data?.relatorio) ? data.relatorio
-      : []
-    return arr.map(it => ({
-      nome: it.nome || it.barbeiro || it.profissional || it.colaborador || '',
-      faturamento: brNum(it.faturamento ?? it.bruto ?? it.total ?? 0),
-      comissao: brNum(it.comissao ?? it.comissão ?? 0),
-      servicos: brNum(it.servicos ?? it.serviços ?? 0),
-      produtos: brNum(it.produtos ?? 0),
-      assinaturas: brNum(it.assinaturas ?? it.planos ?? 0),
-      atendimentos: brNum(it.atendimentos ?? it.comandas ?? it.qtd ?? 0),
-    })).filter(b => b.nome)
+  if (barbeiros.length === 0 && !casa) return { ok: false, motivo: 'nao_encontrado' }
+
+  return { ok: true, via: 'json+html', referencia, casa: casa || null, barbeiros }
+
+  // ── helpers de DOM ────────────────────────────────────────────────────────
+  // Layout observado: barbeiros nas COLUNAS, métricas nas LINHAS (transposta).
+  // Também tratamos o layout tradicional (barbeiros nas linhas) como fallback.
+  function lerBarbeirosDaTela() {
+    for (const tabela of Array.from(document.querySelectorAll('table'))) {
+      const linhas = Array.from(tabela.querySelectorAll('tr')).filter(tr => tr.querySelector('td, th'))
+      if (linhas.length < 2) continue
+      const head = Array.from(linhas[0].querySelectorAll('th, td')).map(texto)
+
+      // TRANSPOSTA: rótulos de métrica na 1ª coluna das linhas seguintes.
+      const rotulos = linhas.slice(1).map(tr => classificar(texto(tr.querySelector('th, td'))))
+      if (rotulos.filter(Boolean).length >= 2) {
+        const nomes = head.slice(1).map(n => n.trim())
+        const alvo = nomes
+          .map((nome, col) => ({ nome, col }))
+          .filter(x => x.nome && !classificar(x.nome) && !/total|geral|casa|soma/i.test(x.nome))
+        if (alvo.length) {
+          const acc = new Map(alvo.map(a => [a.col, base(a.nome)]))
+          linhas.slice(1).forEach((tr, i) => {
+            const chave = rotulos[i]
+            if (!chave) return
+            const cels = Array.from(tr.querySelectorAll('td')).map(texto)
+            const offset = cels.length - nomes.length // rótulo pode ocupar a 1ª td
+            alvo.forEach(a => {
+              const raw = cels[a.col + Math.max(0, offset)]
+              if (raw != null) acc.get(a.col)[chave] = brNum(raw)
+            })
+          })
+          const lista = Array.from(acc.values()).map(finalizar).filter(temAlgumValor)
+          if (lista.length) return lista
+        }
+      }
+
+      // TRADICIONAL: barbeiros nas linhas, métricas nas colunas.
+      const idx = {}
+      head.forEach((h, i) => { const k = classificar(h); if (k && idx[k] == null) idx[k] = i })
+      const iNome = head.findIndex(h => /barbeiro|profissional|colaborador|funcionario|nome/.test(semAcento(h)))
+      if (iNome >= 0 && (idx.faturamento != null || idx.comissao != null || idx.servicos != null)) {
+        const lista = []
+        for (const tr of linhas.slice(1)) {
+          const cels = Array.from(tr.querySelectorAll('td')).map(texto)
+          const nome = (cels[iNome] || '').trim()
+          if (!nome || /total|geral|soma|casa/i.test(nome)) continue
+          const b = base(nome)
+          for (const k of ['faturamento', 'comissao', 'servicos', 'produtos', 'assinaturas', 'atendimentos']) {
+            if (idx[k] != null) b[k] = brNum(cels[idx[k]])
+          }
+          lista.push(finalizar(b))
+        }
+        const filt = lista.filter(temAlgumValor)
+        if (filt.length) return filt
+      }
+    }
+    return []
+  }
+
+  function base(nome) {
+    return { nome, faturamento: 0, comissao: 0, servicos: 0, produtos: 0, assinaturas: 0, atendimentos: 0 }
+  }
+  // Sem faturamento explícito? soma os componentes.
+  function finalizar(b) {
+    if (!b.faturamento || b.faturamento === 0) {
+      const soma = (b.servicos || 0) + (b.produtos || 0) + (b.assinaturas || 0)
+      if (soma > 0) b.faturamento = soma
+    }
+    return b
+  }
+  function temAlgumValor(b) {
+    return (b.faturamento || b.comissao || b.servicos || b.produtos || b.assinaturas || b.atendimentos) > 0
   }
 }
