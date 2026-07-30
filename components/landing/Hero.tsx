@@ -1,6 +1,4 @@
 import CTAButton from './CTAButton'
-import WhatsappHeroButton from './WhatsappHeroButton'
-import HeroVideoPlayer from './HeroVideoPlayer'
 
 export default function Hero() {
   return (
@@ -34,15 +32,8 @@ export default function Hero() {
 
           <p className="mt-7 text-sm text-[#A0AEC0]">Acesso vitalício · Sem mensalidade · 7 dias de garantia</p>
 
-          {/* Vídeo (16:9) logo abaixo do título/subtítulo, e o CTA de compra
-              logo após o vídeo. */}
-          <div className="mx-auto mt-7 w-full max-w-xl lg:mx-0">
-            <HeroVideoPlayer />
-          </div>
-
-          <div className="mx-auto mt-6 flex max-w-xl flex-col items-center gap-3 lg:mx-0 lg:items-start">
+          <div className="mx-auto mt-7 flex max-w-xl flex-col items-center gap-3 lg:mx-0 lg:items-start">
             <CTAButton id="cta-hero-oferta" gtmClass="gtm-cta-hero" />
-            <WhatsappHeroButton />
           </div>
 
           <div className="mx-auto mt-8 flex max-w-xl items-start gap-3 rounded-2xl border border-[#D4A85A]/40 bg-[#D4A85A]/[0.08] px-4 py-4 text-left lg:mx-0">
