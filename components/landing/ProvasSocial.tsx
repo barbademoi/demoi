@@ -1,23 +1,29 @@
+sed: --: No such file or directory
+import Image from 'next/image'
+
 export default function ProvasSocial() {
   return (
-    <section className="bg-[#0F1F2D] px-4 py-16 sm:px-6 sm:py-20">
-      <div className="mx-auto max-w-4xl">
-        <div className="mx-auto mb-10 max-w-2xl text-center">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#D4A85A]">Minha história</p>
-          <h2 className="text-3xl font-bold text-white sm:text-4xl">Funcionou primeiro na minha barbearia.</h2>
-        </div>
-
-        <article className="rounded-3xl border border-white/10 bg-[#0A1929] p-6 sm:p-10">
-          <div className="flex flex-col items-center gap-7 sm:flex-row sm:items-start sm:gap-10">
-            <div className="w-36 shrink-0 sm:w-48">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/prints/foto-pensativo.png" width="400" height="500" alt="Carlos Henrique, criador do BarberMeta" className="h-auto w-full rounded-2xl shadow-xl" loading="lazy" />
+    <section className="bg-[#F6F4EF] px-4 py-16 sm:px-6 sm:py-20">
+      <div className="mx-auto max-w-5xl">
+        <article className="overflow-hidden rounded-3xl bg-[#101828] text-white shadow-xl shadow-black/10">
+          <div className="grid lg:grid-cols-[.72fr_1.28fr] lg:items-center">
+            <div className="relative mx-auto w-full max-w-[360px] self-end px-7 pt-7 lg:px-8 lg:pt-10">
+              <Image
+                src="/prints/foto-pensativo.png"
+                width={400}
+                height={500}
+                alt="Carlos Henrique, dono da Demôi Barbearia e criador do BarberMeta"
+                sizes="(max-width: 1024px) 320px, 330px"
+                className="block h-auto w-full rounded-t-2xl"
+              />
             </div>
-            <div>
-              <p className="text-base leading-relaxed text-[#E2E8F0] sm:text-lg">
-                Sou Carlos Henrique, dono da <strong className="text-white">Demôi Barbearia</strong> em Cássia / MG, com 7 barbeiros. Criei o BarberMeta pra resolver isso na minha própria casa. Hoje minha equipe se cobra sozinha.
+            <div className="p-7 sm:p-10 lg:p-12">
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#F4B942]">Criado dentro de uma barbearia</p>
+              <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] sm:text-4xl">Eu precisava parar de cobrar minha equipe todo dia.</h2>
+              <p className="mt-5 text-base leading-relaxed text-[#C6D0DD] sm:text-lg">
+                Sou Carlos Henrique, dono da Demôi Barbearia em Cássia/MG, com 7 barbeiros. Criei o BarberMeta para resolver esse problema na minha própria operação. Primeiro funcionou aqui. Depois, compartilhei com outros donos.
               </p>
-              <p className="mt-5 text-sm text-[#A0AEC0]"><strong className="text-white">Carlos Henrique</strong> · Demôi Barbearia · Cássia / MG</p>
+              <p className="mt-5 text-sm font-bold text-white">Carlos Henrique <span className="font-normal text-[#9DACBD]">· Demôi Barbearia</span></p>
             </div>
           </div>
         </article>

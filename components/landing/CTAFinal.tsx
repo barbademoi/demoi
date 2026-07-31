@@ -1,28 +1,27 @@
+sed: --: No such file or directory
+import Image from 'next/image'
 import CTAButton from './CTAButton'
-
-const PRECO = process.env.NEXT_PUBLIC_PRECO ?? '47'
 
 export default function CTAFinal() {
   return (
-    <section className="overflow-hidden bg-[#0A1929] px-4 py-16 sm:px-6 sm:py-20">
-      <div className="mx-auto flex max-w-5xl flex-col items-center gap-8 lg:flex-row lg:gap-12">
-        <div className="flex-1 text-center lg:text-left">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#D4A85A]">Comece agora</p>
-          <h2 className="text-3xl font-bold leading-tight text-white sm:text-4xl">
-            No próximo mês, seu time pode estar vendendo mais.
+    <section className="overflow-hidden bg-[#07111F] px-4 py-16 sm:px-6 sm:py-20">
+      <div className="mx-auto grid max-w-5xl items-center gap-9 lg:grid-cols-[1fr_260px] lg:gap-14">
+        <div className="text-center lg:text-left">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#F4B942]">Meta visível. Time em movimento.</p>
+          <h2 className="text-balance text-3xl font-bold leading-tight tracking-[-0.025em] text-white sm:text-4xl lg:text-5xl">
+            Pare de carregar a meta sozinho.
           </h2>
-          <p className="mt-5 text-base leading-relaxed text-[#A0AEC0] sm:text-lg">
-            Por R$ {PRECO}, uma vez para sempre, você tira a meta do WhatsApp e coloca o progresso na mão da equipe — e para de cobrar.
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-[#B8C3D1] sm:text-lg lg:mx-0">
+            Coloque o progresso na mão de cada barbeiro e dê para sua equipe um motivo claro para acelerar todos os dias.
           </p>
-          <div className="mt-8 flex flex-col items-center gap-3 lg:items-start">
-            <CTAButton label={`Quero o BarberMeta agora — R$ ${PRECO}`} id="cta-final-oferta" gtmClass="gtm-cta-final" />
-            <p className="text-sm text-[#A0AEC0]">7 dias de garantia · Reembolso 100% · Sem pegadinha</p>
+          <div className="mt-7 flex flex-col items-center gap-3 lg:items-start">
+            <CTAButton label="Quero o BarberMeta — R$ 47" id="cta-final-oferta" gtmClass="gtm-cta-final" />
+            <p className="text-sm text-[#8FA0B3]">Pagamento único · acesso vitalício · 7 dias de garantia</p>
           </div>
         </div>
 
-        <div className="w-48 shrink-0 sm:w-56 lg:w-64">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/prints/foto-apontando.png" width="576" height="720" alt="Carlos Henrique recomenda o BarberMeta" className="h-auto w-full rounded-2xl shadow-2xl" loading="lazy" />
+        <div className="mx-auto w-48 lg:w-[260px]">
+          <Image src="/prints/foto-apontando.png" width={576} height={720} alt="Carlos Henrique apresentando o BarberMeta" sizes="(max-width: 1024px) 192px, 260px" className="h-auto w-full rounded-2xl shadow-2xl" />
         </div>
       </div>
     </section>

@@ -1,3 +1,4 @@
+sed: --: No such file or directory
 import Link from 'next/link'
 import CTAButton from './CTAButton'
 
@@ -5,7 +6,7 @@ const PRECO = process.env.NEXT_PUBLIC_PRECO ?? '47'
 
 export default function Navbar() {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-[#0A1929]/90 backdrop-blur-md">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#07111F]/90 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-3 sm:px-6">
         <Link
           href="/"
@@ -23,16 +24,16 @@ export default function Navbar() {
               <linearGradient id="g3" x1="21.5" y1="4" x2="21.5" y2="25"><stop stopColor="#C8973A" /><stop offset="1" stopColor="#F0C060" /></linearGradient>
             </defs>
           </svg>
-          <span className="text-lg font-bold tracking-tight max-[360px]:hidden">
-            <span className="text-white">Barber</span><span className="text-[#D4A85A]">Meta</span>
+          <span className="text-lg font-bold tracking-tight max-[350px]:hidden">
+            <span className="text-white">Barber</span><span className="text-[#F4B942]">Meta</span>
           </span>
         </Link>
 
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Link
             href="/login"
             id="link-navbar-login-desktop"
-            className="gtm-link-anchor hidden text-sm font-medium text-[#A0AEC0] transition-colors hover:text-white sm:inline"
+            className="gtm-link-anchor hidden text-sm font-medium text-[#B8C3D1] transition-colors hover:text-white sm:inline"
           >
             Já tenho acesso →
           </Link>
@@ -41,14 +42,14 @@ export default function Navbar() {
           </div>
 
           <div className="flex min-w-0 items-center gap-1.5 sm:hidden">
-            <CTAButton size="sm" label={`Garantir — R$ ${PRECO}`} id="cta-navbar-oferta-mobile" gtmClass="gtm-cta-navbar" />
             <Link
               href="/login"
               id="link-navbar-login-mobile"
-              className="gtm-link-anchor inline-flex min-h-11 shrink-0 items-center rounded-lg border border-white/20 bg-white/5 px-2.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/10"
+              className="gtm-link-anchor hidden min-h-11 shrink-0 items-center px-1.5 py-2 text-xs font-semibold text-[#D6DEE8] transition-colors hover:text-white min-[380px]:inline-flex"
             >
-              <span className="max-[340px]:hidden">Acessar&nbsp;</span>→
+              Entrar
             </Link>
+            <CTAButton size="sm" label={`Comprar · R$ ${PRECO}`} id="cta-navbar-oferta-mobile" gtmClass="gtm-cta-navbar" />
           </div>
         </div>
       </div>
