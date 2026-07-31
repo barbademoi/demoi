@@ -1,36 +1,42 @@
+import Image from 'next/image'
+
 const depoimentos = [
-  { src: '/prints/feedback-1.png', alt: 'Depoimento no Instagram sobre o uso da gamificação' },
-  { src: '/prints/feedback-2.png', alt: 'Depoimento de cliente estudando o BarberMeta' },
-  { src: '/prints/feedback-3.png', alt: 'Depoimento de cliente com a meta ouro atingida' },
-  { src: '/prints/feedback-4.png', alt: 'Depoimento de cliente sobre o engajamento da equipe' },
-  { src: '/prints/feedback-5.png', alt: 'Depoimento de cliente sobre a facilidade de uso' },
+  { src: '/prints/feedback-1.png', alt: 'Depoimento real sobre o uso da gamificação no BarberMeta' },
+  { src: '/prints/feedback-2.png', alt: 'Depoimento real de cliente estudando o BarberMeta' },
+  { src: '/prints/feedback-3.png', alt: 'Depoimento real de cliente com a meta ouro atingida' },
+  { src: '/prints/feedback-4.png', alt: 'Depoimento real sobre o engajamento da equipe' },
+  { src: '/prints/feedback-5.png', alt: 'Depoimento real sobre a facilidade de uso do BarberMeta' },
 ]
 
 export default function Depoimentos() {
   return (
-    <section className="overflow-hidden bg-[#0F1F2D] py-16 sm:py-20">
-      <div className="mx-auto mb-10 max-w-3xl px-4 text-center sm:px-6">
-        <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#D4A85A]">Provas reais</p>
-        <h2 className="text-3xl font-bold text-white sm:text-4xl">O que estão falando do BarberMeta.</h2>
-        <p className="mt-4 text-base text-[#A0AEC0]">Mensagens reais de mais de 600 barbearias usando o sistema.</p>
+    <section className="overflow-hidden bg-white py-16 sm:py-20">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="grid gap-8 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
+          <div>
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#B77916]">Resultado real</p>
+            <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] text-[#101828] sm:text-4xl">Quando a equipe enxerga o jogo, ela muda o ritmo.</h2>
+            <p className="mt-4 text-base leading-relaxed text-[#59677A]">O BarberMeta já faz parte da rotina de mais de 600 barbearias.</p>
+          </div>
 
-        <figure className="mx-auto mt-8 max-w-2xl rounded-2xl border border-[#D4A85A]/35 bg-[#D4A85A]/[0.08] px-6 py-6 sm:px-8 sm:py-7">
-          <blockquote className="text-xl font-bold leading-snug text-white sm:text-2xl">
-            &ldquo;Primeiro ciclo usando o app: batemos a meta ouro. R$ 60.016 no mês.&rdquo;
-          </blockquote>
-          <figcaption className="mt-3 text-sm font-semibold text-[#D4A85A]">— Geison, dono de barbearia</figcaption>
-        </figure>
+          <figure className="rounded-3xl border border-[#E6D2A7] bg-[#FFF9EC] p-6 sm:p-8">
+            <div className="mb-4 text-3xl text-[#B77916]" aria-hidden="true">“</div>
+            <blockquote className="text-xl font-bold leading-snug text-[#101828] sm:text-2xl">
+              Primeiro ciclo usando o app: batemos a meta ouro. R$ 60.016 no mês.
+            </blockquote>
+            <figcaption className="mt-4 text-sm font-bold text-[#9A650F]">Geison · dono de barbearia</figcaption>
+          </figure>
+        </div>
       </div>
 
-      <div className="mx-auto flex max-w-6xl snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:gap-6 sm:px-6">
+      <div className="mx-auto mt-10 flex max-w-6xl snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:gap-5 sm:px-6">
         {depoimentos.map((depoimento) => (
-          <figure key={depoimento.src} className="w-[72vw] max-w-[250px] shrink-0 snap-center overflow-hidden rounded-2xl border border-white/10 bg-[#0F1117] shadow-xl shadow-black/30 sm:w-[240px]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={depoimento.src} alt={depoimento.alt} className="block h-auto w-full" loading="lazy" />
+          <figure key={depoimento.src} className="relative w-[68vw] max-w-[235px] shrink-0 snap-center overflow-hidden rounded-2xl border border-[#E2E6EA] bg-[#F7F8FA] shadow-lg shadow-black/10">
+            <Image src={depoimento.src} width={1320} height={2585} alt={depoimento.alt} sizes="235px" className="block h-auto w-full" />
           </figure>
         ))}
       </div>
-      <p className="mt-4 px-4 text-center text-xs text-[#A0AEC0]">Prints publicados com autorização dos clientes.</p>
+      <p className="mt-3 px-4 text-center text-xs text-[#748093]">Mensagens publicadas com autorização dos clientes.</p>
     </section>
   )
 }

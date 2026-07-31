@@ -28,6 +28,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.barbermeta.com.br'),
   title: 'BarberMeta',
   description: 'Acompanhamento diário de metas para barbearias',
 }

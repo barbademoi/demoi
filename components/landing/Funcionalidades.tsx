@@ -1,53 +1,69 @@
 import CTAButton from './CTAButton'
 
-const destaques = [
-  { emoji: '🏆', titulo: 'Ranking ao vivo', texto: 'Cada barbeiro vê onde está. Quem está atrás, corre sem você precisar falar.' },
-  { emoji: '📱', titulo: 'Link individual', texto: 'Acessa pelo celular, sem senha, e acompanha comissão, ritmo e metas.' },
-  { emoji: '🎯', titulo: 'Meta coletiva', texto: 'Defina uma meta geral com premiação para todo mundo puxar junto.' },
+const pilares = [
+  {
+    emoji: '📱',
+    titulo: 'Meta no bolso de cada barbeiro',
+    texto: 'Link individual, sem app e sem senha, com comissão, ritmo e quanto falta para a meta.',
+  },
+  {
+    emoji: '🏆',
+    titulo: 'Competição saudável no time',
+    texto: 'Ranking ao vivo, campanha de pontos e metas Bronze, Prata, Ouro e coletiva.',
+  },
+  {
+    emoji: '📊',
+    titulo: 'Visão clara para o dono',
+    texto: 'Acompanhe a evolução da equipe e descubra cedo quem precisa de direção.',
+  },
+  {
+    emoji: '🎥',
+    titulo: '8 aulas práticas incluídas',
+    texto: 'Veja como uso o BarberMeta na minha própria barbearia para fazer o time vender mais.',
+  },
 ]
 
 const recursos = [
-  'Ranking ao vivo entre os barbeiros',
-  'Link individual por barbeiro — sem app, sem senha',
-  'Metas Bronze, Prata e Ouro + meta coletiva',
-  'Campanha de pontos (gamificação) com premiação',
-  'Lançamento diário em 1 tela, em 2 minutos',
-  'Cards prontos pra mandar no grupo do WhatsApp',
+  'Lançamento diário simples pelo celular',
+  'Cards prontos para mandar no WhatsApp',
   'Mensagem motivadora diária gerada por IA',
-  '8 aulas práticas ensinando como fazer o time vender mais',
+  'Premiação por metas e campanha de pontos',
+  'Módulo de reunião com a equipe',
+  'Acompanhamento de comportamento',
 ]
 
 export default function Funcionalidades() {
   return (
-    <section id="funcionalidades" className="scroll-mt-20 bg-[#0A1929] px-4 py-16 sm:px-6 sm:py-20">
-      <div className="mx-auto max-w-5xl">
-        <div className="mx-auto mb-10 max-w-2xl text-center">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#D4A85A]">Funcionalidades</p>
-          <h2 className="text-3xl font-bold text-white sm:text-4xl">O BarberMeta no centro da operação.</h2>
-          <p className="mt-4 text-base text-[#A0AEC0] sm:text-lg">Tudo que sua equipe precisa pra vender mais — num só lugar.</p>
+    <section id="funcionalidades" className="scroll-mt-20 bg-[#07111F] px-4 py-16 sm:px-6 sm:py-20">
+      <div className="mx-auto max-w-6xl">
+        <div className="mx-auto mb-10 max-w-3xl text-center">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#F4B942]">O que você leva</p>
+          <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] text-white sm:text-4xl">Um sistema simples para transformar meta em rotina.</h2>
+          <p className="mt-4 text-base leading-relaxed text-[#B8C3D1] sm:text-lg">Sem planilha espalhada. Sem depender de mensagem no grupo. Tudo gira em torno do que a equipe precisa fazer hoje.</p>
         </div>
 
-        <div className="mb-10 grid gap-4 sm:grid-cols-3">
-          {destaques.map((item) => (
-            <article key={item.titulo} className="rounded-2xl border border-[#D4A85A]/25 bg-[#D4A85A]/[0.06] p-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {pilares.map((item) => (
+            <article key={item.titulo} className="rounded-2xl border border-white/10 bg-[#0E1A2B] p-5">
               <span aria-hidden="true" className="text-3xl">{item.emoji}</span>
-              <h3 className="mt-4 font-bold text-white">{item.titulo}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#A0AEC0]">{item.texto}</p>
+              <h3 className="mt-4 text-lg font-bold leading-snug text-white">{item.titulo}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-[#9DACBD]">{item.texto}</p>
             </article>
           ))}
         </div>
 
-        <ul className="mx-auto grid max-w-3xl gap-3 sm:grid-cols-2">
+        <ul className="mx-auto mt-6 grid max-w-4xl gap-3 sm:grid-cols-2">
           {recursos.map((item) => (
-            <li key={item} className="flex items-start gap-3 rounded-xl border border-white/10 bg-[#0F1F2D] px-4 py-3 text-sm leading-relaxed text-[#E2E8F0]">
-              <span aria-hidden="true" className="mt-0.5 shrink-0 text-[#D4A85A]">✓</span>
+            <li key={item} className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm leading-relaxed text-[#D6DEE8]">
+              <span aria-hidden="true" className="mt-0.5 shrink-0 font-bold text-emerald-400">✓</span>
               <span>{item}</span>
             </li>
           ))}
         </ul>
 
-        <div className="mt-10 flex justify-center">
-          <CTAButton id="cta-funcionalidades-oferta" gtmClass="gtm-cta-funcionalidades" />
+        <div className="mt-9 flex flex-col items-center gap-2">
+          <CTAButton label="Quero o BarberMeta — R$ 47" id="cta-funcionalidades-oferta" gtmClass="gtm-cta-funcionalidades" />
+          <p className="text-xs text-[#8FA0B3]">Pagamento único · acesso vitalício</p>
         </div>
       </div>
     </section>

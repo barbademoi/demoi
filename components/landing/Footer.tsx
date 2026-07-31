@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export default function Footer() {
   return (
-    <footer className="bg-[#060F18] border-t border-white/5 py-10 px-4 sm:px-6">
+    <footer className="border-t border-white/5 bg-[#040B14] px-4 py-10 pb-24 sm:px-6 sm:pb-10">
       <div className="max-w-4xl mx-auto flex flex-col items-center gap-4 text-center">
         <div className="flex items-center gap-2">
           <svg width="32" height="32" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -23,7 +23,7 @@ export default function Footer() {
           </svg>
           <span className="font-bold text-xl">
             <span className="text-white">Barber</span>
-            <span className="text-[#D4A85A]">Meta</span>
+            <span className="text-[#F4B942]">Meta</span>
           </span>
         </div>
         <p className="text-[#A0AEC0] text-sm">
@@ -35,7 +35,7 @@ export default function Footer() {
         <Link
           href="/login"
           id="link-footer-login"
-          className="gtm-link-anchor text-sm text-[#D4A85A] hover:text-white transition-colors"
+          className="gtm-link-anchor text-sm text-[#F4B942] transition-colors hover:text-white"
         >
           Já é cliente? Acessar minha conta →
         </Link>
