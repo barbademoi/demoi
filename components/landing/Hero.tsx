@@ -39,7 +39,7 @@ export default function Hero() {
           </p>
 
           <div className="mx-auto mt-7 flex max-w-xl flex-col items-center gap-3 lg:mx-0 lg:items-start">
-            <CTAButton label="Quero meu time vendendo mais — R$ 47" id="cta-hero-oferta" gtmClass="gtm-cta-hero" />
+            <CTAButton label="Quero o BarberMeta — R$ 47" id="cta-hero-oferta" gtmClass="gtm-cta-hero" />
             <p className="text-sm text-[#8FA0B3]">Sem mensalidade. Você paga uma vez e usa para sempre.</p>
           </div>
 
