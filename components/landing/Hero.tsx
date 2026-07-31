@@ -35,7 +35,8 @@ export default function Hero() {
           </h1>
 
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[#B8C3D1] sm:mt-6 sm:text-lg lg:mx-0">
-            Cada barbeiro acompanha no próprio celular quanto já vendeu, quanto falta e sua posição no ranking. A equipe vê o jogo e acelera sozinha.
+            Pense em uma <strong className="font-semibold text-white">planilha bonita, feita para o celular:</strong>{' '}
+            cada barbeiro abre o próprio link e acompanha quanto vendeu, quanto falta para a meta e sua posição no ranking.
           </p>
 
           <div className="mx-auto mt-7 flex max-w-xl flex-col items-center gap-3 lg:mx-0 lg:items-start">
