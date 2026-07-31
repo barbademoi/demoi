@@ -1,4 +1,3 @@
-sed: --: No such file or directory
 import type { Metadata, Viewport } from 'next'
 import { DM_Serif_Display, DM_Sans, Inter } from 'next/font/google'
 import './globals.css'

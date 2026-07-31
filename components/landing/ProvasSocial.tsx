@@ -1,4 +1,3 @@
-sed: --: No such file or directory
 import Image from 'next/image'
 
 export default function ProvasSocial() {

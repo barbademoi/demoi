@@ -1,4 +1,3 @@
-sed: --: No such file or directory
 const perguntas = [
   {
     q: 'Preciso trocar meu sistema de gestão?',

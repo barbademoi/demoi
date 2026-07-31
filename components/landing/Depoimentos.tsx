@@ -40,4 +40,3 @@ export default function Depoimentos() {
     </section>
   )
 }
-sed: --: No such file or directory
