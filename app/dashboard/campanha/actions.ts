@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { estaFechado } from '@/lib/mesFechado'
+import { copiarCampanhaEntreCiclos, mesSeguinte } from '@/lib/campanha'
 import type { ModoPontos } from '@/types/database'
 
 export async function salvarModoMes(modo: ModoPontos, mes: number, ano: number) {
@@ -30,6 +31,58 @@ export async function salvarModoMes(modo: ModoPontos, mes: number, ano: number) 
 
 interface ServicoInput { id?: string; emoji: string; nome: string; pontos: number; contaComoAssinatura?: boolean }
 interface PremioInput { posicao: number; valor: number }
+
+export async function copiarCampanhaParaProximoMes(campanhaId: string) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  // O filtro pela barbearia protege a copia mesmo em ambientes onde a RLS
+  // dessas tabelas ainda nao esteja habilitada.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: usuario } = await (supabase as any)
+    .from('usuarios').select('barbearia_id').eq('id', user.id).single() as
+    { data: { barbearia_id: string } | null }
+  if (!usuario) return { error: 'Barbearia não encontrada.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: origem, error: erroOrigem } = await (supabase as any)
+    .from('campanha')
+    .select('mes, ano')
+    .eq('id', campanhaId)
+    .eq('barbearia_id', usuario.barbearia_id)
+    .maybeSingle() as {
+      data: { mes: number; ano: number } | null
+      error: { message: string } | null
+    }
+
+  if (erroOrigem) return { error: erroOrigem.message }
+  if (!origem) return { error: 'Campanha de origem não encontrada.' }
+
+  const destino = mesSeguinte(origem.mes, origem.ano)
+  const trava = await estaFechado(supabase, usuario.barbearia_id, destino.mes, destino.ano)
+  if (trava.fechado) return { error: 'O próximo mês está fechado. Reabra antes de copiar.' }
+
+  const resultado = await copiarCampanhaEntreCiclos(
+    supabase,
+    usuario.barbearia_id,
+    origem,
+    destino,
+  )
+
+  if (!resultado.ok) {
+    if (resultado.motivo === 'destino_existente') {
+      return { error: `Já existe uma campanha em ${destino.mes}/${destino.ano}. Nada foi sobrescrito.` }
+    }
+    if (resultado.motivo === 'origem_nao_encontrada') {
+      return { error: 'Campanha de origem não encontrada.' }
+    }
+    return { error: resultado.erro ?? 'Não foi possível copiar a campanha.' }
+  }
+
+  revalidatePath('/dashboard')
+  return { ok: true as const, mes: destino.mes, ano: destino.ano }
+}
 
 export async function salvarCampanha(params: {
   mes: number
