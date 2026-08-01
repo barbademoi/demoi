@@ -8,6 +8,13 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      { source: '/comprar', destination: '/oferta', permanent: true },
+      { source: '/aguardando', destination: '/oferta', permanent: true },
+    ]
+  },
+
   // Cache-Control headers para evitar que navegadores agressivos (Safari iOS)
   // sirvam HTML antigo após um deploy. Rotas dinâmicas/autenticadas não devem
   // ser cacheadas. Assets estáticos em _next/static continuam com o cache
@@ -30,8 +37,6 @@ const nextConfig = {
       { source: '/b/:path*',                    headers: NO_CACHE },
       { source: '/onboarding/:path*',           headers: NO_CACHE },
       { source: '/boas-vindas',                 headers: NO_CACHE },
-      { source: '/comprar',                     headers: NO_CACHE },
-      { source: '/aguardando',                  headers: NO_CACHE },
       { source: '/login',                       headers: NO_CACHE },
       { source: '/esqueci-senha',               headers: NO_CACHE },
       { source: '/redefinir-senha',             headers: NO_CACHE },

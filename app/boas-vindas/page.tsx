@@ -1,14 +1,10 @@
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
-import BoasVindasFormMP from './BoasVindasFormMP'
 import BoasVindasForm from './BoasVindasForm'
 
 interface Props {
   searchParams: {
-    // Mercado Pago
-    external_reference?: string
-    status?: string
-    // Hotmart legado
+    // Hotmart
     t?: string
     e?: string
   }
@@ -19,39 +15,7 @@ export const metadata = {
 }
 
 export default async function BoasVindasPage({ searchParams }: Props) {
-  // ── Fluxo Mercado Pago ──────────────────────────────────────────────────────
-  const externalRef = (searchParams.external_reference ?? '').trim()
-  if (externalRef) {
-    const admin = createAdminClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: compra } = await (admin as any)
-      .from('compras_pendentes')
-      .select('status, email, nome, usuario_id')
-      .eq('id', externalRef)
-      .maybeSingle()
-
-    return (
-      <Layout>
-        {!compra ? (
-          <Processando externalRef={externalRef} />
-        ) : compra.status === 'rejected' ? (
-          <Rejeitado />
-        ) : compra.status !== 'approved' ? (
-          <AguardandoInline externalRef={externalRef} />
-        ) : !compra.usuario_id ? (
-          <Processando externalRef={externalRef} />
-        ) : (
-          <FormCardMP
-            externalRef={externalRef}
-            email={compra.email}
-            nome={compra.nome}
-          />
-        )}
-      </Layout>
-    )
-  }
-
-  // ── Fluxo Hotmart (legado) ──────────────────────────────────────────────────
+  // ── Fluxo Hotmart ────────────────────────────────────────────────────────────
   const transaction = (searchParams.t ?? '').trim()
   const email       = decodeURIComponent(searchParams.e ?? '').toLowerCase().trim()
 
@@ -98,75 +62,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   )
 }
 
-// ── Estados MP ───────────────────────────────────────────────────────────────
-
-function FormCardMP({ externalRef, email, nome }: { externalRef: string; email: string; nome: string }) {
-  return (
-    <div className="card p-8 space-y-6">
-      <div>
-        <h2 className="font-serif text-xl text-text mb-1">Bem-vindo!</h2>
-        <p className="text-text-muted text-sm font-sans leading-relaxed">
-          Pagamento confirmado. Crie sua senha para acessar a conta.
-        </p>
-        <p className="mt-2 text-xs text-text-muted font-sans truncate">{email}</p>
-      </div>
-      <BoasVindasFormMP externalReference={externalRef} />
-    </div>
-  )
-}
-
-function AguardandoInline({ externalRef }: { externalRef: string }) {
-  return (
-    <div className="card p-8 text-center space-y-4">
-      <div className="text-3xl">⏳</div>
-      <h2 className="font-serif text-xl text-text">Processando pagamento…</h2>
-      <p className="text-text-muted text-sm font-sans leading-relaxed">
-        Seu pagamento está sendo confirmado. Esta página vai atualizar automaticamente.
-      </p>
-      <a
-        href={`/boas-vindas?external_reference=${externalRef}`}
-        className="btn-primary inline-block mt-2"
-      >
-        Atualizar →
-      </a>
-    </div>
-  )
-}
-
-function Rejeitado() {
-  return (
-    <div className="card p-8 text-center space-y-4">
-      <div className="text-3xl">❌</div>
-      <h2 className="font-serif text-xl text-text">Pagamento não aprovado</h2>
-      <p className="text-text-muted text-sm font-sans">
-        Seu pagamento foi recusado. Tente novamente com outro método.
-      </p>
-      <Link href="/comprar" className="btn-primary inline-block mt-2">
-        Tentar novamente →
-      </Link>
-    </div>
-  )
-}
-
-function Processando({ externalRef }: { externalRef: string }) {
-  return (
-    <div className="card p-8 text-center space-y-4">
-      <div className="text-3xl">⏳</div>
-      <h2 className="font-serif text-xl text-text">Criando sua conta…</h2>
-      <p className="text-text-muted text-sm font-sans leading-relaxed">
-        Estamos finalizando o cadastro. Isso leva menos de um minuto.
-      </p>
-      <a
-        href={`/boas-vindas?external_reference=${externalRef}`}
-        className="btn-primary inline-block mt-2"
-      >
-        Atualizar →
-      </a>
-    </div>
-  )
-}
-
-// ── Estados Hotmart (legado) ─────────────────────────────────────────────────
+// ── Estados Hotmart ──────────────────────────────────────────────────────────
 
 function FormCardHotmart({ email, transaction }: { email: string; transaction: string }) {
   return (
