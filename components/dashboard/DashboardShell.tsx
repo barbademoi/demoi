@@ -103,6 +103,8 @@ interface Props {
   mesFechado: boolean
   mesFechadoEm: string | null
   fecharMesSlot: React.ReactNode
+  // Link "Conceder acesso" na sidebar — só pra conta do dono.
+  mostrarCortesias?: boolean
 }
 
 export default function DashboardShell({
@@ -127,6 +129,7 @@ export default function DashboardShell({
   ehPeriodoAtual, ehPeriodoPassado, monthNavigatorSlot,
   destaquesSlot,
   mesFechado, mesFechadoEm, fecharMesSlot,
+  mostrarCortesias = false,
 }: Props) {
   const [showConfig, setShowConfig] = useState(false)
 
@@ -137,6 +140,7 @@ export default function DashboardShell({
         barbeariaNome={barbeariaNome}
         showFerramentas={showConfig}
         onFerramentasClick={() => setShowConfig(v => !v)}
+        mostrarCortesias={mostrarCortesias}
       />
 
       <div className="flex-1 min-w-0 lg:pl-64 pt-14 lg:pt-0">

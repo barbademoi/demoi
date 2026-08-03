@@ -18,6 +18,8 @@ interface Props {
   barbeariaNome: string
   onFerramentasClick?: () => void
   showFerramentas?: boolean
+  // Link "Conceder acesso" (cortesia) — só habilitado pra conta do dono.
+  mostrarCortesias?: boolean
 }
 
 type NavItem = {
@@ -173,7 +175,7 @@ const navItems: NavItem[] = [
   },
 ]
 
-export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerramentas = false }: Props) {
+export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerramentas = false, mostrarCortesias = false }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
@@ -328,6 +330,28 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
               </Link>
             )
           })}
+
+          {/* Conceder acesso (cortesia) — visível SÓ pra conta do dono. */}
+          {mostrarCortesias && (
+            <Link
+              href="/admin/cortesias"
+              onClick={() => setOpen(false)}
+              className={`
+                flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm transition-colors
+                ${pathname === '/admin/cortesias' && !showFerramentas
+                  ? 'bg-primary/15 text-primary font-semibold'
+                  : 'text-text-muted hover:text-text hover:bg-surface-2'}
+              `}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <line x1="19" y1="8" x2="19" y2="14" />
+                <line x1="22" y1="11" x2="16" y2="11" />
+              </svg>
+              <span className="flex-1 truncate">Conceder acesso</span>
+            </Link>
+          )}
 
           {/* Metas & Pontos button */}
           {onFerramentasClick && (

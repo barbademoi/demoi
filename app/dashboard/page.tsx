@@ -13,6 +13,7 @@ import CampanhaModal from '@/components/dashboard/CampanhaModal'
 import CampanhaToggle from '@/components/dashboard/CampanhaToggle'
 import ResumoReuniaoModal from '@/components/dashboard/ResumoReuniaoModal'
 import DashboardShell from '@/components/dashboard/DashboardShell'
+import { emailEhAdminCortesia } from '@/lib/admin/cortesia'
 import { calcularPremiacao } from '@/lib/premios'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import FecharMesButton from '@/components/dashboard/FecharMesButton'
@@ -402,6 +403,7 @@ export default async function DashboardPage({
   return (
     <DashboardShell
       premiacao={premiacao}
+      mostrarCortesias={emailEhAdminCortesia(user.email)}
       barbeariaNome={barbearia.nome}
       cicloLabel={ciclo.label}
       isAutonomo={isAutonomo}
