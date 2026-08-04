@@ -131,7 +131,12 @@ export default function DashboardShell({
   mesFechado, mesFechadoEm, fecharMesSlot,
   mostrarCortesias = false,
 }: Props) {
-  const [showConfig, setShowConfig] = useState(false)
+  // Seção ativa da área principal. 'home' é a tela inicial (evolução + ranking);
+  // as demais são painéis abertos pelo menu lateral (mutuamente exclusivos).
+  const [secao, setSecao] = useState<'home' | 'config' | 'premiacoes' | 'destaques'>('home')
+  const showConfig = secao === 'config'
+  const alternar = (alvo: 'config' | 'premiacoes' | 'destaques') =>
+    setSecao(s => (s === alvo ? 'home' : alvo))
 
   return (
     <div className="bm-theme min-h-screen flex">
@@ -139,7 +144,10 @@ export default function DashboardShell({
       <Sidebar
         barbeariaNome={barbeariaNome}
         showFerramentas={showConfig}
-        onFerramentasClick={() => setShowConfig(v => !v)}
+        onFerramentasClick={() => alternar('config')}
+        secaoDono={secao === 'premiacoes' || secao === 'destaques' ? secao : undefined}
+        onPremiacoesClick={() => alternar('premiacoes')}
+        onDestaquesClick={() => alternar('destaques')}
         mostrarCortesias={mostrarCortesias}
       />
 
@@ -185,18 +193,26 @@ export default function DashboardShell({
             campanhaToggleSlot={campanhaToggleSlot}
             resumoReuniaoSlot={resumoReuniaoSlot}
             modoAtual={modoAtual}
-            onBack={() => setShowConfig(false)}
+            onBack={() => setSecao('home')}
           />
+        ) : secao === 'premiacoes' ? (
+          <PainelSecao titulo="Premiações" onBack={() => setSecao('home')}>
+            {premiacao.temPremiacao ? (
+              <PremiacaoDono premiacao={premiacao} baseMeta={baseMeta} />
+            ) : (
+              <p className="text-text-muted text-sm font-sans">
+                Nenhuma premiação configurada neste ciclo. Configure metas ou uma campanha em
+                <span className="text-text"> Metas &amp; Pontos</span> pra ver aqui o total e o detalhe por barbeiro.
+              </p>
+            )}
+          </PainelSecao>
+        ) : secao === 'destaques' ? (
+          <PainelSecao titulo="Destaques do mês" onBack={() => setSecao('home')}>
+            {destaquesSlot}
+          </PainelSecao>
         ) : (
           <>
             <div className="max-w-5xl mx-auto px-4 pt-6 pb-2 space-y-4">
-              <blockquote className="rounded-2xl border border-primary/25 bg-primary/[0.06] px-5 py-4 text-center">
-                <p className="font-serif text-base sm:text-lg text-text leading-relaxed">
-                  “Cada atendimento de hoje aproxima sua equipe da meta de amanhã.”
-                </p>
-              </blockquote>
-              <PremiacaoDono premiacao={premiacao} baseMeta={baseMeta} />
-              {destaquesSlot}
               {monthNavigatorSlot}
 
               {mesFechado && (
@@ -265,6 +281,29 @@ export default function DashboardShell({
         )}
       </div>
     </div>
+  )
+}
+
+// ── Painel de seção (Premiações / Destaques) ─────────────────────────────────
+// Casca simples com "Voltar ao Dashboard" + título, reaproveitando o MESMO
+// conteúdo que antes ficava no topo da home. Só reposiciona — nada de cálculo.
+function PainelSecao({ titulo, onBack, children }: { titulo: string; onBack: () => void; children: React.ReactNode }) {
+  return (
+    <main className="max-w-3xl mx-auto px-4 py-6 space-y-5">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-text-muted hover:text-text transition-colors px-3 py-2 rounded-xl hover:bg-surface-2 font-sans text-sm"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          Voltar ao Dashboard
+        </button>
+      </div>
+      <h1 className="font-serif text-2xl text-text">{titulo}</h1>
+      {children}
+    </main>
   )
 }
 
