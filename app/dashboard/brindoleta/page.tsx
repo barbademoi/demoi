@@ -1,0 +1,139 @@
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import Sidebar from '@/components/dashboard/Sidebar'
+import { createClient } from '@/lib/supabase/server'
+import { emailEhAdminCortesia } from '@/lib/admin/cortesia'
+import {
+  BRINDOLETA_PRICE_LABEL,
+  brindoletaAppUrl,
+  brindoletaPaymentConfig,
+  type BrindoletaStatus,
+} from '@/lib/brindoleta/config'
+import BrindoletaCheckout from './BrindoletaCheckout'
+
+export const metadata = { title: 'Brindoleta — BarberMeta' }
+export const dynamic = 'force-dynamic'
+
+type UsuarioComBarbearia = {
+  barbearia_id: string
+  barbearias: { id: string; nome: string } | null
+}
+
+export default async function BrindoletaPage() {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: usuarioRaw } = await (supabase as any)
+    .from('usuarios')
+    .select('barbearia_id, barbearias(id, nome)')
+    .eq('id', user.id)
+    .single()
+
+  const usuario = usuarioRaw as unknown as UsuarioComBarbearia | null
+  if (!usuario?.barbearia_id || !usuario.barbearias) redirect('/dashboard')
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: licenseRaw } = await (supabase as any)
+    .from('brindoleta_licenses')
+    .select('status')
+    .eq('barbearia_id', usuario.barbearia_id)
+    .maybeSingle()
+
+  const status = (licenseRaw?.status ?? null) as BrindoletaStatus | null
+  const payment = brindoletaPaymentConfig()
+  const appUrl = brindoletaAppUrl()
+  const isAdmin = emailEhAdminCortesia(user.email)
+
+  return (
+    <div className="bm-theme min-h-screen flex">
+      <Sidebar barbeariaNome={usuario.barbearias.nome} />
+      <main className="min-w-0 flex-1 px-4 pb-16 pt-20 lg:pl-[calc(16rem+2rem)] lg:pr-8 lg:pt-10">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Novo no BarberMeta</p>
+              <h1 className="mt-2 font-serif text-3xl text-text sm:text-4xl">Brindoleta</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-text-muted sm:text-base">
+                Transforme o atendimento em uma oportunidade de vender serviços extras, produtos e benefícios de um jeito leve e divertido.
+              </p>
+            </div>
+            {isAdmin && (
+              <Link href="/admin/brindoleta" className="btn-ghost border border-border text-sm">
+                Conferir pagamentos
+              </Link>
+            )}
+          </div>
+
+          {status === 'active' ? (
+            <section className="card overflow-hidden">
+              <div className="border-b border-emerald-400/25 bg-emerald-400/[0.08] p-6 sm:p-8">
+                <div className="flex items-start gap-4">
+                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-400/15 text-2xl">✓</span>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">Acesso liberado</p>
+                    <h2 className="mt-1 font-serif text-2xl text-text">Sua licença da Brindoleta está ativa</h2>
+                    <p className="mt-2 text-sm leading-relaxed text-text-muted">
+                      Pagamento único confirmado. O acesso permanece vinculado a esta empresa no BarberMeta.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 sm:p-8">
+                {appUrl ? (
+                  <a href={appUrl} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex w-full justify-center sm:w-auto">
+                    Abrir minha Brindoleta ↗
+                  </a>
+                ) : (
+                  <div className="rounded-xl border border-amber-400/30 bg-amber-400/[0.08] p-4 text-sm text-amber-100">
+                    O pagamento está confirmado. A equipe está finalizando o vínculo da sua Brindoleta com esta empresa.
+                  </div>
+                )}
+              </div>
+            </section>
+          ) : (
+            <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr] lg:items-start">
+              <section className="space-y-5">
+                <div className="card p-5 sm:p-7">
+                  <div className="mx-auto mb-6 flex h-44 w-44 items-center justify-center rounded-full border-[10px] border-[#29261f] bg-[conic-gradient(#d8ff00_0_60deg,#ff5d42_60deg_120deg,#ffd149_120deg_180deg,#35b7eb_180deg_240deg,#9365ed_240deg_300deg,#f44696_300deg_360deg)] shadow-2xl">
+                    <span className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-[#11110f] text-center text-sm font-black uppercase leading-tight text-white shadow-lg">
+                      Girar<br />a roleta
+                    </span>
+                  </div>
+                  <h2 className="font-serif text-2xl text-text">Uma roleta feita para vender mais</h2>
+                  <ul className="mt-5 space-y-4 text-sm leading-relaxed text-text-muted">
+                    <li className="flex gap-3"><span className="text-primary">✓</span><span>Cadastre até 6 ofertas entre serviços, produtos e brindes.</span></li>
+                    <li className="flex gap-3"><span className="text-primary">✓</span><span>Tenha um QR Code por colaborador e acompanhe quem gerou cada venda.</span></li>
+                    <li className="flex gap-3"><span className="text-primary">✓</span><span>Confirme vendas, acompanhe resultados e descubra as ofertas que mais convertem.</span></li>
+                    <li className="flex gap-3"><span className="text-primary">✓</span><span>Pagamento único: sem mensalidade da Brindoleta.</span></li>
+                  </ul>
+                </div>
+
+                {status === 'rejected' && (
+                  <div className="rounded-2xl border border-red-400/30 bg-red-400/[0.08] p-5 text-sm text-red-100">
+                    O pagamento anterior não foi localizado. Confira os dados e envie um novo pedido; se precisar, fale com o suporte.
+                  </div>
+                )}
+                {status === 'suspended' && (
+                  <div className="rounded-2xl border border-amber-400/30 bg-amber-400/[0.08] p-5 text-sm text-amber-100">
+                    Este acesso está temporariamente suspenso. Fale com o suporte para regularizar.
+                  </div>
+                )}
+              </section>
+
+              <BrindoletaCheckout
+                pixKey={payment.pixKey}
+                pixReceiver={payment.pixReceiver}
+                pixQrImageUrl={payment.pixQrImageUrl}
+                pixPaymentUrl={payment.pixPaymentUrl}
+                priceLabel={BRINDOLETA_PRICE_LABEL}
+                pending={status === 'pending'}
+              />
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  )
+}
