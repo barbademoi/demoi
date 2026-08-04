@@ -5,8 +5,10 @@ import Sidebar from './Sidebar'
 import DashboardMain from './DashboardMain'
 import BarbeariaWatermark from './BarbeariaWatermark'
 import PremiacaoDono from './PremiacaoDono'
+import BrindoletaPromoBanner from './BrindoletaPromoBanner'
 import type { ModoPontos, CampanhaComDetalhes, MetaIndividual } from '@/types/database'
 import type { PremiacaoResumo } from '@/lib/premios'
+import type { BrindoletaStatus } from '@/lib/brindoleta/config'
 
 type MetaSimples = {
   id: string
@@ -40,6 +42,7 @@ interface Props {
   premiacao: PremiacaoResumo
   // Barbearia
   barbeariaNome: string
+  brindoletaStatus: BrindoletaStatus | null
   cicloLabel: string
   isAutonomo: boolean
   comissaoMesAnterior: number
@@ -103,13 +106,11 @@ interface Props {
   mesFechado: boolean
   mesFechadoEm: string | null
   fecharMesSlot: React.ReactNode
-  // Link "Conceder acesso" na sidebar — só pra conta do dono.
-  mostrarCortesias?: boolean
 }
 
 export default function DashboardShell({
   premiacao,
-  barbeariaNome, cicloLabel, isAutonomo, comissaoMesAnterior, historicoMeses, historicoPorBarbeiro,
+  barbeariaNome, brindoletaStatus, cicloLabel, isAutonomo, comissaoMesAnterior, historicoMeses, historicoPorBarbeiro,
   historicoBarbearia, faturamentoMesAnterior, mes, ano,
   meta, faturamentoExibido, progressoColetivo, progressoColetivoBronze, progressoColetivoPrata,
   rankingBarbeiros, rankingRecepcionistas,
@@ -129,7 +130,6 @@ export default function DashboardShell({
   ehPeriodoAtual, ehPeriodoPassado, monthNavigatorSlot,
   destaquesSlot,
   mesFechado, mesFechadoEm, fecharMesSlot,
-  mostrarCortesias = false,
 }: Props) {
   const [showConfig, setShowConfig] = useState(false)
 
@@ -138,9 +138,9 @@ export default function DashboardShell({
       <BarbeariaWatermark logoUrl={barbeariaLogoUrl} />
       <Sidebar
         barbeariaNome={barbeariaNome}
+        brindoletaStatus={brindoletaStatus}
         showFerramentas={showConfig}
         onFerramentasClick={() => setShowConfig(v => !v)}
-        mostrarCortesias={mostrarCortesias}
       />
 
       <div className="flex-1 min-w-0 lg:pl-64 pt-14 lg:pt-0">
@@ -190,6 +190,7 @@ export default function DashboardShell({
         ) : (
           <>
             <div className="max-w-5xl mx-auto px-4 pt-6 pb-2 space-y-4">
+              <BrindoletaPromoBanner status={brindoletaStatus} />
               <blockquote className="rounded-2xl border border-primary/25 bg-primary/[0.06] px-5 py-4 text-center">
                 <p className="font-serif text-base sm:text-lg text-text leading-relaxed">
                   “Cada atendimento de hoje aproxima sua equipe da meta de amanhã.”
