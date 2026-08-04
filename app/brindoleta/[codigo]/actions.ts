@@ -1,7 +1,7 @@
 'use server'
 
-import { randomUUID } from 'crypto'
-import { cookies } from 'next/headers'
+import { createHmac, randomUUID } from 'crypto'
+import { cookies, headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { BrindoletaPrize, PublicBrindoletaOffer } from '@/lib/brindoleta/types'
 
@@ -72,6 +72,16 @@ function todayInBrazil() {
     month: '2-digit',
     day: '2-digit',
   }).format(new Date())
+}
+
+function networkFingerprint() {
+  const requestHeaders = headers()
+  const forwarded = requestHeaders.get('x-forwarded-for')?.split(',')[0]?.trim()
+  const address = forwarded || requestHeaders.get('x-real-ip')?.trim() || 'unknown-network'
+  const secret = process.env.BRINDOLETA_FINGERPRINT_SECRET
+    || process.env.SUPABASE_SERVICE_ROLE_KEY
+    || 'brindoleta-local-development'
+  return createHmac('sha256', secret).update(address).digest('hex')
 }
 
 async function authorizePublicLink(codigo: string): Promise<
@@ -194,33 +204,46 @@ export async function spinBrindoleta(input: SpinInput): Promise<
   if (offers.length < 2) return { error: 'A empresa ainda está preparando as ofertas desta roleta.' }
 
   const selected = weightedDraw(offers)
+  // A função no banco serializa tentativas da mesma rede e impede automação
+  // por limpeza repetida de cookies, sem armazenar o endereço IP bruto.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: spin, error } = await (admin as any)
-    .from('brindoleta_spins')
-    .insert({
-      barbearia_id: barber.barbearia_id,
-      barbeiro_id: barber.id,
-      offer_id: selected.id,
-      offer_title: selected.title,
-      benefit: selected.benefit,
-      offer_type: selected.offer_type,
-      offer_color: selected.color,
-      amount_cents: selected.revenue_cents,
-      client_token: clientToken,
-      day_key: dayKey,
+  const { data: createdRaw, error } = await (admin as any)
+    .rpc('create_brindoleta_spin', {
+      p_barbearia_id: barber.barbearia_id,
+      p_barbeiro_id: barber.id,
+      p_offer_id: selected.id,
+      p_offer_title: selected.title,
+      p_benefit: selected.benefit,
+      p_offer_type: selected.offer_type,
+      p_offer_color: selected.color,
+      p_amount_cents: selected.revenue_cents,
+      p_client_token: clientToken,
+      p_network_fingerprint: networkFingerprint(),
+      p_day_key: dayKey,
     })
-    .select('id')
-    .single() as { data: { id: string } | null; error: { code?: string } | null }
+  const created = (Array.isArray(createdRaw) ? createdRaw[0] : createdRaw) as {
+    status?: string
+    spin_id?: string | null
+  } | null
 
-  if (error || !spin) {
-    if (error?.code === '23505') return { error: 'Seu giro de hoje já foi utilizado. Volte amanhã para uma nova chance!', code: 'already_spun' }
+  if (error || !created) {
     console.error('[brindoleta/publica] erro ao registrar giro:', error)
     return { error: 'Não foi possível realizar o giro agora. Tente novamente em instantes.' }
   }
 
+  if (created.status === 'already_spun') {
+    return { error: 'Seu giro de hoje já foi utilizado. Volte amanhã para uma nova chance!', code: 'already_spun' }
+  }
+  if (created.status === 'network_limited') {
+    return { error: 'O limite de segurança desta rede foi atingido hoje. Tente novamente usando sua internet móvel.' }
+  }
+  if (created.status !== 'ok' || !created.spin_id) {
+    return { error: 'Não foi possível validar este giro. Tente novamente.' }
+  }
+
   return {
     ok: true,
-    spinId: spin.id,
+    spinId: created.spin_id,
     offers: publicOffers(offers),
     prize: {
       id: selected.id,
