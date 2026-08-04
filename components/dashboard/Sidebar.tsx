@@ -20,7 +20,12 @@ interface Props {
   barbeariaNome: string
   onFerramentasClick?: () => void
   showFerramentas?: boolean
-  // Link administrativo já existente na versão principal do BarberMeta.
+  // Seções do dono abertas pelo menu (Premiações / Destaques). Antes ficavam
+  // no topo da home; agora são itens próprios.
+  secaoDono?: 'premiacoes' | 'destaques'
+  onPremiacoesClick?: () => void
+  onDestaquesClick?: () => void
+  // Link "Conceder acesso" (cortesia) — só habilitado pra conta do dono.
   mostrarCortesias?: boolean
   brindoletaStatus?: BrindoletaStatus | null
 }
@@ -197,7 +202,7 @@ const navItems: NavItem[] = [
   },
 ]
 
-export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerramentas = false, mostrarCortesias = false, brindoletaStatus }: Props) {
+export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerramentas = false, secaoDono, onPremiacoesClick, onDestaquesClick, mostrarCortesias = false, brindoletaStatus }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
@@ -353,7 +358,46 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
             )
           })}
 
-          {/* Conceder acesso (cortesia) — visível só na conta administrativa. */}
+          {/* Premiações — o bloco de premiação do mês, agora fora da home. */}
+          {onPremiacoesClick && (
+            <button
+              onClick={() => { onPremiacoesClick(); setOpen(false) }}
+              className={`
+                w-full flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm
+                transition-colors text-left
+                ${secaoDono === 'premiacoes'
+                  ? 'bg-primary/15 text-primary font-semibold'
+                  : 'text-text-muted hover:text-text hover:bg-surface-2'}
+              `}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+                <circle cx="12" cy="8" r="6" />
+                <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+              </svg>
+              Premiações
+            </button>
+          )}
+
+          {/* Destaques do mês — o widget de destaques, agora fora da home. */}
+          {onDestaquesClick && (
+            <button
+              onClick={() => { onDestaquesClick(); setOpen(false) }}
+              className={`
+                w-full flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm
+                transition-colors text-left
+                ${secaoDono === 'destaques'
+                  ? 'bg-primary/15 text-primary font-semibold'
+                  : 'text-text-muted hover:text-text hover:bg-surface-2'}
+              `}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+              Destaques
+            </button>
+          )}
+
+          {/* Conceder acesso (cortesia) — visível SÓ pra conta do dono. */}
           {mostrarCortesias && (
             <Link
               href="/admin/cortesias"
@@ -432,8 +476,8 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
         </div>
       </aside>
 
-      <PreviewPlusModal open={showPreview} onClose={() => setShowPreview(false)} />
       <BrindoletaLaunchModal status={brindoletaStatus} />
+      <PreviewPlusModal open={showPreview} onClose={() => setShowPreview(false)} />
     </>
   )
 }
