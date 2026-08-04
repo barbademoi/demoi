@@ -106,6 +106,30 @@ export default async function BrindoletaPage() {
                       <li className="flex gap-3"><span className="text-primary">✓</span><span>Confirme vendas, acompanhe resultados e descubra as ofertas que mais convertem.</span></li>
                       <li className="flex gap-3"><span className="text-primary">✓</span><span>Pagamento único: sem mensalidade da Brindoleta.</span></li>
                     </ul>
+
+                    <div className="mt-6 rounded-2xl border border-[#d8ff00]/25 bg-[#d8ff00]/[0.06] p-4 sm:p-5">
+                      <div className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#d8ff00] text-[#11110f]">
+                          <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                            <rect x="3" y="3" width="6" height="6" rx="1" />
+                            <rect x="15" y="3" width="6" height="6" rx="1" />
+                            <rect x="3" y="15" width="6" height="6" rx="1" />
+                            <path d="M13 13h3v3h-3zM18 13h3M21 13v4M13 18v3h4M19 19h2v2" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#7e9200]">Como funciona no atendimento</p>
+                          <h3 className="mt-1 text-base font-bold text-text">Um QR Code exclusivo para cada barbeiro</h3>
+                          <p className="mt-2 text-sm leading-relaxed text-text-muted">
+                            O cliente escaneia o código e abre a roleta vinculada àquele profissional. Assim, o sistema identifica quem apresentou a oportunidade e acompanha as vendas geradas por cada colaborador.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 rounded-xl border border-[#d8ff00]/20 bg-[#11110f] px-4 py-3 text-sm leading-relaxed text-white/75">
+                        <strong className="text-[#d8ff00]">Dica:</strong> o barbeiro pode mostrar o QR Code na tela do próprio celular ou baixar e imprimir para deixá-lo na bancada ou no espelho, sempre ao alcance da câmera do cliente.
+                      </div>
+                    </div>
                   </div>
                 </div>
 
