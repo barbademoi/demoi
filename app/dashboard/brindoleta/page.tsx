@@ -1,15 +1,22 @@
+import { headers } from 'next/headers'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import Sidebar from '@/components/dashboard/Sidebar'
 import BrindoletaDemo from '@/components/brindoleta/BrindoletaDemo'
+import BrindoletaPanel from '@/components/brindoleta/BrindoletaPanel'
 import { createClient } from '@/lib/supabase/server'
 import { emailEhAdminCortesia } from '@/lib/admin/cortesia'
 import {
   BRINDOLETA_PRICE_LABEL,
-  brindoletaAppUrl,
   brindoletaPaymentConfig,
   type BrindoletaStatus,
 } from '@/lib/brindoleta/config'
+import type {
+  BrindoletaBarber,
+  BrindoletaOffer,
+  BrindoletaSale,
+  BrindoletaSpin,
+} from '@/lib/brindoleta/types'
 import BrindoletaCheckout from './BrindoletaCheckout'
 
 export const metadata = { title: 'Brindoleta — BarberMeta' }
@@ -17,7 +24,7 @@ export const dynamic = 'force-dynamic'
 
 type UsuarioComBarbearia = {
   barbearia_id: string
-  barbearias: { id: string; nome: string } | null
+  barbearias: { id: string; nome: string; logo_url: string | null } | null
 }
 
 export default async function BrindoletaPage() {
@@ -28,7 +35,7 @@ export default async function BrindoletaPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, barbearias(id, nome)')
+    .select('barbearia_id, barbearias(id, nome, logo_url)')
     .eq('id', user.id)
     .single()
 
@@ -44,12 +51,46 @@ export default async function BrindoletaPage() {
 
   const status = (licenseRaw?.status ?? null) as BrindoletaStatus | null
   const payment = brindoletaPaymentConfig()
-  const appUrl = brindoletaAppUrl()
   const isAdmin = emailEhAdminCortesia(user.email)
+
+  let offers: BrindoletaOffer[] = []
+  let barbers: BrindoletaBarber[] = []
+  let spins: BrindoletaSpin[] = []
+  let sales: BrindoletaSale[] = []
+  let publicBaseUrl = ''
+
+  if (status === 'active') {
+    const [offersResult, barbersResult, spinsResult, salesResult] = await Promise.all([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any).from('brindoleta_offers').select('*')
+        .eq('barbearia_id', usuario.barbearia_id).order('created_at', { ascending: true }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any).from('barbeiros').select('id, nome, foto_url, link_codigo, tipo')
+        .eq('barbearia_id', usuario.barbearia_id).eq('ativo', true).order('nome'),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any).from('brindoleta_spins').select('id, barbeiro_id, offer_id, created_at')
+        .eq('barbearia_id', usuario.barbearia_id).order('created_at', { ascending: false }).limit(500),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any).from('brindoleta_sales')
+        .select('id, spin_id, barbeiro_id, offer_id, customer_name, offer_title, benefit, amount_cents, status, created_at, decided_at')
+        .eq('barbearia_id', usuario.barbearia_id).order('created_at', { ascending: false }).limit(500),
+    ])
+    offers = (offersResult.data ?? []) as BrindoletaOffer[]
+    barbers = (barbersResult.data ?? []) as BrindoletaBarber[]
+    spins = (spinsResult.data ?? []) as BrindoletaSpin[]
+    sales = (salesResult.data ?? []) as BrindoletaSale[]
+
+    const requestHeaders = headers()
+    const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host')
+    if (host) {
+      const protocol = requestHeaders.get('x-forwarded-proto') ?? (host.includes('localhost') ? 'http' : 'https')
+      publicBaseUrl = `${protocol}://${host}`
+    }
+  }
 
   return (
     <div className="bm-theme min-h-screen flex">
-      <Sidebar barbeariaNome={usuario.barbearias.nome} />
+      <Sidebar barbeariaNome={usuario.barbearias.nome} brindoletaStatus={status} />
       <main className="min-w-0 flex-1 px-4 pb-16 pt-20 lg:pl-[calc(16rem+2rem)] lg:pr-8 lg:pt-10">
         <div className="mx-auto max-w-5xl">
           <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
@@ -68,31 +109,14 @@ export default async function BrindoletaPage() {
           </div>
 
           {status === 'active' ? (
-            <section className="card overflow-hidden">
-              <div className="border-b border-emerald-400/25 bg-emerald-400/[0.08] p-6 sm:p-8">
-                <div className="flex items-start gap-4">
-                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-400/15 text-2xl">✓</span>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">Acesso liberado</p>
-                    <h2 className="mt-1 font-serif text-2xl text-text">Sua licença da Brindoleta está ativa</h2>
-                    <p className="mt-2 text-sm leading-relaxed text-text-muted">
-                      Pagamento único confirmado. O acesso permanece vinculado a esta empresa no BarberMeta.
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-6 sm:p-8">
-                {appUrl ? (
-                  <a href={appUrl} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex w-full justify-center sm:w-auto">
-                    Abrir minha Brindoleta ↗
-                  </a>
-                ) : (
-                  <div className="rounded-xl border border-amber-400/30 bg-amber-400/[0.08] p-4 text-sm text-amber-100">
-                    O pagamento está confirmado. A equipe está finalizando o vínculo da sua Brindoleta com esta empresa.
-                  </div>
-                )}
-              </div>
-            </section>
+            <BrindoletaPanel
+              businessName={usuario.barbearias.nome}
+              publicBaseUrl={publicBaseUrl}
+              offers={offers}
+              barbers={barbers}
+              spins={spins}
+              sales={sales}
+            />
           ) : (
             <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr] lg:items-start">
               <section className="space-y-5">
