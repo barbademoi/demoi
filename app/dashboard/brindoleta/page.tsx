@@ -96,7 +96,7 @@ export default async function BrindoletaPage() {
           ) : (
             <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr] lg:items-start">
               <section className="space-y-5">
-                <div className="card overflow-hidden">
+                <div id="demonstracao" className="card scroll-mt-24 overflow-hidden">
                   <BrindoletaDemo />
                   <div className="p-5 sm:p-7">
                     <h2 className="font-serif text-2xl text-text">Uma roleta feita para vender mais</h2>
@@ -121,14 +121,16 @@ export default async function BrindoletaPage() {
                 )}
               </section>
 
-              <BrindoletaCheckout
-                pixKey={payment.pixKey}
-                pixReceiver={payment.pixReceiver}
-                pixQrImageUrl={payment.pixQrImageUrl}
-                pixPaymentUrl={payment.pixPaymentUrl}
-                priceLabel={BRINDOLETA_PRICE_LABEL}
-                pending={status === 'pending'}
-              />
+              <div id="comprar" className="scroll-mt-24">
+                <BrindoletaCheckout
+                  pixKey={payment.pixKey}
+                  pixReceiver={payment.pixReceiver}
+                  pixQrImageUrl={payment.pixQrImageUrl}
+                  pixPaymentUrl={payment.pixPaymentUrl}
+                  priceLabel={BRINDOLETA_PRICE_LABEL}
+                  pending={status === 'pending'}
+                />
+              </div>
             </div>
           )}
         </div>
