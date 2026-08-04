@@ -10,6 +10,7 @@ import { hasFeedback } from '@/lib/feedback/access'
 import { hasFinanceiro } from '@/lib/financeiro/supabaseStore'
 import { hasReuniao } from '@/lib/reuniao/access'
 import { contarCondutaNaoLidas } from '@/lib/conduta/unread'
+import type { BrindoletaStatus } from '@/lib/brindoleta/config'
 import PreviewPlusModal from './PreviewPlusModal'
 import BrindoletaLaunchModal from './BrindoletaLaunchModal'
 
@@ -21,6 +22,7 @@ interface Props {
   showFerramentas?: boolean
   // Link administrativo já existente na versão principal do BarberMeta.
   mostrarCortesias?: boolean
+  brindoletaStatus?: BrindoletaStatus | null
 }
 
 type NavItem = {
@@ -195,7 +197,7 @@ const navItems: NavItem[] = [
   },
 ]
 
-export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerramentas = false, mostrarCortesias = false }: Props) {
+export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerramentas = false, mostrarCortesias = false, brindoletaStatus }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
@@ -431,7 +433,7 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
       </aside>
 
       <PreviewPlusModal open={showPreview} onClose={() => setShowPreview(false)} />
-      <BrindoletaLaunchModal />
+      <BrindoletaLaunchModal status={brindoletaStatus} />
     </>
   )
 }
