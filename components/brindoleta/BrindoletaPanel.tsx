@@ -123,18 +123,23 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
   }).sort((a, b) => b.revenue - a.revenue || b.confirmed - a.confirmed), [barbers, sales, spins])
 
   function run(action: () => Promise<{ ok?: boolean; error?: string }>, success: string) {
+    if (isPending) return
     setError('')
     setMessage('')
     startTransition(async () => {
-      const result = await action()
-      if (result.error) {
-        setError(result.error)
-        return
+      try {
+        const result = await action()
+        if (result.error) {
+          setError(result.error)
+          return
+        }
+        setMessage(success)
+        setDraft(null)
+        setEditingSale(null)
+        router.refresh()
+      } catch {
+        setError('A conexão falhou. Nada foi alterado; tente novamente.')
       }
-      setMessage(success)
-      setDraft(null)
-      setEditingSale(null)
-      router.refresh()
     })
   }
 
@@ -177,25 +182,29 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
 
   return (
     <div>
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-400/25 bg-emerald-400/[0.08] px-4 py-3">
-        <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-400/15 font-black text-emerald-300">✓</span>
+      <div className="relative mb-5 overflow-hidden rounded-3xl border border-[#d8ff00]/20 bg-gradient-to-br from-[#151811] via-surface to-surface p-4 shadow-[0_18px_45px_rgba(0,0,0,.16)] sm:p-5">
+        <div className="pointer-events-none absolute -right-12 -top-16 h-40 w-40 rounded-full bg-[#d8ff00]/[0.08] blur-3xl" />
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#d8ff00] text-lg font-black text-[#11110f] shadow-[0_8px_24px_rgba(216,255,0,.14)]">✓</span>
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-emerald-300">Acesso ativo</p>
-            <p className="text-sm text-text-muted">Configure tudo aqui dentro, sem código e sem outro login.</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d8ff00]">Central Brindoleta · acesso ativo</p>
+            <p className="mt-1 text-sm text-text-muted">Configure, divulgue e acompanhe as vendas sem código e sem outro login.</p>
           </div>
         </div>
-        <Link href="/configuracoes" className="btn-ghost border border-border text-xs">Configurar empresa e equipe</Link>
+          <Link href="/configuracoes" className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 bg-white/[0.045] px-4 text-xs font-bold text-text transition hover:border-[#d8ff00]/30 hover:bg-[#d8ff00]/[0.06]">Configurar empresa e equipe →</Link>
+        </div>
       </div>
 
-      <div className="mb-5 grid grid-cols-4 gap-1 rounded-2xl border border-border bg-surface p-1.5">
+      <div className="sticky top-16 z-20 mb-5 grid grid-cols-4 gap-1 rounded-2xl border border-border/80 bg-surface/95 p-1.5 shadow-lg backdrop-blur-md lg:top-3">
         {tabs.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => setTab(item.id)}
-            className={`rounded-xl px-2 py-3 text-center text-[11px] font-bold transition-colors sm:text-sm ${tab === item.id ? 'bg-[#d8ff00] text-[#11110f]' : 'text-text-muted hover:bg-surface-2 hover:text-text'}`}
+            className={`flex min-h-[48px] items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-center text-[10px] font-black transition sm:text-sm ${tab === item.id ? 'bg-[#d8ff00] text-[#11110f] shadow-[0_6px_18px_rgba(216,255,0,.12)]' : 'text-text-muted hover:bg-surface-2 hover:text-text'}`}
           >
+            <TabIcon tab={item.id} />
             <span className="hidden sm:inline">{item.label}</span>
             <span className="sm:hidden">{item.short}</span>
           </button>
@@ -203,28 +212,29 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
       </div>
 
       {(message || error) && (
-        <div className={`mb-5 rounded-xl border p-3 text-sm ${error ? 'border-red-400/30 bg-red-400/10 text-red-200' : 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200'}`}>
+        <div aria-live="polite" className={`mb-5 rounded-2xl border p-4 text-sm shadow-sm ${error ? 'border-red-400/30 bg-red-400/10 text-red-200' : 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200'}`}>
           {error || message}
         </div>
       )}
 
       {tab === 'campaign' && (
         <div className="space-y-5">
-          <section className="card p-5 sm:p-6">
+          <section className="card relative overflow-hidden p-5 sm:p-6">
+            <div className="pointer-events-none absolute -right-10 -top-14 h-36 w-36 rounded-full bg-[#d8ff00]/[0.055] blur-2xl" />
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
+              <div className="relative">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#d8ff00]">Campanha</p>
                 <h2 className="mt-1 font-serif text-2xl text-text">Ofertas na roleta</h2>
                 <p className="mt-1 text-sm text-text-muted">Até 6 itens ativos. As chances funcionam como o peso de cada oferta.</p>
               </div>
               <div className="flex gap-2">
                 <span className="rounded-full bg-surface-2 px-3 py-1.5 text-xs font-bold text-text">{activeOffers.length}/6 ativas</span>
-                <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${chanceTotal === 100 ? 'bg-emerald-400/10 text-emerald-300' : 'bg-amber-400/10 text-amber-200'}`}>{chanceTotal}% distribuído</span>
+                <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${chanceTotal === 100 ? 'bg-emerald-400/10 text-emerald-300' : 'bg-amber-400/10 text-amber-200'}`}>{chanceTotal === 100 ? '100% distribuído' : `${chanceTotal} pts de chance`}</span>
               </div>
             </div>
 
             <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-              <button type="button" onClick={() => setDraft({ ...EMPTY_OFFER })} className="rounded-xl bg-[#d8ff00] px-4 py-3 text-sm font-black text-[#11110f]">＋ Nova oferta</button>
+              <button type="button" disabled={isPending} onClick={() => setDraft({ ...EMPTY_OFFER })} className="min-h-[46px] rounded-xl bg-[#d8ff00] px-5 py-3 text-sm font-black text-[#11110f] shadow-[0_10px_24px_rgba(216,255,0,.12)] transition hover:brightness-105 active:scale-[.99] disabled:opacity-50">＋ Nova oferta</button>
               {offers.length === 0 && (
                 <button type="button" disabled={isPending} onClick={() => run(createBrindoletaExamples, 'Seis ofertas de exemplo foram criadas.')} className="btn-ghost border border-border text-sm">
                   Criar campanha de exemplo
@@ -257,7 +267,7 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
                 <div>
                   <label className="label" htmlFor="offer-color">Cor da fatia</label>
                   <div className="flex gap-2">
-                    <input id="offer-color" type="color" value={draft.color} onChange={(event) => setDraft({ ...draft, color: event.target.value })} className="h-12 w-16 rounded-xl border border-border bg-surface-2 p-1" />
+                    <input id="offer-color" type="color" value={/^#[0-9a-f]{6}$/i.test(draft.color) ? draft.color : '#d8ff00'} onChange={(event) => setDraft({ ...draft, color: event.target.value })} className="h-12 w-16 rounded-xl border border-border bg-surface-2 p-1" />
                     <input value={draft.color} onChange={(event) => setDraft({ ...draft, color: event.target.value })} className="input text-base sm:text-sm" aria-label="Cor hexadecimal" />
                   </div>
                 </div>
@@ -278,7 +288,7 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
                   Exibir na roleta
                 </label>
               </div>
-              <button disabled={isPending} className="mt-5 w-full rounded-xl bg-[#d8ff00] px-5 py-3 font-black text-[#11110f] disabled:opacity-50">
+              <button disabled={isPending} className="mt-5 min-h-[50px] w-full rounded-xl bg-[#d8ff00] px-5 py-3 font-black text-[#11110f] shadow-[0_10px_24px_rgba(216,255,0,.12)] transition hover:brightness-105 active:scale-[.995] disabled:opacity-50">
                 {isPending ? 'Salvando…' : 'Salvar oferta'}
               </button>
             </form>
@@ -286,8 +296,8 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
 
           <div className="grid gap-3 md:grid-cols-2">
             {offers.map((offer) => (
-              <article key={offer.id} className={`card overflow-hidden ${offer.enabled ? '' : 'opacity-65'}`}>
-                <div className="h-2" style={{ background: offer.color }} />
+              <article key={offer.id} className={`card overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg ${offer.enabled ? '' : 'opacity-65'}`} style={{ borderLeftColor: offer.color, borderLeftWidth: 3 }}>
+                <div className="h-1" style={{ background: `linear-gradient(90deg, ${offer.color}, transparent)` }} />
                 <div className="p-4 sm:p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -295,7 +305,7 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
                       <h3 className="mt-1 text-base font-bold text-text">{offer.title}</h3>
                       <p className="mt-1 text-sm text-text-muted">{offer.benefit}</p>
                     </div>
-                    <button type="button" role="switch" aria-checked={offer.enabled} onClick={() => toggleOffer(offer)} disabled={isPending} className={`relative h-7 w-12 shrink-0 rounded-full ${offer.enabled ? 'bg-[#d8ff00]' : 'bg-surface-2'}`}>
+                    <button type="button" role="switch" aria-label={`${offer.enabled ? 'Desativar' : 'Ativar'} ${offer.title}`} aria-checked={offer.enabled} onClick={() => toggleOffer(offer)} disabled={isPending} className={`relative h-7 w-12 shrink-0 rounded-full border transition ${offer.enabled ? 'border-[#d8ff00] bg-[#d8ff00]' : 'border-border bg-surface-2'}`}>
                       <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${offer.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
                     </button>
                   </div>
@@ -305,8 +315,8 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
                     <div className="rounded-lg bg-surface-2 p-2"><span className="block text-text-muted">Venda</span><strong className="text-text">{money(offer.revenue_cents)}</strong></div>
                   </div>
                   <div className="mt-4 flex gap-2">
-                    <button type="button" onClick={() => setDraft(offerToDraft(offer))} className="btn-ghost flex-1 border border-border text-xs">Editar</button>
-                    <button type="button" onClick={() => window.confirm('Excluir esta oferta?') && run(() => deleteBrindoletaOffer(offer.id), 'Oferta excluída.')} className="btn-ghost border border-red-400/25 text-xs text-red-200">Excluir</button>
+                    <button type="button" disabled={isPending} onClick={() => setDraft(offerToDraft(offer))} className="btn-ghost min-h-[42px] flex-1 border border-border text-xs">Editar oferta</button>
+                    <button type="button" disabled={isPending} onClick={() => window.confirm('Excluir esta oferta?') && run(() => deleteBrindoletaOffer(offer.id), 'Oferta excluída.')} className="btn-ghost min-h-[42px] border border-red-400/25 text-xs text-red-200">Excluir</button>
                   </div>
                 </div>
               </article>
@@ -317,11 +327,12 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
 
       {tab === 'qr' && (
         <div className="space-y-5">
-          <section className="card p-5 sm:p-6">
+          <section className="card relative overflow-hidden p-5 sm:p-6">
+            <div className="pointer-events-none absolute -right-12 -top-16 h-40 w-40 rounded-full bg-[#35b7eb]/[0.08] blur-3xl" />
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#d8ff00]">Equipe & QR</p>
             <h2 className="mt-1 font-serif text-2xl text-text">Um QR Code por profissional</h2>
             <p className="mt-2 text-sm leading-relaxed text-text-muted">Mostre o código no celular ou imprima em 10 × 10 cm para colocar na bancada ou no espelho. Cada link identifica quem originou a venda.</p>
-            <Link href="/configuracoes" className="mt-4 inline-flex btn-ghost border border-border text-sm">Cadastrar ou editar colaboradores</Link>
+            <Link href="/configuracoes" className="mt-4 inline-flex min-h-[44px] items-center rounded-xl border border-border bg-surface-2 px-4 text-sm font-bold text-text transition hover:border-[#d8ff00]/30">Cadastrar ou editar colaboradores →</Link>
           </section>
 
           {barbers.length === 0 ? (
@@ -332,7 +343,7 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
                 const url = `${publicBaseUrl}/brindoleta/${barber.link_codigo}`
                 const qr = `https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=12&data=${encodeURIComponent(url)}`
                 return (
-                  <article key={barber.id} className="card p-4 sm:p-5">
+                  <article key={barber.id} className="card overflow-hidden p-4 transition hover:-translate-y-0.5 hover:shadow-lg sm:p-5">
                     <div className="flex items-center gap-3">
                       {barber.foto_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -345,14 +356,14 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
                         <p className="text-xs text-text-muted">QR individual ativo</p>
                       </div>
                     </div>
-                    <div className="mx-auto my-4 w-fit rounded-xl bg-white p-2">
+                    <div className="relative mx-auto my-5 w-fit rounded-2xl border-[6px] border-white bg-white p-1 shadow-[0_12px_30px_rgba(0,0,0,.2)]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={qr} alt={`QR Code da Brindoleta de ${barber.nome}`} className="h-36 w-36" />
                     </div>
-                    <p className="truncate rounded-lg bg-surface-2 p-2 text-[10px] text-text-muted">{url}</p>
+                    <p className="truncate rounded-xl border border-border bg-surface-2 p-2.5 text-[10px] text-text-muted">{url}</p>
                     <div className="mt-3 grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => copy(url, `Link de ${barber.nome} copiado.`)} className="btn-ghost border border-border text-xs">Copiar link</button>
-                      <Link href={`/dashboard/brindoleta/qr/${barber.id}`} target="_blank" className="rounded-xl bg-[#d8ff00] px-3 py-2.5 text-center text-xs font-black text-[#11110f]">Imprimir / PDF</Link>
+                      <button type="button" onClick={() => copy(url, `Link de ${barber.nome} copiado.`)} className="btn-ghost min-h-[44px] border border-border text-xs">Copiar link</button>
+                      <Link href={`/dashboard/brindoleta/qr/${barber.id}`} target="_blank" className="flex min-h-[44px] items-center justify-center rounded-xl bg-[#d8ff00] px-3 py-2.5 text-center text-xs font-black text-[#11110f] shadow-[0_8px_20px_rgba(216,255,0,.1)]">Imprimir / PDF</Link>
                     </div>
                   </article>
                 )
@@ -449,12 +460,12 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
                       <div className="mt-4 flex flex-wrap gap-2">
                         {sale.status === 'pending' && (
                           <>
-                            <button type="button" onClick={() => window.confirm('A venda foi realmente realizada?') && run(() => decideBrindoletaSale(sale.id, 'confirmed'), 'Venda confirmada e contabilizada.')} className="rounded-xl bg-emerald-400 px-3 py-2 text-xs font-black text-emerald-950">Confirmar venda</button>
-                            <button type="button" onClick={() => window.confirm('Marcar como não realizada?') && run(() => decideBrindoletaSale(sale.id, 'rejected'), 'Venda marcada como não realizada.')} className="btn-ghost border border-border text-xs">Não realizada</button>
+                            <button type="button" disabled={isPending} onClick={() => window.confirm('A venda foi realmente realizada?') && run(() => decideBrindoletaSale(sale.id, 'confirmed'), 'Venda confirmada e contabilizada.')} className="min-h-[42px] rounded-xl bg-emerald-400 px-4 py-2 text-xs font-black text-emerald-950 shadow-sm transition hover:brightness-105 disabled:opacity-50">Confirmar venda</button>
+                            <button type="button" disabled={isPending} onClick={() => window.confirm('Marcar como não realizada?') && run(() => decideBrindoletaSale(sale.id, 'rejected'), 'Venda marcada como não realizada.')} className="btn-ghost min-h-[42px] border border-border text-xs">Não realizada</button>
                           </>
                         )}
-                        <button type="button" onClick={() => startSaleEdit(sale)} className="btn-ghost border border-border text-xs">Editar</button>
-                        <button type="button" onClick={() => window.confirm('Excluir definitivamente este registro?') && run(() => deleteBrindoletaSale(sale.id), 'Venda excluída.')} className="btn-ghost border border-red-400/25 text-xs text-red-200">Excluir</button>
+                        <button type="button" disabled={isPending} onClick={() => startSaleEdit(sale)} className="btn-ghost min-h-[42px] border border-border text-xs">Editar</button>
+                        <button type="button" disabled={isPending} onClick={() => window.confirm('Excluir definitivamente este registro?') && run(() => deleteBrindoletaSale(sale.id), 'Venda excluída.')} className="btn-ghost min-h-[42px] border border-red-400/25 text-xs text-red-200">Excluir</button>
                       </div>
                     )}
                   </article>
@@ -472,11 +483,20 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
 
 function Metric({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className={`card p-4 ${highlight ? 'border-[#d8ff00]/30' : ''}`}>
+    <div className={`card relative overflow-hidden p-4 shadow-sm ${highlight ? 'border-[#d8ff00]/30 bg-[#d8ff00]/[0.035]' : ''}`}>
+      {highlight && <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-[#d8ff00] shadow-[0_0_8px_#d8ff00]" />}
       <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-text-muted">{label}</p>
       <strong className={`mt-2 block text-2xl ${highlight ? 'text-[#d8ff00]' : 'text-text'}`}>{value}</strong>
     </div>
   )
+}
+
+function TabIcon({ tab }: { tab: Tab }) {
+  const common = 'h-4 w-4 shrink-0'
+  if (tab === 'campaign') return <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 3v9l7.8-4.5M12 12l-7.8 4.5" /></svg>
+  if (tab === 'qr') return <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v6h-6v-2" /></svg>
+  if (tab === 'results') return <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>
+  return <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M9.8 9a2.3 2.3 0 1 1 3.3 2.1c-.7.4-1.1.8-1.1 1.9M12 17h.01" /></svg>
 }
 
 function Guide({ businessName }: { businessName: string }) {
