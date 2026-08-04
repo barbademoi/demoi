@@ -1,14 +1,16 @@
 'use server'
 
+import { randomUUID } from 'crypto'
+import { cookies } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { BrindoletaPrize, PublicBrindoletaOffer } from '@/lib/brindoleta/types'
 
 type SpinInput = {
   codigo: string
-  clientToken: string
 }
 
-type AcceptInput = SpinInput & {
+type AcceptInput = {
+  codigo: string
   spinId: string
   customerName: string
 }
@@ -24,13 +26,43 @@ type OfferRow = PublicBrindoletaOffer & {
   chance: number
 }
 
+type SpinSnapshot = {
+  id: string
+  offer_id: string | null
+  offer_title: string
+  benefit: string
+  offer_type: BrindoletaPrize['offer_type']
+  offer_color: string
+  amount_cents: number
+}
+
+const DEVICE_COOKIE = 'brindoleta_device_v1'
+
 function cleanCode(value: string) {
-  return value.trim().toLowerCase().slice(0, 40)
+  const code = value.trim().toLowerCase().slice(0, 40)
+  return /^[a-z0-9]{4,40}$/.test(code) ? code : ''
 }
 
 function cleanToken(value: string) {
   const token = value.trim().slice(0, 100)
   return /^[a-zA-Z0-9_-]{16,100}$/.test(token) ? token : null
+}
+
+function deviceToken(createIfMissing: boolean) {
+  const cookieStore = cookies()
+  const current = cleanToken(cookieStore.get(DEVICE_COOKIE)?.value ?? '')
+  if (current) return current
+  if (!createIfMissing) return null
+
+  const token = `${randomUUID().replace(/-/g, '')}_${randomUUID().replace(/-/g, '')}`
+  cookieStore.set(DEVICE_COOKIE, token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 730,
+  })
+  return token
 }
 
 function todayInBrazil() {
@@ -80,12 +112,28 @@ function weightedDraw(offers: OfferRow[]) {
   return offers[offers.length - 1]
 }
 
+async function activeOffers(admin: ReturnType<typeof createAdminClient>, barbeariaId: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (admin as any)
+    .from('brindoleta_offers')
+    .select('id, title, benefit, offer_type, color, revenue_cents, chance')
+    .eq('barbearia_id', barbeariaId)
+    .eq('enabled', true)
+    .gt('stock', 0)
+    .order('created_at', { ascending: true })
+    .limit(6)
+  return (data ?? []) as OfferRow[]
+}
+
+function publicOffers(offers: OfferRow[]) {
+  return offers.map(({ id, title, offer_type, color }) => ({ id, title, offer_type, color }))
+}
+
 export async function spinBrindoleta(input: SpinInput): Promise<
-  | { ok: true; spinId: string; prize: BrindoletaPrize; offers: PublicBrindoletaOffer[] }
+  | { ok: true; spinId: string; prize: BrindoletaPrize; offers: PublicBrindoletaOffer[]; resumed?: boolean }
   | { error: string; code?: 'already_spun' }
 > {
-  const clientToken = cleanToken(input.clientToken)
-  if (!clientToken) return { error: 'Não foi possível identificar este aparelho. Atualize a página e tente novamente.' }
+  const clientToken = deviceToken(true)
 
   const auth = await authorizePublicLink(input.codigo)
   if ('error' in auth) return auth
@@ -94,26 +142,55 @@ export async function spinBrindoleta(input: SpinInput): Promise<
 
   // Consulta amigável; a restrição UNIQUE no banco também impede dois giros simultâneos.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: previous } = await (admin as any)
+  const { data: previousRaw } = await (admin as any)
     .from('brindoleta_spins')
-    .select('id')
+    .select('id, offer_id, offer_title, benefit, offer_type, offer_color, amount_cents')
     .eq('barbearia_id', barber.barbearia_id)
     .eq('client_token', clientToken)
     .eq('day_key', dayKey)
     .maybeSingle()
-  if (previous) return { error: 'Seu giro de hoje já foi utilizado. Volte amanhã para uma nova chance!', code: 'already_spun' }
+  const previous = previousRaw as SpinSnapshot | null
+
+  if (previous) {
+    // Se a página foi recarregada no meio do giro, devolve exatamente o mesmo
+    // prêmio. Depois do aceite, apenas informa que o giro já foi concluído.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: accepted } = await (admin as any)
+      .from('brindoleta_sales')
+      .select('id')
+      .eq('spin_id', previous.id)
+      .maybeSingle()
+    if (accepted) return { error: 'Sua oferta de hoje já foi reservada e está aguardando confirmação.', code: 'already_spun' }
+
+    const currentOffers = await activeOffers(admin, barber.barbearia_id)
+    const restored = publicOffers(currentOffers)
+    if (!restored.some((offer) => offer.id === previous.offer_id)) {
+      if (restored.length >= 6) restored.pop()
+      restored.unshift({
+        id: previous.offer_id ?? `restored-${previous.id}`,
+        title: previous.offer_title,
+        offer_type: previous.offer_type,
+        color: previous.offer_color,
+      })
+    }
+    return {
+      ok: true,
+      resumed: true,
+      spinId: previous.id,
+      offers: restored,
+      prize: {
+        id: previous.offer_id ?? `restored-${previous.id}`,
+        title: previous.offer_title,
+        benefit: previous.benefit,
+        offer_type: previous.offer_type,
+        color: previous.offer_color,
+        revenue_cents: previous.amount_cents,
+      },
+    }
+  }
 
   // A probabilidade fica somente no servidor; o navegador recebe apenas a oferta sorteada.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: offersRaw } = await (admin as any)
-    .from('brindoleta_offers')
-    .select('id, title, benefit, offer_type, color, revenue_cents, chance')
-    .eq('barbearia_id', barber.barbearia_id)
-    .eq('enabled', true)
-    .gt('stock', 0)
-    .order('created_at', { ascending: true })
-    .limit(6)
-  const offers = (offersRaw ?? []) as OfferRow[]
+  const offers = await activeOffers(admin, barber.barbearia_id)
   if (offers.length < 2) return { error: 'A empresa ainda está preparando as ofertas desta roleta.' }
 
   const selected = weightedDraw(offers)
@@ -124,6 +201,11 @@ export async function spinBrindoleta(input: SpinInput): Promise<
       barbearia_id: barber.barbearia_id,
       barbeiro_id: barber.id,
       offer_id: selected.id,
+      offer_title: selected.title,
+      benefit: selected.benefit,
+      offer_type: selected.offer_type,
+      offer_color: selected.color,
+      amount_cents: selected.revenue_cents,
       client_token: clientToken,
       day_key: dayKey,
     })
@@ -139,7 +221,7 @@ export async function spinBrindoleta(input: SpinInput): Promise<
   return {
     ok: true,
     spinId: spin.id,
-    offers: offers.map(({ id, title, offer_type, color }) => ({ id, title, offer_type, color })),
+    offers: publicOffers(offers),
     prize: {
       id: selected.id,
       title: selected.title,
@@ -154,8 +236,12 @@ export async function spinBrindoleta(input: SpinInput): Promise<
 export async function acceptBrindoletaPrize(input: AcceptInput): Promise<
   { ok: true } | { error: string }
 > {
-  const clientToken = cleanToken(input.clientToken)
-  const customerName = input.customerName.trim().replace(/\s+/g, ' ').slice(0, 80)
+  const clientToken = deviceToken(false)
+  const customerName = input.customerName
+    .replace(/[\u0000-\u001f\u007f]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .slice(0, 80)
   if (!clientToken) return { error: 'Não foi possível validar este aparelho.' }
   if (customerName.length < 2) return { error: 'Digite seu nome para reservar a oferta.' }
 
@@ -163,57 +249,22 @@ export async function acceptBrindoletaPrize(input: AcceptInput): Promise<
   if ('error' in auth) return auth
   const { admin, barber } = auth
 
-  // O giro, o token, o dia e o profissional precisam coincidir.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: spin } = await (admin as any)
-    .from('brindoleta_spins')
-    .select('id, offer_id, day_key')
-    .eq('id', input.spinId)
-    .eq('barbearia_id', barber.barbearia_id)
-    .eq('barbeiro_id', barber.id)
-    .eq('client_token', clientToken)
-    .maybeSingle() as { data: { id: string; offer_id: string | null; day_key: string } | null }
-
-  if (!spin || spin.day_key !== todayInBrazil() || !spin.offer_id) {
-    return { error: 'Esta oferta não pôde ser validada.' }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: existing } = await (admin as any)
-    .from('brindoleta_sales')
-    .select('id')
-    .eq('spin_id', spin.id)
-    .maybeSingle()
-  if (existing) return { ok: true }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: offer } = await (admin as any)
-    .from('brindoleta_offers')
-    .select('id, title, benefit, revenue_cents')
-    .eq('id', spin.offer_id)
-    .eq('barbearia_id', barber.barbearia_id)
-    .maybeSingle() as { data: { id: string; title: string; benefit: string; revenue_cents: number } | null }
-  if (!offer) return { error: 'Esta oferta não está mais disponível.' }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (admin as any)
-    .from('brindoleta_sales')
-    .insert({
-      spin_id: spin.id,
-      barbearia_id: barber.barbearia_id,
-      barbeiro_id: barber.id,
-      offer_id: offer.id,
-      customer_name: customerName,
-      offer_title: offer.title,
-      benefit: offer.benefit,
-      amount_cents: offer.revenue_cents,
-      status: 'pending',
+  const { data: result, error } = await (admin as any)
+    .rpc('accept_brindoleta_prize', {
+      p_spin_id: input.spinId,
+      p_barbearia_id: barber.barbearia_id,
+      p_barbeiro_id: barber.id,
+      p_client_token: clientToken,
+      p_customer_name: customerName,
+      p_day_key: todayInBrazil(),
     })
   if (error) {
-    if (error.code === '23505') return { ok: true }
     console.error('[brindoleta/publica] erro ao aceitar oferta:', error)
     return { error: 'Não foi possível reservar a oferta. Tente novamente.' }
   }
 
-  return { ok: true }
+  if (result === 'ok' || result === 'existing') return { ok: true }
+  if (result === 'unavailable') return { error: 'Esta oferta acabou de se esgotar. Fale com o profissional para conhecer outra condição.' }
+  return { error: 'Esta oferta não pôde ser validada.' }
 }
