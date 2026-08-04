@@ -13,13 +13,13 @@ import CampanhaModal from '@/components/dashboard/CampanhaModal'
 import CampanhaToggle from '@/components/dashboard/CampanhaToggle'
 import ResumoReuniaoModal from '@/components/dashboard/ResumoReuniaoModal'
 import DashboardShell from '@/components/dashboard/DashboardShell'
-import { emailEhAdminCortesia } from '@/lib/admin/cortesia'
 import { calcularPremiacao } from '@/lib/premios'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import FecharMesButton from '@/components/dashboard/FecharMesButton'
 import DestaquesMes from '@/components/dashboard/DestaquesMes'
 import { calcularDestaquesMes } from '@/lib/destaquesMes'
 import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario } from '@/types/database'
+import type { BrindoletaStatus } from '@/lib/brindoleta/config'
 
 type UsuarioComBarbearia = {
   barbearia_id: string
@@ -69,6 +69,15 @@ export default async function DashboardPage({
     console.error('[dashboard] barbearia não encontrada para usuario:', user.id)
     redirect('/login')
   }
+
+  // A campanha da Brindoleta não deve interromper quem já comprou ou está aguardando conferência.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: brindoletaLicenseRaw } = await (supabase as any)
+    .from('brindoleta_licenses')
+    .select('status')
+    .eq('barbearia_id', barbearia.id)
+    .maybeSingle()
+  const brindoletaStatus = (brindoletaLicenseRaw?.status ?? null) as BrindoletaStatus | null
 
   // Destaques do mês (privado do dono, sempre do CICLO ATUAL — independe do
   // mês navegado). Mesma fonte do ranking; só leitura.
@@ -403,8 +412,8 @@ export default async function DashboardPage({
   return (
     <DashboardShell
       premiacao={premiacao}
-      mostrarCortesias={emailEhAdminCortesia(user.email)}
       barbeariaNome={barbearia.nome}
+      brindoletaStatus={brindoletaStatus}
       cicloLabel={ciclo.label}
       isAutonomo={isAutonomo}
       comissaoMesAnterior={comissaoMesAnterior}
