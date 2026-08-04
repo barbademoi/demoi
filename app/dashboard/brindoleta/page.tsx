@@ -58,6 +58,7 @@ export default async function BrindoletaPage() {
   let spins: BrindoletaSpin[] = []
   let sales: BrindoletaSale[] = []
   let publicBaseUrl = ''
+  let panelError = ''
 
   if (status === 'active') {
     const [offersResult, barbersResult, spinsResult, salesResult] = await Promise.all([
@@ -80,6 +81,12 @@ export default async function BrindoletaPage() {
     spins = (spinsResult.data ?? []) as BrindoletaSpin[]
     sales = (salesResult.data ?? []) as BrindoletaSale[]
 
+    const dataError = offersResult.error ?? barbersResult.error ?? spinsResult.error ?? salesResult.error
+    if (dataError) {
+      console.error('[brindoleta/painel] falha ao carregar dados:', dataError)
+      panelError = 'Não foi possível carregar a central da Brindoleta. Atualize a página em instantes; nenhuma configuração foi alterada.'
+    }
+
     const requestHeaders = headers()
     const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host')
     if (host) {
@@ -95,10 +102,12 @@ export default async function BrindoletaPage() {
         <div className="mx-auto max-w-5xl">
           <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Novo no BarberMeta</p>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">{status === 'active' ? 'Central de vendas interativa' : 'Novo no BarberMeta'}</p>
               <h1 className="mt-2 font-serif text-3xl text-text sm:text-4xl">Brindoleta</h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-text-muted sm:text-base">
-                Transforme o atendimento em uma oportunidade de vender serviços extras, produtos e benefícios de um jeito leve e divertido.
+                {status === 'active'
+                  ? 'Crie ofertas, distribua os QR Codes da equipe e acompanhe cada oportunidade gerada no atendimento.'
+                  : 'Transforme o atendimento em uma oportunidade de vender serviços extras, produtos e benefícios de um jeito leve e divertido.'}
               </p>
             </div>
             {isAdmin && (
@@ -109,14 +118,22 @@ export default async function BrindoletaPage() {
           </div>
 
           {status === 'active' ? (
-            <BrindoletaPanel
-              businessName={usuario.barbearias.nome}
-              publicBaseUrl={publicBaseUrl}
-              offers={offers}
-              barbers={barbers}
-              spins={spins}
-              sales={sales}
-            />
+            panelError ? (
+              <section className="card border-amber-400/25 p-6 text-center sm:p-8">
+                <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/10 text-xl text-amber-200">!</span>
+                <h2 className="mt-4 font-serif text-2xl text-text">A central está temporariamente indisponível</h2>
+                <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-text-muted">{panelError}</p>
+              </section>
+            ) : (
+              <BrindoletaPanel
+                businessName={usuario.barbearias.nome}
+                publicBaseUrl={publicBaseUrl}
+                offers={offers}
+                barbers={barbers}
+                spins={spins}
+                sales={sales}
+              />
+            )
           ) : (
             <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr] lg:items-start">
               <section className="space-y-5">
