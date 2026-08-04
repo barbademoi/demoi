@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import Sidebar from '@/components/dashboard/Sidebar'
+import BrindoletaDemo from '@/components/brindoleta/BrindoletaDemo'
 import { createClient } from '@/lib/supabase/server'
 import { emailEhAdminCortesia } from '@/lib/admin/cortesia'
 import {
@@ -95,19 +96,17 @@ export default async function BrindoletaPage() {
           ) : (
             <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr] lg:items-start">
               <section className="space-y-5">
-                <div className="card p-5 sm:p-7">
-                  <div className="mx-auto mb-6 flex h-44 w-44 items-center justify-center rounded-full border-[10px] border-[#29261f] bg-[conic-gradient(#d8ff00_0_60deg,#ff5d42_60deg_120deg,#ffd149_120deg_180deg,#35b7eb_180deg_240deg,#9365ed_240deg_300deg,#f44696_300deg_360deg)] shadow-2xl">
-                    <span className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-[#11110f] text-center text-sm font-black uppercase leading-tight text-white shadow-lg">
-                      Girar<br />a roleta
-                    </span>
+                <div className="card overflow-hidden">
+                  <BrindoletaDemo />
+                  <div className="p-5 sm:p-7">
+                    <h2 className="font-serif text-2xl text-text">Uma roleta feita para vender mais</h2>
+                    <ul className="mt-5 space-y-4 text-sm leading-relaxed text-text-muted">
+                      <li className="flex gap-3"><span className="text-primary">✓</span><span>Cadastre até 6 ofertas entre serviços, produtos e brindes.</span></li>
+                      <li className="flex gap-3"><span className="text-primary">✓</span><span>Tenha um QR Code por colaborador e acompanhe quem gerou cada venda.</span></li>
+                      <li className="flex gap-3"><span className="text-primary">✓</span><span>Confirme vendas, acompanhe resultados e descubra as ofertas que mais convertem.</span></li>
+                      <li className="flex gap-3"><span className="text-primary">✓</span><span>Pagamento único: sem mensalidade da Brindoleta.</span></li>
+                    </ul>
                   </div>
-                  <h2 className="font-serif text-2xl text-text">Uma roleta feita para vender mais</h2>
-                  <ul className="mt-5 space-y-4 text-sm leading-relaxed text-text-muted">
-                    <li className="flex gap-3"><span className="text-primary">✓</span><span>Cadastre até 6 ofertas entre serviços, produtos e brindes.</span></li>
-                    <li className="flex gap-3"><span className="text-primary">✓</span><span>Tenha um QR Code por colaborador e acompanhe quem gerou cada venda.</span></li>
-                    <li className="flex gap-3"><span className="text-primary">✓</span><span>Confirme vendas, acompanhe resultados e descubra as ofertas que mais convertem.</span></li>
-                    <li className="flex gap-3"><span className="text-primary">✓</span><span>Pagamento único: sem mensalidade da Brindoleta.</span></li>
-                  </ul>
                 </div>
 
                 {status === 'rejected' && (
