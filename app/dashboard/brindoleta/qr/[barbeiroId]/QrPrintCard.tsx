@@ -1,5 +1,7 @@
 'use client'
 
+import BrindoletaQr from '@/components/brindoleta/BrindoletaQr'
+
 type Props = {
   businessName: string
   businessLogo: string | null
@@ -13,8 +15,6 @@ function initials(value: string) {
 }
 
 export default function QrPrintCard({ businessName, businessLogo, barberName, barberPhoto, publicUrl }: Props) {
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=720x720&margin=12&data=${encodeURIComponent(publicUrl)}`
-
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#e9e7df] to-[#d8d5ca] px-4 py-6 text-[#11130f] print:min-h-0 print:bg-white print:p-0">
       <style>{`
@@ -57,8 +57,7 @@ export default function QrPrintCard({ businessName, businessLogo, barberName, ba
         </div>
 
         <div className="relative mx-auto mt-[0.18cm] rounded-[0.3cm] border-[0.05cm] border-[#d8ff00]/40 bg-white p-[0.1cm] shadow-[0_0.18cm_0.4cm_rgba(0,0,0,.28)]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={qrUrl} alt={`QR Code da Brindoleta de ${barberName}`} className="h-[5.1cm] w-[5.1cm]" />
+          <BrindoletaQr value={publicUrl} label={`QR Code da Brindoleta de ${barberName}`} className="h-[5.1cm] w-[5.1cm]" />
         </div>
 
         <footer className="relative mt-auto flex items-center justify-center gap-[0.16cm] pt-[0.17cm]">
