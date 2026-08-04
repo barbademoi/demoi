@@ -12,16 +12,3 @@ export function brindoletaPaymentConfig() {
     pixPaymentUrl: (process.env.BRINDOLETA_PIX_PAYMENT_URL ?? DEFAULT_PIX_PAYMENT_URL).trim(),
   }
 }
-
-export function brindoletaAppUrl() {
-  const value = (process.env.BRINDOLETA_APP_URL ?? '').trim()
-  if (!value) return null
-
-  try {
-    const url = new URL(value)
-    if (url.protocol !== 'https:') return null
-    return url.toString()
-  } catch {
-    return null
-  }
-}
