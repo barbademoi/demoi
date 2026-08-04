@@ -11,6 +11,7 @@ import { hasFinanceiro } from '@/lib/financeiro/supabaseStore'
 import { hasReuniao } from '@/lib/reuniao/access'
 import { contarCondutaNaoLidas } from '@/lib/conduta/unread'
 import PreviewPlusModal from './PreviewPlusModal'
+import BrindoletaLaunchModal from './BrindoletaLaunchModal'
 
 const COMPORTAMENTO_HREF = '/dashboard/comportamento'
 
@@ -18,7 +19,7 @@ interface Props {
   barbeariaNome: string
   onFerramentasClick?: () => void
   showFerramentas?: boolean
-  // Link "Conceder acesso" (cortesia) — só habilitado pra conta do dono.
+  // Link administrativo já existente na versão principal do BarberMeta.
   mostrarCortesias?: boolean
 }
 
@@ -101,6 +102,19 @@ const navItems: NavItem[] = [
         <rect x="3" y="3" width="18" height="18" rx="2" />
         <circle cx="8.5" cy="8.5" r="1.5" />
         <polyline points="21 15 16 10 5 21" />
+      </svg>
+    ),
+  },
+  {
+    href: '/dashboard/brindoleta',
+    label: 'Brindoleta',
+    badge: 'NOVO',
+    destaque: true,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 3v9l6.4 6.4M12 12l-8.1 3.9M12 12l3.9-8.1" />
+        <circle cx="12" cy="12" r="2" />
       </svg>
     ),
   },
@@ -331,7 +345,7 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
             )
           })}
 
-          {/* Conceder acesso (cortesia) — visível SÓ pra conta do dono. */}
+          {/* Conceder acesso (cortesia) — visível só na conta administrativa. */}
           {mostrarCortesias && (
             <Link
               href="/admin/cortesias"
@@ -411,6 +425,7 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
       </aside>
 
       <PreviewPlusModal open={showPreview} onClose={() => setShowPreview(false)} />
+      <BrindoletaLaunchModal />
     </>
   )
 }
