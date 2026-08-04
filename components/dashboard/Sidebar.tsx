@@ -112,7 +112,7 @@ const navItems: NavItem[] = [
     destaque: true,
     icon: (
       <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 drop-shadow-[0_0_5px_rgba(216,255,0,0.28)]" aria-hidden>
-        <path d="M9.6 1.5h4.8L12 5.2 9.6 1.5Z" fill="currentColor" />
+        <path d="M9.6 1.5h4.8L12 5.2 9.6 1.5Z" fill="#d8ff00" stroke="#11110f" strokeWidth="0.7" />
         <path d="M12 12V3a9 9 0 0 1 7.79 4.5L12 12Z" fill="#d8ff00" stroke="#11110f" strokeWidth="0.8" />
         <path d="m12 12 7.79-4.5a9 9 0 0 1 0 9L12 12Z" fill="#ff6045" stroke="#11110f" strokeWidth="0.8" />
         <path d="m12 12 7.79 4.5A9 9 0 0 1 12 21v-9Z" fill="#ffd149" stroke="#11110f" strokeWidth="0.8" />
