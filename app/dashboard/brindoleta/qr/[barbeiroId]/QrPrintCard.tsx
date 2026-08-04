@@ -16,7 +16,7 @@ export default function QrPrintCard({ businessName, businessLogo, barberName, ba
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=720x720&margin=12&data=${encodeURIComponent(publicUrl)}`
 
   return (
-    <main className="min-h-screen bg-[#e9e7df] px-4 py-6 text-[#11130f] print:min-h-0 print:bg-white print:p-0">
+    <main className="min-h-screen bg-gradient-to-b from-[#e9e7df] to-[#d8d5ca] px-4 py-6 text-[#11130f] print:min-h-0 print:bg-white print:p-0">
       <style>{`
         @page { size: 10cm 10cm; margin: 0; }
         @media print {
@@ -26,9 +26,12 @@ export default function QrPrintCard({ businessName, businessLogo, barberName, ba
         }
       `}</style>
 
-      <div className="qr-print-controls mx-auto mb-5 flex max-w-md flex-col gap-3 sm:flex-row">
-        <button type="button" onClick={() => window.print()} className="flex-1 rounded-xl bg-[#d8ff00] px-5 py-3 text-sm font-black">Imprimir / salvar em PDF</button>
-        <button type="button" onClick={() => window.close()} className="rounded-xl border border-black/15 bg-white px-5 py-3 text-sm font-bold">Fechar</button>
+      <div className="qr-print-controls mx-auto mb-5 max-w-md rounded-2xl border border-black/10 bg-white/80 p-3 shadow-lg backdrop-blur">
+        <p className="mb-3 px-1 text-xs leading-relaxed text-black/55">O cartão abaixo já está no tamanho correto de 10 × 10 cm. Na impressão, escolha escala de 100%.</p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button type="button" onClick={() => window.print()} className="min-h-[48px] flex-1 rounded-xl bg-[#d8ff00] px-5 py-3 text-sm font-black shadow-[0_8px_20px_rgba(120,140,0,.16)] transition hover:brightness-105">Imprimir / salvar em PDF</button>
+          <button type="button" onClick={() => window.close()} className="min-h-[48px] rounded-xl border border-black/15 bg-white px-5 py-3 text-sm font-bold transition hover:bg-black/[0.03]">Fechar</button>
+        </div>
       </div>
 
       <section className="qr-print-sheet relative mx-auto flex h-[10cm] w-[10cm] flex-col overflow-hidden rounded-2xl border border-black/10 bg-[#11130f] p-[0.45cm] text-white shadow-xl">
@@ -44,7 +47,7 @@ export default function QrPrintCard({ businessName, businessLogo, barberName, ba
             )}
             <strong className="truncate text-[10px] uppercase tracking-[0.08em]">{businessName}</strong>
           </div>
-          <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[#d8ff00]">Brindoleta</span>
+          <span className="flex items-center gap-[0.08cm] text-[8px] font-black uppercase tracking-[0.18em] text-[#d8ff00]"><span className="inline-block h-[0.25cm] w-[0.25cm] rounded-full border-[2px] border-[#d8ff00] bg-[conic-gradient(#d8ff00_0_60deg,#ff6045_60deg_120deg,#ffd149_120deg_180deg,#35b7eb_180deg_240deg,#9365ed_240deg_300deg,#f44696_300deg)]" />Brindoleta</span>
         </header>
 
         <div className="relative mt-[0.22cm] text-center">
@@ -53,7 +56,7 @@ export default function QrPrintCard({ businessName, businessLogo, barberName, ba
           <p className="mt-[0.08cm] text-[8px] text-white/65">Aponte a câmera do celular para o QR Code.</p>
         </div>
 
-        <div className="relative mx-auto mt-[0.18cm] rounded-[0.28cm] bg-white p-[0.12cm]">
+        <div className="relative mx-auto mt-[0.18cm] rounded-[0.3cm] border-[0.05cm] border-[#d8ff00]/40 bg-white p-[0.1cm] shadow-[0_0.18cm_0.4cm_rgba(0,0,0,.28)]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={qrUrl} alt={`QR Code da Brindoleta de ${barberName}`} className="h-[5.1cm] w-[5.1cm]" />
         </div>
