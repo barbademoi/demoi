@@ -5,8 +5,10 @@ import Sidebar from './Sidebar'
 import DashboardMain from './DashboardMain'
 import BarbeariaWatermark from './BarbeariaWatermark'
 import PremiacaoDono from './PremiacaoDono'
+import BrindoletaPromoBanner from './BrindoletaPromoBanner'
 import type { ModoPontos, CampanhaComDetalhes, MetaIndividual } from '@/types/database'
 import type { PremiacaoResumo } from '@/lib/premios'
+import type { BrindoletaStatus } from '@/lib/brindoleta/config'
 
 type MetaSimples = {
   id: string
@@ -105,6 +107,9 @@ interface Props {
   fecharMesSlot: React.ReactNode
   // Link "Conceder acesso" na sidebar — só pra conta do dono.
   mostrarCortesias?: boolean
+  // Brindoleta em teste: liberada só pra conta autorizada.
+  brindoletaLiberado?: boolean
+  brindoletaStatus?: BrindoletaStatus | null
 }
 
 export default function DashboardShell({
@@ -130,6 +135,8 @@ export default function DashboardShell({
   destaquesSlot,
   mesFechado, mesFechadoEm, fecharMesSlot,
   mostrarCortesias = false,
+  brindoletaLiberado = false,
+  brindoletaStatus = null,
 }: Props) {
   // Seção ativa da área principal. 'home' é a tela inicial (evolução + ranking);
   // as demais são painéis abertos pelo menu lateral (mutuamente exclusivos).
@@ -149,6 +156,8 @@ export default function DashboardShell({
         onPremiacoesClick={() => alternar('premiacoes')}
         onDestaquesClick={() => alternar('destaques')}
         mostrarCortesias={mostrarCortesias}
+        brindoletaLiberado={brindoletaLiberado}
+        brindoletaStatus={brindoletaLiberado ? brindoletaStatus : null}
       />
 
       <div className="flex-1 min-w-0 lg:pl-64 pt-14 lg:pt-0">
@@ -213,6 +222,7 @@ export default function DashboardShell({
         ) : (
           <>
             <div className="max-w-5xl mx-auto px-4 pt-6 pb-2 space-y-4">
+              {brindoletaLiberado && <BrindoletaPromoBanner status={brindoletaStatus} />}
               {monthNavigatorSlot}
 
               {mesFechado && (

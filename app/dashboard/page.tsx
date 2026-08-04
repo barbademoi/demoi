@@ -14,6 +14,8 @@ import CampanhaToggle from '@/components/dashboard/CampanhaToggle'
 import ResumoReuniaoModal from '@/components/dashboard/ResumoReuniaoModal'
 import DashboardShell from '@/components/dashboard/DashboardShell'
 import { emailEhAdminCortesia } from '@/lib/admin/cortesia'
+import { emailPodeBrindoleta } from '@/lib/brindoleta/acesso'
+import type { BrindoletaStatus } from '@/lib/brindoleta/config'
 import { calcularPremiacao } from '@/lib/premios'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import FecharMesButton from '@/components/dashboard/FecharMesButton'
@@ -68,6 +70,20 @@ export default async function DashboardPage({
   if (!barbearia) {
     console.error('[dashboard] barbearia não encontrada para usuario:', user.id)
     redirect('/login')
+  }
+
+  // Brindoleta em TESTE: só a conta liberada vê o item/status. Pras demais
+  // contas nem consulta a licença (fica invisível e sem custo).
+  const brindoletaLiberado = emailPodeBrindoleta(user.email)
+  let brindoletaStatus: BrindoletaStatus | null = null
+  if (brindoletaLiberado) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: brindoletaLicenseRaw } = await (supabase as any)
+      .from('brindoleta_licenses')
+      .select('status')
+      .eq('barbearia_id', barbearia.id)
+      .maybeSingle()
+    brindoletaStatus = (brindoletaLicenseRaw?.status ?? null) as BrindoletaStatus | null
   }
 
   // Destaques do mês (privado do dono, sempre do CICLO ATUAL — independe do
@@ -404,6 +420,8 @@ export default async function DashboardPage({
     <DashboardShell
       premiacao={premiacao}
       mostrarCortesias={emailEhAdminCortesia(user.email)}
+      brindoletaLiberado={brindoletaLiberado}
+      brindoletaStatus={brindoletaStatus}
       barbeariaNome={barbearia.nome}
       cicloLabel={ciclo.label}
       isAutonomo={isAutonomo}
