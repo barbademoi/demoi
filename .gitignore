@@ -13,6 +13,7 @@
 
 # production
 /build
+/public/vendor/pdf.worker.min.mjs
 
 # misc
 .DS_Store
