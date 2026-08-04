@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import BrindoletaQr from '@/components/brindoleta/BrindoletaQr'
 import {
   createBrindoletaExamples,
   decideBrindoletaSale,
@@ -341,7 +342,6 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
             <div className="grid gap-4 md:grid-cols-2">
               {barbers.map((barber) => {
                 const url = `${publicBaseUrl}/brindoleta/${barber.link_codigo}`
-                const qr = `https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=12&data=${encodeURIComponent(url)}`
                 return (
                   <article key={barber.id} className="card overflow-hidden p-4 transition hover:-translate-y-0.5 hover:shadow-lg sm:p-5">
                     <div className="flex items-center gap-3">
@@ -357,8 +357,7 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
                       </div>
                     </div>
                     <div className="relative mx-auto my-5 w-fit rounded-2xl border-[6px] border-white bg-white p-1 shadow-[0_12px_30px_rgba(0,0,0,.2)]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={qr} alt={`QR Code da Brindoleta de ${barber.nome}`} className="h-36 w-36" />
+                      <BrindoletaQr value={url} label={`QR Code da Brindoleta de ${barber.nome}`} className="h-36 w-36" />
                     </div>
                     <p className="truncate rounded-xl border border-border bg-surface-2 p-2.5 text-[10px] text-text-muted">{url}</p>
                     <div className="mt-3 grid grid-cols-2 gap-2">
