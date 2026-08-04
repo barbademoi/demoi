@@ -10,7 +10,9 @@ import { hasFeedback } from '@/lib/feedback/access'
 import { hasFinanceiro } from '@/lib/financeiro/supabaseStore'
 import { hasReuniao } from '@/lib/reuniao/access'
 import { contarCondutaNaoLidas } from '@/lib/conduta/unread'
+import type { BrindoletaStatus } from '@/lib/brindoleta/config'
 import PreviewPlusModal from './PreviewPlusModal'
+import BrindoletaLaunchModal from './BrindoletaLaunchModal'
 
 const COMPORTAMENTO_HREF = '/dashboard/comportamento'
 
@@ -18,8 +20,9 @@ interface Props {
   barbeariaNome: string
   onFerramentasClick?: () => void
   showFerramentas?: boolean
-  // Link "Conceder acesso" (cortesia) — só habilitado pra conta do dono.
+  // Link administrativo já existente na versão principal do BarberMeta.
   mostrarCortesias?: boolean
+  brindoletaStatus?: BrindoletaStatus | null
 }
 
 type NavItem = {
@@ -105,6 +108,25 @@ const navItems: NavItem[] = [
     ),
   },
   {
+    href: '/dashboard/brindoleta',
+    label: 'Brindoleta',
+    badge: 'NOVO',
+    destaque: true,
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 drop-shadow-[0_0_5px_rgba(216,255,0,0.28)]" aria-hidden>
+        <path d="M9.6 1.5h4.8L12 5.2 9.6 1.5Z" fill="#d8ff00" stroke="#11110f" strokeWidth="0.7" />
+        <path d="M12 12V3a9 9 0 0 1 7.79 4.5L12 12Z" fill="#d8ff00" stroke="#11110f" strokeWidth="0.8" />
+        <path d="m12 12 7.79-4.5a9 9 0 0 1 0 9L12 12Z" fill="#ff6045" stroke="#11110f" strokeWidth="0.8" />
+        <path d="m12 12 7.79 4.5A9 9 0 0 1 12 21v-9Z" fill="#ffd149" stroke="#11110f" strokeWidth="0.8" />
+        <path d="M12 12v9a9 9 0 0 1-7.79-4.5L12 12Z" fill="#35b7eb" stroke="#11110f" strokeWidth="0.8" />
+        <path d="m12 12-7.79 4.5a9 9 0 0 1 0-9L12 12Z" fill="#9365ed" stroke="#11110f" strokeWidth="0.8" />
+        <path d="M12 12 4.21 7.5A9 9 0 0 1 12 3v9Z" fill="#f44696" stroke="#11110f" strokeWidth="0.8" />
+        <circle cx="12" cy="12" r="2.6" fill="#11110f" stroke="#f7f2e8" strokeWidth="1.2" />
+        <circle cx="12" cy="12" r="0.75" fill="#d8ff00" />
+      </svg>
+    ),
+  },
+  {
     href: '/dashboard/feedback-cliente',
     label: 'Feedback Premiado',
     badge: 'PLUS',
@@ -175,7 +197,7 @@ const navItems: NavItem[] = [
   },
 ]
 
-export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerramentas = false, mostrarCortesias = false }: Props) {
+export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerramentas = false, mostrarCortesias = false, brindoletaStatus }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
@@ -331,7 +353,7 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
             )
           })}
 
-          {/* Conceder acesso (cortesia) — visível SÓ pra conta do dono. */}
+          {/* Conceder acesso (cortesia) — visível só na conta administrativa. */}
           {mostrarCortesias && (
             <Link
               href="/admin/cortesias"
@@ -411,6 +433,7 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
       </aside>
 
       <PreviewPlusModal open={showPreview} onClose={() => setShowPreview(false)} />
+      <BrindoletaLaunchModal status={brindoletaStatus} />
     </>
   )
 }
