@@ -350,7 +350,12 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#d8ff00]">Equipe & QR</p>
             <h2 className="mt-1 font-serif text-2xl text-text">Um QR Code por profissional</h2>
             <p className="mt-2 text-sm leading-relaxed text-text-muted">Mostre o código no celular ou imprima em 10 × 10 cm para colocar na bancada ou no espelho. Cada link identifica quem originou a venda.</p>
-            <Link href="/configuracoes" className="mt-4 inline-flex min-h-[44px] items-center rounded-xl border border-border bg-surface-2 px-4 text-sm font-bold text-text transition hover:border-[#d8ff00]/30">Cadastrar ou editar colaboradores →</Link>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {barbers.length > 0 && (
+                <Link href="/dashboard/brindoleta/qr/todos" target="_blank" className="inline-flex min-h-[44px] items-center rounded-xl bg-[#d8ff00] px-4 text-sm font-black text-[#11110f] shadow-[0_8px_20px_rgba(216,255,0,.1)] transition hover:brightness-105">🖨️ Imprimir todos os QR</Link>
+              )}
+              <Link href="/configuracoes" className="inline-flex min-h-[44px] items-center rounded-xl border border-border bg-surface-2 px-4 text-sm font-bold text-text transition hover:border-[#d8ff00]/30">Cadastrar ou editar colaboradores →</Link>
+            </div>
           </section>
 
           {barbers.length === 0 ? (
