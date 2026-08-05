@@ -29,7 +29,6 @@ type OfferDraft = {
   offerType: BrindoletaOfferType
   chance: number
   stock: number
-  revenueReais: string
   color: string
   enabled: boolean
 }
@@ -40,7 +39,6 @@ const EMPTY_OFFER: OfferDraft = {
   offerType: 'Serviço',
   chance: 15,
   stock: 20,
-  revenueReais: '0,00',
   color: '#d8ff00',
   enabled: true,
 }
@@ -77,7 +75,6 @@ function offerToDraft(offer: BrindoletaOffer): OfferDraft {
     offerType: offer.offer_type,
     chance: offer.chance,
     stock: offer.stock,
-    revenueReais: (offer.revenue_cents / 100).toFixed(2).replace('.', ','),
     color: offer.color,
     enabled: offer.enabled,
   }
@@ -99,6 +96,8 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
   const [editingSale, setEditingSale] = useState<BrindoletaSale | null>(null)
   const [editCustomer, setEditCustomer] = useState('')
   const [editAmount, setEditAmount] = useState('')
+  const [confirmingSale, setConfirmingSale] = useState<BrindoletaSale | null>(null)
+  const [confirmAmount, setConfirmAmount] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [isPending, startTransition] = useTransition()
@@ -137,6 +136,7 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
         setMessage(success)
         setDraft(null)
         setEditingSale(null)
+        setConfirmingSale(null)
         router.refresh()
       } catch {
         setError('A conexão falhou. Nada foi alterado; tente novamente.')
@@ -154,7 +154,9 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
       offerType: draft.offerType,
       chance: draft.chance,
       stock: draft.stock,
-      revenueCents: reaisToCents(draft.revenueReais),
+      // O valor não é definido na oferta — ele é informado quando o dono
+      // confirma a venda (o prêmio pode ser algo que o cliente escolhe).
+      revenueCents: 0,
       color: draft.color,
       enabled: draft.enabled,
     }), draft.id ? 'Oferta atualizada.' : 'Oferta cadastrada.')
@@ -226,7 +228,7 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
               <div className="relative">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#d8ff00]">Campanha</p>
                 <h2 className="mt-1 font-serif text-2xl text-text">Ofertas na roleta</h2>
-                <p className="mt-1 text-sm text-text-muted">Até 6 itens ativos. As chances funcionam como o peso de cada oferta.</p>
+                <p className="mt-1 text-sm text-text-muted">Até 6 itens ativos. A <strong className="text-text">chance</strong> é o <strong className="text-text">peso</strong> de cada oferta: peso maior sai mais. Não precisa somar 100.</p>
               </div>
               <div className="flex gap-2">
                 <span className="rounded-full bg-surface-2 px-3 py-1.5 text-xs font-bold text-text">{activeOffers.length}/6 ativas</span>
@@ -273,21 +275,29 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
                   </div>
                 </div>
                 <div>
-                  <label className="label" htmlFor="offer-chance">Chance/peso</label>
+                  <label className="label" htmlFor="offer-chance">Chance de sair (peso)</label>
                   <input id="offer-chance" type="number" min="1" max="100" value={draft.chance} onChange={(event) => setDraft({ ...draft, chance: Number(event.target.value) })} className="input text-base sm:text-sm" />
+                  <p className="mt-1.5 text-xs leading-relaxed text-text-muted">
+                    É o <strong className="text-text">peso</strong> da oferta na roleta — quanto maior, mais ela sai.
+                    Não precisa somar 100: uma oferta com peso <strong className="text-text">30</strong> sai o
+                    <strong className="text-text"> dobro</strong> de uma com peso 15. A chance real de cada uma é o
+                    peso dividido pela soma dos pesos ativos.
+                  </p>
                 </div>
                 <div>
                   <label className="label" htmlFor="offer-stock">Estoque</label>
                   <input id="offer-stock" type="number" min="0" max="99999" value={draft.stock} onChange={(event) => setDraft({ ...draft, stock: Number(event.target.value) })} className="input text-base sm:text-sm" />
+                  <p className="mt-1.5 text-xs leading-relaxed text-text-muted">Quantas unidades desse prêmio podem sair. Ao esgotar, a oferta sai da roleta.</p>
                 </div>
-                <div>
-                  <label className="label" htmlFor="offer-revenue">Valor estimado da venda</label>
-                  <input id="offer-revenue" inputMode="decimal" value={draft.revenueReais} onChange={(event) => setDraft({ ...draft, revenueReais: event.target.value })} className="input text-base sm:text-sm" placeholder="0,00" />
-                </div>
-                <label className="flex items-center gap-3 rounded-xl border border-border bg-surface-2 px-4 py-3 text-sm text-text">
+                <label className="flex items-center gap-3 rounded-xl border border-border bg-surface-2 px-4 py-3 text-sm text-text sm:col-span-2">
                   <input type="checkbox" checked={draft.enabled} onChange={(event) => setDraft({ ...draft, enabled: event.target.checked })} className="h-5 w-5 accent-[#d8ff00]" />
                   Exibir na roleta
                 </label>
+                <p className="text-xs leading-relaxed text-text-muted sm:col-span-2">
+                  💡 O <strong className="text-text">valor da venda</strong> não é pedido aqui — você informa na hora de
+                  confirmar a venda, em <strong className="text-text">Resultados</strong>. Assim dá pra usar prêmios abertos
+                  (ex.: “30% em serviços extras”, que o cliente escolhe).
+                </p>
               </div>
               <button disabled={isPending} className="mt-5 min-h-[50px] w-full rounded-xl bg-[#d8ff00] px-5 py-3 font-black text-[#11110f] shadow-[0_10px_24px_rgba(216,255,0,.12)] transition hover:brightness-105 active:scale-[.995] disabled:opacity-50">
                 {isPending ? 'Salvando…' : 'Salvar oferta'}
@@ -306,14 +316,21 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
                       <h3 className="mt-1 text-base font-bold text-text">{offer.title}</h3>
                       <p className="mt-1 text-sm text-text-muted">{offer.benefit}</p>
                     </div>
-                    <button type="button" role="switch" aria-label={`${offer.enabled ? 'Desativar' : 'Ativar'} ${offer.title}`} aria-checked={offer.enabled} onClick={() => toggleOffer(offer)} disabled={isPending} className={`relative h-7 w-12 shrink-0 rounded-full border transition ${offer.enabled ? 'border-[#d8ff00] bg-[#d8ff00]' : 'border-border bg-surface-2'}`}>
-                      <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${offer.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    <button type="button" role="switch" aria-label={`${offer.enabled ? 'Desativar' : 'Ativar'} ${offer.title}`} aria-checked={offer.enabled} onClick={() => toggleOffer(offer)} disabled={isPending} className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${offer.enabled ? 'bg-[#d8ff00]' : 'border border-border bg-surface-2'}`}>
+                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${offer.enabled ? 'translate-x-[1.375rem]' : 'translate-x-0.5'}`} />
                     </button>
                   </div>
-                  <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-                    <div className="rounded-lg bg-surface-2 p-2"><span className="block text-text-muted">Chance</span><strong className="text-text">{offer.chance}%</strong></div>
-                    <div className="rounded-lg bg-surface-2 p-2"><span className="block text-text-muted">Estoque</span><strong className="text-text">{offer.stock}</strong></div>
-                    <div className="rounded-lg bg-surface-2 p-2"><span className="block text-text-muted">Venda</span><strong className="text-text">{money(offer.revenue_cents)}</strong></div>
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs">
+                    <div className="rounded-lg bg-surface-2 p-2">
+                      <span className="block text-text-muted">Chance de sair</span>
+                      <strong className="text-text">{offer.enabled && chanceTotal > 0 ? `${Math.round((offer.chance / chanceTotal) * 100)}%` : '—'}</strong>
+                      <span className="mt-0.5 block text-[10px] text-text-muted">peso {offer.chance}</span>
+                    </div>
+                    <div className="rounded-lg bg-surface-2 p-2">
+                      <span className="block text-text-muted">Estoque</span>
+                      <strong className="text-text">{offer.stock}</strong>
+                      <span className="mt-0.5 block text-[10px] text-text-muted">unidades</span>
+                    </div>
                   </div>
                   <div className="mt-4 flex gap-2">
                     <button type="button" disabled={isPending} onClick={() => setDraft(offerToDraft(offer))} className="btn-ghost min-h-[42px] flex-1 border border-border text-xs">Editar oferta</button>
@@ -444,7 +461,7 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
                         <p className="mt-1 text-xs text-text-muted">{barber?.nome ?? 'Colaborador'} · {dateTime(sale.created_at)}</p>
                       </div>
                       <div className="text-right">
-                        <strong className="block text-text">{money(sale.amount_cents)}</strong>
+                        <strong className="block text-text">{sale.amount_cents > 0 ? money(sale.amount_cents) : '—'}</strong>
                         <span className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${statusStyle}`}>{statusLabel}</span>
                       </div>
                     </div>
@@ -455,11 +472,28 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
                         <input value={editAmount} onChange={(event) => setEditAmount(event.target.value)} className="input bg-surface text-base sm:text-sm" inputMode="decimal" aria-label="Valor da venda" />
                         <button type="button" onClick={() => run(() => updateBrindoletaSale({ id: sale.id, customerName: editCustomer, amountCents: reaisToCents(editAmount) }), 'Venda editada.')} className="rounded-xl bg-[#d8ff00] px-4 py-2 text-xs font-black text-[#11110f]">Salvar</button>
                       </div>
+                    ) : confirmingSale?.id === sale.id ? (
+                      <div className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-400/[0.06] p-3">
+                        <p className="text-sm font-semibold text-text">Quanto foi vendido de fato?</p>
+                        <p className="mt-1 text-xs leading-relaxed text-text-muted">Informe o valor real da venda. Se foi um brinde sem valor, deixe em branco.</p>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+                          <div className="relative">
+                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">R$</span>
+                            <input value={confirmAmount} autoFocus onChange={(event) => setConfirmAmount(event.target.value)} inputMode="decimal" placeholder="0,00" aria-label="Valor vendido" className="input bg-surface pl-9 text-base sm:text-sm" />
+                          </div>
+                          <button type="button" disabled={isPending} onClick={() => run(async () => {
+                            const upd = await updateBrindoletaSale({ id: sale.id, customerName: sale.customer_name, amountCents: reaisToCents(confirmAmount) })
+                            if (upd.error) return upd
+                            return decideBrindoletaSale(sale.id, 'confirmed')
+                          }, 'Venda confirmada e contabilizada.')} className="min-h-[42px] rounded-xl bg-emerald-400 px-4 py-2 text-xs font-black text-emerald-950 shadow-sm transition hover:brightness-105 disabled:opacity-50">Confirmar venda</button>
+                          <button type="button" onClick={() => setConfirmingSale(null)} className="btn-ghost min-h-[42px] border border-border text-xs">Cancelar</button>
+                        </div>
+                      </div>
                     ) : (
                       <div className="mt-4 flex flex-wrap gap-2">
                         {sale.status === 'pending' && (
                           <>
-                            <button type="button" disabled={isPending} onClick={() => window.confirm('A venda foi realmente realizada?') && run(() => decideBrindoletaSale(sale.id, 'confirmed'), 'Venda confirmada e contabilizada.')} className="min-h-[42px] rounded-xl bg-emerald-400 px-4 py-2 text-xs font-black text-emerald-950 shadow-sm transition hover:brightness-105 disabled:opacity-50">Confirmar venda</button>
+                            <button type="button" disabled={isPending} onClick={() => { setEditingSale(null); setConfirmingSale(sale); setConfirmAmount('') }} className="min-h-[42px] rounded-xl bg-emerald-400 px-4 py-2 text-xs font-black text-emerald-950 shadow-sm transition hover:brightness-105 disabled:opacity-50">Confirmar venda</button>
                             <button type="button" disabled={isPending} onClick={() => window.confirm('Marcar como não realizada?') && run(() => decideBrindoletaSale(sale.id, 'rejected'), 'Venda marcada como não realizada.')} className="btn-ghost min-h-[42px] border border-border text-xs">Não realizada</button>
                           </>
                         )}
@@ -500,12 +534,12 @@ function TabIcon({ tab }: { tab: Tab }) {
 
 function Guide({ businessName }: { businessName: string }) {
   const topics = [
-    ['1. Prepare as ofertas', 'Cadastre até 6 benefícios. Use nomes curtos, descrições claras, estoque e um valor estimado de venda.'],
+    ['1. Prepare as ofertas', 'Cadastre até 6 benefícios com nome curto, descrição clara, estoque e o peso (chance) de cada um. O valor da venda não entra aqui — você informa ao confirmar.'],
     ['2. Gere os QR Codes', 'Abra Equipe & QR, confira cada profissional e imprima o cartão em 10 × 10 cm.'],
     ['3. Posicione no atendimento', 'Deixe o QR na bancada ou no espelho, sem reflexo e ao alcance da câmera do cliente.'],
     ['4. Oriente o cliente', 'Explique que ele ganhou um giro. A descrição completa aparece somente depois que a roleta parar.'],
     ['5. Converta a oferta', 'Se o cliente aceitar, ele informa apenas o nome. A solicitação entra como venda pendente.'],
-    ['6. Confirme diariamente', 'Em Resultados, confirme somente as vendas realizadas. Edite ou exclua registros quando necessário.'],
+    ['6. Confirme diariamente', 'Em Resultados, confirme só as vendas realizadas e informe quanto foi vendido — esse valor é o que entra no faturamento da campanha.'],
   ]
   return (
     <div className="space-y-5">

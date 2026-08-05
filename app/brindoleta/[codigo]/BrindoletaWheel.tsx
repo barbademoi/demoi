@@ -20,10 +20,47 @@ function initials(value: string) {
 }
 
 function segmentTextSize(title: string) {
-  if (title.length > 30) return 'text-[7px] sm:text-[9px]'
-  if (title.length > 22) return 'text-[8px] sm:text-[10px]'
-  if (title.length > 15) return 'text-[9px] sm:text-xs'
-  return 'text-[10px] sm:text-sm'
+  if (title.length > 30) return 'text-[8px] sm:text-[10px]'
+  if (title.length > 22) return 'text-[9px] sm:text-[11px]'
+  if (title.length > 15) return 'text-[10px] sm:text-[13px]'
+  return 'text-[11px] sm:text-[15px]'
+}
+
+function iconFor(type: string) {
+  if (type === 'Produto') return '🧴'
+  if (type === 'Brinde') return '🎁'
+  return '✂️'
+}
+
+// Chuva de confete — pura (CSS), sem libs. Só monta no momento da vitória.
+function Confetti() {
+  const pieces = useMemo(
+    () => Array.from({ length: 48 }, (_, i) => ({
+      left: Math.random() * 100,
+      delay: Math.random() * 0.4,
+      dur: 2.2 + Math.random() * 1.7,
+      color: ['#d8ff00', '#ff6045', '#ffd149', '#35b7eb', '#9365ed', '#f44696'][i % 6],
+      w: 6 + Math.random() * 7,
+      rot: Math.random() * 360,
+    })),
+    [],
+  )
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[60] overflow-hidden" aria-hidden>
+      {pieces.map((p, i) => (
+        <span
+          key={i}
+          style={{
+            position: 'absolute', left: `${p.left}%`, top: '-8%',
+            width: p.w, height: p.w * 0.62, background: p.color, borderRadius: 2,
+            transform: `rotate(${p.rot}deg)`,
+            animation: `bmfall ${p.dur}s ${p.delay}s cubic-bezier(.2,.6,.3,1) forwards`,
+          }}
+        />
+      ))}
+      <style>{'@keyframes bmfall{0%{opacity:0;transform:translateY(0) rotate(0deg)}8%{opacity:1}100%{opacity:0;transform:translateY(114vh) rotate(600deg)}}'}</style>
+    </div>
+  )
 }
 
 export default function BrindoletaWheel({
@@ -197,8 +234,9 @@ export default function BrindoletaWheel({
                     const angle = index * (360 / offers.length)
                     return (
                       <div key={offer.id} className="pointer-events-none absolute inset-0" style={{ transform: `rotate(${angle}deg)` }}>
-                        <div className={`absolute left-1/2 top-[12%] flex min-h-[15%] w-[29%] -translate-x-1/2 items-center justify-center text-center font-black uppercase leading-[1.02] tracking-[-0.02em] text-black ${segmentTextSize(offer.title)}`}>
-                          <span className="max-w-full break-words">{offer.title}</span>
+                        <div className={`absolute left-1/2 top-[8.5%] flex min-h-[17%] w-[30%] -translate-x-1/2 flex-col items-center justify-start gap-1 text-center ${segmentTextSize(offer.title)}`}>
+                          <span className="text-[15px] leading-none sm:text-[19px]" style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,.55))' }}>{iconFor(offer.offer_type)}</span>
+                          <span className="max-w-full break-words font-black uppercase leading-[1.04] tracking-[-0.02em] text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,.95), 0 0 3px rgba(0,0,0,.7), 0 0 1px rgba(0,0,0,1)' }}>{offer.title}</span>
                         </div>
                       </div>
                     )
@@ -210,6 +248,11 @@ export default function BrindoletaWheel({
                 </div>
               </div>
             </div>
+
+            {canSpin && (
+              <span aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 z-10 h-[27%] w-[27%] min-h-[88px] min-w-[88px] -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ animation: 'bmpulse 1.9s ease-out infinite' }} />
+            )}
+            <style>{'@keyframes bmpulse{0%{box-shadow:0 0 0 0 rgba(216,255,0,.5)}70%{box-shadow:0 0 0 24px rgba(216,255,0,0)}100%{box-shadow:0 0 0 0 rgba(216,255,0,0)}}'}</style>
 
             <button
               type="button"
@@ -248,6 +291,8 @@ export default function BrindoletaWheel({
         </section>
       </div>
 
+      {(stage === 'prize' || stage === 'success') && <Confetti />}
+
       {(stage === 'prize' || stage === 'claim' || stage === 'success') && prize && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-3 backdrop-blur-md sm:items-center" role="dialog" aria-modal="true" aria-labelledby="prize-title">
           <div className="relative w-full max-w-md overflow-hidden rounded-[30px] border border-white/15 bg-[#151713] shadow-[0_30px_100px_rgba(0,0,0,.7)]">
@@ -285,8 +330,8 @@ export default function BrindoletaWheel({
                 <>
                   <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-2xl shadow-lg">✦</span>
                   <p className="mt-5 text-[10px] font-black uppercase tracking-[0.24em] text-[#d8ff00]">{resumed ? 'Resultado recuperado' : 'Você desbloqueou'}</p>
-                  <span className="mt-4 inline-flex rounded-full border border-white/15 bg-black/20 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-white/55">{prize.offer_type}</span>
-                  <h2 id="prize-title" className="mt-3 font-serif text-4xl leading-[0.95] tracking-[-0.02em]">{prize.title}</h2>
+                  <span className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/20 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-white/55"><span className="text-sm">{iconFor(prize.offer_type)}</span>{prize.offer_type}</span>
+                  <h2 id="prize-title" className="mt-3 font-serif text-[clamp(2.25rem,9vw,3.25rem)] leading-[0.95] tracking-[-0.02em]" style={{ textShadow: `0 0 28px ${prize.color}55` }}>{prize.title}</h2>
                   <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.05] p-4">
                     <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/30">Condição liberada</p>
                     <p className="mt-1 text-base font-bold leading-relaxed text-white/85">{prize.benefit}</p>
