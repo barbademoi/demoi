@@ -6,11 +6,17 @@
 //
 // Secrets necessarios (supabase secrets set ...):
 //   HOTMART_HOTTOK      = seu Hottok (aba Webhook > Autenticacao na Hotmart)
-//   FINANCEIRO_OFFERS   = codigos de oferta que liberam o financeiro, separados por virgula
-//                         (Combo PLUS + adicional avulso de Financeiro)
+//   PLUS_OFFERS         = codigos de oferta do COMBO PLUS — liberam os DOIS modulos
+//   PLUS_PRODUCTS       = (alternativa/extra) IDs de produto do combo PLUS
+//   FINANCEIRO_OFFERS   = codigos de oferta que liberam SO o financeiro (adicional avulso)
 //   FINANCEIRO_PRODUCTS = (alternativa/extra) IDs de produto que liberam financeiro
-//   FEEDBACK_OFFERS     = codigos de oferta que liberam o Feedback Premiado (combo PLUS)
+//   FEEDBACK_OFFERS     = codigos de oferta que liberam SO o Feedback Premiado
 //   FEEDBACK_PRODUCTS   = (alternativa/extra) IDs de produto que liberam feedback
+//
+// O Plus e vendido por mais de um link (combo da landing + upgrade de dentro do
+// app). Cadastre TODOS eles em PLUS_OFFERS/PLUS_PRODUCTS: assim uma compra do
+// combo libera Financeiro e Feedback de uma vez e nao da pra esquecer o codigo
+// em so uma das listas — falha que ja deixou cliente com Plus sem o Financeiro.
 //
 // SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY ja sao injetados automaticamente.
 //
@@ -26,10 +32,12 @@ const HOTTOK = Deno.env.get("HOTMART_HOTTOK") ?? "";
 const parseCsv = (v: string | undefined) =>
   (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 
-const FIN_OFFERS   = parseCsv(Deno.env.get("FINANCEIRO_OFFERS"));
-const FIN_PRODUCTS = parseCsv(Deno.env.get("FINANCEIRO_PRODUCTS"));
-const FB_OFFERS    = parseCsv(Deno.env.get("FEEDBACK_OFFERS"));
-const FB_PRODUCTS  = parseCsv(Deno.env.get("FEEDBACK_PRODUCTS"));
+const PLUS_OFFERS   = parseCsv(Deno.env.get("PLUS_OFFERS"));
+const PLUS_PRODUCTS = parseCsv(Deno.env.get("PLUS_PRODUCTS"));
+const FIN_OFFERS    = parseCsv(Deno.env.get("FINANCEIRO_OFFERS"));
+const FIN_PRODUCTS  = parseCsv(Deno.env.get("FINANCEIRO_PRODUCTS"));
+const FB_OFFERS     = parseCsv(Deno.env.get("FEEDBACK_OFFERS"));
+const FB_PRODUCTS   = parseCsv(Deno.env.get("FEEDBACK_PRODUCTS"));
 
 const admin = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -73,12 +81,17 @@ Deno.serve(async (req) => {
   // de financeiro libera so financeiro. Quando nenhuma lista esta configurada,
   // libera tudo (modo dev/teste).
   const allEmpty =
+    PLUS_OFFERS.length === 0 && PLUS_PRODUCTS.length === 0 &&
     FIN_OFFERS.length === 0 && FIN_PRODUCTS.length === 0 &&
     FB_OFFERS.length === 0 && FB_PRODUCTS.length === 0;
 
-  const grantsFinanceiro = allEmpty ||
+  // Combo PLUS: uma unica lista libera os dois modulos, entao nao existe mais o
+  // estado "comprou o Plus mas so um modulo abriu".
+  const isPlus = PLUS_OFFERS.includes(offerCode) || PLUS_PRODUCTS.includes(productId);
+
+  const grantsFinanceiro = allEmpty || isPlus ||
     FIN_OFFERS.includes(offerCode) || FIN_PRODUCTS.includes(productId);
-  const grantsFeedback = allEmpty ||
+  const grantsFeedback = allEmpty || isPlus ||
     FB_OFFERS.includes(offerCode) || FB_PRODUCTS.includes(productId);
 
   // Eventos/compras que nao nos interessam: respondemos 200 e seguimos.
