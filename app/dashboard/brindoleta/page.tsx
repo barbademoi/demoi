@@ -194,6 +194,8 @@ export default async function BrindoletaPage() {
                   pixPaymentUrl={payment.pixPaymentUrl}
                   priceLabel={BRINDOLETA_PRICE_LABEL}
                   pending={status === 'pending'}
+                  empresaNome={usuario.barbearias.nome}
+                  ownerEmail={user.email ?? ''}
                 />
               </div>
             </div>
