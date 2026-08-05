@@ -40,6 +40,10 @@ export async function middleware(request: NextRequest) {
     const isAuthRoute        = pathname === '/login'
     const isBarbeiroRoute    = pathname.startsWith('/b/')
     const isFeedbackRoute    = pathname.startsWith('/c/')
+    // Roleta pública (cliente escaneia o QR, sem login). NÃO cobre
+    // /dashboard/brindoleta nem /admin/brindoleta — esses têm outro prefixo e
+    // seguem protegidos.
+    const isBrindoletaPublica = pathname.startsWith('/brindoleta/')
     const isApiRoute         = pathname.startsWith('/api/')
     const isAuthCallback     = pathname.startsWith('/auth/')
     const isPasswordRoute    = pathname === '/esqueci-senha' || pathname === '/redefinir-senha'
@@ -49,8 +53,8 @@ export async function middleware(request: NextRequest) {
     const isBoasVindasRoute  = pathname === '/boas-vindas'
     const isComprarRoute     = pathname === '/comprar'
     const isAguardandoRoute  = pathname === '/aguardando'
-    const isPublicRoute      = isAuthRoute || isBarbeiroRoute || isFeedbackRoute || isApiRoute ||
-                               isAuthCallback || isPasswordRoute || isLandingRoute || isOfertaRoute ||
+    const isPublicRoute      = isAuthRoute || isBarbeiroRoute || isFeedbackRoute || isBrindoletaPublica ||
+                               isApiRoute || isAuthCallback || isPasswordRoute || isLandingRoute || isOfertaRoute ||
                                isBoasVindasRoute || isComprarRoute || isAguardandoRoute
 
     if (!user && !isPublicRoute) {
@@ -75,6 +79,7 @@ export async function middleware(request: NextRequest) {
                           pathname === '/aguardando' ||
                           pathname.startsWith('/b/') ||
                           pathname.startsWith('/c/') ||
+                          pathname.startsWith('/brindoleta/') ||
                           pathname.startsWith('/api/') ||
                           pathname.startsWith('/auth/') ||
                           pathname === '/esqueci-senha' ||
