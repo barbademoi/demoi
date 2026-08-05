@@ -17,12 +17,28 @@ export type CrescimentoBarbearia = {
   barbeariaId: string
   nome: string
   diaFechamento: number
+  /** Data de cadastro da conta — quando adquiriu o BarberMeta. */
+  entrouEm: string | null
   serie: PontoSerie[]
   atualParcial: number
   ultimoFechado: number
   anteriorFechado: number
   crescimentoPct: number | null
   tendencia: Tendencia
+  // ── Desde o início (varre o histórico inteiro, não só a janela) ──
+  primeiroMes: number | null
+  primeiroAno: number | null
+  primeiroValor: number
+  ultimoMes: number | null
+  ultimoAno: number | null
+  ultimoValor: number
+  /** O último mês com dado é o mês corrente, ainda em andamento. */
+  ultimoEmAndamento: boolean
+  mesesComDados: number
+  /** Variação do primeiro mês faturado até o último. Null quando não há base. */
+  crescimentoTotal: number | null
+  /** Média mensal composta no intervalo. Null quando não há base. */
+  crescimentoMensal: number | null
 }
 
 /**
@@ -56,12 +72,23 @@ export async function listarCrescimentoBarbearias(ciclos = 6): Promise<{
     barbearia_id: string
     nome: string
     dia_fechamento: number
+    entrou_em: string | null
     serie: PontoSerie[] | null
     atual_parcial: string | number
     ultimo_fechado: string | number
     anterior_fechado: string | number
     crescimento_pct: string | number | null
     tendencia: Tendencia
+    primeiro_mes: number | null
+    primeiro_ano: number | null
+    primeiro_valor: string | number
+    ultimo_mes: number | null
+    ultimo_ano: number | null
+    ultimo_valor: string | number
+    ultimo_em_andamento: boolean | null
+    meses_com_dados: number | null
+    crescimento_total: string | number | null
+    crescimento_mensal: string | number | null
   }>
 
   // numeric do Postgres chega como string no supabase-js — converter aqui evita
@@ -84,6 +111,18 @@ export async function listarCrescimentoBarbearias(ciclos = 6): Promise<{
       anteriorFechado: num(r.anterior_fechado),
       crescimentoPct: r.crescimento_pct === null ? null : num(r.crescimento_pct),
       tendencia: r.tendencia,
+      entrouEm: r.entrou_em,
+      primeiroMes: r.primeiro_mes,
+      primeiroAno: r.primeiro_ano,
+      primeiroValor: num(r.primeiro_valor),
+      ultimoMes: r.ultimo_mes,
+      ultimoAno: r.ultimo_ano,
+      ultimoValor: num(r.ultimo_valor),
+      ultimoEmAndamento: !!r.ultimo_em_andamento,
+      mesesComDados: Number(r.meses_com_dados) || 0,
+      // NULL do banco significa "sem base pra comparar" — não zero.
+      crescimentoTotal: r.crescimento_total === null ? null : num(r.crescimento_total),
+      crescimentoMensal: r.crescimento_mensal === null ? null : num(r.crescimento_mensal),
     })),
   }
 }

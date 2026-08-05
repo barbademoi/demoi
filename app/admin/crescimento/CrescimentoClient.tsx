@@ -27,6 +27,19 @@ function pct(v: number | null) {
   return `${s}${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`
 }
 
+const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+
+function mesAno(mes: number | null, ano: number | null) {
+  if (!mes || !ano) return '—'
+  return `${MESES[mes - 1]}/${String(ano).slice(2)}`
+}
+
+function dataCurta(iso: string | null) {
+  if (!iso) return '—'
+  return new Intl.DateTimeFormat('pt-BR', { month: 'short', year: 'numeric', timeZone: 'America/Sao_Paulo' })
+    .format(new Date(iso + 'T12:00:00'))
+}
+
 export default function CrescimentoClient({
   rows,
   ciclos,
@@ -50,6 +63,20 @@ export default function CrescimentoClient({
   const crescimentoRede = totalAnterior > 0
     ? ((totalFechado - totalAnterior) / totalAnterior) * 100
     : null
+
+  // Mediana, não média: uma barbearia que saiu de R$ 500 pra R$ 5.000 marca
+  // +900% e sozinha puxaria a média da rede pra um número que não descreve
+  // ninguém. Só entram as que têm base de comparação.
+  const comBaseLista = useMemo(
+    () => rows.map((r) => r.crescimentoTotal).filter((v): v is number => v !== null).sort((a, b) => a - b),
+    [rows],
+  )
+  const comBase = comBaseLista.length
+  const medianaDesdeInicio = comBase === 0
+    ? null
+    : comBase % 2 === 1
+      ? comBaseLista[(comBase - 1) / 2]
+      : Math.round(((comBaseLista[comBase / 2 - 1] + comBaseLista[comBase / 2]) / 2) * 10) / 10
 
   const visiveis = useMemo(() => {
     const termo = busca.trim().toLowerCase()
@@ -79,9 +106,16 @@ export default function CrescimentoClient({
           <p className="mt-0.5 text-xs text-text-muted">de {money(totalAnterior)}</p>
         </div>
         <div className="card p-4">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-text-muted">Barbearias analisadas</p>
-          <p className="mt-1 font-serif text-3xl text-text tabular-nums">{rows.length}</p>
-          <p className="mt-0.5 text-xs text-text-muted">últimos {ciclos} ciclos</p>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-text-muted">Crescimento típico desde o início</p>
+          <p className={`mt-1 font-serif text-3xl ${
+            medianaDesdeInicio === null ? 'text-text-muted'
+              : medianaDesdeInicio >= 0 ? 'text-emerald-300' : 'text-red-300'
+          }`}>
+            {pct(medianaDesdeInicio)}
+          </p>
+          <p className="mt-0.5 text-xs text-text-muted">
+            mediana de {comBase} de {rows.length} barbearias
+          </p>
         </div>
       </div>
 
@@ -127,24 +161,46 @@ export default function CrescimentoClient({
             const t = meta(r.tendencia)
             return (
               <div key={r.barbeariaId} className="flex flex-wrap items-center gap-4 p-4">
-                <div className="min-w-[9rem] flex-1">
+                <div className="min-w-[13rem] flex-1">
                   <p className="truncate font-sans font-semibold text-text">{r.nome}</p>
+
+                  {/* A jornada: quanto faturava no primeiro mês → quanto fatura hoje. */}
+                  {r.mesesComDados > 0 ? (
+                    <p className="mt-1 text-sm text-text">
+                      <span className="text-text-muted">{money(r.primeiroValor)}</span>
+                      <span className="text-text-muted"> em {mesAno(r.primeiroMes, r.primeiroAno)} → </span>
+                      <span className="font-semibold">{money(r.ultimoValor)}</span>
+                      <span className="text-text-muted"> em {mesAno(r.ultimoMes, r.ultimoAno)}</span>
+                      {r.ultimoEmAndamento && (
+                        <span className="ml-1.5 rounded-full border border-border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-text-muted">
+                          mês em curso
+                        </span>
+                      )}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-sm text-text-muted">Ainda não lançou faturamento</p>
+                  )}
+
                   <p className="mt-0.5 text-xs text-text-muted">
-                    {money(r.ultimoFechado)} no último ciclo fechado
-                    {r.atualParcial > 0 && ` · ${money(r.atualParcial)} no ciclo em andamento`}
+                    Entrou em {dataCurta(r.entrouEm)}
+                    {r.mesesComDados > 0 && ` · ${r.mesesComDados} ${r.mesesComDados === 1 ? 'mês' : 'meses'} com lançamento`}
+                    {r.crescimentoMensal !== null && ` · ${pct(r.crescimentoMensal)} ao mês`}
                   </p>
                 </div>
 
                 <Sparkline serie={r.serie} cor={t.cor} />
 
                 <div className="flex shrink-0 items-center gap-3">
-                  <span className={`min-w-[4.5rem] text-right font-serif text-xl tabular-nums ${
-                    r.crescimentoPct === null ? 'text-text-muted'
-                      : r.crescimentoPct >= 0 ? 'text-emerald-300' : 'text-red-300'
-                  }`}>
-                    {pct(r.crescimentoPct)}
+                  <span className="min-w-[5.5rem] text-right">
+                    <span className={`block font-serif text-xl tabular-nums ${
+                      r.crescimentoTotal === null ? 'text-text-muted'
+                        : r.crescimentoTotal >= 0 ? 'text-emerald-300' : 'text-red-300'
+                    }`}>
+                      {pct(r.crescimentoTotal)}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wide text-text-muted">desde o início</span>
                   </span>
-                  <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${t.classe}`}>
+                  <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${t.classe}`} title={`Variação recente: ${pct(r.crescimentoPct)}`}>
                     {t.label}
                   </span>
                 </div>
@@ -155,10 +211,13 @@ export default function CrescimentoClient({
       </div>
 
       <p className="text-xs leading-relaxed text-text-muted">
-        O crescimento compara o <span className="text-text">último ciclo fechado</span> com o anterior a ele —
-        o ciclo em andamento fica de fora da conta (aparece tracejado no gráfico), senão toda barbearia
-        pareceria em queda. O faturamento segue a mesma regra do painel do dono: o valor informado nas metas
-        quando preenchido, senão a soma dos lançamentos dos barbeiros ativos.
+        <span className="text-text">Desde o início</span> compara o primeiro mês em que a barbearia faturou
+        com o mês mais recente, varrendo todo o histórico — não só a janela do gráfico. O marco não é a data
+        de cadastro: conta criada em um mês e primeiro lançamento semanas depois faria o crescimento explodir
+        do nada. Quem só tem um mês de dados fica sem percentual, porque não há o que comparar.
+        A etiqueta de tendência olha o movimento recente (último ciclo fechado contra o anterior), e o mês em
+        curso aparece tracejado no gráfico por estar incompleto. O faturamento segue a mesma regra do painel
+        do dono: o valor informado nas metas quando preenchido, senão a soma dos lançamentos dos barbeiros ativos.
       </p>
     </div>
   )
