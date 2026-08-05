@@ -423,6 +423,27 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
             </Link>
           )}
 
+          {/* Uso das barbearias — visível SÓ pra conta do dono. */}
+          {mostrarCortesias && (
+            <Link
+              href="/admin/uso"
+              onClick={() => setOpen(false)}
+              className={`
+                flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm transition-colors
+                ${pathname === '/admin/uso' && !showFerramentas
+                  ? 'bg-primary/15 text-primary font-semibold'
+                  : 'text-text-muted hover:text-text hover:bg-surface-2'}
+              `}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+                <line x1="18" y1="20" x2="18" y2="10" />
+                <line x1="12" y1="20" x2="12" y2="4" />
+                <line x1="6" y1="20" x2="6" y2="14" />
+              </svg>
+              <span className="flex-1 truncate">Uso das barbearias</span>
+            </Link>
+          )}
+
           {/* Metas & Pontos button */}
           {onFerramentasClick && (
             <button
