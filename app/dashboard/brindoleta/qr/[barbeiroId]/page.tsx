@@ -1,7 +1,6 @@
 import { headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { emailPodeBrindoleta } from '@/lib/brindoleta/acesso'
 import QrPrintCard from './QrPrintCard'
 
 export const metadata = { title: 'Imprimir QR Code — Brindoleta' }
@@ -18,8 +17,6 @@ export default async function BrindoletaQrPrintPage({ params }: Props) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-  // Em teste: só a conta liberada acessa a Brindoleta.
-  if (!emailPodeBrindoleta(user.email)) redirect('/dashboard')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: ownerRaw } = await (supabase as any)

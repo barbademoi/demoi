@@ -14,7 +14,7 @@ import CampanhaToggle from '@/components/dashboard/CampanhaToggle'
 import ResumoReuniaoModal from '@/components/dashboard/ResumoReuniaoModal'
 import DashboardShell from '@/components/dashboard/DashboardShell'
 import { emailEhAdminCortesia } from '@/lib/admin/cortesia'
-import { emailPodeBrindoleta } from '@/lib/brindoleta/acesso'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { BrindoletaStatus } from '@/lib/brindoleta/config'
 import { calcularPremiacao } from '@/lib/premios'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
@@ -72,18 +72,41 @@ export default async function DashboardPage({
     redirect('/login')
   }
 
-  // Brindoleta em TESTE: só a conta liberada vê o item/status. Pras demais
-  // contas nem consulta a licença (fica invisível e sem custo).
-  const brindoletaLiberado = emailPodeBrindoleta(user.email)
-  let brindoletaStatus: BrindoletaStatus | null = null
-  if (brindoletaLiberado) {
+  // Brindoleta: status da própria barbearia controla o que aparece
+  // (promo/checkout se não tem, painel se ativa).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: brindoletaLicenseRaw } = await (supabase as any)
+    .from('brindoleta_licenses')
+    .select('status')
+    .eq('barbearia_id', barbearia.id)
+    .maybeSingle()
+  const brindoletaStatus = (brindoletaLicenseRaw?.status ?? null) as BrindoletaStatus | null
+
+  // Avisos de venda + contador de pendentes — só pro admin (dono da plataforma).
+  const brindoletaAdmin = emailEhAdminCortesia(user.email)
+  let brindoletaVendas: { id: string; empresa: string; valorCents: number; quando: string | null }[] = []
+  if (brindoletaAdmin) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: brindoletaLicenseRaw } = await (supabase as any)
+    const adminDb: any = createAdminClient()
+    const { data: pend } = await adminDb
       .from('brindoleta_licenses')
-      .select('status')
-      .eq('barbearia_id', barbearia.id)
-      .maybeSingle()
-    brindoletaStatus = (brindoletaLicenseRaw?.status ?? null) as BrindoletaStatus | null
+      .select('barbearia_id, amount_cents, requested_at')
+      .eq('status', 'pending')
+      .order('requested_at', { ascending: false })
+      .limit(20)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ids = (pend ?? []).map((p: any) => p.barbearia_id)
+    const { data: barbs } = ids.length
+      ? await adminDb.from('barbearias').select('id, nome').in('id', ids)
+      : { data: [] }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    brindoletaVendas = (pend ?? []).map((p: any) => ({
+      id: p.barbearia_id,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      empresa: (barbs ?? []).find((b: any) => b.id === p.barbearia_id)?.nome ?? 'Empresa',
+      valorCents: p.amount_cents ?? 4700,
+      quando: p.requested_at ?? null,
+    }))
   }
 
   // Destaques do mês (privado do dono, sempre do CICLO ATUAL — independe do
@@ -420,8 +443,9 @@ export default async function DashboardPage({
     <DashboardShell
       premiacao={premiacao}
       mostrarCortesias={emailEhAdminCortesia(user.email)}
-      brindoletaLiberado={brindoletaLiberado}
       brindoletaStatus={brindoletaStatus}
+      brindoletaAdmin={brindoletaAdmin}
+      brindoletaVendas={brindoletaVendas}
       barbeariaNome={barbearia.nome}
       cicloLabel={ciclo.label}
       isAutonomo={isAutonomo}

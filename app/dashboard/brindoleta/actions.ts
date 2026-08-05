@@ -4,7 +4,6 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { BRINDOLETA_PRICE_CENTS } from '@/lib/brindoleta/config'
-import { emailPodeBrindoleta } from '@/lib/brindoleta/acesso'
 
 export type SolicitarBrindoletaResult = {
   ok?: boolean
@@ -17,8 +16,6 @@ export async function solicitarAcessoBrindoleta(
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Sua sessão expirou. Entre novamente.' }
-  // Em teste: só a conta liberada acessa a Brindoleta.
-  if (!emailPodeBrindoleta(user.email)) return { error: 'A Brindoleta ainda não está liberada para esta conta.' }
 
   const payerName = String(formData.get('payer_name') ?? '').trim().slice(0, 120)
   const paymentNote = String(formData.get('payment_note') ?? '').trim().slice(0, 240)

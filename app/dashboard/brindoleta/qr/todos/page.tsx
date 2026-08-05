@@ -1,7 +1,6 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { emailPodeBrindoleta } from '@/lib/brindoleta/acesso'
 import type { QrCardData } from '@/components/brindoleta/QrCardSheet'
 import QrPrintAll from './QrPrintAll'
 
@@ -17,7 +16,6 @@ export default async function BrindoletaQrTodosPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-  if (!emailPodeBrindoleta(user.email)) redirect('/dashboard')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: ownerRaw } = await (supabase as any)

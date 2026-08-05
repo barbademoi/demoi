@@ -3,7 +3,6 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { emailPodeBrindoleta } from '@/lib/brindoleta/acesso'
 import type { BrindoletaOfferType, BrindoletaSaleStatus } from '@/lib/brindoleta/types'
 
 const MAX_ACTIVE_OFFERS = 6
@@ -25,8 +24,6 @@ async function authorizeOwner() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Sua sessão expirou. Entre novamente.' as const }
-  // Em teste: só a conta liberada opera a Brindoleta.
-  if (!emailPodeBrindoleta(user.email)) return { error: 'A Brindoleta ainda não está liberada para esta conta.' as const }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuario } = await (supabase as any)

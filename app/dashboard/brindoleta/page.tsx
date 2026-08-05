@@ -6,7 +6,6 @@ import BrindoletaDemo from '@/components/brindoleta/BrindoletaDemo'
 import BrindoletaPanel from '@/components/brindoleta/BrindoletaPanel'
 import { createClient } from '@/lib/supabase/server'
 import { emailEhAdminCortesia } from '@/lib/admin/cortesia'
-import { emailPodeBrindoleta } from '@/lib/brindoleta/acesso'
 import {
   BRINDOLETA_PRICE_LABEL,
   brindoletaPaymentConfig,
@@ -32,8 +31,6 @@ export default async function BrindoletaPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-  // Em teste: só a conta liberada acessa a Brindoleta.
-  if (!emailPodeBrindoleta(user.email)) redirect('/dashboard')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
@@ -100,7 +97,7 @@ export default async function BrindoletaPage() {
 
   return (
     <div className="bm-theme min-h-screen flex">
-      <Sidebar barbeariaNome={usuario.barbearias.nome} brindoletaLiberado brindoletaStatus={status} />
+      <Sidebar barbeariaNome={usuario.barbearias.nome} brindoletaStatus={status} />
       <main className="min-w-0 flex-1 px-4 pb-16 pt-20 lg:pl-[calc(16rem+2rem)] lg:pr-8 lg:pt-10">
         <div className="mx-auto max-w-5xl">
           <div className="mb-7 flex flex-wrap items-start justify-between gap-4">

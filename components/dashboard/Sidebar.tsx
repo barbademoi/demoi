@@ -27,8 +27,7 @@ interface Props {
   onDestaquesClick?: () => void
   // Link "Conceder acesso" (cortesia) — só habilitado pra conta do dono.
   mostrarCortesias?: boolean
-  // Brindoleta em teste: item e modal só aparecem pra conta liberada.
-  brindoletaLiberado?: boolean
+  // Brindoleta: modal se auto-gate por status.
   brindoletaStatus?: BrindoletaStatus | null
 }
 
@@ -207,7 +206,7 @@ const navItems: NavItem[] = [
   },
 ]
 
-export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerramentas = false, secaoDono, onPremiacoesClick, onDestaquesClick, mostrarCortesias = false, brindoletaLiberado = false, brindoletaStatus = null }: Props) {
+export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerramentas = false, secaoDono, onPremiacoesClick, onDestaquesClick, mostrarCortesias = false, brindoletaStatus = null }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
@@ -299,8 +298,6 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
             // Item de PREVIEW restrito: só aparece pra quem tem acesso
             // (allowlist). Enquanto verifica (undefined) fica escondido.
             if (item.previewReuniao && access.reuniao !== true) return null
-            // Brindoleta em teste: escondida pra quem não está liberado.
-            if (item.soBrindoleta && !brindoletaLiberado) return null
             const active = pathname === item.href && !showFerramentas
             // Cadeado: so se o item exige acesso E ja sabemos que nao tem.
             // Enquanto undefined (verificando), nao mostra nada — evita
@@ -483,7 +480,7 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
         </div>
       </aside>
 
-      {brindoletaLiberado && <BrindoletaLaunchModal status={brindoletaStatus} />}
+      <BrindoletaLaunchModal status={brindoletaStatus} />
       <PreviewPlusModal open={showPreview} onClose={() => setShowPreview(false)} />
     </>
   )
