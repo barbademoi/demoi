@@ -10,6 +10,8 @@ interface Props {
   pixPaymentUrl: string
   priceLabel: string
   pending: boolean
+  empresaNome: string
+  ownerEmail: string
 }
 
 export default function BrindoletaCheckout({
@@ -19,6 +21,8 @@ export default function BrindoletaCheckout({
   pixPaymentUrl,
   priceLabel,
   pending: pendingInicial,
+  empresaNome,
+  ownerEmail,
 }: Props) {
   const [copied, setCopied] = useState(false)
   const [pending, setPending] = useState(pendingInicial)
@@ -126,36 +130,58 @@ export default function BrindoletaCheckout({
 
         <div className="h-px bg-border" />
 
+        {/* Depois de pagar, o dono só precisa avisar: a conta logada já
+            identifica o pedido (empresa + e-mail), então o botão nunca fica
+            travado esperando digitação. */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="payer_name" className="label">Nome de quem fez o Pix *</label>
-            <input
-              id="payer_name"
-              name="payer_name"
-              required
-              minLength={3}
-              maxLength={120}
-              autoComplete="name"
-              placeholder="Nome que aparece no comprovante"
-              className="input text-[16px]"
-              style={{ fontSize: '16px' }}
-            />
+          <div className="rounded-xl border border-border bg-surface-2 p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+              Vamos avisar em nome de
+            </p>
+            <p className="mt-1.5 font-sans font-semibold text-text">{empresaNome}</p>
+            {ownerEmail && <p className="text-sm text-text-muted">{ownerEmail}</p>}
           </div>
-          <div>
-            <label htmlFor="payment_note" className="label">Observação (opcional)</label>
-            <input
-              id="payment_note"
-              name="payment_note"
-              maxLength={240}
-              placeholder="Ex.: Pix feito pelo sócio João"
-              className="input text-[16px]"
-              style={{ fontSize: '16px' }}
-            />
-          </div>
-          {error && <p className="text-sm text-red-300">{error}</p>}
-          <button type="submit" disabled={isSubmitting || (!pixKey && !pixPaymentUrl)} className="btn-primary w-full py-3.5">
-            {isSubmitting ? 'Enviando para conferência…' : 'Já fiz o pagamento'}
+
+          <button
+            type="submit"
+            disabled={isSubmitting || (!pixKey && !pixPaymentUrl)}
+            className="btn-primary w-full py-3.5"
+          >
+            {isSubmitting ? 'Enviando para conferência…' : `Já fiz o Pix de ${priceLabel} — enviar para aprovação`}
           </button>
+
+          <details className="group">
+            <summary className="cursor-pointer list-none text-center text-xs text-text-muted underline decoration-dotted underline-offset-4">
+              O Pix foi feito por outra pessoa? Informe o nome
+            </summary>
+            <div className="mt-4 space-y-4">
+              <div>
+                <label htmlFor="payer_name" className="label">Nome de quem fez o Pix</label>
+                <input
+                  id="payer_name"
+                  name="payer_name"
+                  maxLength={120}
+                  autoComplete="name"
+                  placeholder={empresaNome}
+                  className="input text-[16px]"
+                  style={{ fontSize: '16px' }}
+                />
+              </div>
+              <div>
+                <label htmlFor="payment_note" className="label">Observação (opcional)</label>
+                <input
+                  id="payment_note"
+                  name="payment_note"
+                  maxLength={240}
+                  placeholder="Ex.: Pix feito pelo sócio João"
+                  className="input text-[16px]"
+                  style={{ fontSize: '16px' }}
+                />
+              </div>
+            </div>
+          </details>
+
+          {error && <p className="text-sm text-red-300">{error}</p>}
           <p className="text-center text-xs leading-relaxed text-text-muted">
             Este botão não libera o acesso sozinho. O responsável confirma o Pix antes da ativação.
           </p>

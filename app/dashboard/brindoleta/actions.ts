@@ -17,22 +17,27 @@ export async function solicitarAcessoBrindoleta(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Sua sessão expirou. Entre novamente.' }
 
-  const payerName = String(formData.get('payer_name') ?? '').trim().slice(0, 120)
+  const payerNameInformado = String(formData.get('payer_name') ?? '').trim().slice(0, 120)
   const paymentNote = String(formData.get('payment_note') ?? '').trim().slice(0, 240)
-  if (payerName.length < 3) {
-    return { error: 'Informe o nome de quem fez o Pix.' }
-  }
 
   // Sempre deriva a barbearia da sessão. O cliente nunca envia um ID de conta.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuario } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id')
+    .select('barbearia_id, barbearias(nome)')
     .eq('id', user.id)
     .single()
 
   const barbeariaId = usuario?.barbearia_id as string | undefined
   if (!barbeariaId) return { error: 'Não foi possível identificar sua empresa.' }
+
+  // O aviso nunca trava por falta de digitação: quando o dono não informa o
+  // nome do Pix, identificamos o pedido pela própria conta (empresa + e-mail),
+  // que é o que o responsável usa pra conferir o pagamento.
+  const empresaNome = String(usuario?.barbearias?.nome ?? '').trim()
+  const payerName = payerNameInformado.length >= 3
+    ? payerNameInformado
+    : (empresaNome || user.email || 'Conta sem nome').slice(0, 120)
 
   const admin = createAdminClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
