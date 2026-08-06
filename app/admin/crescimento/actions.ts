@@ -26,6 +26,10 @@ export type PontoSerie = {
 export type CrescimentoBarbearia = {
   barbeariaId: string
   nome: string
+  /** Cidade do cadastro. null quando o dono nunca preencheu. */
+  cidade: string | null
+  /** Barbeiros ATIVOS — inativado não infla o time num card que vira post. */
+  qtdBarbeiros: number
   diaFechamento: number
   entrouEm: string | null
   serie: PontoSerie[]
@@ -96,6 +100,8 @@ export async function listarCrescimentoBarbearias(filtros: Partial<FiltrosCresci
     rows: rows.map((r) => ({
       barbeariaId: r.barbearia_id,
       nome: r.nome,
+      cidade: r.cidade ?? null,
+      qtdBarbeiros: Number(r.qtd_barbeiros) || 0,
       diaFechamento: Number(r.dia_fechamento) || 1,
       entrouEm: r.entrou_em,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
