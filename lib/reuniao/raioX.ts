@@ -46,6 +46,10 @@ export interface FaturamentoGeralMes {
   valor: number
   deltaPct: number | null   // variação vs. o mês anterior (null = sem base)
   emAndamento: boolean       // true no ciclo atual (parcial, ainda em curso)
+  // Valor CONTRA O QUAL o deltaPct foi calculado — no mês em andamento é o
+  // anterior prorrateado, não o mês fechado inteiro. Exposto pra frase citar a
+  // diferença em R$ usando exatamente a mesma base do %, sem recalcular por fora.
+  valorAnteriorComparado: number | null
 }
 
 export interface RaioXReuniao {
@@ -130,6 +134,7 @@ export async function gerarRaioXReuniao(
         valor: h.comissao,
         deltaPct,
         emAndamento,
+        valorAnteriorComparado: baseAnterior != null && baseAnterior > 0 ? baseAnterior : null,
       }
     })
   }
