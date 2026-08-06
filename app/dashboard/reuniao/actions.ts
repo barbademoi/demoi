@@ -1,10 +1,10 @@
 'use server'
 
-import Anthropic from '@anthropic-ai/sdk'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { emailTemReuniao } from '@/lib/reuniao/preview'
-import { gerarRaioXReuniao, type RaioXReuniao } from '@/lib/reuniao/raioX'
+import { gerarRaioXReuniao } from '@/lib/reuniao/raioX'
+import { montarPautaReuniao } from '@/lib/reuniao/frases'
 
 // Resolve o dono autenticado E confere acesso ao módulo (allowlist preview).
 // Retorna barbearia_id só se o e-mail estiver liberado. Trava REAL no servidor.
@@ -25,102 +25,26 @@ async function donoComAcesso(): Promise<Acesso> {
   return { ok: true, supabase, barbeariaId }
 }
 
-const fmtBRL = (n: number) =>
-  `R$ ${Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-
-function montarContexto(rx: RaioXReuniao): string {
-  const b: string[] = []
-  b.push(`PERÍODO: ${rx.cicloLabel} (dia ${rx.diasDecorridos} de ${rx.totalDiasCiclo})`)
-  b.push(`BASE DA META: ${rx.baseLabel}`)
-  const deltaTxt = rx.totalDeltaPct == null ? 'sem base anterior' : `${rx.totalDeltaPct >= 0 ? '+' : ''}${Math.round(rx.totalDeltaPct)}% vs. mesmo período do mês passado`
-  b.push(`EQUIPE — ${rx.baseLabel} acumulado: ${fmtBRL(rx.totalAtual)} (${deltaTxt}); mesmo período do mês passado: ${fmtBRL(rx.totalMesmoPeriodoAnterior)}; projeção de fechamento: ${fmtBRL(rx.totalProjetado)}`)
-
-  // Faturamento geral da casa (últimos 6 meses) — só quando o toggle está ligado.
-  if (rx.mostrarFaturamentoGeral && rx.faturamentoGeral && rx.faturamentoGeral.some(m => m.valor > 0)) {
-    b.push('FATURAMENTO GERAL DA CASA (últimos 6 meses, mês atual em andamento):')
-    for (const m of rx.faturamentoGeral) {
-      const ref = m.emAndamento ? 'vs. mesmo período do mês passado' : 'vs. mês anterior'
-      const v = m.deltaPct == null ? '' : ` (${m.deltaPct >= 0 ? '+' : ''}${Math.round(m.deltaPct)}% ${ref})`
-      b.push(`- ${m.label}${m.emAndamento ? ' [parcial]' : ''}: ${fmtBRL(m.valor)}${v}`)
-    }
-  }
-
-  b.push('POR BARBEIRO (número já apurado pelo sistema):')
-  for (const l of rx.barbeiros) {
-    const d = l.deltaPct == null ? 's/ base anterior' : `${l.deltaPct >= 0 ? '+' : ''}${Math.round(l.deltaPct)}% vs. mesmo período`
-    const meta = l.metaFoco > 0 ? `; meta foco ${fmtBRL(l.metaFoco)}; projeção ${fmtBRL(l.projetado)} (${l.ritmoOk ? 'no ritmo' : 'atrás do ritmo'})` : ''
-    b.push(`- ${l.nome}: ${fmtBRL(l.valorAtual)} (${d}); ${l.pontos} pts${meta}`)
-  }
-
-  if (rx.precisamAtencao.length > 0) {
-    b.push('PRECISAM DE ATENÇÃO (apurado pelo sistema):')
-    for (const l of rx.precisamAtencao) b.push(`- ${l.nome}: ${l.motivoAtencao}`)
-  } else {
-    b.push('PRECISAM DE ATENÇÃO: ninguém em alerta neste período.')
-  }
-
-  const d = rx.destaques
-  const dst: string[] = []
-  if (d.pontuacao) dst.push(`Mais pontos: ${d.pontuacao.nome} (${d.pontuacao.valorFmt})`)
-  if (d.faturamento) dst.push(`${d.faturamentoLabel}: ${d.faturamento.nome} (${d.faturamento.valorFmt})`)
-  if (d.evolucao) dst.push(`Maior evolução: ${d.evolucao.nome} (${d.evolucao.valorFmt} vs. mesmo período)`)
-  if (dst.length > 0) b.push(`DESTAQUES:\n${dst.map(x => `- ${x}`).join('\n')}`)
-
-  return b.join('\n')
-}
-
 /**
- * PAUTA POR IA. A IA recebe os NÚMEROS JÁ APURADOS pelo raio-x (não recalcula
- * nada) e redige resumo + pontos de atenção + sugestões de pauta. Se faltar a
- * chave, avisa. Só leitura.
+ * PAUTA DA REUNIÃO — montada por TEMPLATE, sem IA.
+ *
+ * Os números vêm todos do raio-x (que já os apura); aqui só se escreve o texto
+ * em cima deles, via lib/reuniao/frases.ts. Nenhuma chamada externa: o mesmo
+ * conjunto de números produz sempre a mesma pauta, e a geração não depende de
+ * crédito, chave nem rede. Só leitura.
  */
 export async function gerarPautaReuniao(): Promise<{ texto: string } | { error: string }> {
   const acesso = await donoComAcesso()
   if (!acesso.ok) return { error: acesso.error }
-
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return { error: 'IA indisponível: falta a chave ANTHROPIC_API_KEY no ambiente. Configure pra gerar a pauta.' }
-  }
 
   const rx = await gerarRaioXReuniao(acesso.supabase, acesso.barbeariaId)
   if (rx.barbeiros.length === 0) {
     return { error: 'Sem dados da equipe neste período pra montar a pauta.' }
   }
 
-  const contexto = montarContexto(rx)
-  const prompt = `Você é um assistente de gestão de barbearias. Com base APENAS nos números já apurados abaixo (não invente, não recalcule, não crie valores que não estão aqui), escreva uma pauta prática pro dono conduzir a reunião com a equipe.
-
-Estrutura:
-1. RESUMO DO MÊS (2-4 linhas): como a equipe está vs. o mesmo período do mês passado e a projeção de fechamento. Se houver "FATURAMENTO GERAL DA CASA", comente a evolução da casa mês a mês (tendência de alta/queda), lembrando que o mês atual é parcial.
-2. PONTOS DE ATENÇÃO POR BARBEIRO: cite nominalmente quem precisa de atenção e por quê (ex.: "Fulano caiu X% vs. mesmo período").
-3. QUEM PUXA O TIME: destaque quem está indo bem.
-4. SUGESTÕES DE PAUTA: 3 a 5 tópicos objetivos pra reunião.
-
-Tom: prático, direto, humano, em português do Brasil — como um dono falando. Sem coach, sem enrolação. Use os valores exatamente como estão nos dados.
-
-DADOS APURADOS:
-${contexto}
-
-Retorne só o texto da pauta, pronto pra ler na reunião.`
-
-  try {
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1600,
-      messages: [{ role: 'user', content: prompt }],
-    })
-    const texto = msg.content
-      .filter(b => b.type === 'text')
-      .map(b => (b as { type: 'text'; text: string }).text)
-      .join('\n')
-      .trim()
-    if (!texto) return { error: 'Não consegui gerar a pauta agora.' }
-    return { texto }
-  } catch (err) {
-    console.error('[gerarPautaReuniao] erro:', err)
-    return { error: 'Erro ao gerar a pauta. Tente de novo em alguns segundos.' }
-  }
+  const texto = montarPautaReuniao(rx)
+  if (!texto.trim()) return { error: 'Sem dados suficientes pra montar a pauta.' }
+  return { texto }
 }
 
 // ── Anotações / checklist ────────────────────────────────────────────────

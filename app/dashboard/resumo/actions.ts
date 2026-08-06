@@ -1,6 +1,5 @@
 'use server'
 
-import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { pegarRegrasGerais } from '@/lib/regras'
 import { cicloDeData } from '@/lib/ciclo'
@@ -24,17 +23,14 @@ interface CampLite {
 }
 
 /**
- * Gera o texto da reunião juntando metas + campanha + regras (fixas e da
- * barbearia) e chamando a Anthropic. Devolve o texto pronto pra o dono
- * editar, copiar e mandar no WhatsApp.
+ * Monta o texto de abertura do mês juntando metas + campanha + regras (fixas e
+ * da barbearia). O texto é montado por TEMPLATE, sem IA: os mesmos dados geram
+ * sempre o mesmo texto, e nada sai do servidor. Devolve pronto pro dono editar,
+ * copiar e mandar no WhatsApp.
  */
 export async function gerarResumoReuniao(mes: number, ano: number): Promise<
   { texto: string } | { error: string }
 > {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return { error: 'Geração de resumo indisponível no momento.' }
-  }
-
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Não autenticado.' }
@@ -104,27 +100,33 @@ export async function gerarResumoReuniao(mes: number, ano: number): Promise<
     .eq('barbearia_id', usuario.barbearia_id).eq('ativo', true).order('nome')
   const barbeiros = (barbsRaw ?? []) as BarbeiroLite[]
 
-  // ── Monta o contexto pra IA ───────────────────────────
+  // ── Texto da reunião, montado por TEMPLATE (sem IA) ───
+  // O texto é lido em voz alta ou colado no WhatsApp, então sai em frases
+  // corridas em PT-BR — nada de rótulo em caixa alta, que era formato de
+  // contexto pra máquina, não de recado pra equipe.
   const fmtBRL = (n: number) =>
     `R$ ${Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
   const blocos: string[] = []
-  blocos.push(`BARBEARIA: ${barbeariaNome}`)
-  blocos.push(`PERÍODO: ${periodoLabel}`)
+
+  blocos.push(
+    `${barbeariaNome} — metas de ${periodoLabel}\n\n` +
+    `Pessoal, esse é o combinado do mês. Está tudo aqui: o que a casa precisa bater, ` +
+    `a meta de cada um e como funciona a pontuação.`,
+  )
 
   if (meta) {
-    const tiersColetivos: string[] = []
+    const tiers: string[] = []
     const addTier = (label: string, valor: number, premio: string | null) => {
       if (!valor || valor <= 0) return
-      let l = `${label}: ${fmtBRL(valor)}`
-      if (premio) l += ` — prêmio: ${premio}`
-      tiersColetivos.push(l)
+      tiers.push(`• ${label}: ${fmtBRL(valor)}${premio ? ` — ${premio}` : ''}`)
     }
     addTier('Bronze', Number(meta.meta_coletiva_bronze) || 0, meta.premio_coletivo_bronze)
     addTier('Prata',  Number(meta.meta_coletiva_prata)  || 0, meta.premio_coletivo_prata)
     addTier('Ouro',   Number(meta.meta_coletiva)        || 0, meta.premio_coletivo)
-    if (tiersColetivos.length > 0) {
-      blocos.push(`META COLETIVA (tiers Bronze/Prata/Ouro):\n${tiersColetivos.map(t => `- ${t}`).join('\n')}`)
+    if (tiers.length > 0) {
+      const nomes = tiers.length === 1 ? 'a meta da casa' : `os ${tiers.length} níveis da meta da casa`
+      blocos.push(`META DA CASA\nQuando a casa bate, todo mundo ganha. Esses são ${nomes}:\n${tiers.join('\n')}`)
     }
   }
 
@@ -133,78 +135,44 @@ export async function gerarResumoReuniao(mes: number, ano: number): Promise<
       .map(mi => {
         const b = barbeiros.find(x => x.id === mi.barbeiro_id)
         if (!b) return null
-        const fmtTier = (val: number, premio: string | null) =>
+        const tier = (val: number, premio: string | null) =>
           `${fmtBRL(Number(val) || 0)}${premio ? ` (${premio})` : ''}`
-        return `- ${b.nome}: Bronze ${fmtTier(mi.bronze_comm, mi.bronze_premio)} · Prata ${fmtTier(mi.prata_comm, mi.prata_premio)} · Ouro ${fmtTier(mi.ouro_comm, mi.ouro_premio)}`
+        return `• ${b.nome} — Bronze ${tier(mi.bronze_comm, mi.bronze_premio)} · ` +
+               `Prata ${tier(mi.prata_comm, mi.prata_premio)} · Ouro ${tier(mi.ouro_comm, mi.ouro_premio)}`
       })
       .filter((x): x is string => x !== null)
     if (linhas.length > 0) {
-      blocos.push(`METAS INDIVIDUAIS:\n${linhas.join('\n')}`)
+      blocos.push(`METAS INDIVIDUAIS\nCada um tem três degraus. Bateu o degrau, ganhou o prêmio dele:\n${linhas.join('\n')}`)
     }
   }
 
   if (campanha) {
-    const camp: string[] = ['CAMPANHA DE PONTOS:']
+    const camp: string[] = ['CAMPANHA DE PONTOS']
     if (campServicos.length > 0) {
-      camp.push('Serviços que pontuam:')
-      for (const s of campServicos) camp.push(`  ${s.emoji} ${s.nome}: ${s.pontos} pts`)
+      camp.push('Serviços que valem ponto:')
+      for (const sv of campServicos) camp.push(`• ${sv.emoji} ${sv.nome} — ${sv.pontos} ${sv.pontos === 1 ? 'ponto' : 'pontos'}`)
     }
-    camp.push(`Mínimo para participar: barbeiros ${campanha.min_pontos} pts · recepcionistas ${campanha.min_pontos_recep} pts`)
+    camp.push(
+      `Pra entrar na disputa: ${campanha.min_pontos} ${campanha.min_pontos === 1 ? 'ponto' : 'pontos'} ` +
+      `(barbeiros) e ${campanha.min_pontos_recep} ${campanha.min_pontos_recep === 1 ? 'ponto' : 'pontos'} (recepção).`,
+    )
     if (campanha.bonus_assin_qtd > 0 && Number(campanha.bonus_assin_valor) > 0) {
-      camp.push(`Bônus de assinaturas: ${campanha.bonus_assin_qtd}+ assinaturas vendidas = ${fmtBRL(Number(campanha.bonus_assin_valor))} extra`)
+      camp.push(`Bônus de assinatura: quem vender ${campanha.bonus_assin_qtd} ou mais leva ${fmtBRL(Number(campanha.bonus_assin_valor))} extra.`)
     }
     if (campPremios.length > 0) {
       camp.push('Premiação do ranking:')
-      for (const p of campPremios) camp.push(`  ${p.posicao}º lugar: ${fmtBRL(Number(p.valor))}`)
+      for (const pr of campPremios) camp.push(`• ${pr.posicao}º lugar — ${fmtBRL(Number(pr.valor))}`)
     }
     blocos.push(camp.join('\n'))
   }
 
-  blocos.push(
-    `REGRAS GERAIS DA CAMPANHA:\n${regrasGerais.map(r => `- ${r}`).join('\n')}`
-  )
+  blocos.push(`COMO FUNCIONA\n${regrasGerais.map(r => `• ${r}`).join('\n')}`)
 
   if (campanha?.regras_personalizadas) {
-    blocos.push(`COMBINADOS DESTA BARBEARIA:\n${campanha.regras_personalizadas}`)
+    blocos.push(`COMBINADOS DA CASA\n${campanha.regras_personalizadas}`)
   }
 
-  const contexto = blocos.join('\n\n')
+  blocos.push('Qualquer dúvida sobre meta ou pontuação, me chama. Bom mês a todos.')
 
-  const prompt = `Você é um assistente de gestão de barbearias. Com base nos dados abaixo, crie um texto claro, direto e motivador para o dono apresentar à equipe na reunião de início de mês.
-
-Tom: humano, respeitoso, sem coach, como um dono falando para sua equipe.
-
-Estrutura:
-1. Abertura motivadora (2 a 3 linhas)
-2. Meta coletiva e o que todos ganham
-3. Metas individuais de cada barbeiro
-4. Como funciona a campanha de pontos
-5. Regras gerais do sistema e combinados específicos da barbearia
-6. Encerramento motivador (2 a 3 linhas)
-
-Dados:
-${contexto}
-
-Retorne somente o texto formatado, pronto para ser lido em reunião ou enviado no WhatsApp do grupo.`
-
-  try {
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1500,
-      messages: [{ role: 'user', content: prompt }],
-    })
-
-    const texto = msg.content
-      .filter(b => b.type === 'text')
-      .map(b => (b as { type: 'text'; text: string }).text)
-      .join('\n')
-      .trim()
-
-    if (!texto) return { error: 'Não consegui gerar o resumo agora.' }
-    return { texto }
-  } catch (err) {
-    console.error('[gerarResumoReuniao] erro:', err)
-    return { error: 'Erro ao gerar o resumo. Tente de novo em alguns segundos.' }
-  }
+  return { texto: blocos.join('\n\n') }
 }
