@@ -3,126 +3,119 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { emailEhAdminCortesia } from '@/lib/admin/cortesia'
+import { sanearFiltros, type FiltrosCrescimento } from './filtros'
 
-export type Tendencia = 'subindo' | 'estavel' | 'caindo' | 'sem_base'
+export type MotivoInconfiavel =
+  | 'sem_lancamento'
+  | 'so_mes_em_curso'
+  | 'base_fraca'
+  | 'poucos_dias'
+  | 'poucos_meses'
 
 export type PontoSerie = {
   mes: number
   ano: number
   valor: number
+  dias: number
   parcial: boolean
+  acimaPiso: boolean
+  bemAlimentado: boolean
+  valido: boolean
 }
 
 export type CrescimentoBarbearia = {
   barbeariaId: string
   nome: string
   diaFechamento: number
-  /** Data de cadastro da conta — quando adquiriu o BarberMeta. */
   entrouEm: string | null
   serie: PontoSerie[]
   atualParcial: number
-  ultimoFechado: number
-  anteriorFechado: number
+  /** Passou nos 3 filtros: meses fechados suficientes, acima do piso, bem alimentados. */
+  confiavel: boolean
+  motivo: MotivoInconfiavel | null
+  mesesValidos: number
+  // Comparação entre os dois meses válidos mais recentes
+  refMes: number | null
+  refAno: number | null
+  refValor: number
+  antMes: number | null
+  antAno: number | null
+  antValor: number
+  /** Os dois meses comparados são vizinhos no calendário. */
+  consecutivos: boolean | null
   crescimentoPct: number | null
-  tendencia: Tendencia
-  // ── Desde o início (varre o histórico inteiro, não só a janela) ──
+  /** Acima do teto de plausibilidade — exibido, mas fora das estatísticas. */
+  outlier: boolean
   primeiroMes: number | null
   primeiroAno: number | null
   primeiroValor: number
-  ultimoMes: number | null
-  ultimoAno: number | null
-  ultimoValor: number
-  /** O último mês com dado é o mês corrente, ainda em andamento. */
-  ultimoEmAndamento: boolean
-  mesesComDados: number
-  /** Variação do primeiro mês faturado até o último. Null quando não há base. */
   crescimentoTotal: number | null
-  /** Média mensal composta no intervalo. Null quando não há base. */
-  crescimentoMensal: number | null
 }
 
 /**
- * Evolução do faturamento por barbearia.
+ * Crescimento por barbearia, já separado entre dado confiável e insuficiente.
  *
- * O cálculo mora na função SQL `admin_crescimento_barbearias` (migration 042),
- * que repete a mesma precedência de faturamento do painel do dono (meta manual
- * primeiro, senão soma dos lançamentos de barbeiros ativos) — os números aqui
- * precisam bater com o que o cliente vê.
+ * Os filtros moram na função SQL `admin_crescimento_barbearias` (migration
+ * 044): só mês FECHADO, acima do piso de faturamento e com lançamento em dias
+ * suficientes entra na conta. Isso é o que impede um mês de teste de R$ 48 de
+ * virar denominador e produzir +197.816%.
  */
-export async function listarCrescimentoBarbearias(ciclos = 6): Promise<{
+export async function listarCrescimentoBarbearias(filtros: Partial<FiltrosCrescimento> = {}): Promise<{
   rows: CrescimentoBarbearia[]
+  filtros: FiltrosCrescimento
   error?: string
 }> {
+  const f = sanearFiltros(filtros)
+
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user || !emailEhAdminCortesia(user.email)) return { rows: [], error: 'Sem permissão.' }
-
-  const janela = Number.isFinite(ciclos) && ciclos >= 3 && ciclos <= 12 ? Math.round(ciclos) : 6
+  if (!user || !emailEhAdminCortesia(user.email)) return { rows: [], filtros: f, error: 'Sem permissão.' }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (createAdminClient() as any)
-    .rpc('admin_crescimento_barbearias', { p_ciclos: janela })
+    .rpc('admin_crescimento_barbearias', {
+      p_ciclos: f.ciclos,
+      p_piso_faturamento: f.piso,
+      p_dias_minimos: f.diasMinimos,
+      p_meses_minimos: f.mesesMinimos,
+      p_outlier_pct: f.outlierPct,
+    })
 
   if (error) {
     console.error('[admin/crescimento] erro ao consultar:', error)
-    return { rows: [], error: 'Não foi possível carregar o crescimento das barbearias.' }
+    return { rows: [], filtros: f, error: 'Não foi possível carregar o crescimento das barbearias.' }
   }
 
-  const rows = (data ?? []) as Array<{
-    barbearia_id: string
-    nome: string
-    dia_fechamento: number
-    entrou_em: string | null
-    serie: PontoSerie[] | null
-    atual_parcial: string | number
-    ultimo_fechado: string | number
-    anterior_fechado: string | number
-    crescimento_pct: string | number | null
-    tendencia: Tendencia
-    primeiro_mes: number | null
-    primeiro_ano: number | null
-    primeiro_valor: string | number
-    ultimo_mes: number | null
-    ultimo_ano: number | null
-    ultimo_valor: string | number
-    ultimo_em_andamento: boolean | null
-    meses_com_dados: number | null
-    crescimento_total: string | number | null
-    crescimento_mensal: string | number | null
-  }>
-
-  // numeric do Postgres chega como string no supabase-js — converter aqui evita
-  // "15000.00" virar texto concatenado na hora de somar/formatar na tela.
-  const num = (v: string | number | null | undefined) => Number(v ?? 0) || 0
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows = (data ?? []) as any[]
+  // numeric do Postgres chega como string no supabase-js.
+  const num = (v: unknown) => Number(v ?? 0) || 0
 
   return {
+    filtros: f,
     rows: rows.map((r) => ({
       barbeariaId: r.barbearia_id,
       nome: r.nome,
       diaFechamento: Number(r.dia_fechamento) || 1,
-      serie: (r.serie ?? []).map((p) => ({
-        mes: Number(p.mes),
-        ano: Number(p.ano),
-        valor: num(p.valor as unknown as string),
-        parcial: !!p.parcial,
+      entrouEm: r.entrou_em,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      serie: ((r.serie ?? []) as any[]).map((p) => ({
+        mes: Number(p.mes), ano: Number(p.ano), valor: num(p.valor), dias: Number(p.dias) || 0,
+        parcial: !!p.parcial, acimaPiso: !!p.acimaPiso,
+        bemAlimentado: !!p.bemAlimentado, valido: !!p.valido,
       })),
       atualParcial: num(r.atual_parcial),
-      ultimoFechado: num(r.ultimo_fechado),
-      anteriorFechado: num(r.anterior_fechado),
-      crescimentoPct: r.crescimento_pct === null ? null : num(r.crescimento_pct),
-      tendencia: r.tendencia,
-      entrouEm: r.entrou_em,
-      primeiroMes: r.primeiro_mes,
-      primeiroAno: r.primeiro_ano,
-      primeiroValor: num(r.primeiro_valor),
-      ultimoMes: r.ultimo_mes,
-      ultimoAno: r.ultimo_ano,
-      ultimoValor: num(r.ultimo_valor),
-      ultimoEmAndamento: !!r.ultimo_em_andamento,
-      mesesComDados: Number(r.meses_com_dados) || 0,
-      // NULL do banco significa "sem base pra comparar" — não zero.
-      crescimentoTotal: r.crescimento_total === null ? null : num(r.crescimento_total),
-      crescimentoMensal: r.crescimento_mensal === null ? null : num(r.crescimento_mensal),
+      confiavel: !!r.confiavel,
+      motivo: (r.motivo ?? null) as MotivoInconfiavel | null,
+      mesesValidos: Number(r.meses_validos) || 0,
+      refMes: r.ref_mes, refAno: r.ref_ano, refValor: num(r.ref_valor),
+      antMes: r.ant_mes, antAno: r.ant_ano, antValor: num(r.ant_valor),
+      consecutivos: r.consecutivos === null || r.consecutivos === undefined ? null : !!r.consecutivos,
+      // NULL do banco = sem base pra comparar. Não é zero.
+      crescimentoPct: r.crescimento_pct === null || r.crescimento_pct === undefined ? null : num(r.crescimento_pct),
+      outlier: !!r.outlier,
+      primeiroMes: r.primeiro_mes, primeiroAno: r.primeiro_ano, primeiroValor: num(r.primeiro_valor),
+      crescimentoTotal: r.crescimento_total === null || r.crescimento_total === undefined ? null : num(r.crescimento_total),
     })),
   }
 }
