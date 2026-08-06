@@ -44,6 +44,21 @@ function mediana(vals: number[]): number | null {
   return Math.round(m * 10) / 10
 }
 
+/** Link do PNG: leva os MESMOS filtros, senão a imagem sairia com outro número. */
+function linkImagem(id: string, filtros: FiltrosCrescimento, formato: '4x5' | '1x1') {
+  const p = new URLSearchParams({
+    id, formato,
+    ciclos: String(filtros.ciclos), piso: String(filtros.piso),
+    dias: String(filtros.diasMinimos), meses: String(filtros.mesesMinimos),
+    outlier: String(filtros.outlierPct),
+  })
+  return `/admin/crescimento/imagem?${p.toString()}`
+}
+
+const slug = (s: string) =>
+  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '-')
+   .replace(/^-|-$/g, '').toLowerCase() || 'barbearia'
+
 export default function CrescimentoClient({
   rows,
   filtros,
@@ -149,7 +164,9 @@ export default function CrescimentoClient({
                     <span className="text-text-muted"> em {mesAno(r.refMes, r.refAno)}</span>
                   </p>
                   <p className="mt-0.5 text-xs text-text-muted">
-                    Entrou em {dataCurta(r.entrouEm)} · {r.mesesValidos} {r.mesesValidos === 1 ? 'mês válido' : 'meses válidos'}
+                    {/* Cidade nunca quebra: cadastro antigo pode não ter. */}
+                    {r.cidade ?? 'cidade não informada'} · {r.qtdBarbeiros} {r.qtdBarbeiros === 1 ? 'barbeiro' : 'barbeiros'}
+                    {' · entrou em '}{dataCurta(r.entrouEm)} · {r.mesesValidos} {r.mesesValidos === 1 ? 'mês válido' : 'meses válidos'}
                     {/* Meses não vizinhos: dizer "mês a mês" seria mentira. */}
                     {r.consecutivos === false && ' · meses não consecutivos'}
                     {r.crescimentoTotal !== null && ` · ${pct(r.crescimentoTotal)} desde ${mesAno(r.primeiroMes, r.primeiroAno)}`}
@@ -167,6 +184,23 @@ export default function CrescimentoClient({
                       {pct(r.crescimentoPct)}
                     </span>
                     <span className="text-[10px] uppercase tracking-wide text-text-muted">mês fechado</span>
+                  </span>
+
+                  <span className="flex flex-col gap-1">
+                    <a
+                      href={linkImagem(r.barbeariaId, filtros, '4x5')}
+                      download={`barbermeta-${slug(r.nome)}-4x5.png`}
+                      className="rounded-lg border border-primary/50 bg-primary/10 px-3 py-1.5 text-center text-xs font-semibold text-text hover:bg-primary/20"
+                    >
+                      Baixar imagem 4:5
+                    </a>
+                    <a
+                      href={linkImagem(r.barbeariaId, filtros, '1x1')}
+                      download={`barbermeta-${slug(r.nome)}-1x1.png`}
+                      className="rounded-lg border border-border px-3 py-1.5 text-center text-xs text-text-muted hover:text-text"
+                    >
+                      quadrada 1:1
+                    </a>
                   </span>
                 </div>
               </div>
@@ -198,7 +232,8 @@ export default function CrescimentoClient({
                   <div className="min-w-0">
                     <p className="truncate font-sans font-medium text-text">{r.nome}</p>
                     <p className="mt-0.5 text-xs text-text-muted">
-                      {r.motivo ? MOTIVOS[r.motivo] : 'Sem dado suficiente'}
+                      {r.cidade ?? 'cidade não informada'} · {r.qtdBarbeiros} {r.qtdBarbeiros === 1 ? 'barbeiro' : 'barbeiros'}
+                      {' · '}{r.motivo ? MOTIVOS[r.motivo] : 'Sem dado suficiente'}
                       {r.mesesValidos > 0 && ` · ${r.mesesValidos} ${r.mesesValidos === 1 ? 'mês válido' : 'meses válidos'}`}
                       {' · entrou em '}{dataCurta(r.entrouEm)}
                     </p>
