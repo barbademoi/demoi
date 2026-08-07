@@ -80,6 +80,76 @@ function normalizePayload(
   }
 }
 
+// ── DIAGNÓSTICO (temporário) ──────────────────────────────────────────────
+// Grava o payload cru pra descobrir, com dado real, qual campo separa MENSAL
+// de ANUAL dentro do produto de assinatura. Não altera nenhuma regra de
+// acesso e NUNCA derruba o webhook: qualquer erro aqui é engolido.
+
+/** Caminhos onde a Hotmart costuma pôr cada dado, entre v1 (flat) e v2 (aninhado). */
+function primeiro(fields: Record<string, unknown>, caminhos: string[]): string | null {
+  for (const c of caminhos) {
+    const v = c.split('.').reduce<unknown>((acc, k) => (acc as Record<string, unknown>)?.[k], fields)
+    if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim()
+  }
+  return null
+}
+
+/** Documento, telefone e endereço não servem ao diagnóstico — saem do registro. */
+function mascarar(valor: unknown): unknown {
+  const SENSIVEIS = /^(doc|document|cpf|cnpj|phone|celular|telefone|checkout_phone|address|endereco|zipcode|cep|street|number|complement|neighborhood)/i
+  if (Array.isArray(valor)) return valor.map(mascarar)
+  if (valor && typeof valor === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(valor as Record<string, unknown>)) {
+      out[k] = SENSIVEIS.test(k) ? '***' : mascarar(v)
+    }
+    return out
+  }
+  return valor
+}
+
+async function registrarPayload(
+  fields: Record<string, unknown>,
+  isFormData: boolean,
+  evento: string,
+  email: string,
+  transacao: string,
+) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const supabase: any = createAdminClient()
+    const linha = {
+      evento,
+      email: email || null,
+      transacao: transacao || null,
+      formato: isFormData ? 'form' : 'json',
+      product_id: primeiro(fields, ['prod', 'product_id', 'data.product.id', 'product.id']),
+      preco_valor: Number(
+        primeiro(fields, ['price', 'purchase_price', 'data.purchase.price.value', 'full_price']) ?? '',
+      ) || null,
+      preco_moeda: primeiro(fields, ['currency', 'currency_code', 'data.purchase.price.currency_value']),
+      assinatura_id: primeiro(fields, [
+        'subscriber_code', 'subscription_id',
+        'data.subscription.subscriber.code', 'data.subscription.subscriber_code', 'data.subscription.id',
+      ]),
+      // Vários candidatos: qual deles vem preenchido é justamente o que este log
+      // existe pra descobrir. O payload completo fica em `payload`.
+      periodicidade: primeiro(fields, [
+        'recurrency_period', 'subscription_plan_name', 'plan', 'frequency',
+        'data.subscription.plan.recurrency_period', 'data.subscription.plan.name',
+        'data.purchase.recurrence_number', 'data.purchase.offer.payment_mode',
+      ]),
+      payload: mascarar(fields),
+    }
+    const { error } = await supabase.from('hotmart_webhook_log').insert(linha)
+    if (error) console.error('[webhook/hotmart] log falhou (ignorado):', error.message)
+    else console.log('[webhook/hotmart] payload registrado | prod:', linha.product_id, '| periodicidade?:', linha.periodicidade, '| preço:', linha.preco_valor)
+  } catch (err) {
+    // Diagnóstico jamais pode quebrar o recebimento da compra.
+    console.error('[webhook/hotmart] log falhou (ignorado):', err)
+  }
+}
+
 export async function POST(request: NextRequest) {
   // ── 1. Ler body raw ───────────────────────────────────────────────────────
   const rawBody     = await request.text()
@@ -123,6 +193,11 @@ export async function POST(request: NextRequest) {
   const payload = normalizePayload(fields, isFormData)
   const { buyer, purchase } = payload
   console.log('[webhook/hotmart] event:', payload.event, '| email:', buyer.email, '| nome:', buyer.name, '| tx:', purchase.transaction)
+
+  // Registra ANTES do filtro de evento: os eventos de assinatura (cancelamento,
+  // troca de plano, atraso) são justamente os que hoje param aqui, e são eles
+  // que precisamos ver. Só entra payload já autenticado pelo hottok.
+  await registrarPayload(fields, isFormData, payload.event, buyer.email, purchase.transaction)
 
   if (payload.event !== 'PURCHASE_APPROVED') {
     console.log('[webhook/hotmart] evento ignorado:', payload.event)
