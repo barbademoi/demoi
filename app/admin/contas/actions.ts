@@ -133,6 +133,11 @@ export async function criarContaManual(formData: FormData): Promise<CriarContaRe
       email,
       senha_definida: true,
       senha_temporaria: true,
+      // Conta criada à mão pelo admin é acesso permanente, e isso vai
+      // EXPLÍCITO: a coluna perde o default na migration 048, e sem isto o
+      // insert passaria a falhar.
+      tipo_acesso: 'vitalicio',
+      origem: 'admin',
     })
 
   if (errUsuario) {
