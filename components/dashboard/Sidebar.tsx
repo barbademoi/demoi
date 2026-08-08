@@ -464,6 +464,26 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
             </Link>
           )}
 
+          {/* Assinaturas — visível SÓ pra conta do dono. */}
+          {mostrarCortesias && (
+            <Link
+              href="/admin/assinaturas"
+              onClick={() => setOpen(false)}
+              className={`
+                flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm transition-colors
+                ${pathname === '/admin/assinaturas' && !showFerramentas
+                  ? 'bg-primary/15 text-primary font-semibold'
+                  : 'text-text-muted hover:text-text hover:bg-surface-2'}
+              `}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+                <rect x="2" y="5" width="20" height="14" rx="2" />
+                <line x1="2" y1="10" x2="22" y2="10" />
+              </svg>
+              <span className="flex-1 truncate">Assinaturas</span>
+            </Link>
+          )}
+
           {/* Metas & Pontos button */}
           {onFerramentasClick && (
             <button
