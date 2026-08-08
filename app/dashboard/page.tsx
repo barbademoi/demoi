@@ -21,6 +21,8 @@ import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import FecharMesButton from '@/components/dashboard/FecharMesButton'
 import DestaquesMes from '@/components/dashboard/DestaquesMes'
 import { calcularDestaquesMes } from '@/lib/destaquesMes'
+import { verificarAssinatura } from '@/lib/assinatura/verificar'
+import AvisoAssinatura from '@/components/dashboard/AvisoAssinatura'
 import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario } from '@/types/database'
 
 type UsuarioComBarbearia = {
@@ -108,6 +110,9 @@ export default async function DashboardPage({
       quando: p.requested_at ?? null,
     }))
   }
+
+  // Aviso de assinatura (vitalício nunca gera aviso — a função sai antes).
+  const acessoAssinatura = await verificarAssinatura()
 
   // Destaques do mês (privado do dono, sempre do CICLO ATUAL — independe do
   // mês navegado). Mesma fonte do ranking; só leitura.
@@ -475,6 +480,7 @@ export default async function DashboardPage({
           hrefBase="/dashboard"
         />
       }
+      avisoAssinaturaSlot={<AvisoAssinatura acesso={acessoAssinatura} />}
       destaquesSlot={<DestaquesMes destaques={destaques} />}
       mes={mes}
       ano={ano}
