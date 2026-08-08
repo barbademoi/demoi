@@ -17,6 +17,7 @@ import type {
   BrindoletaSale,
   BrindoletaSpin,
 } from '@/lib/brindoleta/types'
+import { brindoletaLiberada } from '@/lib/brindoleta/liberacao'
 import BrindoletaCheckout from './BrindoletaCheckout'
 
 export const metadata = { title: 'Brindoleta — BarberMeta' }
@@ -50,6 +51,10 @@ export default async function BrindoletaPage() {
     .maybeSingle()
 
   const status = (licenseRaw?.status ?? null) as BrindoletaStatus | null
+  // `status` continua valendo pra MENSAGEM (pedido em análise, recusado,
+  // suspenso); quem decide se abre a central é `liberado`, que também conta a
+  // assinatura ativa. Assinante entra sem nunca ter criado licença.
+  const liberado = await brindoletaLiberada(supabase, usuario.barbearia_id)
   const payment = brindoletaPaymentConfig()
   const isAdmin = emailEhAdminCortesia(user.email)
 
@@ -60,7 +65,7 @@ export default async function BrindoletaPage() {
   let publicBaseUrl = ''
   let panelError = ''
 
-  if (status === 'active') {
+  if (liberado) {
     const [offersResult, barbersResult, spinsResult, salesResult] = await Promise.all([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase as any).from('brindoleta_offers').select('*')
@@ -97,15 +102,15 @@ export default async function BrindoletaPage() {
 
   return (
     <div className="bm-theme min-h-screen flex">
-      <Sidebar barbeariaNome={usuario.barbearias.nome} brindoletaStatus={status} />
+      <Sidebar barbeariaNome={usuario.barbearias.nome} brindoletaStatus={liberado ? 'active' : status} />
       <main className="min-w-0 flex-1 px-4 pb-16 pt-20 lg:pl-[calc(16rem+2rem)] lg:pr-8 lg:pt-10">
         <div className="mx-auto max-w-5xl">
           <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">{status === 'active' ? 'Central de vendas interativa' : 'Novo no BarberMeta'}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">{liberado ? 'Central de vendas interativa' : 'Novo no BarberMeta'}</p>
               <h1 className="mt-2 font-serif text-3xl text-text sm:text-4xl">Brindoleta</h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-text-muted sm:text-base">
-                {status === 'active'
+                {liberado
                   ? 'Crie ofertas, distribua os QR Codes da equipe e acompanhe cada oportunidade gerada no atendimento.'
                   : 'Transforme o atendimento em uma oportunidade de vender serviços extras, produtos e benefícios de um jeito leve e divertido.'}
               </p>
@@ -117,7 +122,7 @@ export default async function BrindoletaPage() {
             )}
           </div>
 
-          {status === 'active' ? (
+          {liberado ? (
             panelError ? (
               <section className="card border-amber-400/25 p-6 text-center sm:p-8">
                 <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/10 text-xl text-amber-200">!</span>

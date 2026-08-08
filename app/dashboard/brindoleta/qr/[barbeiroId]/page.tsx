@@ -1,6 +1,7 @@
 import { headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { brindoletaLiberada } from '@/lib/brindoleta/liberacao'
 import QrPrintCard from './QrPrintCard'
 
 export const metadata = { title: 'Imprimir QR Code — Brindoleta' }
@@ -27,13 +28,8 @@ export default async function BrindoletaQrPrintPage({ params }: Props) {
   const owner = ownerRaw as unknown as Owner | null
   if (!owner?.barbearia_id || !owner.barbearias) redirect('/dashboard')
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: license } = await (supabase as any)
-    .from('brindoleta_licenses')
-    .select('status')
-    .eq('barbearia_id', owner.barbearia_id)
-    .maybeSingle()
-  if (license?.status !== 'active') redirect('/dashboard/brindoleta')
+  // Licença avulsa ativa OU assinatura em dia.
+  if (!(await brindoletaLiberada(supabase, owner.barbearia_id))) redirect('/dashboard/brindoleta')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barber } = await (supabase as any)

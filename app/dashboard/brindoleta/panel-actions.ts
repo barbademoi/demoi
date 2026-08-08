@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { BrindoletaOfferType, BrindoletaSaleStatus } from '@/lib/brindoleta/types'
+import { brindoletaLiberada } from '@/lib/brindoleta/liberacao'
 
 const MAX_ACTIVE_OFFERS = 6
 const OFFER_TYPES: BrindoletaOfferType[] = ['Serviço', 'Produto', 'Brinde']
@@ -36,14 +37,10 @@ async function authorizeOwner() {
   if (!barbeariaId) return { error: 'Não foi possível identificar sua empresa.' as const }
 
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: license } = await (admin as any)
-    .from('brindoleta_licenses')
-    .select('status')
-    .eq('barbearia_id', barbeariaId)
-    .maybeSingle()
-
-  if (license?.status !== 'active') return { error: 'A Brindoleta ainda não está liberada para esta empresa.' as const }
+  // Licença avulsa ativa OU assinatura em dia — a regra mora no SQL.
+  if (!(await brindoletaLiberada(admin, barbeariaId))) {
+    return { error: 'A Brindoleta ainda não está liberada para esta empresa.' as const }
+  }
   return { admin, barbeariaId }
 }
 
