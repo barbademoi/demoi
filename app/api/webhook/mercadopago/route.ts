@@ -214,7 +214,13 @@ export async function POST(request: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: errUsuario } = await (admin as any)
     .from('usuarios')
-    .insert({ id: userId, barbearia_id: barbeariaId, email, senha_definida: false })
+    // tipo_acesso EXPLÍCITO: o Mercado Pago só vende o produto vitalício, mas
+    // isso precisa estar escrito. Sem isto, a linha nascia vitalícia por causa
+    // do default da coluna — e o default vai embora na migration 048.
+    .insert({
+      id: userId, barbearia_id: barbeariaId, email, senha_definida: false,
+      tipo_acesso: 'vitalicio', origem: 'mercadopago',
+    })
 
   if (errUsuario) {
     console.error('[webhook/mp] erro ao criar usuario:', errUsuario)

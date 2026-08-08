@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import {
+  extrair, classificar, calcularValidoAte, statusDoEvento, eventoRelevante,
+  EVENTOS_ATIVA,
+} from '@/lib/assinatura/hotmart'
 
 function gerarSenhaInterna(): string {
   const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*'
@@ -150,6 +154,68 @@ async function registrarPayload(
   }
 }
 
+/**
+ * Aplica cancelamento / atraso / ajuste de plano numa conta que já existe.
+ *
+ * VITALÍCIO NUNCA É TOCADO: é a regra de ouro do sistema. Um vitalício que um
+ * dia assinar e depois cancelar continua vitalício — o cancelamento é da
+ * assinatura, não do direito que ele comprou.
+ */
+async function aplicarEventoAssinatura(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  evento: string,
+  email: string,
+  dados: ReturnType<typeof extrair>,
+): Promise<string> {
+  // Acha pelo código do assinante (estável entre renovações) e, se não achar,
+  // pelo e-mail.
+  let conta: { id: string; tipo_acesso: string } | null = null
+  if (dados.assinaturaId) {
+    const { data } = await supabase
+      .from('usuarios').select('id, tipo_acesso')
+      .eq('assinatura_id', dados.assinaturaId).maybeSingle()
+    conta = data ?? null
+  }
+  if (!conta && email) {
+    const { data } = await supabase
+      .from('usuarios').select('id, tipo_acesso')
+      .eq('email', email).maybeSingle()
+    conta = data ?? null
+  }
+  if (!conta) {
+    console.warn('[webhook/hotmart] evento de assinatura sem conta correspondente:', evento, email, dados.assinaturaId)
+    return 'Account not found'
+  }
+
+  if (conta.tipo_acesso === 'vitalicio') {
+    console.log('[webhook/hotmart] vitalício preservado, evento ignorado:', evento, email)
+    return 'Lifetime access preserved'
+  }
+
+  const patch: Record<string, unknown> = {}
+  const status = statusDoEvento(evento)
+  if (status) patch.status_assinatura = status
+
+  // A Hotmart informa a próxima cobrança nesses eventos — é a data mais
+  // confiável de validade que existe, melhor que qualquer conta minha.
+  if (dados.proximaCobranca) patch.valido_ate = dados.proximaCobranca.toISOString()
+
+  // Troca de plano: a periodicidade pode ter mudado.
+  const nova = classificar(dados)
+  if (evento === 'SWITCH_PLAN' && nova.periodicidade) patch.periodicidade = nova.periodicidade
+
+  if (Object.keys(patch).length === 0) return 'Nothing to update'
+
+  const { error } = await supabase.from('usuarios').update(patch).eq('id', conta.id)
+  if (error) {
+    console.error('[webhook/hotmart] erro ao aplicar evento de assinatura:', error)
+    return 'Update failed'
+  }
+  console.log('[webhook/hotmart] assinatura atualizada:', evento, email, patch)
+  return 'Subscription updated'
+}
+
 export async function POST(request: NextRequest) {
   // ── 1. Ler body raw ───────────────────────────────────────────────────────
   const rawBody     = await request.text()
@@ -199,12 +265,46 @@ export async function POST(request: NextRequest) {
   // que precisamos ver. Só entra payload já autenticado pelo hottok.
   await registrarPayload(fields, isFormData, payload.event, buyer.email, purchase.transaction)
 
-  if (payload.event !== 'PURCHASE_APPROVED') {
+  const supabaseAdmin = createAdminClient()
+  const dados = extrair(fields)
+  const acesso = classificar(dados)
+  for (const aviso of acesso.avisos) console.error('[webhook/hotmart][ATENÇÃO]', aviso)
+
+  // ── IDEMPOTÊNCIA ─────────────────────────────────────────────────────────
+  // Todo evento v2 traz um `id` único; a retentativa da Hotmart repete o mesmo.
+  // Sem isto, uma retentativa de PURCHASE_APPROVED estenderia valido_ate duas
+  // vezes. Sem `id` (v1 form), monta uma chave com o que dá pra identificar.
+  const chaveEvento = dados.eventoId
+    ?? `${payload.event}:${purchase.transaction || 's/tx'}:${dados.assinaturaId ?? 's/assin'}`
+  if (eventoRelevante(payload.event)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: errDup } = await (supabaseAdmin as any)
+      .from('hotmart_eventos_processados')
+      .insert({ evento_id: chaveEvento, evento: payload.event, assinatura_id: dados.assinaturaId })
+    if (errDup) {
+      // 23505 = violação de unique → já processamos. Qualquer outro erro segue,
+      // porque perder um pagamento é pior do que processar duas vezes.
+      if ((errDup as { code?: string }).code === '23505') {
+        console.log('[webhook/hotmart] evento repetido, ignorado:', chaveEvento)
+        return NextResponse.json({ ok: true, message: 'Already processed' })
+      }
+      console.error('[webhook/hotmart] falha ao registrar idempotência (seguindo):', errDup)
+    }
+  }
+
+  // ── EVENTOS DE ASSINATURA (cancelamento, atraso, ajuste) ─────────────────
+  // Só mexem em quem JÁ existe, e NUNCA em vitalício.
+  if (eventoRelevante(payload.event) && !EVENTOS_ATIVA.has(payload.event)) {
+    const r = await aplicarEventoAssinatura(supabaseAdmin, payload.event, buyer.email, dados)
+    return NextResponse.json({ ok: true, message: r })
+  }
+
+  if (payload.event !== 'PURCHASE_APPROVED' && payload.event !== 'PURCHASE_COMPLETE') {
     console.log('[webhook/hotmart] evento ignorado:', payload.event)
     return NextResponse.json({ ok: true, message: 'Event ignored' })
   }
 
-  if (!buyer.email || !buyer.name || purchase.status !== 'APPROVED') {
+  if (!buyer.email || !buyer.name || !['APPROVED', 'COMPLETED', 'COMPLETE'].includes(purchase.status)) {
     console.warn('[webhook/hotmart] payload inválido:', { email: buyer.email, name: buyer.name, status: purchase.status })
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
@@ -218,16 +318,16 @@ export async function POST(request: NextRequest) {
   //   contra retentativas da Hotmart (mesmo evento chega N vezes → 1 conta).
   // - Email é fallback: cliente existente comprando produto novo (transação
   //   diferente, mesmo email) → atualiza o registro, nao duplica.
-  const supabase = createAdminClient()
+  const supabase = supabaseAdmin
 
-  type ExistenteRow = { id: string; email: string; hotmart_transaction: string | null }
+  type ExistenteRow = { id: string; email: string; hotmart_transaction: string | null; tipo_acesso: string | null; valido_ate: string | null }
   let existente: ExistenteRow | null = null
 
   if (hotmartTransaction) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await (supabase as any)
       .from('usuarios')
-      .select('id, email, hotmart_transaction')
+      .select('id, email, hotmart_transaction, tipo_acesso, valido_ate')
       .eq('hotmart_transaction', hotmartTransaction)
       .maybeSingle()
     existente = (data as ExistenteRow | null) ?? null
@@ -237,7 +337,7 @@ export async function POST(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await (supabase as any)
       .from('usuarios')
-      .select('id, email, hotmart_transaction')
+      .select('id, email, hotmart_transaction, tipo_acesso, valido_ate')
       .eq('email', email)
       .maybeSingle()
     existente = (data as ExistenteRow | null) ?? null
@@ -261,8 +361,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (emailMudou || txMudou) {
-      const patch: Record<string, unknown> = {}
+    // ── ACESSO: nunca rebaixa vitalício ──────────────────────────────────
+    // Vitalício que compra assinatura CONTINUA vitalício. Ele já pagou pelo
+    // acesso permanente; a assinatura nova não pode transformá-lo em alguém
+    // que perde o sistema quando parar de pagar.
+    const acessoPatch: Record<string, unknown> = {}
+    if (existente.tipo_acesso === 'vitalicio') {
+      console.log('[webhook/hotmart] vitalício mantido apesar da nova compra:', email)
+    } else if (acesso.tipo === 'vitalicio') {
+      // Assinante comprou o vitalício → sobe de patamar e larga a régua de validade.
+      acessoPatch.tipo_acesso = 'vitalicio'
+      acessoPatch.status_assinatura = null
+      acessoPatch.valido_ate = null
+      acessoPatch.periodicidade = null
+    } else {
+      const validoAtual = existente.valido_ate ? new Date(existente.valido_ate) : null
+      acessoPatch.tipo_acesso = 'mensal'
+      acessoPatch.status_assinatura = acesso.desconhecido ? 'revisar' : 'ativa'
+      acessoPatch.periodicidade = acesso.periodicidade
+      acessoPatch.valido_ate = calcularValidoAte(
+        new Date(), validoAtual, acesso.periodicidade, dados.proximaCobranca,
+      ).toISOString()
+      if (dados.assinaturaId) acessoPatch.assinatura_id = dados.assinaturaId
+    }
+
+    if (emailMudou || txMudou || Object.keys(acessoPatch).length > 0) {
+      const patch: Record<string, unknown> = { ...acessoPatch }
       if (emailMudou) patch.email = email
       if (txMudou)    patch.hotmart_transaction = hotmartTransaction
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -331,6 +455,16 @@ export async function POST(request: NextRequest) {
       email,
       senha_definida: false,
       hotmart_transaction: hotmartTransaction || null,
+      // EXPLÍCITO, nunca por default: produto desconhecido não pode virar
+      // vitalício por omissão. `classificar` já garante isso.
+      tipo_acesso: acesso.tipo,
+      origem: `hotmart:${dados.productId ?? 'desconhecido'}`,
+      ...(acesso.tipo === 'mensal' ? {
+        status_assinatura: acesso.desconhecido ? 'revisar' : 'ativa',
+        periodicidade: acesso.periodicidade,
+        assinatura_id: dados.assinaturaId,
+        valido_ate: calcularValidoAte(new Date(), null, acesso.periodicidade, dados.proximaCobranca).toISOString(),
+      } : {}),
     })
 
   if (errUsuario) {
