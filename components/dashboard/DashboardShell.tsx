@@ -100,6 +100,8 @@ interface Props {
   ehPeriodoAtual: boolean
   ehPeriodoPassado: boolean
   monthNavigatorSlot: React.ReactNode
+  // Aviso de assinatura perto de vencer / em carência. Vazio pra vitalício.
+  avisoAssinaturaSlot?: React.ReactNode
   // Widget "Destaques do mês" (privado do dono) — topo do dashboard
   destaquesSlot: React.ReactNode
   // Travamento "Mês fechado"
@@ -135,6 +137,7 @@ export default function DashboardShell({
   mostrarFaturamentoGeral,
   modoMeta, baseMeta,
   ehPeriodoAtual, ehPeriodoPassado, monthNavigatorSlot,
+  avisoAssinaturaSlot,
   destaquesSlot,
   mesFechado, mesFechadoEm, fecharMesSlot,
   mostrarCortesias = false,
