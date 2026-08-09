@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { brindoletaLiberada } from '@/lib/brindoleta/liberacao'
 import type { PublicBrindoletaOffer } from '@/lib/brindoleta/types'
 import BrindoletaWheel from './BrindoletaWheel'
 
@@ -33,9 +34,10 @@ async function getPublicData(codigo: string) {
     .maybeSingle() as { data: BarberPublic | null }
   if (!barber) return null
 
-  const [licenseResult, businessResult, offersResult] = await Promise.all([
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (admin as any).from('brindoleta_licenses').select('status').eq('barbearia_id', barber.barbearia_id).maybeSingle(),
+  const [liberada, businessResult, offersResult] = await Promise.all([
+    // Sem sessão aqui: quem escaneia o QR Code é o cliente final. A pergunta
+    // é sobre a BARBEARIA dona do código — licença avulsa ou assinatura.
+    brindoletaLiberada(admin, barber.barbearia_id),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (admin as any).from('barbearias').select('nome, logo_url').eq('id', barber.barbearia_id).maybeSingle(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,7 +50,7 @@ async function getPublicData(codigo: string) {
       .limit(6),
   ])
 
-  if (licenseResult.data?.status !== 'active' || !businessResult.data) return null
+  if (!liberada || !businessResult.data) return null
   return {
     barber,
     business: businessResult.data as BusinessPublic,

@@ -16,6 +16,7 @@ import DashboardShell from '@/components/dashboard/DashboardShell'
 import { emailEhAdminCortesia } from '@/lib/admin/cortesia'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { BrindoletaStatus } from '@/lib/brindoleta/config'
+import { brindoletaLiberada } from '@/lib/brindoleta/liberacao'
 import { calcularPremiacao } from '@/lib/premios'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import FecharMesButton from '@/components/dashboard/FecharMesButton'
@@ -82,7 +83,13 @@ export default async function DashboardPage({
     .select('status')
     .eq('barbearia_id', barbearia.id)
     .maybeSingle()
-  const brindoletaStatus = (brindoletaLicenseRaw?.status ?? null) as BrindoletaStatus | null
+  // Assinante tem a Brindoleta sem nunca ter criado licença — a linha não
+  // existe e `status` fica null. Como null é o que dispara a promo e o modal
+  // de lançamento, sem isto o assinante seria convidado a comprar um módulo
+  // que ele já tem.
+  const brindoletaStatus = (await brindoletaLiberada(supabase, barbearia.id))
+    ? 'active'
+    : ((brindoletaLicenseRaw?.status ?? null) as BrindoletaStatus | null)
 
   // Avisos de venda + contador de pendentes — só pro admin (dono da plataforma).
   const brindoletaAdmin = emailEhAdminCortesia(user.email)

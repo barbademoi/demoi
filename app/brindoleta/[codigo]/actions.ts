@@ -3,6 +3,7 @@
 import { createHmac, randomUUID } from 'crypto'
 import { cookies, headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { brindoletaLiberada } from '@/lib/brindoleta/liberacao'
 import type { BrindoletaPrize, PublicBrindoletaOffer } from '@/lib/brindoleta/types'
 
 type SpinInput = {
@@ -101,14 +102,9 @@ async function authorizePublicLink(codigo: string): Promise<
 
   if (!barber) return { error: 'Este QR Code não está disponível.' }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: license } = await (admin as any)
-    .from('brindoleta_licenses')
-    .select('status')
-    .eq('barbearia_id', barber.barbearia_id)
-    .maybeSingle() as { data: { status: string } | null }
-
-  if (license?.status !== 'active') return { error: 'Esta Brindoleta não está disponível no momento.' }
+  if (!(await brindoletaLiberada(admin, barber.barbearia_id))) {
+    return { error: 'Esta Brindoleta não está disponível no momento.' }
+  }
   return { barber, admin }
 }
 

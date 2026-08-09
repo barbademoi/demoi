@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { BRINDOLETA_PRICE_CENTS } from '@/lib/brindoleta/config'
+import { brindoletaLiberada } from '@/lib/brindoleta/liberacao'
 
 export type SolicitarBrindoletaResult = {
   ok?: boolean
@@ -47,7 +48,11 @@ export async function solicitarAcessoBrindoleta(
     .eq('barbearia_id', barbeariaId)
     .maybeSingle()
 
-  if (atual?.status === 'active') return { ok: true, status: 'active' }
+  // Assinante já tem a Brindoleta pela assinatura: não abre pedido de Pix nem
+  // cria licença: seria cobrar de novo por algo que já está incluso.
+  if (atual?.status === 'active' || await brindoletaLiberada(admin, barbeariaId)) {
+    return { ok: true, status: 'active' }
+  }
   if (atual?.status === 'pending') return { ok: true, status: 'pending' }
 
   const pedido = {
