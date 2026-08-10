@@ -31,8 +31,8 @@ export default function OfertaPage() {
             <span className="inline-flex rounded-full border border-emerald-400/35 bg-emerald-400/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.15em] text-emerald-300">30 dias de garantia total</span>
             <h1 className="mt-5 text-balance text-4xl font-bold leading-tight tracking-[-0.035em] sm:text-5xl lg:text-6xl">Por menos que um corte, coloque uma ferramenta de vendas na mão da sua equipe.</h1>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-[#B8C3D1] sm:text-lg">Metas, ranking, Brindoleta, campanhas, 8 aulas direto ao ponto, comunidade no WhatsApp e suporte para ajudar você a aplicar.</p>
-            <a href="#preco" className="mt-7 inline-flex min-h-14 items-center justify-center rounded-xl bg-[#F4B942] px-7 py-4 text-base font-bold text-[#101828] transition-colors hover:bg-[#FFD16A]">Começar com garantia de 30 dias</a>
-            <p className="mt-3 text-sm text-[#8FA0B3]">A partir de R$ 34,90/mês · se não gostar, devolvemos 100%</p>
+            <a href="#preco" className="mt-7 inline-flex min-h-14 items-center justify-center rounded-xl bg-[#F4B942] px-7 py-4 text-base font-bold text-[#101828] transition-colors hover:bg-[#FFD16A]">Assinar com garantia de 30 dias</a>
+            <p className="mt-3 text-sm text-[#8FA0B3]">Pagamento feito na assinatura · se não gostar, devolvemos 100%</p>
           </div>
         </section>
 

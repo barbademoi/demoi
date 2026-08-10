@@ -51,7 +51,7 @@ const faqSchema = {
     {
       '@type': 'Question',
       name: 'Como funciona a garantia do BarberMeta?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Você pode usar o BarberMeta por 30 dias. Se não gostar, solicite o cancelamento dentro do prazo e receba 100% do investimento de volta.' },
+      acceptedAnswer: { '@type': 'Answer', text: 'O pagamento é feito no momento da assinatura. Você pode usar o BarberMeta por 30 dias e, se não gostar, solicitar o cancelamento dentro do prazo para receber 100% do valor pago.' },
     },
   ],
 }

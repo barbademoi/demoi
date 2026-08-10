@@ -5,7 +5,7 @@ const perguntas = [
   },
   {
     q: 'Como funciona a garantia de 30 dias?',
-    a: 'Você tem 30 dias para configurar, usar e aplicar o BarberMeta com sua equipe. Se não gostar, solicite o cancelamento dentro desse prazo e devolvemos 100% do investimento, sem enrolação.',
+    a: 'O pagamento é feito no momento da assinatura. Depois, você tem 30 dias para configurar, usar e aplicar o BarberMeta com sua equipe. Se não gostar, solicite o cancelamento dentro desse prazo e devolvemos 100% do valor pago, sem enrolação.',
   },
   {
     q: 'A mensalidade pode se pagar com as vendas?',

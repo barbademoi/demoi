@@ -25,9 +25,9 @@ export default function Preco() {
     <section id="preco" className="scroll-mt-20 bg-[#F6F4EF] px-4 py-16 sm:px-6 sm:py-20">
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto mb-9 max-w-3xl text-center">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#B77916]">Comece com risco zero</p>
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#B77916]">Assine com garantia de 30 dias</p>
           <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] text-[#101828] sm:text-4xl">Uma mensalidade menor que um corte. Uma ferramenta feita para gerar movimento e vendas.</h2>
-          <p className="mt-4 text-base leading-relaxed text-[#59677A] sm:text-lg">Mensal e anual liberam o BarberMeta completo para novos assinantes. Escolha o plano, aplique as estratégias e use os primeiros 30 dias com garantia total.</p>
+          <p className="mt-4 text-base leading-relaxed text-[#59677A] sm:text-lg">Mensal e anual liberam o BarberMeta completo para novos assinantes. O pagamento é feito na assinatura e você tem 30 dias de garantia para usar e decidir.</p>
         </div>
 
         <div className="mx-auto mb-7 grid max-w-4xl grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
@@ -49,7 +49,7 @@ export default function Preco() {
                 <p className="text-5xl font-bold leading-none text-[#101828]">R$ 34,90</p>
                 <p className="pb-1 text-sm font-semibold text-[#667384]">/mês</p>
               </div>
-              <p className="mt-4 text-sm font-bold text-emerald-700">✓ 30 dias para testar sem risco</p>
+              <p className="mt-4 text-sm font-bold text-emerald-700">✓ Garantia de reembolso por 30 dias</p>
             </div>
             <div className="border-t border-[#E7EAEE] bg-[#F8F9FA] p-6 sm:px-9 sm:py-7">
               <a
@@ -78,7 +78,7 @@ export default function Preco() {
                 <p className="pb-1 text-sm font-semibold text-[#9DACBD]">/ano à vista</p>
               </div>
               <p className="mt-3 inline-flex rounded-lg bg-emerald-400/10 px-3 py-2 text-sm font-bold text-emerald-300">Equivale a R$ 24,75 por mês</p>
-              <p className="mt-4 text-sm font-bold text-emerald-300">✓ 30 dias para testar sem risco</p>
+              <p className="mt-4 text-sm font-bold text-emerald-300">✓ Garantia de reembolso por 30 dias</p>
             </div>
             <div className="border-t border-white/10 bg-white/[0.035] p-6 sm:px-9 sm:py-7">
               <a

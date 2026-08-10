@@ -4,7 +4,7 @@ const pilares = [
   {
     destaque: '30 dias',
     titulo: 'Garantia sem enrolação',
-    texto: 'Use o BarberMeta na rotina. Se não gostar, peça o cancelamento dentro do prazo e receba 100% do investimento de volta.',
+    texto: 'Você assina hoje e usa o BarberMeta na rotina. Se não gostar, peça o cancelamento dentro do prazo e receba 100% do valor pago.',
   },
   {
     destaque: '8 aulas',
@@ -24,14 +24,14 @@ export default function Garantia() {
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-3xl text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.16em] text-emerald-300">
-            <span aria-hidden="true">✓</span> Risco zero para começar
+            <span aria-hidden="true">✓</span> Garantia de reembolso por 30 dias
           </span>
           <h2 className="mt-5 text-balance text-3xl font-bold tracking-[-0.03em] text-white sm:text-5xl">
-            Use por 30 dias. Se não gostar, devolvemos{' '}
+            Assine hoje e use por 30 dias. Se não gostar, devolvemos{' '}
             <span className="text-[#F4B942]">100% do investimento.</span>
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-[#B8C3D1] sm:text-lg">
-            Sem enrolação e sem tentar prender você. Entre, configure, aplique com a equipe e veja o BarberMeta funcionando na sua rotina.
+            O pagamento é feito no momento da assinatura. Depois, você configura, aplica com a equipe e tem 30 dias para decidir com tranquilidade.
           </p>
         </div>
 
@@ -46,7 +46,7 @@ export default function Garantia() {
         </div>
 
         <div className="mt-9 flex flex-col items-center gap-3 text-center">
-          <CTAButton label="Quero testar o BarberMeta por 30 dias" id="cta-garantia-planos" gtmClass="gtm-cta-garantia" />
+          <CTAButton label="Assinar com garantia de 30 dias" id="cta-garantia-planos" gtmClass="gtm-cta-garantia" />
           <p className="text-xs font-semibold text-emerald-300">Compra segura pela Hotmart · garantia de 30 dias · reembolso de 100%</p>
         </div>
       </div>
