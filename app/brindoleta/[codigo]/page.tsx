@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { brindoletaLiberada } from '@/lib/brindoleta/liberacao'
+import { buscarOfertasAtivas, paraPublico } from '@/lib/brindoleta/ofertasAtivas'
 import type { PublicBrindoletaOffer } from '@/lib/brindoleta/types'
 import BrindoletaWheel from './BrindoletaWheel'
 
@@ -40,21 +41,15 @@ async function getPublicData(codigo: string) {
     brindoletaLiberada(admin, barber.barbearia_id),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (admin as any).from('barbearias').select('nome, logo_url').eq('id', barber.barbearia_id).maybeSingle(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (admin as any).from('brindoleta_offers')
-      .select('id, title, offer_type, color')
-      .eq('barbearia_id', barber.barbearia_id)
-      .eq('enabled', true)
-      .gt('stock', 0)
-      .order('created_at', { ascending: true })
-      .limit(6),
+    // Fonte única com o sorteio — ver lib/brindoleta/ofertasAtivas.
+    buscarOfertasAtivas(admin, barber.barbearia_id),
   ])
 
   if (!liberada || !businessResult.data) return null
   return {
     barber,
     business: businessResult.data as BusinessPublic,
-    offers: (offersResult.data ?? []) as PublicBrindoletaOffer[],
+    offers: paraPublico(offersResult) as PublicBrindoletaOffer[],
   }
 }
 

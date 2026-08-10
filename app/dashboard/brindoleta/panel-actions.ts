@@ -52,7 +52,11 @@ function cleanOffer(input: OfferInput) {
   const stock = Math.max(0, Math.min(99999, Math.round(Number(input.stock) || 0)))
   const revenueCents = Math.max(0, Math.min(100000000, Math.round(Number(input.revenueCents) || 0)))
   const color = /^#[0-9a-f]{6}$/i.test(input.color) ? input.color : '#d8ff00'
-  return { title, benefit, offerType, chance, stock, revenueCents, color, enabled: !!input.enabled && stock > 0 }
+  // `pediuAtivar` guarda o que o DONO escolheu; `enabled` é o que vai pro banco.
+  // Os dois só divergem quando o estoque é zero — e nesse caso quem chama
+  // devolve erro em vez de gravar. Ver saveBrindoletaOffer.
+  const pediuAtivar = !!input.enabled
+  return { title, benefit, offerType, chance, stock, revenueCents, color, pediuAtivar, enabled: pediuAtivar && stock > 0 }
 }
 
 export async function saveBrindoletaOffer(input: OfferInput) {
@@ -63,6 +67,14 @@ export async function saveBrindoletaOffer(input: OfferInput) {
 
   if (offer.title.length < 2) return { error: 'Informe um nome para a oferta.' }
   if (offer.benefit.length < 2) return { error: 'Explique o benefício que o cliente receberá.' }
+
+  // Estoque zero desativava a oferta EM SILÊNCIO: o dono marcava "ativa",
+  // salvava, via "Oferta atualizada" e a roleta continuava com as antigas —
+  // porque ela filtra enabled = true AND stock > 0. Salvar algo diferente do
+  // que a pessoa pediu sem avisar é o pior desfecho possível aqui; agora fala.
+  if (offer.pediuAtivar && offer.stock <= 0) {
+    return { error: 'Para deixar a oferta ativa, informe um estoque maior que zero. Com estoque 0 ela não aparece na roleta.' }
+  }
 
   if (offer.enabled) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

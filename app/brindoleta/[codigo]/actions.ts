@@ -4,6 +4,7 @@ import { createHmac, randomUUID } from 'crypto'
 import { cookies, headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { brindoletaLiberada } from '@/lib/brindoleta/liberacao'
+import { buscarOfertasAtivas } from '@/lib/brindoleta/ofertasAtivas'
 import type { BrindoletaPrize, PublicBrindoletaOffer } from '@/lib/brindoleta/types'
 
 type SpinInput = {
@@ -119,16 +120,31 @@ function weightedDraw(offers: OfferRow[]) {
 }
 
 async function activeOffers(admin: ReturnType<typeof createAdminClient>, barbeariaId: string) {
+  // Mesma fonte da página aberta pelo QR — a roda e o sorteio precisam
+  // enxergar exatamente as mesmas ofertas.
+  return (await buscarOfertasAtivas(admin, barbeariaId)) as unknown as OfferRow[]
+}
+
+/**
+ * Lê UMA oferta pelo id, sem filtrar por enabled/stock: depois do giro ela pode
+ * ter sido desativada ou zerada, e mesmo assim o texto atual dela é mais
+ * correto que o congelado no giro.
+ */
+async function buscarOfertaPorId(
+  admin: ReturnType<typeof createAdminClient>,
+  barbeariaId: string,
+  offerId: string,
+) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await (admin as any)
     .from('brindoleta_offers')
-    .select('id, title, benefit, offer_type, color, revenue_cents, chance')
+    .select('id, title, benefit, offer_type, color')
+    .eq('id', offerId)
     .eq('barbearia_id', barbeariaId)
-    .eq('enabled', true)
-    .gt('stock', 0)
-    .order('created_at', { ascending: true })
-    .limit(6)
-  return (data ?? []) as OfferRow[]
+    .maybeSingle()
+  return (data ?? null) as
+    | { id: string; title: string; benefit: string; offer_type: string; color: string }
+    | null
 }
 
 function publicOffers(offers: OfferRow[]) {
@@ -169,14 +185,36 @@ export async function spinBrindoleta(input: SpinInput): Promise<
     if (accepted) return { error: 'Sua oferta de hoje já foi reservada e está aguardando confirmação.', code: 'already_spun' }
 
     const currentOffers = await activeOffers(admin, barber.barbearia_id)
+
+    // O giro guarda um SNAPSHOT da oferta (título, benefício, cor) pra
+    // sobreviver à exclusão dela. Só que o snapshot também congelava o texto:
+    // se o dono editasse a oferta depois do giro, o cliente reabria e via o
+    // NOME ANTIGO — a oferta certa, com o texto de ontem. Enquanto a oferta
+    // existir, quem manda é o dado ATUAL; o snapshot fica como último recurso,
+    // pro caso de ela ter sido apagada.
+    const atual = previous.offer_id
+      ? await buscarOfertaPorId(admin, barber.barbearia_id, previous.offer_id)
+      : null
+
+    const premio = {
+      id: previous.offer_id ?? `restored-${previous.id}`,
+      title: atual?.title ?? previous.offer_title,
+      benefit: atual?.benefit ?? previous.benefit,
+      offer_type: (atual?.offer_type ?? previous.offer_type) as BrindoletaPrize['offer_type'],
+      color: atual?.color ?? previous.offer_color,
+      // O VALOR não segue a oferta: é o que foi combinado no giro. Reprecificar
+      // depois mudaria o que o cliente já viu.
+      revenue_cents: previous.amount_cents,
+    }
+
     const restored = publicOffers(currentOffers)
     if (!restored.some((offer) => offer.id === previous.offer_id)) {
       if (restored.length >= 6) restored.pop()
       restored.unshift({
-        id: previous.offer_id ?? `restored-${previous.id}`,
-        title: previous.offer_title,
-        offer_type: previous.offer_type,
-        color: previous.offer_color,
+        id: premio.id,
+        title: premio.title,
+        offer_type: premio.offer_type,
+        color: premio.color,
       })
     }
     return {
@@ -184,14 +222,7 @@ export async function spinBrindoleta(input: SpinInput): Promise<
       resumed: true,
       spinId: previous.id,
       offers: restored,
-      prize: {
-        id: previous.offer_id ?? `restored-${previous.id}`,
-        title: previous.offer_title,
-        benefit: previous.benefit,
-        offer_type: previous.offer_type,
-        color: previous.offer_color,
-        revenue_cents: previous.amount_cents,
-      },
+      prize: premio,
     }
   }
 
