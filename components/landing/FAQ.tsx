@@ -1,7 +1,19 @@
 const perguntas = [
   {
     q: 'O que está incluído na assinatura?',
-    a: 'Novos assinantes recebem todas as ferramentas mostradas nesta página: metas, ranking, campanhas, Brindoleta, organização do dinheiro, Feedback Premiado, cards, aulas, comunidade no WhatsApp e suporte humanizado.',
+    a: 'Novos assinantes recebem todas as ferramentas mostradas nesta página: metas, ranking, campanhas, Brindoleta, organização do dinheiro, Feedback Premiado, cards, 8 aulas direto ao ponto, comunidade no WhatsApp e suporte humanizado.',
+  },
+  {
+    q: 'Como funciona a garantia de 30 dias?',
+    a: 'Você tem 30 dias para configurar, usar e aplicar o BarberMeta com sua equipe. Se não gostar, solicite o cancelamento dentro desse prazo e devolvemos 100% do investimento, sem enrolação.',
+  },
+  {
+    q: 'A mensalidade pode se pagar com as vendas?',
+    a: 'A mensalidade custa menos que um corte de cabelo. Uma oferta aceita, um produto ou um serviço extra pode superar esse valor. O retorno depende da aplicação e da realidade de cada barbearia; o BarberMeta oferece as ferramentas para criar e acompanhar essas oportunidades.',
+  },
+  {
+    q: 'O que é ensinado nas 8 aulas?',
+    a: 'As aulas mostram, de forma direta, como configurar o BarberMeta, organizar as metas, envolver os profissionais e aplicar estratégias de campanhas, pontos, premiações e vendas no atendimento.',
   },
   {
     q: 'Qual é a diferença entre o plano mensal e o anual?',
@@ -21,7 +33,7 @@ const perguntas = [
   },
   {
     q: 'E se eu não souber configurar?',
-    a: 'A configuração foi pensada para ser simples. Você também recebe aulas práticas, participa da comunidade ativa no WhatsApp e pode contar com suporte humanizado.',
+    a: 'A configuração foi pensada para ser simples. Você também recebe 8 aulas práticas, participa da comunidade ativa no WhatsApp e pode contar com suporte humanizado.',
   },
   {
     q: 'Como funcionam os planos e a renovação?',

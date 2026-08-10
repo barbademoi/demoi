@@ -2,9 +2,9 @@ import Image from 'next/image'
 import CTAButton from './CTAButton'
 
 const sinais = [
-  'Funciona junto com sua agenda',
   'Comunidade com 600+ barbearias',
-  'Cada profissional acompanha no celular',
+  '8 aulas direto ao ponto',
+  '30 dias de garantia total',
 ]
 
 export default function Hero() {
@@ -26,21 +26,21 @@ export default function Hero() {
         <div className="text-center lg:text-left">
           <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#F4B942]/35 bg-[#F4B942]/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.13em] text-[#FFD16A] sm:text-xs">
             <span aria-hidden="true">✦</span>
-            Metas, equipe e vendas no mesmo lugar
+            A ferramenta que coloca a equipe para agir
           </span>
 
           <h1 className="text-balance text-[2.35rem] font-bold leading-[1.04] tracking-[-0.035em] text-white sm:text-5xl lg:text-[3.65rem]">
-            Coloque sua equipe em movimento{' '}
-            <span className="text-[#F4B942]">e venda mais na barbearia.</span>
+            Faça sua equipe acompanhar as metas, se envolver{' '}
+            <span className="text-[#F4B942]">e vender mais todos os dias.</span>
           </h1>
 
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[#B8C3D1] sm:mt-6 sm:text-lg lg:mx-0">
-            O BarberMeta funciona junto com o sistema de agendamento que você já usa. Ele mostra metas, ranking e oportunidades de venda para cada profissional saber o que fazer hoje.
+            O BarberMeta trabalha junto com a agenda que você já usa. Ele mostra o próximo passo para cada profissional, transforma metas em ações e cria novas oportunidades de venda durante o atendimento.
           </p>
 
           <div className="mx-auto mt-7 flex max-w-xl flex-col items-center gap-3 lg:mx-0 lg:items-start">
-            <CTAButton label="Quero engajar minha equipe" id="cta-hero-planos" gtmClass="gtm-cta-hero" />
-            <p className="text-sm text-[#8FA0B3]">Ou economize no plano anual · pagamento seguro pela Hotmart</p>
+            <CTAButton label="Quero vender mais com minha equipe" id="cta-hero-planos" gtmClass="gtm-cta-hero" />
+            <p className="text-sm font-semibold text-[#B8C3D1]">R$ 34,90/mês · menos que um corte · teste por 30 dias</p>
           </div>
 
           <ul className="mx-auto mt-6 flex max-w-xl flex-wrap justify-center gap-x-5 gap-y-2 lg:mx-0 lg:justify-start">
@@ -86,12 +86,12 @@ export default function Hero() {
         <div className="flex items-start gap-3">
           <span aria-hidden="true" className="mt-0.5 text-2xl">⌁</span>
           <div>
-            <p className="font-bold text-white">Você não precisa trocar o que já usa.</p>
-            <p className="mt-1 text-sm leading-relaxed text-[#B8C3D1]">Sua agenda organiza os horários. O BarberMeta ajuda a equipe a acompanhar metas, se envolver e vender mais.</p>
+            <p className="font-bold text-white">Menos que um corte por mês. Potencial para abrir novas vendas todos os dias.</p>
+            <p className="mt-1 text-sm leading-relaxed text-[#B8C3D1]">Uma oferta aceita, um produto extra ou um serviço adicional já pode superar o valor da mensalidade. O resultado depende da aplicação da equipe — e o BarberMeta ajuda a colocar essa aplicação em movimento.</p>
           </div>
         </div>
         <a href="#ferramentas" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-[#FFD16A] hover:text-white sm:mt-0 sm:shrink-0">
-          Ver como funciona ↓
+          Conhecer as ferramentas ↓
         </a>
       </div>
     </section>

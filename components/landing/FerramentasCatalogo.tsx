@@ -204,9 +204,9 @@ const ferramentas: Ferramenta[] = [
     nome: 'Aulas e suporte',
     categoria: 'Acompanhamento',
     chamada: 'Você recebe ajuda para colocar tudo em prática.',
-    descricao: 'As aulas mostram como usar cada ferramenta. Assinantes também entram na comunidade do WhatsApp e podem falar com nosso suporte.',
+    descricao: 'As 8 aulas mostram como configurar as ferramentas e aplicar as estratégias. Assinantes também entram na comunidade do WhatsApp e podem falar com nosso suporte.',
     recursos: [
-      'Aulas práticas dentro do BarberMeta',
+      '8 aulas práticas e direto ao ponto',
       'Comunidade de donos de barbearia no WhatsApp',
       'Suporte feito por pessoas e atualizações contínuas',
     ],
