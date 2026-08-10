@@ -3,8 +3,8 @@ import CTAButton from './CTAButton'
 
 const sinais = [
   'Funciona junto com sua agenda',
+  'Comunidade com 600+ barbearias',
   'Cada profissional acompanha no celular',
-  'Suporte feito por pessoas',
 ]
 
 export default function Hero() {

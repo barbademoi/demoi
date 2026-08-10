@@ -3,6 +3,7 @@ import Hero from '@/components/landing/Hero'
 import Depoimentos from '@/components/landing/Depoimentos'
 import BrindoletaSpotlight from '@/components/landing/BrindoletaSpotlight'
 import FerramentasCatalogo from '@/components/landing/FerramentasCatalogo'
+import Comunidade from '@/components/landing/Comunidade'
 import Preco from '@/components/landing/Preco'
 import FAQ from '@/components/landing/FAQ'
 import Footer from '@/components/landing/Footer'
@@ -61,6 +62,7 @@ export default function LandingPage() {
         <Hero />
         <BrindoletaSpotlight />
         <FerramentasCatalogo />
+        <Comunidade />
         <Depoimentos />
         <Preco />
         <FAQ />
