@@ -1,8 +1,6 @@
 import Link from 'next/link'
 import CTAButton from './CTAButton'
 
-const PRECO = process.env.NEXT_PUBLIC_PRECO ?? '47'
-
 export default function Navbar() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#07111F]/90 backdrop-blur-xl">
@@ -37,7 +35,7 @@ export default function Navbar() {
             Já tenho acesso →
           </Link>
           <div className="hidden sm:block">
-            <CTAButton size="sm" label="Quero o BarberMeta →" id="cta-navbar-oferta-desktop" gtmClass="gtm-cta-navbar" />
+            <CTAButton size="sm" label="Ver planos →" id="cta-navbar-planos-desktop" gtmClass="gtm-cta-navbar" />
           </div>
 
           <div className="flex min-w-0 items-center gap-1.5 sm:hidden">
@@ -48,7 +46,7 @@ export default function Navbar() {
             >
               Entrar
             </Link>
-            <CTAButton size="sm" label={`Comprar · R$ ${PRECO}`} id="cta-navbar-oferta-mobile" gtmClass="gtm-cta-navbar" />
+            <CTAButton size="sm" label="Assinar · R$ 34,90" id="cta-navbar-planos-mobile" gtmClass="gtm-cta-navbar" />
           </div>
         </div>
       </div>

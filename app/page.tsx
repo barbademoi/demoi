@@ -4,6 +4,8 @@ import Dor from '@/components/landing/Dor'
 import AntesDepois from '@/components/landing/AntesDepois'
 import Depoimentos from '@/components/landing/Depoimentos'
 import Funcionalidades from '@/components/landing/Funcionalidades'
+import BrindoletaSpotlight from '@/components/landing/BrindoletaSpotlight'
+import Comunidade from '@/components/landing/Comunidade'
 import ProvasSocial from '@/components/landing/ProvasSocial'
 import Preco from '@/components/landing/Preco'
 import FAQ from '@/components/landing/FAQ'
@@ -13,15 +15,15 @@ import MobileStickyCTA from '@/components/landing/MobileStickyCTA'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'BarberMeta — Faça seus barbeiros venderem mais sem cobrar meta todo dia',
+  title: 'BarberMeta — Gestão, vendas e equipe por R$ 34,90/mês',
   description:
-    'Cada barbeiro acompanha meta, ritmo, comissão e ranking no próprio celular. BarberMeta com acesso vitalício por R$ 47.',
+    'BarberMeta completo com metas, ranking, financeiro, Brindoleta, comunidade ativa no WhatsApp e suporte humanizado.',
   alternates: {
     canonical: 'https://www.barbermeta.com.br',
   },
   openGraph: {
-    title: 'BarberMeta — Meta visível. Time vendendo mais.',
-    description: 'Coloque o progresso na mão de cada barbeiro e pare de cobrar meta todo dia.',
+    title: 'BarberMeta completo — tudo incluído na assinatura',
+    description: 'Metas, vendas, financeiro, Brindoleta, comunidade e suporte a partir de R$ 34,90 por mês.',
     url: 'https://www.barbermeta.com.br',
     siteName: 'BarberMeta',
     locale: 'pt_BR',
@@ -41,8 +43,8 @@ const faqSchema = {
     },
     {
       '@type': 'Question',
-      name: 'O BarberMeta tem mensalidade?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Não. O BarberMeta é vendido por pagamento único, com acesso vitalício.' },
+      name: 'Quanto custa a assinatura do BarberMeta?',
+      acceptedAnswer: { '@type': 'Answer', text: 'O plano mensal custa R$ 34,90 por mês. O plano anual custa R$ 297 à vista e equivale a R$ 24,75 por mês.' },
     },
     {
       '@type': 'Question',
@@ -66,6 +68,8 @@ export default function LandingPage() {
         <AntesDepois />
         <Depoimentos />
         <Funcionalidades />
+        <BrindoletaSpotlight />
+        <Comunidade />
         <ProvasSocial />
         <Preco />
         <FAQ />

@@ -3,33 +3,35 @@ import CTAButton from './CTAButton'
 const pilares = [
   {
     emoji: '📱',
-    titulo: 'Meta no bolso de cada barbeiro',
-    texto: 'Link individual, sem app e sem senha, com comissão, ritmo e quanto falta para a meta.',
+    titulo: 'Metas na mão da equipe',
+    texto: 'Cada profissional acompanha meta, comissão, ritmo e ranking pelo próprio celular.',
   },
   {
-    emoji: '🏆',
-    titulo: 'Competição saudável no time',
-    texto: 'Ranking ao vivo, campanha de pontos e metas Bronze, Prata, Ouro e coletiva.',
+    emoji: '🎡',
+    titulo: 'Brindoleta para vender mais',
+    texto: 'Uma roleta de ofertas com QR Code individual e resultado por colaborador.',
   },
   {
-    emoji: '📊',
-    titulo: 'Visão clara para o dono',
-    texto: 'Acompanhe a evolução da equipe e descubra cedo quem precisa de direção.',
+    emoji: '💰',
+    titulo: 'Financeiro no mesmo lugar',
+    texto: 'Organize caixa, contas, folha da equipe e acompanhe quanto realmente sobra.',
   },
   {
-    emoji: '🎥',
-    titulo: '8 aulas práticas incluídas',
-    texto: 'Veja como uso o BarberMeta na minha própria barbearia para fazer o time vender mais.',
+    emoji: '🤝',
+    titulo: 'Ajuda de verdade',
+    texto: 'Comunidade ativa no WhatsApp, aulas práticas e suporte humanizado.',
   },
 ]
 
 const recursos = [
+  'Metas individuais e coletiva com ranking ao vivo',
   'Lançamento diário simples pelo celular',
-  'Cards prontos para mandar no WhatsApp',
-  'Mensagem motivadora diária gerada por IA',
-  'Premiação por metas e campanha de pontos',
-  'Módulo de reunião com a equipe',
-  'Acompanhamento de comportamento',
+  'Brindoleta com QR Code por colaborador',
+  'Controle financeiro e folha da equipe',
+  'Feedback Premiado e direcionamento para avaliações',
+  'Cards prontos para compartilhar no WhatsApp',
+  'Mensagens e resumos de reunião com IA',
+  'Aulas práticas, comunidade e atualizações',
 ]
 
 export default function Funcionalidades() {
@@ -37,14 +39,14 @@ export default function Funcionalidades() {
     <section id="funcionalidades" className="scroll-mt-20 bg-[#07111F] px-4 py-16 sm:px-6 sm:py-20">
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto mb-10 max-w-3xl text-center">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#F4B942]">O que você leva</p>
-          <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] text-white sm:text-4xl">Um sistema simples para transformar meta em rotina.</h2>
-          <p className="mt-4 text-base leading-relaxed text-[#B8C3D1] sm:text-lg">Sem planilha espalhada. Sem depender de mensagem no grupo. Tudo gira em torno do que a equipe precisa fazer hoje.</p>
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#F4B942]">Tudo dentro da assinatura</p>
+          <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] text-white sm:text-4xl">Um sistema completo para organizar, engajar e vender mais.</h2>
+          <p className="mt-4 text-base leading-relaxed text-[#B8C3D1] sm:text-lg">Novos assinantes recebem todos os módulos liberados. Você escolhe apenas se prefere pagar mensalmente ou anualmente.</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {pilares.map((item) => (
-            <article key={item.titulo} className="rounded-2xl border border-white/10 bg-[#0E1A2B] p-5">
+            <article key={item.titulo} className="rounded-2xl border border-white/10 bg-[#0E1A2B] p-5 transition-transform duration-200 hover:-translate-y-1 hover:border-[#F4B942]/30">
               <span aria-hidden="true" className="text-3xl">{item.emoji}</span>
               <h3 className="mt-4 text-lg font-bold leading-snug text-white">{item.titulo}</h3>
               <p className="mt-2 text-sm leading-relaxed text-[#9DACBD]">{item.texto}</p>
@@ -62,8 +64,8 @@ export default function Funcionalidades() {
         </ul>
 
         <div className="mt-9 flex flex-col items-center gap-2">
-          <CTAButton label="Quero o BarberMeta — R$ 47" id="cta-funcionalidades-oferta" gtmClass="gtm-cta-funcionalidades" />
-          <p className="text-xs text-[#8FA0B3]">Pagamento único · acesso vitalício</p>
+          <CTAButton label="Ver planos mensal e anual" id="cta-funcionalidades-planos" gtmClass="gtm-cta-funcionalidades" />
+          <p className="text-xs text-[#8FA0B3]">A partir de R$ 34,90/mês · todos os módulos para assinantes</p>
         </div>
       </div>
     </section>
