@@ -88,6 +88,19 @@ export default function BrindoletaWheel({
     if (revealTimer.current !== null) window.clearTimeout(revealTimer.current)
   }, [])
 
+  // Escanear o QR quase nunca abre uma aba nova: o iOS reaproveita a aba que já
+  // tem essa URL e a restaura do bfcache, sem passar pelo servidor. As ofertas
+  // vêm em `initialOffers` e ficam congeladas em estado, então o cliente veria
+  // a roda de dias atrás mesmo com o banco já atualizado — e o dono não tem
+  // como "limpar o cache" do celular do cliente. Restaurou do bfcache, recarrega.
+  useEffect(() => {
+    function aoRestaurar(event: PageTransitionEvent) {
+      if (event.persisted) window.location.reload()
+    }
+    window.addEventListener('pageshow', aoRestaurar)
+    return () => window.removeEventListener('pageshow', aoRestaurar)
+  }, [])
+
   const wheelBackground = useMemo(() => {
     if (offers.length === 0) return '#24261f'
     const slice = 360 / offers.length
