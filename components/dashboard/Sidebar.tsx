@@ -9,6 +9,9 @@ import { SUPORTE, whatsappUrl } from '@/lib/suporte'
 import { hasFeedback } from '@/lib/feedback/access'
 import { hasFinanceiro } from '@/lib/financeiro/supabaseStore'
 import { hasReuniao } from '@/lib/reuniao/access'
+import { ehAssinanteAtivo } from '@/lib/chat/acesso'
+import { contarChatNaoLidas } from '@/lib/chat/naoLidas'
+import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import { contarCondutaNaoLidas } from '@/lib/conduta/unread'
 import type { BrindoletaStatus } from '@/lib/brindoleta/config'
 import PreviewPlusModal from './PreviewPlusModal'
@@ -46,6 +49,9 @@ type NavItem = {
   previewReuniao?: boolean
   // Brindoleta em teste: só aparece pra conta liberada (allowlist por e-mail).
   soBrindoleta?: boolean
+  // Chat: exclusivo de assinante ATIVO. Some do menu pra vitalício e pra quem
+  // não assina — não é cadeado de upsell, é item que não existe pra eles.
+  soAssinante?: boolean
 }
 
 const navItems: NavItem[] = [
@@ -56,6 +62,16 @@ const navItems: NavItem[] = [
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
         <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    ),
+  },
+  {
+    href: '/dashboard/chat',
+    label: 'Chat',
+    soAssinante: true,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
       </svg>
     ),
   },
@@ -216,15 +232,19 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
     feedback?: boolean
     financeiro?: boolean
     reuniao?: boolean
+    assinante?: boolean
   }>({})
   const [showPreview, setShowPreview] = useState(false)
   // Não lidas do módulo de comportamento (mensagens identificadas do barbeiro).
   const [condutaNaoLidas, setCondutaNaoLidas] = useState(0)
+  const [chatNaoLidas, setChatNaoLidas] = useState(0)
 
   useEffect(() => {
     let cancel = false
-    Promise.all([hasFeedback(), hasFinanceiro(), hasReuniao()]).then(([f, fi, re]) => {
-      if (!cancel) setAccess({ feedback: f, financeiro: fi, reuniao: re })
+    Promise.all([
+      hasFeedback(), hasFinanceiro(), hasReuniao(), ehAssinanteAtivo(createBrowserClient()),
+    ]).then(([f, fi, re, as_]) => {
+      if (!cancel) setAccess({ feedback: f, financeiro: fi, reuniao: re, assinante: as_ })
     }).catch(() => { /* sem cadeado em caso de erro */ })
     return () => { cancel = true }
   }, [])
@@ -234,8 +254,13 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
   useEffect(() => {
     let cancel = false
     contarCondutaNaoLidas().then(n => { if (!cancel) setCondutaNaoLidas(n) }).catch(() => {})
+    // Só conta pra quem tem o chat. Sem esta guarda, os ~600 vitalícios
+    // pagariam 3 consultas por navegação por um item que nem aparece pra eles.
+    if (access.assinante === true) {
+      contarChatNaoLidas().then(n => { if (!cancel) setChatNaoLidas(n) }).catch(() => {})
+    }
     return () => { cancel = true }
-  }, [pathname])
+  }, [pathname, access.assinante])
 
   return (
     <>
@@ -298,6 +323,9 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
             // Item de PREVIEW restrito: só aparece pra quem tem acesso
             // (allowlist). Enquanto verifica (undefined) fica escondido.
             if (item.previewReuniao && access.reuniao !== true) return null
+            // Chat: escondido enquanto verifica (undefined) e pra quem não é
+            // assinante ativo. Sem cadeado — não é upsell de módulo.
+            if (item.soAssinante && access.assinante !== true) return null
             const active = pathname === item.href && !showFerramentas
             // Cadeado: so se o item exige acesso E ja sabemos que nao tem.
             // Enquanto undefined (verificando), nao mostra nada — evita
@@ -327,6 +355,11 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
               >
                 {item.icon}
                 <span className="flex-1 truncate">{item.label}</span>
+                {item.soAssinante && chatNaoLidas > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold shrink-0">
+                    {chatNaoLidas}
+                  </span>
+                )}
                 {item.href === COMPORTAMENTO_HREF && condutaNaoLidas > 0 && (
                   <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold shrink-0">
                     {condutaNaoLidas}
@@ -481,6 +514,25 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
                 <line x1="2" y1="10" x2="22" y2="10" />
               </svg>
               <span className="flex-1 truncate">Assinaturas</span>
+            </Link>
+          )}
+
+          {/* Chat dos assinantes — visível SÓ pra conta do dono. */}
+          {mostrarCortesias && (
+            <Link
+              href="/admin/chat"
+              onClick={() => setOpen(false)}
+              className={`
+                flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm transition-colors
+                ${pathname === '/admin/chat' && !showFerramentas
+                  ? 'bg-primary/15 text-primary font-semibold'
+                  : 'text-text-muted hover:text-text hover:bg-surface-2'}
+              `}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+              </svg>
+              <span className="flex-1 truncate">Chat dos assinantes</span>
             </Link>
           )}
 
