@@ -21,7 +21,7 @@ export default function MobileStickyCTA() {
         ${visible ? 'translate-y-0' : 'translate-y-full'}
       `}
     >
-      <CTAButton label="Quero o BarberMeta · R$ 47" className="flex w-full [&>span]:flex [&>span]:w-full [&>span]:text-center" size="md" id="cta-sticky-mobile-oferta" gtmClass="gtm-cta-sticky" />
+      <CTAButton label="Assinar · R$ 34,90/mês" className="flex w-full [&>span]:flex [&>span]:w-full [&>span]:text-center" size="md" id="cta-sticky-mobile-planos" gtmClass="gtm-cta-sticky" />
     </div>
   )
 }

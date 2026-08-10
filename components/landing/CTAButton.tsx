@@ -7,15 +7,14 @@ interface Props {
   size?: 'sm' | 'md' | 'lg'
   className?: string
   label?: string
+  href?: string
   id?: string
   gtmClass?: string
 }
 
-const PRECO = process.env.NEXT_PUBLIC_PRECO ?? '47'
-
-export default function CTAButton({ size = 'lg', className = '', label, id, gtmClass = '' }: Props) {
+export default function CTAButton({ size = 'lg', className = '', label, href = '#preco', id, gtmClass = '' }: Props) {
   const trackingHandlers = useTrackingHandlers()
-  const text = label ?? `Quero o BarberMeta — R$ ${PRECO}`
+  const text = label ?? 'Conhecer os planos'
   const padding = size === 'lg'
     ? 'px-5 py-4 text-base sm:px-8 sm:py-5 sm:text-lg'
     : size === 'md'
@@ -24,7 +23,7 @@ export default function CTAButton({ size = 'lg', className = '', label, id, gtmC
 
   return (
     <a
-      href="/oferta"
+      href={href}
       id={id}
       className={`cta cta-oferta gtm-cta ${gtmClass} inline-flex rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#F4B942] ${className}`}
       {...trackingHandlers}

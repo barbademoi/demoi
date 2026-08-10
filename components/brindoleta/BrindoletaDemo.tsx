@@ -1,12 +1,12 @@
 'use client'
 
 const offers = [
-  { title: '20% OFF\nLIMPEZA DE PELE', angle: 0, color: '#9365ed' },
-  { title: '30% OFF\nPOMADA DEMÔI', angle: 60, color: '#f44696' },
-  { title: '20% OFF\nSHAMPOO', angle: 120, color: '#d8ff00' },
-  { title: '20% OFF\nLEAV-IN', angle: 180, color: '#ff6045' },
-  { title: '25% OFF\nHIDRATAÇÃO', angle: 240, color: '#ffd149' },
-  { title: '20% OFF\nDEPILAÇÃO NASAL', angle: 300, color: '#35b7eb' },
+  { title: 'Limpeza', benefit: '20% OFF', angle: 0, color: '#9365ed' },
+  { title: 'Pomada', benefit: '30% OFF', angle: 60, color: '#f44696' },
+  { title: 'Shampoo', benefit: '20% OFF', angle: 120, color: '#d8ff00' },
+  { title: 'Leave-in', benefit: '20% OFF', angle: 180, color: '#ff6045' },
+  { title: 'Hidratação', benefit: '25% OFF', angle: 240, color: '#ffd149' },
+  { title: 'Depilação', benefit: '20% OFF', angle: 300, color: '#35b7eb' },
 ]
 
 export default function BrindoletaDemo() {
@@ -57,10 +57,15 @@ export default function BrindoletaDemo() {
               {offers.map((offer) => (
                 <span
                   key={offer.title}
-                  className="absolute left-1/2 top-1/2 -ml-[38px] -mt-3 flex h-8 w-[76px] items-center justify-center whitespace-pre-line text-center text-[8px] font-black uppercase leading-[0.92] tracking-[-0.02em] text-[#11110f] sm:text-[9px]"
-                  style={{ transform: `rotate(${offer.angle}deg) translateY(-82px) rotate(${-offer.angle}deg)` }}
+                  className="demo-label absolute left-1/2 top-1/2 -ml-[32px] -mt-5 flex h-10 w-16 flex-col items-center justify-center text-center text-[#11110f]"
+                  style={{ transform: `rotate(${offer.angle}deg) translateY(-78px) rotate(${-offer.angle}deg)` }}
                 >
-                  {offer.title}
+                  <strong className="block whitespace-nowrap text-[8px] font-black uppercase leading-none tracking-[-0.02em] sm:text-[9px]">
+                    {offer.title}
+                  </strong>
+                  <small className="mt-1 inline-flex rounded-sm border border-black/20 bg-white/75 px-1.5 py-0.5 text-[6px] font-black uppercase leading-none tracking-[0.02em] shadow-sm sm:text-[6.5px]">
+                    {offer.benefit}
+                  </small>
                 </span>
               ))}
             </div>
@@ -130,6 +135,10 @@ export default function BrindoletaDemo() {
           pointer-events: none;
         }
 
+        .demo-label {
+          animation: brindoleta-labels 9s ease-in-out infinite;
+        }
+
         @keyframes brindoleta-spin {
           0%, 5% { transform: rotate(0deg); }
           48% { transform: rotate(1260deg); }
@@ -153,8 +162,14 @@ export default function BrindoletaDemo() {
           100% { opacity: 0; visibility: hidden; transform: scale(0.98); }
         }
 
+        @keyframes brindoleta-labels {
+          0%, 7% { opacity: 1; }
+          11%, 56% { opacity: 0; }
+          63%, 100% { opacity: 1; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
-          .demo-wheel, .demo-pointer, .demo-progress, .demo-prize { animation: none; }
+          .demo-wheel, .demo-pointer, .demo-progress, .demo-prize, .demo-label { animation: none; }
           .demo-progress { transform: scaleX(1); }
           .demo-prize { display: none; }
         }

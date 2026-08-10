@@ -1,27 +1,25 @@
 import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
-import Dor from '@/components/landing/Dor'
-import AntesDepois from '@/components/landing/AntesDepois'
 import Depoimentos from '@/components/landing/Depoimentos'
-import Funcionalidades from '@/components/landing/Funcionalidades'
-import ProvasSocial from '@/components/landing/ProvasSocial'
+import BrindoletaSpotlight from '@/components/landing/BrindoletaSpotlight'
+import FerramentasCatalogo from '@/components/landing/FerramentasCatalogo'
+import Comunidade from '@/components/landing/Comunidade'
 import Preco from '@/components/landing/Preco'
 import FAQ from '@/components/landing/FAQ'
-import CTAFinal from '@/components/landing/CTAFinal'
 import Footer from '@/components/landing/Footer'
 import MobileStickyCTA from '@/components/landing/MobileStickyCTA'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'BarberMeta — Faça seus barbeiros venderem mais sem cobrar meta todo dia',
+  title: 'BarberMeta — Engaje sua equipe e venda mais',
   description:
-    'Cada barbeiro acompanha meta, ritmo, comissão e ranking no próprio celular. BarberMeta com acesso vitalício por R$ 47.',
+    'Uma ferramenta que funciona junto da sua agenda para engajar a equipe, acompanhar metas e criar mais oportunidades de venda.',
   alternates: {
     canonical: 'https://www.barbermeta.com.br',
   },
   openGraph: {
-    title: 'BarberMeta — Meta visível. Time vendendo mais.',
-    description: 'Coloque o progresso na mão de cada barbeiro e pare de cobrar meta todo dia.',
+    title: 'BarberMeta — sua equipe mais engajada e vendendo mais',
+    description: 'Metas, ranking, campanhas e Brindoleta para colocar a equipe em movimento, sem trocar o sistema de agendamento.',
     url: 'https://www.barbermeta.com.br',
     siteName: 'BarberMeta',
     locale: 'pt_BR',
@@ -41,13 +39,13 @@ const faqSchema = {
     },
     {
       '@type': 'Question',
-      name: 'O BarberMeta tem mensalidade?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Não. O BarberMeta é vendido por pagamento único, com acesso vitalício.' },
+      name: 'Quanto custa a assinatura do BarberMeta?',
+      acceptedAnswer: { '@type': 'Answer', text: 'O plano mensal custa R$ 34,90 por mês. O plano anual custa R$ 297 à vista e equivale a R$ 24,75 por mês.' },
     },
     {
       '@type': 'Question',
-      name: 'Preciso trocar meu sistema de gestão?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Não. Você continua usando o sistema que já usa e coloca no BarberMeta apenas os números necessários para acompanhar as metas.' },
+      name: 'Preciso trocar meu sistema de agendamento?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Não. O BarberMeta funciona junto com a agenda que você já usa e ajuda sua equipe a acompanhar metas e vender mais.' },
     },
   ],
 }
@@ -62,14 +60,12 @@ export default function LandingPage() {
       <Navbar />
       <main>
         <Hero />
-        <Dor />
-        <AntesDepois />
+        <BrindoletaSpotlight />
+        <FerramentasCatalogo />
+        <Comunidade />
         <Depoimentos />
-        <Funcionalidades />
-        <ProvasSocial />
         <Preco />
         <FAQ />
-        <CTAFinal />
       </main>
       <Footer />
       <MobileStickyCTA />
