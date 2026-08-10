@@ -513,6 +513,25 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
             </Link>
           )}
 
+          {/* Chat dos assinantes — visível SÓ pra conta do dono. */}
+          {mostrarCortesias && (
+            <Link
+              href="/admin/chat"
+              onClick={() => setOpen(false)}
+              className={`
+                flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm transition-colors
+                ${pathname === '/admin/chat' && !showFerramentas
+                  ? 'bg-primary/15 text-primary font-semibold'
+                  : 'text-text-muted hover:text-text hover:bg-surface-2'}
+              `}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+              </svg>
+              <span className="flex-1 truncate">Chat dos assinantes</span>
+            </Link>
+          )}
+
           {/* Metas & Pontos button */}
           {onFerramentasClick && (
             <button
