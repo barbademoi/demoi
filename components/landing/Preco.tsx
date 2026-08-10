@@ -10,14 +10,10 @@ import { trackInitiateCheckout } from '@/lib/pixel'
 import { useTrackingHandlers } from '@/lib/utms'
 
 const incluso = [
-  'Metas, ranking e acompanhamento da equipe',
-  'Brindoleta completa com QR Code por profissional',
-  'Controle financeiro e folha da equipe',
-  'Feedback Premiado e avaliações de clientes',
-  'Cards, mensagens e recursos com IA',
-  'Aulas práticas e atualizações do sistema',
-  'Comunidade ativa no WhatsApp',
-  'Suporte humanizado',
+  'Metas, equipe e campanhas',
+  'Brindoleta e Feedback Premiado',
+  'Financeiro, relatórios e cards',
+  'Aulas, comunidade e suporte',
 ]
 
 export default function Preco() {
@@ -32,9 +28,9 @@ export default function Preco() {
           <p className="mt-4 text-base text-[#59677A] sm:text-lg">O acesso é o mesmo nos dois planos. O anual entrega a melhor economia.</p>
         </div>
 
-        <div className="mx-auto mb-7 grid max-w-4xl gap-3 sm:grid-cols-2">
+        <div className="mx-auto mb-7 grid max-w-4xl grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
           {incluso.map((item) => (
-            <div key={item} className="flex items-start gap-3 rounded-xl border border-[#DDE1E6] bg-white px-4 py-3 text-sm leading-relaxed text-[#344054] shadow-sm">
+            <div key={item} className="flex items-start gap-2 rounded-xl border border-[#DDE1E6] bg-white px-3 py-3 text-xs font-semibold leading-relaxed text-[#344054] shadow-sm sm:text-sm">
               <span aria-hidden="true" className="mt-0.5 shrink-0 font-bold text-emerald-600">✓</span>
               <span>{item}</span>
             </div>

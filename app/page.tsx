@@ -1,15 +1,10 @@
 import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
-import Dor from '@/components/landing/Dor'
-import AntesDepois from '@/components/landing/AntesDepois'
 import Depoimentos from '@/components/landing/Depoimentos'
-import Funcionalidades from '@/components/landing/Funcionalidades'
 import BrindoletaSpotlight from '@/components/landing/BrindoletaSpotlight'
-import Comunidade from '@/components/landing/Comunidade'
-import ProvasSocial from '@/components/landing/ProvasSocial'
+import FerramentasCatalogo from '@/components/landing/FerramentasCatalogo'
 import Preco from '@/components/landing/Preco'
 import FAQ from '@/components/landing/FAQ'
-import CTAFinal from '@/components/landing/CTAFinal'
 import Footer from '@/components/landing/Footer'
 import MobileStickyCTA from '@/components/landing/MobileStickyCTA'
 import type { Metadata } from 'next'
@@ -64,16 +59,11 @@ export default function LandingPage() {
       <Navbar />
       <main>
         <Hero />
-        <Dor />
-        <AntesDepois />
-        <Depoimentos />
-        <Funcionalidades />
         <BrindoletaSpotlight />
-        <Comunidade />
-        <ProvasSocial />
+        <FerramentasCatalogo />
+        <Depoimentos />
         <Preco />
         <FAQ />
-        <CTAFinal />
       </main>
       <Footer />
       <MobileStickyCTA />

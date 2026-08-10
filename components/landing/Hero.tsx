@@ -83,16 +83,16 @@ export default function Hero() {
         </div>
       </div>
 
-      <div className="relative mx-auto mt-12 max-w-6xl rounded-2xl border border-[#25D366]/25 bg-[#25D366]/[0.07] p-4 sm:mt-16 sm:flex sm:items-center sm:justify-between sm:gap-8 sm:px-6 sm:py-5">
+      <div className="relative mx-auto mt-12 max-w-6xl rounded-2xl border border-[#F4B942]/25 bg-[#F4B942]/[0.07] p-4 sm:mt-16 sm:flex sm:items-center sm:justify-between sm:gap-8 sm:px-6 sm:py-5">
         <div className="flex items-start gap-3">
-          <span aria-hidden="true" className="mt-0.5 text-2xl">💬</span>
+          <span aria-hidden="true" className="mt-0.5 text-2xl">⌁</span>
           <div>
-            <p className="font-bold text-white">Você não recebe apenas um sistema.</p>
-            <p className="mt-1 text-sm leading-relaxed text-[#B8C3D1]">Assinantes entram na comunidade do WhatsApp, recebem novidades e contam com suporte humanizado.</p>
+            <p className="font-bold text-white">Conheça o sistema antes de decidir.</p>
+            <p className="mt-1 text-sm leading-relaxed text-[#B8C3D1]">Logo abaixo, clique em cada ferramenta para entender o que ela faz na rotina da barbearia.</p>
           </div>
         </div>
-        <a href="#comunidade" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-[#64DF8D] hover:text-white sm:mt-0 sm:shrink-0">
-          Conhecer a comunidade ↓
+        <a href="#ferramentas" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-[#FFD16A] hover:text-white sm:mt-0 sm:shrink-0">
+          Explorar as ferramentas ↓
         </a>
       </div>
     </section>
