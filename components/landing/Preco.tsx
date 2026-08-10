@@ -10,9 +10,9 @@ import { trackInitiateCheckout } from '@/lib/pixel'
 import { useTrackingHandlers } from '@/lib/utms'
 
 const incluso = [
-  'Metas, equipe e campanhas',
+  'Metas, ranking e campanhas',
   'Brindoleta e Feedback Premiado',
-  'Financeiro, relatórios e cards',
+  'Dinheiro, pagamentos e cards',
   'Aulas, comunidade e suporte',
 ]
 
@@ -23,9 +23,9 @@ export default function Preco() {
     <section id="preco" className="scroll-mt-20 bg-[#F6F4EF] px-4 py-16 sm:px-6 sm:py-20">
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto mb-9 max-w-3xl text-center">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#B77916]">Assinatura completa</p>
-          <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] text-[#101828] sm:text-4xl">Todos os módulos. Você escolhe como prefere pagar.</h2>
-          <p className="mt-4 text-base text-[#59677A] sm:text-lg">O acesso é o mesmo nos dois planos. O anual entrega a melhor economia.</p>
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#B77916]">Planos do BarberMeta</p>
+          <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] text-[#101828] sm:text-4xl">Tudo para engajar a equipe e vender mais.</h2>
+          <p className="mt-4 text-base text-[#59677A] sm:text-lg">Mensal e anual têm as mesmas ferramentas. O plano anual tem o menor valor por mês.</p>
         </div>
 
         <div className="mx-auto mb-7 grid max-w-4xl grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
@@ -42,7 +42,7 @@ export default function Preco() {
             <div className="flex-1 p-7 sm:p-9">
               <span className="inline-flex rounded-full bg-[#EEF2F6] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#344054]">Flexibilidade</span>
               <h3 className="mt-5 text-2xl font-bold text-[#101828]">Plano mensal</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#667384]">Ideal para começar com uma cobrança menor e renovar mês a mês.</p>
+              <p className="mt-2 text-sm leading-relaxed text-[#667384]">Para começar pagando mês a mês.</p>
               <div className="mt-7 flex items-end gap-2">
                 <p className="text-5xl font-bold leading-none text-[#101828]">R$ 34,90</p>
                 <p className="pb-1 text-sm font-semibold text-[#667384]">/mês</p>
@@ -69,7 +69,7 @@ export default function Preco() {
             <div className="flex-1 p-7 sm:p-9">
               <span className="inline-flex rounded-full border border-[#F4B942]/30 bg-[#F4B942]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#FFD16A]">Economize R$ 121,80</span>
               <h3 className="mt-5 text-2xl font-bold">Plano anual</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#C6D0DD]">A melhor condição para quem já quer aplicar o BarberMeta durante o ano.</p>
+              <p className="mt-2 text-sm leading-relaxed text-[#C6D0DD]">Para usar durante o ano pagando menos por mês.</p>
               <div className="mt-7 flex items-end gap-2">
                 <p className="text-5xl font-bold leading-none">R$ 297</p>
                 <p className="pb-1 text-sm font-semibold text-[#9DACBD]">/ano à vista</p>
@@ -96,7 +96,7 @@ export default function Preco() {
         <p className="mt-6 text-center text-xs text-[#667384]">Pagamento e renovação processados com segurança pela Hotmart. Acesso liberado após a confirmação da compra.</p>
 
         <aside className="mx-auto mt-7 max-w-4xl rounded-2xl border border-[#B77916]/25 bg-[#FFF8E7] px-5 py-4 text-sm leading-relaxed text-[#6D4B12]">
-          <strong>Já é cliente vitalício?</strong> Nada muda no seu plano: seu acesso atual continua preservado. Se quiser adicionar um módulo que não faz parte da sua licença, ele continua disponível para compra separada dentro do sistema.
+          <strong>Já é cliente vitalício?</strong> Nada muda: você continua com tudo o que já possui. Se quiser uma ferramenta extra, ela continua disponível para compra separada.
         </aside>
       </div>
     </section>

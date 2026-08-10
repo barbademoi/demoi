@@ -1,23 +1,23 @@
 const perguntas = [
   {
     q: 'O que está incluído na assinatura?',
-    a: 'Novos assinantes recebem o BarberMeta completo: metas, ranking, Brindoleta, financeiro, Feedback Premiado, cards, recursos com IA, aulas, atualizações, comunidade no WhatsApp e suporte humanizado.',
+    a: 'Novos assinantes recebem todas as ferramentas mostradas nesta página: metas, ranking, campanhas, Brindoleta, organização do dinheiro, Feedback Premiado, cards, aulas, comunidade no WhatsApp e suporte humanizado.',
   },
   {
     q: 'Qual é a diferença entre o plano mensal e o anual?',
-    a: 'Os recursos são os mesmos. O mensal custa R$ 34,90 por mês. O anual custa R$ 297 à vista, equivale a R$ 24,75 por mês e economiza R$ 121,80 em comparação com doze mensalidades. A Hotmart também oferece parcelamento do anual com acréscimo.',
+    a: 'As ferramentas são as mesmas. O mensal custa R$ 34,90 por mês. O anual custa R$ 297 à vista, equivale a R$ 24,75 por mês e economiza R$ 121,80 em comparação com doze mensalidades. A Hotmart também oferece parcelamento do anual com acréscimo.',
   },
   {
     q: 'Já sou cliente vitalício. O que muda para mim?',
-    a: 'Nada muda. Seu acesso vitalício e os módulos que você já possui continuam exatamente como estão. Se quiser um módulo extra que não faz parte da sua licença, você poderá comprá-lo separadamente dentro do sistema.',
+    a: 'Nada muda. Você continua com tudo o que já possui. Se quiser uma ferramenta extra que não faz parte do seu acesso, poderá comprá-la separadamente.',
   },
   {
-    q: 'Preciso trocar meu sistema de gestão?',
-    a: 'Não. Você pode continuar usando o sistema que já usa. O BarberMeta entra para transformar metas, números da equipe e oportunidades de venda em uma rotina fácil de acompanhar.',
+    q: 'Preciso trocar meu sistema de agendamento?',
+    a: 'Não. Continue usando sua agenda normalmente. O BarberMeta trabalha junto com ela e cuida de outra parte: metas, participação da equipe e novas oportunidades de venda.',
   },
   {
     q: 'Como cada profissional acessa?',
-    a: 'Cada profissional recebe um link individual, sem conta e sem senha, para acompanhar os próprios números no celular. Na Brindoleta, cada colaborador também pode ter seu próprio QR Code.',
+    a: 'Cada profissional recebe um link próprio, sem conta e sem senha, para acompanhar metas e resultados no celular. Na Brindoleta, cada profissional também recebe seu QR Code.',
   },
   {
     q: 'E se eu não souber configurar?',
@@ -25,7 +25,7 @@ const perguntas = [
   },
   {
     q: 'Como funcionam os planos e a renovação?',
-    a: 'Mensal e anual liberam os mesmos recursos para novos assinantes. A cobrança, a renovação e o gerenciamento da assinatura são processados com segurança pela Hotmart.',
+    a: 'Mensal e anual liberam as mesmas ferramentas para novos assinantes. A cobrança e a renovação são feitas com segurança pela Hotmart.',
   },
 ]
 

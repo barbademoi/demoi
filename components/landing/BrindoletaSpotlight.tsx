@@ -2,10 +2,10 @@ import BrindoletaDemo from '@/components/brindoleta/BrindoletaDemo'
 import CTAButton from './CTAButton'
 
 const beneficios = [
-  'Um QR Code exclusivo para cada profissional',
-  'Ofertas, serviços, produtos e brindes configuráveis',
-  'Registro de quem gerou e confirmou cada venda',
-  'Experiência divertida para o cliente no celular',
+  'Um QR Code para cada profissional',
+  'Você escolhe as ofertas, produtos e brindes',
+  'O dono confirma as vendas que realmente aconteceram',
+  'O cliente participa pelo próprio celular',
 ]
 
 export default function BrindoletaSpotlight() {
@@ -17,10 +17,10 @@ export default function BrindoletaSpotlight() {
             Incluída para assinantes
           </span>
           <h2 className="mt-5 text-balance text-3xl font-bold leading-tight tracking-[-0.03em] text-white sm:text-4xl lg:text-5xl">
-            A Brindoleta transforma cada atendimento em uma nova oportunidade.
+            A Brindoleta ajuda sua equipe a oferecer mais sem forçar a venda.
           </h2>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-white/65 sm:text-lg">
-            O cliente aponta a câmera para o QR Code do profissional, gira a roleta e recebe uma oferta. Quando aceita, o dono acompanha a venda e quem a gerou.
+            O cliente lê o QR Code do profissional, gira a roleta e descobre uma oferta. Se aceitar, a venda aparece para o dono conferir e fica ligada a quem fez o atendimento.
           </p>
 
           <ul className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -33,8 +33,8 @@ export default function BrindoletaSpotlight() {
           </ul>
 
           <div className="mt-7 flex flex-col items-start gap-2">
-            <CTAButton label="Quero a Brindoleta e todos os módulos" id="cta-brindoleta-planos" gtmClass="gtm-cta-brindoleta" />
-            <p className="text-xs text-white/45">Sem compra separada para novos assinantes.</p>
+            <CTAButton label="Quero isso na minha equipe" id="cta-brindoleta-planos" gtmClass="gtm-cta-brindoleta" />
+            <p className="text-xs text-white/45">A Brindoleta já está incluída para novos assinantes.</p>
           </div>
         </div>
 

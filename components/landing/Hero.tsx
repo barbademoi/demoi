@@ -2,8 +2,8 @@ import Image from 'next/image'
 import CTAButton from './CTAButton'
 
 const sinais = [
-  'Todos os módulos na assinatura',
-  'Comunidade ativa no WhatsApp',
+  'Funciona junto com sua agenda',
+  'Cada profissional acompanha no celular',
   'Suporte feito por pessoas',
 ]
 
@@ -26,21 +26,20 @@ export default function Hero() {
         <div className="text-center lg:text-left">
           <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#F4B942]/35 bg-[#F4B942]/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.13em] text-[#FFD16A] sm:text-xs">
             <span aria-hidden="true">✦</span>
-            O BarberMeta completo em uma única assinatura
+            Metas, equipe e vendas no mesmo lugar
           </span>
 
           <h1 className="text-balance text-[2.35rem] font-bold leading-[1.04] tracking-[-0.035em] text-white sm:text-5xl lg:text-[3.65rem]">
-            Gestão e vendas para sua barbearia{' '}
-            <span className="text-[#F4B942]">crescer com o time.</span>
+            Coloque sua equipe em movimento{' '}
+            <span className="text-[#F4B942]">e venda mais na barbearia.</span>
           </h1>
 
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[#B8C3D1] sm:mt-6 sm:text-lg lg:mx-0">
-            Metas, ranking, financeiro, feedbacks e a <strong className="font-semibold text-white">Brindoleta</strong>{' '}
-            no mesmo lugar — com comunidade ativa no WhatsApp e suporte humanizado para você não ficar sozinho.
+            O BarberMeta funciona junto com o sistema de agendamento que você já usa. Ele mostra metas, ranking e oportunidades de venda para cada profissional saber o que fazer hoje.
           </p>
 
           <div className="mx-auto mt-7 flex max-w-xl flex-col items-center gap-3 lg:mx-0 lg:items-start">
-            <CTAButton label="Assinar por R$ 34,90/mês" id="cta-hero-planos" gtmClass="gtm-cta-hero" />
+            <CTAButton label="Quero engajar minha equipe" id="cta-hero-planos" gtmClass="gtm-cta-hero" />
             <p className="text-sm text-[#8FA0B3]">Ou economize no plano anual · pagamento seguro pela Hotmart</p>
           </div>
 
@@ -72,13 +71,13 @@ export default function Hero() {
           </div>
 
           <div className="absolute left-0 top-[18%] max-w-[150px] rounded-2xl border border-white/10 bg-[#101B2B]/95 p-3 shadow-xl backdrop-blur sm:left-4 sm:max-w-[180px] sm:p-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[#8FA0B3] sm:text-xs">Equipe conectada</p>
-            <p className="mt-1 text-sm font-bold text-white sm:text-base">Meta e ritmo no celular</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#8FA0B3] sm:text-xs">Metas visíveis</p>
+            <p className="mt-1 text-sm font-bold text-white sm:text-base">Cada um sabe o próximo passo</p>
           </div>
 
           <div className="absolute bottom-[16%] right-0 max-w-[150px] rounded-2xl border border-emerald-400/25 bg-[#0D211C]/95 p-3 shadow-xl backdrop-blur sm:right-3 sm:max-w-[180px] sm:p-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 sm:text-xs">Tudo incluído</p>
-            <p className="mt-1 text-sm font-bold text-white sm:text-base">Sem plano capado</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 sm:text-xs">Mais oportunidades</p>
+            <p className="mt-1 text-sm font-bold text-white sm:text-base">Ofertas sem pressão</p>
           </div>
         </div>
       </div>
@@ -87,12 +86,12 @@ export default function Hero() {
         <div className="flex items-start gap-3">
           <span aria-hidden="true" className="mt-0.5 text-2xl">⌁</span>
           <div>
-            <p className="font-bold text-white">Conheça o sistema antes de decidir.</p>
-            <p className="mt-1 text-sm leading-relaxed text-[#B8C3D1]">Logo abaixo, clique em cada ferramenta para entender o que ela faz na rotina da barbearia.</p>
+            <p className="font-bold text-white">Você não precisa trocar o que já usa.</p>
+            <p className="mt-1 text-sm leading-relaxed text-[#B8C3D1]">Sua agenda organiza os horários. O BarberMeta ajuda a equipe a acompanhar metas, se envolver e vender mais.</p>
           </div>
         </div>
         <a href="#ferramentas" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-[#FFD16A] hover:text-white sm:mt-0 sm:shrink-0">
-          Explorar as ferramentas ↓
+          Ver como funciona ↓
         </a>
       </div>
     </section>

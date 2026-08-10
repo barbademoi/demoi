@@ -1,7 +1,7 @@
 import Image from 'next/image'
 
 const depoimentos = [
-  { src: '/prints/feedback-1.png', alt: 'Depoimento real sobre o uso da gamificação no BarberMeta' },
+  { src: '/prints/feedback-1.png', alt: 'Depoimento real sobre metas e participação da equipe no BarberMeta' },
   { src: '/prints/feedback-2.png', alt: 'Depoimento real de cliente estudando o BarberMeta' },
   { src: '/prints/feedback-3.png', alt: 'Depoimento real de cliente com a meta ouro atingida' },
   { src: '/prints/feedback-4.png', alt: 'Depoimento real sobre o engajamento da equipe' },
@@ -15,14 +15,14 @@ export default function Depoimentos() {
         <div className="grid gap-8 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
           <div>
             <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#B77916]">Resultado real</p>
-            <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] text-[#101828] sm:text-4xl">Quando a equipe enxerga o jogo, ela muda o ritmo.</h2>
+            <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] text-[#101828] sm:text-4xl">Quando a equipe acompanha o próprio resultado, ela se movimenta.</h2>
             <p className="mt-4 text-base leading-relaxed text-[#59677A]">O BarberMeta já faz parte da rotina de mais de 600 barbearias.</p>
           </div>
 
           <figure className="rounded-3xl border border-[#E6D2A7] bg-[#FFF9EC] p-6 sm:p-8">
             <div className="mb-4 text-3xl text-[#B77916]" aria-hidden="true">“</div>
             <blockquote className="text-xl font-bold leading-snug text-[#101828] sm:text-2xl">
-              Primeiro ciclo usando o app: batemos a meta ouro. R$ 60.016 no mês.
+              Primeiro mês usando o BarberMeta: batemos a meta ouro. R$ 60.016 no mês.
             </blockquote>
             <figcaption className="mt-4 text-sm font-bold text-[#9A650F]">Geison · dono de barbearia</figcaption>
           </figure>

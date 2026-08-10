@@ -10,15 +10,15 @@ import MobileStickyCTA from '@/components/landing/MobileStickyCTA'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'BarberMeta — Gestão, vendas e equipe por R$ 34,90/mês',
+  title: 'BarberMeta — Engaje sua equipe e venda mais',
   description:
-    'BarberMeta completo com metas, ranking, financeiro, Brindoleta, comunidade ativa no WhatsApp e suporte humanizado.',
+    'Uma ferramenta que funciona junto da sua agenda para engajar a equipe, acompanhar metas e criar mais oportunidades de venda.',
   alternates: {
     canonical: 'https://www.barbermeta.com.br',
   },
   openGraph: {
-    title: 'BarberMeta completo — tudo incluído na assinatura',
-    description: 'Metas, vendas, financeiro, Brindoleta, comunidade e suporte a partir de R$ 34,90 por mês.',
+    title: 'BarberMeta — sua equipe mais engajada e vendendo mais',
+    description: 'Metas, ranking, campanhas e Brindoleta para colocar a equipe em movimento, sem trocar o sistema de agendamento.',
     url: 'https://www.barbermeta.com.br',
     siteName: 'BarberMeta',
     locale: 'pt_BR',
@@ -43,8 +43,8 @@ const faqSchema = {
     },
     {
       '@type': 'Question',
-      name: 'Preciso trocar meu sistema de gestão?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Não. Você continua usando o sistema que já usa e coloca no BarberMeta apenas os números necessários para acompanhar as metas.' },
+      name: 'Preciso trocar meu sistema de agendamento?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Não. O BarberMeta funciona junto com a agenda que você já usa e ajuda sua equipe a acompanhar metas e vender mais.' },
     },
   ],
 }
