@@ -254,9 +254,13 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
   useEffect(() => {
     let cancel = false
     contarCondutaNaoLidas().then(n => { if (!cancel) setCondutaNaoLidas(n) }).catch(() => {})
-    contarChatNaoLidas().then(n => { if (!cancel) setChatNaoLidas(n) }).catch(() => {})
+    // Só conta pra quem tem o chat. Sem esta guarda, os ~600 vitalícios
+    // pagariam 3 consultas por navegação por um item que nem aparece pra eles.
+    if (access.assinante === true) {
+      contarChatNaoLidas().then(n => { if (!cancel) setChatNaoLidas(n) }).catch(() => {})
+    }
     return () => { cancel = true }
-  }, [pathname])
+  }, [pathname, access.assinante])
 
   return (
     <>
