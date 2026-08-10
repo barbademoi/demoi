@@ -4,6 +4,7 @@ import { createHmac, randomUUID } from 'crypto'
 import { cookies, headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { brindoletaLiberada } from '@/lib/brindoleta/liberacao'
+import { buscarOfertasAtivas } from '@/lib/brindoleta/ofertasAtivas'
 import type { BrindoletaPrize, PublicBrindoletaOffer } from '@/lib/brindoleta/types'
 
 type SpinInput = {
@@ -119,16 +120,9 @@ function weightedDraw(offers: OfferRow[]) {
 }
 
 async function activeOffers(admin: ReturnType<typeof createAdminClient>, barbeariaId: string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await (admin as any)
-    .from('brindoleta_offers')
-    .select('id, title, benefit, offer_type, color, revenue_cents, chance')
-    .eq('barbearia_id', barbeariaId)
-    .eq('enabled', true)
-    .gt('stock', 0)
-    .order('created_at', { ascending: true })
-    .limit(6)
-  return (data ?? []) as OfferRow[]
+  // Mesma fonte da página aberta pelo QR — a roda e o sorteio precisam
+  // enxergar exatamente as mesmas ofertas.
+  return (await buscarOfertasAtivas(admin, barbeariaId)) as unknown as OfferRow[]
 }
 
 function publicOffers(offers: OfferRow[]) {
