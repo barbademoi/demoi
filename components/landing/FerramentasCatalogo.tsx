@@ -210,7 +210,7 @@ const ferramentas: Ferramenta[] = [
       'Comunidade de donos de barbearia no WhatsApp',
       'Suporte feito por pessoas e atualizações contínuas',
     ],
-    resultado: 'Mais segurança para configurar, testar e continuar usando.',
+    resultado: 'Mais segurança para configurar, aplicar e continuar usando.',
   },
 ]
 

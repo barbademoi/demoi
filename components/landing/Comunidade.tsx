@@ -5,12 +5,6 @@ const beneficios = [
   'Suporte humanizado para não deixar você travado',
 ]
 
-const resultados = [
-  { valor: '+16%', legenda: 'em uma barbearia' },
-  { valor: '+15%', legenda: 'em outra operação' },
-  { valor: '+14,5%', legenda: 'em outra equipe' },
-]
-
 export default function Comunidade() {
   return (
     <section id="comunidade" className="scroll-mt-20 overflow-hidden bg-[#07111F] px-4 py-16 sm:px-6 sm:py-20">
@@ -22,7 +16,7 @@ export default function Comunidade() {
               Mais de 600 barbearias aprendendo, aplicando e crescendo juntas.
             </h2>
             <p className="mt-5 text-base leading-relaxed text-[#B8C3D1] sm:text-lg">
-              O poder do BarberMeta não está só nas telas. Ele transforma metas em ações diárias da equipe e aproxima você de donos que já testaram campanhas, premiações e novas formas de vender.
+              O poder do BarberMeta não está só nas telas. Ele transforma metas em ações diárias da equipe e aproxima você de donos que já colocaram campanhas, premiações e novas formas de vender em prática.
             </p>
             <p className="mt-4 text-sm leading-relaxed text-[#8FA0B3] sm:text-base">
               Na comunidade, uma dúvida pode virar uma ideia aplicada no mesmo dia. Você acompanha experiências reais, aprende com quem vive os mesmos desafios e conta com ajuda para usar melhor cada ferramenta.
@@ -69,27 +63,6 @@ export default function Comunidade() {
           </div>
         </div>
 
-        <div className="mt-10 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.045] p-5 sm:p-7 lg:flex lg:items-center lg:gap-10">
-          <div className="lg:max-w-[360px] lg:shrink-0">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#64E3BA]">Resultados registrados no BarberMeta</p>
-            <h3 className="mt-2 text-2xl font-bold tracking-[-0.02em] text-white">Quando a equipe acompanha, fica mais fácil agir.</h3>
-            <p className="mt-3 text-sm leading-relaxed text-[#AEBBCB]">
-              Há barbearias usando o BarberMeta com crescimento comprovado nos próprios dados. Estes são exemplos reais comparando os dois meses fechados e válidos mais recentes de cada operação.
-            </p>
-          </div>
-
-          <div className="mt-6 grid flex-1 grid-cols-3 gap-2.5 sm:gap-4 lg:mt-0">
-            {resultados.map((resultado) => (
-              <div key={resultado.valor} className="rounded-2xl border border-[#64E3BA]/20 bg-[#0A191A] px-2 py-5 text-center sm:px-4">
-                <strong className="block font-serif text-3xl leading-none text-[#64E3BA] sm:text-4xl">{resultado.valor}</strong>
-                <span className="mt-2 block text-[10px] font-semibold leading-tight text-[#B8C3D1] sm:text-xs">{resultado.legenda}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <p className="mt-3 text-center text-[10px] leading-relaxed text-[#718095] sm:text-xs">
-          Resultados variam conforme equipe, operação e execução. Os percentuais acima não representam promessa de resultado.
-        </p>
       </div>
     </section>
   )

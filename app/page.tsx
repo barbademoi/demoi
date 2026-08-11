@@ -9,6 +9,8 @@ import Preco from '@/components/landing/Preco'
 import FAQ from '@/components/landing/FAQ'
 import Footer from '@/components/landing/Footer'
 import MobileStickyCTA from '@/components/landing/MobileStickyCTA'
+import CaminhoVenda from '@/components/landing/CaminhoVenda'
+import CrescimentoReal from '@/components/landing/CrescimentoReal'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -66,9 +68,11 @@ export default function LandingPage() {
       <Navbar />
       <main>
         <Hero />
+        <CaminhoVenda />
         <BrindoletaSpotlight />
         <FerramentasCatalogo />
         <Comunidade />
+        <CrescimentoReal />
         <Depoimentos />
         <Garantia />
         <Preco />

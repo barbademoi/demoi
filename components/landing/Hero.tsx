@@ -1,10 +1,11 @@
 import Image from 'next/image'
 import CTAButton from './CTAButton'
+import LandingIcon, { type LandingIconName } from './LandingIcon'
 
 const sinais = [
-  'Comunidade com 600+ barbearias',
-  '8 aulas direto ao ponto',
-  '30 dias de garantia total',
+  { texto: 'Comunidade com 600+ barbearias', icon: 'team' as LandingIconName, classe: 'border-emerald-400/25 bg-emerald-400/10 text-emerald-200' },
+  { texto: '8 aulas direto ao ponto', icon: 'spark' as LandingIconName, classe: 'border-blue-400/25 bg-blue-400/10 text-blue-200' },
+  { texto: '30 dias de garantia total', icon: 'shield' as LandingIconName, classe: 'border-[#F4B942]/30 bg-[#F4B942]/10 text-[#FFD16A]' },
 ]
 
 export default function Hero() {
@@ -43,11 +44,11 @@ export default function Hero() {
             <p className="text-sm font-semibold text-[#B8C3D1]">Assinatura de R$ 34,90/mês · menos que um corte · garantia de 30 dias</p>
           </div>
 
-          <ul className="mx-auto mt-6 flex max-w-xl flex-wrap justify-center gap-x-5 gap-y-2 lg:mx-0 lg:justify-start">
+          <ul className="mx-auto mt-6 flex max-w-xl flex-wrap justify-center gap-2 lg:mx-0 lg:justify-start">
             {sinais.map((sinal) => (
-              <li key={sinal} className="flex items-center gap-1.5 text-xs font-semibold text-[#D6DEE8] sm:text-sm">
-                <span aria-hidden="true" className="text-emerald-400">✓</span>
-                {sinal}
+              <li key={sinal.texto} className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold ${sinal.classe}`}>
+                <LandingIcon name={sinal.icon} className="h-4 w-4" />
+                {sinal.texto}
               </li>
             ))}
           </ul>

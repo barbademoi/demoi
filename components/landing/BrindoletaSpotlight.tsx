@@ -1,11 +1,12 @@
 import BrindoletaDemo from '@/components/brindoleta/BrindoletaDemo'
 import CTAButton from './CTAButton'
+import LandingIcon, { type LandingIconName } from './LandingIcon'
 
 const beneficios = [
-  'Um QR Code para cada profissional',
-  'Você escolhe as ofertas, produtos e brindes',
-  'O dono confirma as vendas que realmente aconteceram',
-  'O cliente participa pelo próprio celular',
+  { texto: 'Um QR Code para cada profissional', icon: 'qr' as LandingIconName, classe: 'bg-[#D8FF00] text-[#11110F]' },
+  { texto: 'Você escolhe as ofertas, produtos e brindes', icon: 'gift' as LandingIconName, classe: 'bg-[#FF4FA3] text-white' },
+  { texto: 'O dono confirma as vendas que realmente aconteceram', icon: 'check' as LandingIconName, classe: 'bg-[#36BFFA] text-[#061723]' },
+  { texto: 'O cliente participa pelo próprio celular', icon: 'phone' as LandingIconName, classe: 'bg-[#9B6CFF] text-white' },
 ]
 
 export default function BrindoletaSpotlight() {
@@ -25,9 +26,11 @@ export default function BrindoletaSpotlight() {
 
           <ul className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             {beneficios.map((beneficio) => (
-              <li key={beneficio} className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm leading-relaxed text-white/80">
-                <span aria-hidden="true" className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#D8FF00] text-xs font-black text-[#11110F]">✓</span>
-                <span>{beneficio}</span>
+              <li key={beneficio.texto} className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3.5 text-sm font-semibold leading-relaxed text-white/85 transition-transform hover:-translate-y-0.5 hover:border-white/20">
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-lg shadow-black/20 ${beneficio.classe}`}>
+                  <LandingIcon name={beneficio.icon} className="h-5 w-5" />
+                </span>
+                <span>{beneficio.texto}</span>
               </li>
             ))}
           </ul>
