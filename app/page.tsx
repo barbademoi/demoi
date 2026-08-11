@@ -2,14 +2,12 @@ import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
 import Depoimentos from '@/components/landing/Depoimentos'
 import BrindoletaSpotlight from '@/components/landing/BrindoletaSpotlight'
-import FerramentasCatalogo from '@/components/landing/FerramentasCatalogo'
 import Comunidade from '@/components/landing/Comunidade'
 import Garantia from '@/components/landing/Garantia'
 import Preco from '@/components/landing/Preco'
 import FAQ from '@/components/landing/FAQ'
 import Footer from '@/components/landing/Footer'
 import MobileStickyCTA from '@/components/landing/MobileStickyCTA'
-import CaminhoVenda from '@/components/landing/CaminhoVenda'
 import CrescimentoReal from '@/components/landing/CrescimentoReal'
 import SistemaEmAcao from '@/components/landing/SistemaEmAcao'
 import type { Metadata } from 'next'
@@ -69,10 +67,8 @@ export default function LandingPage() {
       <Navbar />
       <main>
         <Hero />
-        <CaminhoVenda />
-        <SistemaEmAcao />
         <BrindoletaSpotlight />
-        <FerramentasCatalogo />
+        <SistemaEmAcao />
         <Comunidade />
         <CrescimentoReal />
         <Depoimentos />
