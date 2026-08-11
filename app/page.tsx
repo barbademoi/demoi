@@ -11,6 +11,7 @@ import Footer from '@/components/landing/Footer'
 import MobileStickyCTA from '@/components/landing/MobileStickyCTA'
 import CaminhoVenda from '@/components/landing/CaminhoVenda'
 import CrescimentoReal from '@/components/landing/CrescimentoReal'
+import SistemaEmAcao from '@/components/landing/SistemaEmAcao'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -69,6 +70,7 @@ export default function LandingPage() {
       <main>
         <Hero />
         <CaminhoVenda />
+        <SistemaEmAcao />
         <BrindoletaSpotlight />
         <FerramentasCatalogo />
         <Comunidade />
