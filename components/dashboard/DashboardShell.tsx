@@ -7,6 +7,7 @@ import BarbeariaWatermark from './BarbeariaWatermark'
 import PremiacaoDono from './PremiacaoDono'
 import BrindoletaPromoBanner from './BrindoletaPromoBanner'
 import BrindoletaAdminAlerta from '@/components/brindoleta/BrindoletaAdminAlerta'
+import BrindoletaOfertaPopup from '@/components/brindoleta/BrindoletaOfertaPopup'
 import type { ModoPontos, CampanhaComDetalhes, MetaIndividual } from '@/types/database'
 import type { PremiacaoResumo } from '@/lib/premios'
 import type { BrindoletaStatus } from '@/lib/brindoleta/config'
@@ -115,6 +116,9 @@ interface Props {
   // Avisos de venda + contador de pendentes — só pro admin (dono da plataforma).
   brindoletaAdmin?: boolean
   brindoletaVendas?: { id: string; empresa: string; valorCents: number; quando: string | null }[]
+  // Popup de oferta da Brindoleta. Vem null pra quem JÁ TEM o módulo, pra quem
+  // recusou e pra quem fechou faz menos de 7 dias — a decisão é do servidor.
+  popupBrindoleta?: { precoLabel: string; midiaUrl: string | null; midiaTipo: 'gif' | 'video' | null } | null
 }
 
 export default function DashboardShell({
@@ -144,10 +148,14 @@ export default function DashboardShell({
   brindoletaStatus = null,
   brindoletaAdmin = false,
   brindoletaVendas = [],
+  popupBrindoleta = null,
 }: Props) {
   // Seção ativa da área principal. 'home' é a tela inicial (evolução + ranking);
   // as demais são painéis abertos pelo menu lateral (mutuamente exclusivos).
   const [secao, setSecao] = useState<'home' | 'config' | 'premiacoes' | 'destaques'>('home')
+  // Popup e banner falam da MESMA coisa. Mostrar os dois juntos é repetir a
+  // oferta na mesma tela, que é o caminho mais curto pra virar irritação.
+  const [popupNaTela, setPopupNaTela] = useState(false)
   const showConfig = secao === 'config'
   const alternar = (alvo: 'config' | 'premiacoes' | 'destaques') =>
     setSecao(s => (s === alvo ? 'home' : alvo))
@@ -156,6 +164,15 @@ export default function DashboardShell({
     <div className="bm-theme min-h-screen flex">
       <BarbeariaWatermark logoUrl={barbeariaLogoUrl} />
       {brindoletaAdmin && <BrindoletaAdminAlerta vendas={brindoletaVendas} />}
+
+      {popupBrindoleta && (
+        <BrindoletaOfertaPopup
+          precoLabel={popupBrindoleta.precoLabel}
+          midiaUrl={popupBrindoleta.midiaUrl}
+          midiaTipo={popupBrindoleta.midiaTipo}
+          onVisibilidade={setPopupNaTela}
+        />
+      )}
       <Sidebar
         barbeariaNome={barbeariaNome}
         showFerramentas={showConfig}
@@ -229,7 +246,7 @@ export default function DashboardShell({
         ) : (
           <>
             <div className="max-w-5xl mx-auto px-4 pt-6 pb-2 space-y-4">
-              <BrindoletaPromoBanner status={brindoletaStatus} />
+              {!popupNaTela && <BrindoletaPromoBanner status={brindoletaStatus} />}
               {monthNavigatorSlot}
 
               {mesFechado && (

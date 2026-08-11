@@ -13,6 +13,18 @@ type Props = {
   initialOffers: PublicBrindoletaOffer[]
 }
 
+/**
+ * Duração do giro. A animação CSS e o timer que revela o prêmio PRECISAM andar
+ * juntos: revelar antes da roda parar entrega o resultado adiantado, revelar
+ * muito depois deixa a tela parada. Por isso os dois saem da mesma constante,
+ * em vez de dois números soltos que alguém atualiza pela metade.
+ */
+const GIRO_SEGUNDOS = 9
+/** Folga pra revelar só depois da roda encostar, nunca junto. */
+const REVELA_MS = GIRO_SEGUNDOS * 1000 + 100
+/** Voltas completas antes de parar na fatia sorteada. */
+const VOLTAS = 6
+
 type Stage = 'ready' | 'loading' | 'spinning' | 'prize' | 'claim' | 'success' | 'blocked'
 
 function initials(value: string) {
@@ -134,8 +146,8 @@ export default function BrindoletaWheel({
       const selectedIndex = Math.max(0, result.offers.findIndex((offer) => offer.id === result.prize.id))
       const slice = 360 / Math.max(result.offers.length, 1)
       setStage('spinning')
-      window.requestAnimationFrame(() => setRotation(6 * 360 - selectedIndex * slice))
-      revealTimer.current = window.setTimeout(() => setStage('prize'), 6100)
+      window.requestAnimationFrame(() => setRotation(VOLTAS * 360 - selectedIndex * slice))
+      revealTimer.current = window.setTimeout(() => setStage('prize'), REVELA_MS)
     } catch {
       setError('A conexão falhou antes do giro. Verifique sua internet e tente novamente.')
       setStage('ready')
@@ -237,7 +249,7 @@ export default function BrindoletaWheel({
                   style={{
                     background: wheelBackground,
                     transform: `rotate(${rotation}deg)`,
-                    transition: stage === 'spinning' ? 'transform 6s cubic-bezier(.08,.64,.08,1)' : 'none',
+                    transition: stage === 'spinning' ? `transform ${GIRO_SEGUNDOS}s cubic-bezier(.08,.64,.08,1)` : 'none',
                     willChange: 'transform',
                   }}
                 >

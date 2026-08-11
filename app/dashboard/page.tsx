@@ -17,6 +17,8 @@ import { emailEhAdminCortesia } from '@/lib/admin/cortesia'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { BrindoletaStatus } from '@/lib/brindoleta/config'
 import { brindoletaLiberada } from '@/lib/brindoleta/liberacao'
+import { BRINDOLETA_PRICE_LABEL } from '@/lib/brindoleta/config'
+import { decidirPopupBrindoleta } from '@/lib/brindoleta/popup'
 import { calcularPremiacao } from '@/lib/premios'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import FecharMesButton from '@/components/dashboard/FecharMesButton'
@@ -90,6 +92,11 @@ export default async function DashboardPage({
   const brindoletaStatus = (await brindoletaLiberada(supabase, barbearia.id))
     ? 'active'
     : ((brindoletaLicenseRaw?.status ?? null) as BrindoletaStatus | null)
+
+  // Popup de oferta: quem JÁ TEM a Brindoleta nunca vê. A pergunta é respondida
+  // pelo banco (brindoleta_popup_deve_aparecer), que usa a mesma régua de acesso
+  // do módulo e ainda respeita o adiamento e o "não tenho interesse".
+  const popupBrindoleta = await decidirPopupBrindoleta(supabase, BRINDOLETA_PRICE_LABEL)
 
   // Avisos de venda + contador de pendentes — só pro admin (dono da plataforma).
   const brindoletaAdmin = emailEhAdminCortesia(user.email)
@@ -456,6 +463,7 @@ export default async function DashboardPage({
       premiacao={premiacao}
       mostrarCortesias={emailEhAdminCortesia(user.email)}
       brindoletaStatus={brindoletaStatus}
+      popupBrindoleta={popupBrindoleta}
       brindoletaAdmin={brindoletaAdmin}
       brindoletaVendas={brindoletaVendas}
       barbeariaNome={barbearia.nome}
