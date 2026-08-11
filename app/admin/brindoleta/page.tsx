@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { emailEhAdminCortesia } from '@/lib/admin/cortesia'
 import { listarPedidosBrindoleta } from './actions'
 import AdminBrindoletaClient from './AdminBrindoletaClient'
+import MidiaPopupForm from './MidiaPopupForm'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata = { title: 'Admin — Pagamentos da Brindoleta' }
 export const dynamic = 'force-dynamic'
@@ -16,6 +18,10 @@ export default async function AdminBrindoletaPage() {
 
   const { orders } = await listarPedidosBrindoleta()
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: midia } = await (createAdminClient() as any)
+    .from('brindoleta_popup_config').select('midia_url, midia_tipo').maybeSingle()
+
   return (
     <main className="bm-theme min-h-screen px-4 py-8 sm:py-10">
       <div className="mx-auto max-w-4xl">
@@ -27,6 +33,10 @@ export default async function AdminBrindoletaPage() {
             Confira o Pix no seu banco antes de liberar. Clicar em “Já fiz o pagamento” nunca ativa o produto automaticamente.
           </p>
         </div>
+        <MidiaPopupForm
+          urlInicial={(midia?.midia_url as string) ?? ''}
+          tipoInicial={((midia?.midia_tipo as 'gif' | 'video') ?? '')}
+        />
         <AdminBrindoletaClient initialOrders={orders} />
       </div>
     </main>

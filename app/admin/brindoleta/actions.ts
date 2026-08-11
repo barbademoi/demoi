@@ -124,3 +124,45 @@ export async function revisarPedidoBrindoleta(formData: FormData): Promise<{
   revalidatePath('/dashboard/brindoleta')
   return { ok: true }
 }
+
+/**
+ * Mídia da demonstração do popup de oferta.
+ *
+ * Guardo a URL, não o arquivo: o GIF/vídeo pode ser trocado sem deploy e sem
+ * mexer em código, que é o ponto de ter isto no banco.
+ */
+export async function salvarMidiaPopup(
+  url: string,
+  tipo: 'gif' | 'video' | '',
+): Promise<{ ok?: true; error?: string }> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || !emailEhAdminCortesia(user.email)) return { error: 'Sem permissão.' }
+
+  const limpa = String(url ?? '').trim().slice(0, 600)
+  // Vazio limpa a mídia e devolve o placeholder — é como se desfaz.
+  if (limpa.length > 0 && !/^https:\/\/\S+$/i.test(limpa)) {
+    return { error: 'Informe uma URL https válida (ou deixe vazio para remover).' }
+  }
+  if (limpa.length > 0 && tipo !== 'gif' && tipo !== 'video') {
+    return { error: 'Escolha se é GIF/imagem ou vídeo.' }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (createAdminClient() as any)
+    .from('brindoleta_popup_config')
+    .update({
+      midia_url: limpa || null,
+      midia_tipo: limpa ? tipo : null,
+      atualizado_em: new Date().toISOString(),
+    })
+    .eq('id', true)
+
+  if (error) {
+    console.error('[admin/brindoleta] erro ao salvar mídia do popup:', error)
+    return { error: 'Não foi possível salvar a mídia.' }
+  }
+  revalidatePath('/admin/brindoleta')
+  revalidatePath('/dashboard')
+  return { ok: true }
+}
