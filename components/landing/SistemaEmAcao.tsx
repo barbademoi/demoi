@@ -20,22 +20,22 @@ const slides: Slide[] = [
   {
     grupo: 'Metas',
     passo: 'Passo 1 de 3',
-    titulo: 'Defina metas e prêmios que a equipe entende.',
-    descricao: 'Crie objetivos coletivos e individuais em níveis Bronze, Prata e Ouro. Cada conquista pode ter uma recompensa clara para manter o time motivado até o fim do mês.',
-    ganho: 'Você transforma um número distante em etapas que dão vontade de alcançar.',
-    imagem: '/prints/carrossel-sistema/01-configure-metas.jpg',
-    alt: 'Configuração de metas coletivas e individuais com níveis e prêmios no BarberMeta',
-    cor: '#F2B84B',
-  },
-  {
-    grupo: 'Metas',
-    passo: 'Passo 2 de 3',
     titulo: 'Saiba todos os dias se a barbearia está no ritmo.',
     descricao: 'O painel mostra quanto a equipe já faturou, quanto falta e qual precisa ser o resultado por dia de trabalho para chegar à meta.',
     ganho: 'Você corrige a rota durante o mês, em vez de descobrir o problema quando já é tarde.',
     imagem: '/prints/carrossel-sistema/02-meta-coletiva.jpg',
     alt: 'Painel de meta coletiva com faturamento, progresso e ritmo diário',
     cor: '#FFD84D',
+  },
+  {
+    grupo: 'Metas',
+    passo: 'Passo 2 de 3',
+    titulo: 'Defina metas e prêmios que a equipe entende.',
+    descricao: 'Crie objetivos coletivos e individuais em níveis Bronze, Prata e Ouro. Cada conquista pode ter uma recompensa clara para manter o time motivado até o fim do mês.',
+    ganho: 'Você transforma um número distante em etapas que dão vontade de alcançar.',
+    imagem: '/prints/carrossel-sistema/01-configure-metas.jpg',
+    alt: 'Configuração de metas coletivas e individuais com níveis e prêmios no BarberMeta',
+    cor: '#F2B84B',
   },
   {
     grupo: 'Metas',
@@ -315,39 +315,53 @@ export default function SistemaEmAcao() {
             style={{ transform: `translateX(-${ativo * 100}%)` }}
           >
             {slides.map((slide, indice) => (
-              <article key={`${slide.grupo}-${slide.passo}`} className="relative min-w-full" aria-hidden={indice !== ativo}>
-                <div className="relative flex h-[570px] items-start justify-center overflow-hidden border-b border-white/10 bg-[#05070B] px-4 pt-5 sm:h-[650px] sm:px-8 sm:pt-7">
+              <article key={`${slide.grupo}-${slide.passo}`} className="relative min-w-full bg-[#08111F] pb-24" aria-hidden={indice !== ativo}>
+                <div className="relative flex h-[500px] items-start justify-center overflow-hidden bg-[#05070B] px-4 pt-8 sm:h-[590px] sm:px-8 sm:pt-9">
                   <div className="absolute inset-x-0 top-0 h-48 opacity-35 blur-3xl" style={{ background: `radial-gradient(circle at center, ${slide.cor}, transparent 65%)` }} aria-hidden="true" />
                   <div className="absolute left-5 top-5 z-10 rounded-full border border-white/10 bg-black/50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/70 backdrop-blur sm:left-7 sm:top-7">
                     Tela {String(indice + 1).padStart(2, '0')} de {slides.length}
                   </div>
-                  <div className="relative h-full w-full max-w-[330px] overflow-hidden rounded-t-[22px] border-x border-t border-white/15 bg-[#0C1018] shadow-[0_24px_70px_rgba(0,0,0,0.55)]">
-                    <Image
-                      src={slide.imagem}
-                      alt={slide.alt}
-                      fill
-                      sizes="(max-width: 640px) 82vw, 330px"
-                      className="pointer-events-none object-contain object-top"
-                      priority={indice === 0}
-                      draggable={false}
-                    />
+                  <div className="relative h-[442px] w-[220px] rounded-[38px] border-[7px] border-[#242A35] bg-[#11151D] shadow-[0_28px_80px_rgba(0,0,0,0.72)] sm:h-[535px] sm:w-[266px] sm:rounded-[44px] sm:border-[8px]">
+                    <span className="absolute -left-[10px] top-24 h-12 w-1 rounded-l-full bg-[#3A414E] sm:-left-[11px] sm:top-28" aria-hidden="true" />
+                    <span className="absolute -left-[10px] top-40 h-16 w-1 rounded-l-full bg-[#3A414E] sm:-left-[11px] sm:top-48" aria-hidden="true" />
+                    <span className="absolute -right-[10px] top-32 h-20 w-1 rounded-r-full bg-[#3A414E] sm:-right-[11px] sm:top-40" aria-hidden="true" />
+                    <div className="absolute inset-[3px] overflow-hidden rounded-[28px] bg-[#0C1018] sm:rounded-[33px]">
+                      <Image
+                        src={slide.imagem}
+                        alt={slide.alt}
+                        fill
+                        sizes="(max-width: 640px) 220px, 266px"
+                        className="pointer-events-none object-cover object-top"
+                        priority={indice === 0}
+                        draggable={false}
+                      />
+                      <span className="absolute left-1/2 top-2.5 z-10 h-4 w-16 -translate-x-1/2 rounded-full bg-black/90 shadow-sm sm:h-5 sm:w-20" aria-hidden="true" />
+                      <span className="pointer-events-none absolute inset-0 rounded-[28px] ring-1 ring-inset ring-white/10 sm:rounded-[33px]" aria-hidden="true" />
+                    </div>
                   </div>
                 </div>
 
-                <div className="relative min-h-[330px] bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.07),transparent_42%)] px-6 pb-28 pt-7 sm:min-h-[310px] sm:px-10 sm:pb-24 sm:pt-9 lg:px-14">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <span className="rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#08111F]" style={{ backgroundColor: slide.cor }}>
-                      {slide.grupo}
+                <div className="relative z-10 mx-4 -mt-9 min-h-[385px] rounded-[28px] border border-white/80 bg-[#FBFAF7] px-5 pb-28 pt-7 text-[#101828] shadow-[0_24px_70px_rgba(0,0,0,0.32)] sm:mx-8 sm:-mt-12 sm:min-h-[340px] sm:px-8 sm:pb-24 sm:pt-8 lg:mx-auto lg:max-w-4xl lg:px-10">
+                  <span className="absolute -top-3 left-10 h-6 w-6 rotate-45 border-l border-t border-white/80 bg-[#FBFAF7] sm:left-16" aria-hidden="true" />
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <span className="rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#08111F]" style={{ backgroundColor: slide.cor }}>
+                        {slide.grupo}
+                      </span>
+                      <span className="text-xs font-bold uppercase tracking-[0.13em] text-[#7A8798]">{slide.passo}</span>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#2C4FE4]">
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: slide.cor }} aria-hidden="true" />
+                      Entenda esta tela
                     </span>
-                    <span className="text-xs font-bold uppercase tracking-[0.13em] text-white/45">{slide.passo}</span>
                   </div>
-                  <h3 className="mt-4 max-w-3xl text-balance text-2xl font-bold leading-tight tracking-[-0.025em] text-white sm:text-3xl">
+                  <h3 className="mt-4 max-w-3xl text-balance text-2xl font-bold leading-tight tracking-[-0.025em] text-[#101828] sm:text-3xl">
                     {slide.titulo}
                   </h3>
-                  <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/65 sm:text-base">{slide.descricao}</p>
-                  <div className="mt-5 flex max-w-3xl items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.045] p-4 text-sm font-semibold leading-relaxed text-white/85">
-                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black text-[#08111F]" style={{ backgroundColor: slide.cor }} aria-hidden="true">✓</span>
-                    <p><span className="font-black text-white">Por que faz diferença: </span>{slide.ganho}</p>
+                  <p className="mt-3 max-w-3xl text-sm leading-relaxed text-[#59677A] sm:text-base">{slide.descricao}</p>
+                  <div className="mt-5 flex max-w-3xl items-start gap-3 rounded-2xl border border-[#101828]/8 bg-[#F0F3F8] p-4 text-sm font-semibold leading-relaxed text-[#344054] shadow-inner">
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black text-[#08111F] shadow-sm" style={{ backgroundColor: slide.cor }} aria-hidden="true">✓</span>
+                    <p><span className="font-black text-[#101828]">O ganho para sua barbearia: </span>{slide.ganho}</p>
                   </div>
                 </div>
               </article>
@@ -355,10 +369,10 @@ export default function SistemaEmAcao() {
           </div>
 
           <div className="absolute bottom-5 left-6 right-6 z-20 flex items-center gap-4 sm:bottom-6 sm:left-10 sm:right-10 lg:left-14 lg:right-14">
-            <span className="w-12 text-xs font-black tabular-nums text-white/65" aria-live="polite">
+            <span className="w-12 text-xs font-black tabular-nums text-[#667085]" aria-live="polite">
               {String(ativo + 1).padStart(2, '0')}/{slides.length}
             </span>
-            <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
+            <div className="h-1 flex-1 overflow-hidden rounded-full bg-[#101828]/10" aria-hidden="true">
               <div className="h-full rounded-full transition-all duration-500" style={{ width: `${((ativo + 1) / slides.length) * 100}%`, backgroundColor: slideAtivo.cor }} />
             </div>
             <div className="flex gap-2">
@@ -366,7 +380,7 @@ export default function SistemaEmAcao() {
                 type="button"
                 onClick={() => irPara(ativo - 1)}
                 onPointerDown={(evento) => evento.stopPropagation()}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/30 text-xl text-white transition hover:border-white/35 hover:bg-white/10"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-[#101828]/10 bg-[#101828] text-xl text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[#263247]"
                 aria-label="Tela anterior"
               >
                 ‹
@@ -375,7 +389,7 @@ export default function SistemaEmAcao() {
                 type="button"
                 onClick={() => irPara(ativo + 1)}
                 onPointerDown={(evento) => evento.stopPropagation()}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/30 text-xl text-white transition hover:border-white/35 hover:bg-white/10"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-[#101828]/10 bg-[#101828] text-xl text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[#263247]"
                 aria-label="Próxima tela"
               >
                 ›
