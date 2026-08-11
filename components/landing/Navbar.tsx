@@ -35,7 +35,7 @@ export default function Navbar() {
             Já tenho acesso →
           </Link>
           <div className="hidden sm:block">
-            <CTAButton size="sm" label="Ver planos →" id="cta-navbar-planos-desktop" gtmClass="gtm-cta-navbar" />
+            <CTAButton size="sm" label="Assinar agora →" id="cta-navbar-planos-desktop" gtmClass="gtm-cta-navbar" />
           </div>
 
           <div className="flex min-w-0 items-center gap-1.5 sm:hidden">

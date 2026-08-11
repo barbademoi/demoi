@@ -1,7 +1,11 @@
 const perguntas = [
   {
     q: 'O que está incluído na assinatura?',
-    a: 'Novos assinantes recebem todas as ferramentas mostradas nesta página: metas, ranking, campanhas, Brindoleta, organização do dinheiro, Feedback Premiado, cards, aulas, comunidade no WhatsApp e suporte humanizado.',
+    a: 'Novos assinantes recebem todas as ferramentas mostradas nesta página: metas, ranking, campanhas, Brindoleta, organização do dinheiro, Feedback Premiado, cards, 8 aulas direto ao ponto, comunidade no WhatsApp e suporte humanizado.',
+  },
+  {
+    q: 'Como funciona a garantia de 30 dias?',
+    a: 'O pagamento é feito no momento da assinatura. Depois, você tem 30 dias para configurar, usar e aplicar o BarberMeta com sua equipe. Se não gostar, solicite o cancelamento dentro desse prazo e devolvemos 100% do valor pago, sem enrolação.',
   },
   {
     q: 'Qual é a diferença entre o plano mensal e o anual?',
@@ -21,11 +25,7 @@ const perguntas = [
   },
   {
     q: 'E se eu não souber configurar?',
-    a: 'A configuração foi pensada para ser simples. Você também recebe aulas práticas, participa da comunidade ativa no WhatsApp e pode contar com suporte humanizado.',
-  },
-  {
-    q: 'Como funcionam os planos e a renovação?',
-    a: 'Mensal e anual liberam as mesmas ferramentas para novos assinantes. A cobrança e a renovação são feitas com segurança pela Hotmart.',
+    a: 'A configuração foi pensada para ser simples. Você também recebe 8 aulas práticas, participa da comunidade ativa no WhatsApp e pode contar com suporte humanizado.',
   },
 ]
 

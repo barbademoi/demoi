@@ -9,13 +9,6 @@ import {
 import { trackInitiateCheckout } from '@/lib/pixel'
 import { useTrackingHandlers } from '@/lib/utms'
 
-const incluso = [
-  'Metas, ranking e campanhas',
-  'Brindoleta e Feedback Premiado',
-  'Dinheiro, pagamentos e cards',
-  'Aulas, comunidade e suporte',
-]
-
 export default function Preco() {
   const trackingHandlers = useTrackingHandlers()
 
@@ -23,18 +16,9 @@ export default function Preco() {
     <section id="preco" className="scroll-mt-20 bg-[#F6F4EF] px-4 py-16 sm:px-6 sm:py-20">
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto mb-9 max-w-3xl text-center">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#B77916]">Planos do BarberMeta</p>
-          <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] text-[#101828] sm:text-4xl">Tudo para engajar a equipe e vender mais.</h2>
-          <p className="mt-4 text-base text-[#59677A] sm:text-lg">Mensal e anual têm as mesmas ferramentas. O plano anual tem o menor valor por mês.</p>
-        </div>
-
-        <div className="mx-auto mb-7 grid max-w-4xl grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-          {incluso.map((item) => (
-            <div key={item} className="flex items-start gap-2 rounded-xl border border-[#DDE1E6] bg-white px-3 py-3 text-xs font-semibold leading-relaxed text-[#344054] shadow-sm sm:text-sm">
-              <span aria-hidden="true" className="mt-0.5 shrink-0 font-bold text-emerald-600">✓</span>
-              <span>{item}</span>
-            </div>
-          ))}
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#B77916]">Assine com garantia de 30 dias</p>
+          <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] text-[#101828] sm:text-4xl">Escolha seu plano e comece a aplicar com a equipe.</h2>
+          <p className="mt-4 text-base leading-relaxed text-[#59677A] sm:text-lg">Mensal e anual liberam o BarberMeta completo para novos assinantes, com 30 dias de garantia.</p>
         </div>
 
         <div className="mx-auto grid max-w-4xl gap-5 lg:grid-cols-2">
@@ -42,11 +26,12 @@ export default function Preco() {
             <div className="flex-1 p-7 sm:p-9">
               <span className="inline-flex rounded-full bg-[#EEF2F6] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#344054]">Flexibilidade</span>
               <h3 className="mt-5 text-2xl font-bold text-[#101828]">Plano mensal</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#667384]">Para começar pagando mês a mês.</p>
+              <p className="mt-2 text-sm leading-relaxed text-[#667384]">Acesso completo com cobrança mensal.</p>
               <div className="mt-7 flex items-end gap-2">
                 <p className="text-5xl font-bold leading-none text-[#101828]">R$ 34,90</p>
                 <p className="pb-1 text-sm font-semibold text-[#667384]">/mês</p>
               </div>
+              <p className="mt-4 text-sm font-bold text-emerald-700">✓ Garantia de reembolso por 30 dias</p>
             </div>
             <div className="border-t border-[#E7EAEE] bg-[#F8F9FA] p-6 sm:px-9 sm:py-7">
               <a
@@ -58,9 +43,9 @@ export default function Preco() {
                 {...trackingHandlers}
                 className="gtm-cta gtm-cta-preco flex min-h-14 w-full items-center justify-center rounded-xl bg-[#101828] px-5 py-4 text-center text-base font-bold text-white transition-colors hover:bg-[#243247] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#101828]"
               >
-                Assinar plano mensal
+                Começar por R$ 34,90/mês
               </a>
-              <p className="mt-3 text-center text-xs text-[#667384]">R$ 34,90 por mês · cobrança recorrente</p>
+              <p className="mt-3 text-center text-xs text-[#667384]">Cancele quando quiser · garantia de 30 dias</p>
             </div>
           </article>
 
@@ -75,6 +60,7 @@ export default function Preco() {
                 <p className="pb-1 text-sm font-semibold text-[#9DACBD]">/ano à vista</p>
               </div>
               <p className="mt-3 inline-flex rounded-lg bg-emerald-400/10 px-3 py-2 text-sm font-bold text-emerald-300">Equivale a R$ 24,75 por mês</p>
+              <p className="mt-4 text-sm font-bold text-emerald-300">✓ Garantia de reembolso por 30 dias</p>
             </div>
             <div className="border-t border-white/10 bg-white/[0.035] p-6 sm:px-9 sm:py-7">
               <a
@@ -86,14 +72,14 @@ export default function Preco() {
                 {...trackingHandlers}
                 className="gtm-cta gtm-cta-preco flex min-h-14 w-full items-center justify-center rounded-xl bg-[#F4B942] px-5 py-4 text-center text-base font-bold text-[#101828] transition-colors hover:bg-[#FFD16A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#F4B942]"
               >
-                Assinar plano anual
+                Economizar com o plano anual
               </a>
-              <p className="mt-3 text-center text-xs text-[#9DACBD]">Parcelamento disponível com acréscimo no checkout</p>
+              <p className="mt-3 text-center text-xs text-[#9DACBD]">Garantia de 30 dias · parcelamento com acréscimo</p>
             </div>
           </article>
         </div>
 
-        <p className="mt-6 text-center text-xs text-[#667384]">Pagamento e renovação processados com segurança pela Hotmart. Acesso liberado após a confirmação da compra.</p>
+        <p className="mt-6 text-center text-xs text-[#667384]">Pagamento e renovação processados com segurança pela Hotmart. Se não gostar dentro de 30 dias, você recebe 100% do investimento de volta.</p>
 
         <aside className="mx-auto mt-7 max-w-4xl rounded-2xl border border-[#B77916]/25 bg-[#FFF8E7] px-5 py-4 text-sm leading-relaxed text-[#6D4B12]">
           <strong>Já é cliente vitalício?</strong> Nada muda: você continua com tudo o que já possui. Se quiser uma ferramenta extra, ela continua disponível para compra separada.
