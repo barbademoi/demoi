@@ -9,15 +9,6 @@ import {
 import { trackInitiateCheckout } from '@/lib/pixel'
 import { useTrackingHandlers } from '@/lib/utms'
 
-const incluso = [
-  'Metas, ranking e campanhas',
-  'Brindoleta e Feedback Premiado',
-  'Dinheiro, pagamentos e cards',
-  '8 aulas direto ao ponto',
-  'Comunidade e suporte humanizado',
-  '30 dias de garantia total',
-]
-
 export default function Preco() {
   const trackingHandlers = useTrackingHandlers()
 
@@ -26,17 +17,8 @@ export default function Preco() {
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto mb-9 max-w-3xl text-center">
           <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#B77916]">Assine com garantia de 30 dias</p>
-          <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] text-[#101828] sm:text-4xl">Uma mensalidade menor que um corte. Uma ferramenta feita para gerar movimento e vendas.</h2>
-          <p className="mt-4 text-base leading-relaxed text-[#59677A] sm:text-lg">Mensal e anual liberam o BarberMeta completo para novos assinantes. O pagamento é feito na assinatura e você tem 30 dias de garantia para usar e decidir.</p>
-        </div>
-
-        <div className="mx-auto mb-7 grid max-w-4xl grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
-          {incluso.map((item) => (
-            <div key={item} className="flex items-start gap-2 rounded-xl border border-[#DDE1E6] bg-white px-3 py-3 text-xs font-semibold leading-relaxed text-[#344054] shadow-sm sm:text-sm">
-              <span aria-hidden="true" className="mt-0.5 shrink-0 font-bold text-emerald-600">✓</span>
-              <span>{item}</span>
-            </div>
-          ))}
+          <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] text-[#101828] sm:text-4xl">Escolha seu plano e comece a aplicar com a equipe.</h2>
+          <p className="mt-4 text-base leading-relaxed text-[#59677A] sm:text-lg">Mensal e anual liberam o BarberMeta completo para novos assinantes, com 30 dias de garantia.</p>
         </div>
 
         <div className="mx-auto grid max-w-4xl gap-5 lg:grid-cols-2">
@@ -44,7 +26,7 @@ export default function Preco() {
             <div className="flex-1 p-7 sm:p-9">
               <span className="inline-flex rounded-full bg-[#EEF2F6] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#344054]">Flexibilidade</span>
               <h3 className="mt-5 text-2xl font-bold text-[#101828]">Plano mensal</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#667384]">Comece por menos que um corte e cancele quando quiser.</p>
+              <p className="mt-2 text-sm leading-relaxed text-[#667384]">Acesso completo com cobrança mensal.</p>
               <div className="mt-7 flex items-end gap-2">
                 <p className="text-5xl font-bold leading-none text-[#101828]">R$ 34,90</p>
                 <p className="pb-1 text-sm font-semibold text-[#667384]">/mês</p>
@@ -63,7 +45,7 @@ export default function Preco() {
               >
                 Começar por R$ 34,90/mês
               </a>
-              <p className="mt-3 text-center text-xs text-[#667384]">Menos que um corte · garantia de 30 dias</p>
+              <p className="mt-3 text-center text-xs text-[#667384]">Cancele quando quiser · garantia de 30 dias</p>
             </div>
           </article>
 

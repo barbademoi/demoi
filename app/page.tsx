@@ -2,8 +2,7 @@ import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
 import Depoimentos from '@/components/landing/Depoimentos'
 import BrindoletaSpotlight from '@/components/landing/BrindoletaSpotlight'
-import Comunidade from '@/components/landing/Comunidade'
-import Garantia from '@/components/landing/Garantia'
+import TudoIncluso from '@/components/landing/TudoIncluso'
 import Preco from '@/components/landing/Preco'
 import FAQ from '@/components/landing/FAQ'
 import Footer from '@/components/landing/Footer'
@@ -15,13 +14,13 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'BarberMeta — Engaje sua equipe e venda mais',
   description:
-    'Engaje a equipe, acompanhe metas e crie mais oportunidades de venda por menos que um corte por mês, com 8 aulas e garantia de 30 dias.',
+    'Engaje a equipe, acompanhe metas e crie mais oportunidades de venda com sistema completo, aulas, comunidade, suporte e garantia de 30 dias.',
   alternates: {
     canonical: 'https://www.barbermeta.com.br',
   },
   openGraph: {
     title: 'BarberMeta — sua equipe mais engajada e vendendo mais',
-    description: 'Metas, ranking, campanhas e Brindoleta para colocar a equipe em movimento por menos que um corte ao mês, com garantia de 30 dias.',
+    description: 'Metas, ranking, campanhas e Brindoleta para colocar a equipe em movimento, com aulas, suporte e garantia de 30 dias.',
     url: 'https://www.barbermeta.com.br',
     siteName: 'BarberMeta',
     locale: 'pt_BR',
@@ -67,12 +66,11 @@ export default function LandingPage() {
       <Navbar />
       <main>
         <Hero />
-        <BrindoletaSpotlight />
         <SistemaEmAcao />
-        <Comunidade />
-        <CrescimentoReal />
         <Depoimentos />
-        <Garantia />
+        <CrescimentoReal />
+        <BrindoletaSpotlight />
+        <TudoIncluso />
         <Preco />
         <FAQ />
       </main>

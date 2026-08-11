@@ -71,7 +71,7 @@ export default function CrescimentoReal() {
         <div className="mt-7 flex flex-col items-center justify-between gap-5 rounded-2xl border border-[#F4B942]/25 bg-gradient-to-r from-[#F4B942]/10 via-[#1E63E9]/10 to-[#64E3BA]/10 p-5 text-center sm:flex-row sm:px-6 sm:text-left">
           <div>
             <p className="text-lg font-bold text-white">Sua equipe vê o caminho. Você acompanha a evolução.</p>
-            <p className="mt-1 text-sm leading-relaxed text-[#B8C3D1]">Comece por menos que um corte por mês e tenha 30 dias de garantia.</p>
+            <p className="mt-1 text-sm leading-relaxed text-[#B8C3D1]">Aplique com sua equipe e acompanhe a evolução dentro do sistema.</p>
           </div>
           <CTAButton label="Quero aplicar na minha barbearia" id="cta-crescimento-planos" gtmClass="gtm-cta-crescimento" />
         </div>

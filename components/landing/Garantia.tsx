@@ -12,9 +12,9 @@ const pilares = [
     texto: 'Aulas práticas explicam como configurar a ferramenta e aplicar as estratégias com a equipe, sem conteúdo desnecessário.',
   },
   {
-    destaque: '< 1 corte',
-    titulo: 'Investimento acessível',
-    texto: 'A mensalidade custa menos que um corte de cabelo e coloca metas, campanhas e ferramentas de venda na mão da equipe.',
+    destaque: 'Suporte',
+    titulo: 'Rápido e humanizado',
+    texto: 'Você encontra ajuda dentro do próprio sistema para não ficar travado durante a implementação.',
   },
 ]
 

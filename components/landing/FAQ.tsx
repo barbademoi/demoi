@@ -8,14 +8,6 @@ const perguntas = [
     a: 'O pagamento é feito no momento da assinatura. Depois, você tem 30 dias para configurar, usar e aplicar o BarberMeta com sua equipe. Se não gostar, solicite o cancelamento dentro desse prazo e devolvemos 100% do valor pago, sem enrolação.',
   },
   {
-    q: 'A mensalidade pode se pagar com as vendas?',
-    a: 'A mensalidade custa menos que um corte de cabelo. Uma oferta aceita, um produto ou um serviço extra pode superar esse valor. O retorno depende da aplicação e da realidade de cada barbearia; o BarberMeta oferece as ferramentas para criar e acompanhar essas oportunidades.',
-  },
-  {
-    q: 'O que é ensinado nas 8 aulas?',
-    a: 'As aulas mostram, de forma direta, como configurar o BarberMeta, organizar as metas, envolver os profissionais e aplicar estratégias de campanhas, pontos, premiações e vendas no atendimento.',
-  },
-  {
     q: 'Qual é a diferença entre o plano mensal e o anual?',
     a: 'As ferramentas são as mesmas. O mensal custa R$ 34,90 por mês. O anual custa R$ 297 à vista, equivale a R$ 24,75 por mês e economiza R$ 121,80 em comparação com doze mensalidades. A Hotmart também oferece parcelamento do anual com acréscimo.',
   },
@@ -34,10 +26,6 @@ const perguntas = [
   {
     q: 'E se eu não souber configurar?',
     a: 'A configuração foi pensada para ser simples. Você também recebe 8 aulas práticas, participa da comunidade ativa no WhatsApp e pode contar com suporte humanizado.',
-  },
-  {
-    q: 'Como funcionam os planos e a renovação?',
-    a: 'Mensal e anual liberam as mesmas ferramentas para novos assinantes. A cobrança e a renovação são feitas com segurança pela Hotmart.',
   },
 ]
 
