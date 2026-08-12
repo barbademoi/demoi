@@ -23,9 +23,67 @@ export type DadosCard = {
  * space-between com TRÊS filhos diretos — marca, conteúdo e rodapé —, que é o
  * que mantém o rodapé colado embaixo em 4:5 e em 1:1 sem buraco no meio.
  */
-export function CardCrescimento({ d, logo, vertical }: {
+/** Logo já baixada e com o tamanho de exibição resolvido. */
+export type LogoBarbearia = { uri: string; largura: number; altura: number }
+
+/** Iniciais do nome, pro caso de a barbearia não ter logo. */
+function iniciais(nome: string) {
+  const partes = nome.split(/\s+/).filter((p) => p.length > 1)
+  return partes.slice(0, 2).map((p) => p[0]).join('').toUpperCase() || nome.slice(0, 2).toUpperCase()
+}
+
+/**
+ * A MARCA DA BARBEARIA, no topo direito.
+ *
+ * Sempre ocupa a MESMA caixa, com logo ou sem: é o que impede o card de mudar
+ * de composição conforme o cadastro do cliente. Com logo, a caixa é clara e a
+ * imagem entra com `contain` — logo transparente precisa de fundo pra ser vista,
+ * e `contain` é o que garante que nenhuma proporção seja esticada. Sem logo, a
+ * mesma caixa recebe as iniciais em dourado: um acabamento próprio, não um
+ * buraco onde a logo deveria estar.
+ */
+function MarcaBarbearia({ nome, logoBarbearia }: { nome: string; logoBarbearia: LogoBarbearia | null }) {
+  const LADO = 148
+
+  if (logoBarbearia) {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: LADO, height: LADO, borderRadius: 34,
+        backgroundColor: '#F4EFE7', padding: 18,
+      }}>
+        {/* Largura e altura vêm CALCULADAS da rota, já encaixadas na caixa.
+            O Satori ignora object-fit e max-width — ele desenha no tamanho que
+            recebe e corta o resto —, então passar os dois números exatos é o
+            único jeito de uma logo larga não sair com as pontas cortadas. */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- Satori só entende <img>. */}
+        <img
+          src={logoBarbearia.uri}
+          alt=""
+          width={logoBarbearia.largura}
+          height={logoBarbearia.altura}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      width: LADO, height: LADO, borderRadius: 34,
+      backgroundColor: 'rgba(244,239,231,0.06)', border: `2px solid ${COR.borda}`,
+    }}>
+      <div style={{ display: 'flex', fontSize: 56, fontWeight: 800, color: COR.ouro, letterSpacing: 2 }}>
+        {iniciais(nome)}
+      </div>
+    </div>
+  )
+}
+
+export function CardCrescimento({ d, logo, logoBarbearia = null, vertical }: {
   d: DadosCard
   logo: string | null
+  logoBarbearia?: LogoBarbearia | null
   vertical: boolean
 }) {
   const subiu = d.crescimentoPct >= 0
@@ -52,14 +110,21 @@ export function CardCrescimento({ d, logo, vertical }: {
 
       {/* 1. Marca: o PNG tem fundo próprio e, pequeno, virava um quadrado
           ilegível — vai maior, arredondado, e com o logotipo em texto ao lado. */}
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        {logo && (
-          // eslint-disable-next-line @next/next/no-img-element -- Satori só entende <img>; next/image não roda aqui.
-          <img src={logo} height={92} width={92} alt="" style={{ borderRadius: 22, marginRight: 24 }} />
-        )}
-        <div style={{ display: 'flex', fontSize: 46, fontWeight: 700, color: COR.texto }}>
-          Barber<span style={{ color: COR.ouro }}>Meta</span>
+      {/* A barbearia fica à DIREITA e o BarberMeta à esquerda: o post é sobre
+          ela, mas quem assina o dado somos nós. Um em cada ponta deixa os dois
+          legíveis sem competir. */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {logo && (
+            // eslint-disable-next-line @next/next/no-img-element -- Satori só entende <img>; next/image não roda aqui.
+            <img src={logo} height={92} width={92} alt="" style={{ borderRadius: 22, marginRight: 24 }} />
+          )}
+          <div style={{ display: 'flex', fontSize: 46, fontWeight: 700, color: COR.texto }}>
+            Barber<span style={{ color: COR.ouro }}>Meta</span>
+          </div>
         </div>
+
+        <MarcaBarbearia nome={d.nome} logoBarbearia={logoBarbearia} />
       </div>
 
       {/* 2. Conteúdo: quem é + o número que o post existe pra contar. */}
