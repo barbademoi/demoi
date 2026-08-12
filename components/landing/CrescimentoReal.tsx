@@ -1,7 +1,6 @@
-import Image from 'next/image'
 import CTAButton from './CTAButton'
 import LandingIcon from './LandingIcon'
-import CarouselNudge from './CarouselNudge'
+import CrescimentoCarousel from './CrescimentoCarousel'
 
 const sinais = [
   { icon: 'chart' as const, texto: 'Comparação entre meses fechados', cor: 'text-[#64E3BA]', fundo: 'bg-[#64E3BA]/10' },
@@ -72,38 +71,10 @@ export default function CrescimentoReal() {
             </span>
           </figcaption>
 
-          <div
-            className="crescimento-carousel relative mt-4"
-            aria-label="Resultados de crescimento de nove barbearias que usam o BarberMeta"
-          >
-            <ul className="crescimento-carousel-track">
-              {[...resultados, ...resultados].map((resultado, index) => {
-                const repetido = index >= resultados.length
-
-                return (
-                  <li
-                    key={`${resultado.nome}-${index}`}
-                    className="crescimento-carousel-card"
-                    aria-hidden={repetido ? true : undefined}
-                  >
-                    <Image
-                      src={resultado.src}
-                      width={1080}
-                      height={1350}
-                      alt={repetido ? '' : `Crescimento real da ${resultado.nome} registrado no BarberMeta`}
-                      sizes="(max-width: 640px) 76vw, 320px"
-                      className="block h-auto w-full rounded-[20px]"
-                      priority={index < 2}
-                    />
-                  </li>
-                )
-              })}
-            </ul>
-            <CarouselNudge className="carousel-nudge-y-center right-3 top-1/2 sm:right-5" />
-          </div>
+          <CrescimentoCarousel resultados={resultados} />
         </figure>
         <p className="mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8FA0B3]">
-          Passe o mouse ou toque e segure para pausar
+          Arraste para ver mais · a rolagem automática retoma sozinha
         </p>
 
         <div className="mt-7 flex flex-col items-center justify-between gap-5 rounded-2xl border border-[#F4B942]/25 bg-gradient-to-r from-[#F4B942]/10 via-[#1E63E9]/10 to-[#64E3BA]/10 p-5 text-center sm:flex-row sm:px-6 sm:text-left">
