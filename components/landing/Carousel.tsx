@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, type ReactNode } from 'react'
+import CarouselNudge from './CarouselNudge'
 
 interface Props {
   children: ReactNode[]
@@ -72,6 +73,8 @@ export default function Carousel({
           ))}
         </div>
       </div>
+
+      {total > 1 && <CarouselNudge className="carousel-nudge-y-center right-3 top-1/2" />}
 
       {/* Arrows opcionais (escondidos em mobile pra nao competir com swipe) */}
       {showArrows && total > 1 && (

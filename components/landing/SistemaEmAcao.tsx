@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react'
+import CarouselNudge from './CarouselNudge'
 
 type Grupo = 'Metas' | 'Campanhas' | 'Feedback' | 'Brindoleta' | 'Financeiro' | 'Equipe' | 'Reuniões'
 
@@ -310,6 +311,8 @@ export default function SistemaEmAcao() {
           aria-roledescription="carrossel"
           aria-label="Telas e funcionalidades do BarberMeta"
         >
+          <CarouselNudge className="right-3 top-[37%] sm:right-5 sm:top-[35%]" />
+
           <div
             className="flex transition-transform duration-700 ease-[cubic-bezier(.22,.8,.24,1)] motion-reduce:transition-none"
             style={{ transform: `translateX(-${ativo * 100}%)` }}

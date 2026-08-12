@@ -210,3 +210,81 @@
   outline-offset: 2px;
   border-radius: 6px;
 }
+@keyframes crescimento-carousel-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(calc(-50% - 0.5rem), 0, 0);
+  }
+}
+
+@keyframes carousel-nudge {
+  0%,
+  100% {
+    opacity: 0.62;
+    transform: translate3d(-5px, var(--carousel-nudge-y, 0), 0) scale(0.96);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate3d(4px, var(--carousel-nudge-y, 0), 0) scale(1.03);
+  }
+}
+
+.carousel-nudge {
+  --carousel-nudge-y: 0;
+  animation: carousel-nudge 1.25s ease-in-out infinite;
+}
+
+.carousel-nudge-y-center {
+  --carousel-nudge-y: -50%;
+}
+
+.crescimento-carousel {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 4%, #000 96%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 4%, #000 96%, transparent);
+}
+
+.crescimento-carousel-track {
+  display: flex;
+  width: max-content;
+  gap: 1rem;
+  will-change: transform;
+  animation: crescimento-carousel-marquee 62s linear infinite;
+}
+
+.crescimento-carousel-card {
+  width: clamp(240px, 76vw, 320px);
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 21px;
+  background: #050706;
+  box-shadow: 0 18px 45px rgb(0 0 0 / 0.38);
+}
+
+.crescimento-carousel:hover .crescimento-carousel-track,
+.crescimento-carousel:focus-within .crescimento-carousel-track,
+.crescimento-carousel:active .crescimento-carousel-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carousel-nudge {
+    animation: none;
+    opacity: 1;
+  }
+
+  .crescimento-carousel {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .crescimento-carousel-track {
+    animation: none;
+  }
+}
