@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import CarouselNudge from './CarouselNudge'
 
 const depoimentos = [
   { src: '/prints/feedback-1.png', alt: 'Depoimento real sobre metas e participação da equipe no BarberMeta' },
@@ -29,12 +30,15 @@ export default function Depoimentos() {
         </div>
       </div>
 
-      <div className="mx-auto mt-10 flex max-w-6xl snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:gap-5 sm:px-6">
-        {depoimentos.map((depoimento) => (
-          <figure key={depoimento.src} className="relative w-[68vw] max-w-[235px] shrink-0 snap-center overflow-hidden rounded-2xl border border-[#E2E6EA] bg-[#F7F8FA] shadow-lg shadow-black/10">
-            <Image src={depoimento.src} width={1320} height={2585} alt={depoimento.alt} sizes="235px" className="block h-auto w-full" />
-          </figure>
-        ))}
+      <div className="relative mx-auto mt-10 max-w-6xl">
+        <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:gap-5 sm:px-6">
+          {depoimentos.map((depoimento) => (
+            <figure key={depoimento.src} className="relative w-[68vw] max-w-[235px] shrink-0 snap-center overflow-hidden rounded-2xl border border-[#E2E6EA] bg-[#F7F8FA] shadow-lg shadow-black/10">
+              <Image src={depoimento.src} width={1320} height={2585} alt={depoimento.alt} sizes="235px" className="block h-auto w-full" />
+            </figure>
+          ))}
+        </div>
+        <CarouselNudge className="carousel-nudge-y-center right-3 top-1/2 sm:right-5" />
       </div>
       <p className="mt-3 px-4 text-center text-xs text-[#748093]">Mensagens publicadas com autorização dos clientes.</p>
     </section>
