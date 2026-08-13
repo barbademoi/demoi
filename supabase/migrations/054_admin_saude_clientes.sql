@@ -64,6 +64,7 @@ as $$
       ) as posicao
     from public.usuarios u
     left join auth.users au on au.id = u.id and au.deleted_at is null
+    where u.tipo_acesso = 'mensal'
   ),
   donos as (
     select * from donos_ordenados where posicao = 1
@@ -166,6 +167,9 @@ as $$
   left join barbeiros_mes bm on bm.barbearia_id = b.id
   left join ultimos_lancamentos ul on ul.barbearia_id = b.id
   left join uso_30 u30 on u30.barbearia_id = b.id
+  -- Este painel acompanha a base recorrente. Os 600+ clientes vitalícios
+  -- continuam intactos no sistema e deliberadamente não entram neste CS.
+  where d.tipo_acesso = 'mensal'
   order by b.nome;
 $$;
 
@@ -173,5 +177,5 @@ revoke all on function public.admin_saude_clientes() from public, anon, authenti
 grant execute on function public.admin_saude_clientes() to service_role;
 
 comment on function public.admin_saude_clientes() is
-  'Sinais agregados de adoção e risco por barbearia. Executável somente pelo '
+  'Sinais agregados de adoção e risco dos assinantes (tipo_acesso=mensal). Executável somente pelo '
   'service_role; o acesso da interface é validado no servidor pela allowlist administrativa.';

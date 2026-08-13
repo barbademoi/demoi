@@ -28,15 +28,11 @@ type RpcRow = {
 }
 
 function nomeDoPlano(row: RpcRow): string {
-  if (row.tipo_acesso === 'vitalicio') return 'Vitalício'
-  if (row.tipo_acesso === 'mensal') {
-    const periodo = row.periodicidade === 'anual' ? 'Anual' : 'Mensal'
-    if (row.status_assinatura && row.status_assinatura !== 'ativa') {
-      return `${periodo} · ${row.status_assinatura}`
-    }
-    return periodo
+  const periodo = row.periodicidade === 'anual' ? 'Anual' : 'Mensal'
+  if (row.status_assinatura && row.status_assinatura !== 'ativa') {
+    return `${periodo} · ${row.status_assinatura}`
   }
-  return 'Não identificado'
+  return periodo
 }
 
 /**
@@ -60,7 +56,14 @@ export async function listarSaudeClientes(): Promise<{
     return { rows: [], error: 'Não foi possível carregar a saúde dos clientes.' }
   }
 
-  const rows = ((data ?? []) as RpcRow[]).map((row) => {
+  // Defesa adicional: a função SQL já devolve somente assinantes, mas este
+  // filtro impede um vitalício de aparecer caso a consulta seja alterada no
+  // futuro sem a mesma restrição.
+  const assinantes = ((data ?? []) as RpcRow[]).filter(
+    (row) => row.tipo_acesso === 'mensal',
+  )
+
+  const rows = assinantes.map((row) => {
     const cliente: ClienteSaude = {
       barbeariaId: row.barbearia_id,
       nome: row.nome,
