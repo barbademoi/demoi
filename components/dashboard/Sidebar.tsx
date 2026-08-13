@@ -477,6 +477,26 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
             </Link>
           )}
 
+          {/* Saúde dos clientes — painel de CS exclusivo da conta administradora. */}
+          {mostrarCortesias && (
+            <Link
+              href="/admin/saude-clientes"
+              onClick={() => setOpen(false)}
+              className={`
+                flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm transition-colors
+                ${pathname === '/admin/saude-clientes' && !showFerramentas
+                  ? 'bg-primary/15 text-primary font-semibold'
+                  : 'text-text-muted hover:text-text hover:bg-surface-2'}
+              `}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+                <path d="M3 12h4l2-7 4 14 2-7h6" />
+                <path d="M21 12a9 9 0 1 1-2.64-6.36" opacity=".45" />
+              </svg>
+              <span className="flex-1 truncate">Saúde dos Clientes</span>
+            </Link>
+          )}
+
           {/* Crescimento das barbearias — visível SÓ pra conta do dono. */}
           {mostrarCortesias && (
             <Link
