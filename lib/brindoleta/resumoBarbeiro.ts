@@ -16,6 +16,8 @@ export interface ResumoBrindoletaBarbeiro {
   confirmadas: number
   pendentes: number
   recusadas: number
+  /** Só de vendas CONFIRMADAS pelo dono — pendente não é dinheiro ainda. */
+  valorConfirmadoCents: number
   cicloInicio: string
   cicloFim: string
 }
@@ -53,6 +55,7 @@ export async function buscarResumoBrindoletaBarbeiro(
     confirmadas: Number(linha.confirmadas) || 0,
     pendentes: Number(linha.pendentes) || 0,
     recusadas: Number(linha.recusadas) || 0,
+    valorConfirmadoCents: Number(linha.valor_confirmado_cents) || 0,
     cicloInicio: String(linha.ciclo_inicio ?? ''),
     cicloFim: String(linha.ciclo_fim ?? ''),
   }

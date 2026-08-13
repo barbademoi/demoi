@@ -7,6 +7,7 @@ import { rotuloAcumulado } from '@/lib/rotuloValor'
 import type { RelatorioPontosBarbeiro } from '@/lib/relatorioPontos'
 import type { PremioBarbeiro } from '@/lib/premios'
 import { taxaConversao, type ResumoBrindoletaBarbeiro } from '@/lib/brindoleta/resumoBarbeiro'
+import { mensagemMotivacional } from '@/lib/brindoleta/motivacao'
 import { marcarOcorrenciaCiente, enviarMensagemBarbeiro, marcarMensagemLidaBarbeiro } from './conduta-actions'
 import DiasEmAbertoAlerta from './DiasEmAbertoAlerta'
 import BarbeiroNavDrawer, { type NavItem } from './NavBarbeiro'
@@ -1070,6 +1071,18 @@ export default function BarbeiroClient({
             </p>
           </div>
 
+          {/* A mensagem vem primeiro: é a leitura dos números, e quem abre a
+              aba quer saber "como estou indo" antes de ver as contagens. */}
+          {(() => {
+            const msg = mensagemMotivacional(resumoBrindoleta)
+            return (
+              <div className="rounded-xl border border-primary/30 bg-primary/[0.07] p-4">
+                <p className="font-serif text-base text-text">{msg.titulo}</p>
+                <p className="text-text-muted text-xs font-sans mt-1 leading-relaxed">{msg.texto}</p>
+              </div>
+            )
+          })()}
+
           <div className="grid grid-cols-2 gap-3">
             <div className="card-light p-4">
               <p className="font-serif text-3xl text-on-cream tabular-nums">{resumoBrindoleta.giros}</p>
@@ -1085,14 +1098,28 @@ export default function BarbeiroClient({
             </div>
           </div>
 
-          {/* Giros x conversões: o resumo que a tela existe pra dar. */}
-          <div className="card-light p-4">
-            {resumoBrindoleta.giros === 0 ? (
-              <p className="text-on-cream-muted text-sm font-sans leading-relaxed">
-                Nenhum cliente girou a sua roleta neste ciclo ainda. Mostre o seu QR Code no
-                atendimento — é ele que liga o giro ao seu nome.
+          {/* O VALOR só aparece quando existe. Um card grande com R$ 0,00 diria
+              "você não vendeu nada" justamente pra quem talvez tenha vendido e
+              esteja só esperando o dono conferir. */}
+          {resumoBrindoleta.valorConfirmadoCents > 0 && (
+            <div className="card-light p-4">
+              <p className="font-serif text-3xl text-on-cream tabular-nums">
+                {(resumoBrindoleta.valorConfirmadoCents / 100).toLocaleString('pt-BR', {
+                  style: 'currency', currency: 'BRL',
+                })}
               </p>
-            ) : (
+              <p className="text-on-cream-muted text-xs font-sans mt-0.5">
+                em vendas confirmadas pela roleta
+              </p>
+            </div>
+          )}
+
+          {/* Giros x conversões. Só existe quando houve giro: sem nenhum, a
+              mensagem acima já deu o próximo passo, e repetir o mesmo conselho
+              logo abaixo faz a tela parecer que não tem o que dizer. */}
+          {resumoBrindoleta.giros > 0 && (
+          <div className="card-light p-4">
+            {(
               <>
                 <p className="text-on-cream text-sm font-sans leading-relaxed">
                   {resumoBrindoleta.resgates === 0
@@ -1109,6 +1136,7 @@ export default function BarbeiroClient({
               </>
             )}
           </div>
+          )}
         </div>
       )}
 
