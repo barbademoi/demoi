@@ -6,6 +6,7 @@ import { calcularRitmo } from '@/lib/ritmo'
 import { rotuloAcumulado } from '@/lib/rotuloValor'
 import type { RelatorioPontosBarbeiro } from '@/lib/relatorioPontos'
 import type { PremioBarbeiro } from '@/lib/premios'
+import { taxaConversao, type ResumoBrindoletaBarbeiro } from '@/lib/brindoleta/resumoBarbeiro'
 import { marcarOcorrenciaCiente, enviarMensagemBarbeiro, marcarMensagemLidaBarbeiro } from './conduta-actions'
 import DiasEmAbertoAlerta from './DiasEmAbertoAlerta'
 import BarbeiroNavDrawer, { type NavItem } from './NavBarbeiro'
@@ -35,6 +36,9 @@ interface PontosEntry { barbeiro_id: string; pontos: number }
 interface Props {
   barbeiro: Barbeiro
   barbeariaName: string
+  // Conferência da Brindoleta. null = a barbearia não usa o módulo, e aí a
+  // seção nem existe no menu.
+  resumoBrindoleta?: ResumoBrindoletaBarbeiro | null
   mes: number
   ano: number
   diaAtual: number
@@ -132,6 +136,7 @@ interface Props {
 export default function BarbeiroClient({
   barbeiro, barbeariaName: _, mes, ano, diaAtual, diasRestantes, diasUteisCorridos, diasUteisRestantes,
   diasTrabalhoMes, diasCorridosCiclo, totalDiasCiclo,
+  resumoBrindoleta = null,
   modo, modoMeta, baseMeta, valorFaturamento, valorComissao,
   metaInd, lancamento, progresso, ranking, posicaoRanking,
   faturamentoColetivo, progressoColetivo, progressoColetivoBronze, progressoColetivoPrata,
@@ -160,7 +165,7 @@ export default function BarbeiroClient({
   // vendo progresso, ranking, regras e feedbacks). Bloqueio tambem aplicado
   // no servidor em lancarDiaBarbeiro.
   const barbeiroPodeLancar = campanha?.quem_lanca !== 'dono'
-  type AbaId = 'progresso' | 'lancar' | 'regras' | 'conferencia' | 'feedbacks' | 'acompanhamento'
+  type AbaId = 'progresso' | 'lancar' | 'regras' | 'conferencia' | 'feedbacks' | 'acompanhamento' | 'brindoleta'
   const [aba, setAba] = useState<AbaId>('progresso')
   const [menuAberto, setMenuAberto] = useState(false)
   const temFeedbacks = feedbacksDoBarbeiro.length > 0
@@ -200,6 +205,7 @@ export default function BarbeiroClient({
     ...(mostraPontos && barbeiroPodeLancar ? [{ id: 'lancar', label: 'Lançar dia' }] : []),
     ...(mostraPontos && campanha ? [{ id: 'regras', label: 'Regras' }] : []),
     ...(mostraPontos && campanha ? [{ id: 'conferencia', label: 'Conferência' }] : []),
+    ...(resumoBrindoleta ? [{ id: 'brindoleta', label: 'Brindoleta' }] : []),
     ...(temFeedbacks ? [{ id: 'feedbacks', label: `Feedbacks (${feedbacksDoBarbeiro.length})` }] : []),
     ...(comportamentoAtivo ? [{ id: 'acompanhamento', label: 'Meu acompanhamento', badge: condutaNaoVistas }] : []),
   ]
@@ -1045,6 +1051,61 @@ export default function BarbeiroClient({
                     </tfoot>
                   </table>
                 </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── ABA: BRINDOLETA ──
+          Conferência simples: quantos giros aconteceram com este barbeiro e
+          quantos viraram resgate, no ciclo atual. Números vêm prontos do banco
+          (mesma fonte do painel do dono) — nada é somado aqui. */}
+      {aba === 'brindoleta' && resumoBrindoleta && (
+        <div className="space-y-3 pt-4">
+          <div className="px-1">
+            <h2 className="font-serif text-lg text-text">Sua Brindoleta</h2>
+            <p className="text-text-muted text-xs font-sans mt-0.5">
+              Ciclo de {fmtDataCurta(resumoBrindoleta.cicloInicio)} a {fmtDataCurta(resumoBrindoleta.cicloFim)}.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="card-light p-4">
+              <p className="font-serif text-3xl text-on-cream tabular-nums">{resumoBrindoleta.giros}</p>
+              <p className="text-on-cream-muted text-xs font-sans mt-0.5">
+                {resumoBrindoleta.giros === 1 ? 'giro na roleta' : 'giros na roleta'}
+              </p>
+            </div>
+            <div className="card-light p-4">
+              <p className="font-serif text-3xl text-on-cream tabular-nums">{resumoBrindoleta.resgates}</p>
+              <p className="text-on-cream-muted text-xs font-sans mt-0.5">
+                {resumoBrindoleta.resgates === 1 ? 'oferta resgatada' : 'ofertas resgatadas'}
+              </p>
+            </div>
+          </div>
+
+          {/* Giros x conversões: o resumo que a tela existe pra dar. */}
+          <div className="card-light p-4">
+            {resumoBrindoleta.giros === 0 ? (
+              <p className="text-on-cream-muted text-sm font-sans leading-relaxed">
+                Nenhum cliente girou a sua roleta neste ciclo ainda. Mostre o seu QR Code no
+                atendimento — é ele que liga o giro ao seu nome.
+              </p>
+            ) : (
+              <>
+                <p className="text-on-cream text-sm font-sans leading-relaxed">
+                  {resumoBrindoleta.resgates === 0
+                    ? `${resumoBrindoleta.giros} ${resumoBrindoleta.giros === 1 ? 'cliente girou' : 'clientes giraram'} e ninguém resgatou ainda.`
+                    : `A cada 10 giros, ${(taxaConversao(resumoBrindoleta)! / 10).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} viraram resgate.`}
+                </p>
+                {(resumoBrindoleta.pendentes > 0 || resumoBrindoleta.confirmadas > 0) && (
+                  <p className="text-on-cream-muted text-xs font-sans mt-2 leading-relaxed">
+                    {resumoBrindoleta.confirmadas} {resumoBrindoleta.confirmadas === 1 ? 'confirmado' : 'confirmados'} pelo dono
+                    {resumoBrindoleta.pendentes > 0 && `, ${resumoBrindoleta.pendentes} aguardando conferência`}
+                    {resumoBrindoleta.recusadas > 0 && `, ${resumoBrindoleta.recusadas} não ${resumoBrindoleta.recusadas === 1 ? 'confirmado' : 'confirmados'}`}.
+                  </p>
+                )}
               </>
             )}
           </div>

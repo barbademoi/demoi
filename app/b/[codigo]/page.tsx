@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { buscarResumoBrindoletaBarbeiro } from '@/lib/brindoleta/resumoBarbeiro'
 import { calcProgresso, calcTier, dataLocalStr } from '@/lib/utils'
 import { cicloAtual, calcDiasUteisCiclo, cicloDeData, hojeBrasil } from '@/lib/ciclo'
 import { garantirCampanhaCicloAtual } from '@/lib/campanha'
@@ -359,6 +360,10 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
   // Página é pública via link_codigo (segredo do barbeiro), então uso
   // admin client pra pular RLS, filtrando estritamente por barbeiro_id.
   const admin = createAdminClient()
+
+  // Conferência da Brindoleta: a função recebe o CÓDIGO e resolve o barbeiro
+  // sozinha, então não há como esta página pedir o número de um colega.
+  const resumoBrindoleta = await buscarResumoBrindoletaBarbeiro(admin, barbeiro.link_codigo)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: feedbacksRaw } = await (admin as any)
     .from('feedbacks_cliente')
@@ -513,6 +518,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
         <BarbeiroClient
           barbeiro={barbeiro}
           barbeariaName={barbearia?.nome ?? ''}
+          resumoBrindoleta={resumoBrindoleta}
           mes={mes}
           ano={ano}
           diaAtual={diaAtual}
