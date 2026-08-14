@@ -75,7 +75,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Evento invalido.' }, { status: 400 })
   }
 
-  const accessToken = process.env.META_CONVERSIONS_ACCESS_TOKEN
+  // Aceita o nome curto usado na Vercel e preserva compatibilidade com o
+  // nome anterior documentado no projeto.
+  const accessToken = process.env.META_CAPI_ACCESS_TOKEN
+    || process.env.META_CONVERSIONS_ACCESS_TOKEN
   if (!accessToken) {
     return NextResponse.json(
       { ok: false, configured: false, error: 'Conversions API nao configurada.' },
