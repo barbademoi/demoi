@@ -6,7 +6,7 @@ import {
   PRECO_ANUAL,
   PRECO_MENSAL,
 } from '@/lib/checkout'
-import { trackInitiateCheckout } from '@/lib/pixel'
+import { trackAddToCart } from '@/lib/pixel'
 import { useTrackingHandlers } from '@/lib/utms'
 
 export default function Preco() {
@@ -39,7 +39,7 @@ export default function Preco() {
                 id="cta-preco-mensal"
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => trackInitiateCheckout(PRECO_MENSAL)}
+                onClick={() => trackAddToCart('mensal', PRECO_MENSAL)}
                 {...trackingHandlers}
                 className="gtm-cta gtm-cta-preco flex min-h-14 w-full items-center justify-center rounded-xl bg-[#101828] px-5 py-4 text-center text-base font-bold text-white transition-colors hover:bg-[#243247] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#101828]"
               >
@@ -68,7 +68,7 @@ export default function Preco() {
                 id="cta-preco-anual"
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => trackInitiateCheckout(PRECO_ANUAL)}
+                onClick={() => trackAddToCart('anual', PRECO_ANUAL)}
                 {...trackingHandlers}
                 className="gtm-cta gtm-cta-preco flex min-h-14 w-full items-center justify-center rounded-xl bg-[#F4B942] px-5 py-4 text-center text-base font-bold text-[#101828] transition-colors hover:bg-[#FFD16A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#F4B942]"
               >
