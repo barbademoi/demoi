@@ -22,7 +22,7 @@ const resultados = [
 
 export default function CrescimentoReal() {
   return (
-    <section className="relative overflow-hidden bg-[#0B0D13] px-4 py-16 sm:px-6 sm:py-20">
+    <section className="relative overflow-hidden bg-carvao px-4 py-16 sm:px-6 sm:py-20">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-[0.045]"
@@ -31,8 +31,8 @@ export default function CrescimentoReal() {
           backgroundSize: '26px 26px',
         }}
       />
-      <div aria-hidden="true" className="absolute -left-32 top-16 h-80 w-80 rounded-full bg-[#1E63E9]/20 blur-[120px]" />
-      <div aria-hidden="true" className="absolute -right-32 bottom-0 h-80 w-80 rounded-full bg-[#13C58B]/15 blur-[120px]" />
+      <div aria-hidden="true" className="absolute -left-32 top-16 h-80 w-80 rounded-full bg-vermelho-poste/12 blur-[120px]" />
+      <div aria-hidden="true" className="absolute -right-32 bottom-0 h-80 w-80 rounded-full bg-verde-acao/12 blur-[120px]" />
 
       <div className="relative mx-auto max-w-6xl">
         <div className="grid gap-7 lg:grid-cols-[1.08fr_.92fr] lg:items-end">
@@ -47,7 +47,7 @@ export default function CrescimentoReal() {
             </h2>
           </div>
           <p className="text-base leading-relaxed text-[#B8C3D1] sm:text-lg">
-            Nove operações reais, seus faturamentos e a evolução registrada entre meses fechados no BarberMeta.
+            Nove operações reais e a evolução entre meses fechados.
           </p>
         </div>
 
@@ -76,6 +76,55 @@ export default function CrescimentoReal() {
         <p className="mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8FA0B3]">
           Arraste para ver mais · a rolagem automática retoma sozinha
         </p>
+
+        {/* Case em destaque. O valor deste exemplo não é o número em si — é o
+            contraste: cidade pequena e ticket baixo chegando nesse faturamento.
+            É o que responde ao "aqui não funciona, minha cidade é pequena". */}
+        <article className="mt-8 overflow-hidden rounded-[26px] border border-verde-acao/25 bg-white/[0.03]">
+          <div className="flex flex-wrap items-center gap-2 border-b border-white/10 bg-verde-acao/[0.07] px-5 py-3">
+            <span className="text-[10px] font-black uppercase tracking-[0.16em] text-verde-acao">Case real</span>
+            <span className="text-xs font-bold text-white">Demôi Barbearia · julho/2026</span>
+          </div>
+
+          <div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-[.95fr_1.05fr] lg:items-center">
+            <div>
+              <p className="text-sm font-semibold text-[#B8C3D1]">Faturamento bruto no mês</p>
+              <p className="mt-1 font-serif text-4xl font-bold leading-none text-verde-acao sm:text-5xl">R$ 58.582,80</p>
+
+              <dl className="mt-5 grid grid-cols-3 gap-3">
+                {[
+                  ['Serviços', 'R$ 25.781,40'],
+                  ['Produtos', 'R$ 1.428,50'],
+                  ['Assinaturas', 'R$ 31.372,90'],
+                ].map(([rotulo, valor]) => (
+                  <div key={rotulo} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
+                    <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8FA0B3]">{rotulo}</dt>
+                    <dd className="mt-0.5 text-sm font-bold text-white">{valor}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+
+            <div>
+              <p className="text-lg font-bold leading-snug text-white sm:text-xl">
+                Cidade de 17 mil habitantes. Corte a R$ 38. Resultado: R$ 58 mil no mês.
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-[#B8C3D1]">
+                Não precisa ser capital nem ticket alto. Precisa de equipe enxergando a meta.
+              </p>
+
+              <blockquote className="mt-4 border-l-2 border-vermelho-poste pl-4">
+                <p className="text-sm italic leading-relaxed text-[#D6DEE8]">
+                  &ldquo;O BarberMeta faz a equipe engajar e querer bater as metas, usando as ferramentas
+                  do sistema pra ajudar nas vendas.&rdquo;
+                </p>
+                <cite className="mt-2 block text-xs font-bold not-italic text-white">
+                  Carlos Henrique · Demôi Barbearia
+                </cite>
+              </blockquote>
+            </div>
+          </div>
+        </article>
 
         <div className="mt-7 flex flex-col items-center justify-between gap-5 rounded-2xl border border-[#F4B942]/25 bg-gradient-to-r from-[#F4B942]/10 via-[#1E63E9]/10 to-[#64E3BA]/10 p-5 text-center sm:flex-row sm:px-6 sm:text-left">
           <div>

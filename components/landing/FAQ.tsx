@@ -1,31 +1,31 @@
 const perguntas = [
   {
     q: 'O que está incluído na assinatura?',
-    a: 'Novos assinantes recebem todas as ferramentas mostradas nesta página: metas, ranking, campanhas, Brindoleta, organização do dinheiro, Feedback Premiado, cards, 8 aulas direto ao ponto, comunidade no WhatsApp e suporte humanizado.',
+    a: 'Tudo que aparece nesta página. Metas, ranking, campanhas, Brindoleta, financeiro, Feedback Premiado, cards, 8 aulas, comunidade e suporte.',
   },
   {
     q: 'Como funciona a garantia de 30 dias?',
-    a: 'O pagamento é feito no momento da assinatura. Depois, você tem 30 dias para configurar, usar e aplicar o BarberMeta com sua equipe. Se não gostar, solicite o cancelamento dentro desse prazo e devolvemos 100% do valor pago, sem enrolação.',
+    a: 'Você tem 30 dias para usar com sua equipe. Se não gostar, cancela dentro do prazo e devolvemos 100%.',
   },
   {
     q: 'Qual é a diferença entre o plano mensal e o anual?',
-    a: 'As ferramentas são as mesmas. O mensal custa R$ 34,90 por mês. O anual custa R$ 297 à vista, equivale a R$ 24,75 por mês e economiza R$ 121,80 em comparação com doze mensalidades. A Hotmart também oferece parcelamento do anual com acréscimo.',
+    a: 'As ferramentas são as mesmas. O anual sai por R$ 24,75/mês e economiza R$ 121,80 no ano.',
   },
   {
     q: 'Já sou cliente vitalício. O que muda para mim?',
-    a: 'Nada muda. Você continua com tudo o que já possui. Se quiser uma ferramenta extra que não faz parte do seu acesso, poderá comprá-la separadamente.',
+    a: 'Nada muda: você continua com tudo o que já tem. Ferramenta extra fora do seu acesso segue disponível à parte.',
   },
   {
     q: 'Preciso trocar meu sistema de agendamento?',
-    a: 'Não. Continue usando sua agenda normalmente. O BarberMeta trabalha junto com ela e cuida de outra parte: metas, participação da equipe e novas oportunidades de venda.',
+    a: 'Não. O BarberMeta trabalha junto com a agenda que você já usa.',
   },
   {
     q: 'Como cada profissional acessa?',
-    a: 'Cada profissional recebe um link próprio, sem conta e sem senha, para acompanhar metas e resultados no celular. Na Brindoleta, cada profissional também recebe seu QR Code.',
+    a: 'Por um link próprio, sem conta e sem senha. Na Brindoleta, cada um ganha o seu QR Code.',
   },
   {
     q: 'E se eu não souber configurar?',
-    a: 'A configuração foi pensada para ser simples. Você também recebe 8 aulas práticas, participa da comunidade ativa no WhatsApp e pode contar com suporte humanizado.',
+    a: 'São 8 aulas práticas, comunidade no WhatsApp e suporte direto. A configuração é simples.',
   },
 ]
 

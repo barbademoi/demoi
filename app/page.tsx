@@ -9,6 +9,7 @@ import Footer from '@/components/landing/Footer'
 import MobileStickyCTA from '@/components/landing/MobileStickyCTA'
 import CrescimentoReal from '@/components/landing/CrescimentoReal'
 import SistemaEmAcao from '@/components/landing/SistemaEmAcao'
+import DivisorBarbearia from '@/components/landing/DivisorBarbearia'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -58,7 +59,7 @@ const faqSchema = {
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#07111F]">
+    <div className="min-h-screen bg-carvao">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
@@ -67,11 +68,19 @@ export default function LandingPage() {
       <main>
         <Hero />
         <SistemaEmAcao />
+        {/* PREÇO logo depois do carrossel: quem se convenceu vendo o sistema
+            não deveria ter que atravessar quatro seções pra achar o valor. O
+            que vem abaixo continua existindo como reforço pra quem ainda está
+            em dúvida. */}
+        <Preco />
+        <DivisorBarbearia simbolo="tesoura" />
         <Depoimentos />
         <CrescimentoReal />
+        <DivisorBarbearia simbolo="poste" />
         <BrindoletaSpotlight />
+        <DivisorBarbearia simbolo="navalha" />
         <TudoIncluso />
-        <Preco />
+        <DivisorBarbearia simbolo="pente" />
         <FAQ />
       </main>
       <Footer />
