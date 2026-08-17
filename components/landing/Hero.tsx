@@ -33,7 +33,7 @@ export default function Hero() {
 
           <div className="mx-auto mt-7 flex max-w-xl flex-col items-center gap-3">
             <CTAButton label="Quero vender mais com minha equipe" id="cta-hero-planos" gtmClass="gtm-cta-hero" />
-            <p className="text-sm font-semibold text-[#B8C3D1]">R$ 34,90/mês · sistema completo · garantia de 30 dias</p>
+            <p className="text-sm font-semibold text-[#B8C3D1]">Sistema completo · sem custo por barbeiro · garantia de 30 dias</p>
           </div>
         </div>
       </div>

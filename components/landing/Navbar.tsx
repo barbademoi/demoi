@@ -46,7 +46,7 @@ export default function Navbar() {
             >
               Entrar
             </Link>
-            <CTAButton size="sm" label="Assinar · R$ 34,90" id="cta-navbar-planos-mobile" gtmClass="gtm-cta-navbar" />
+            <CTAButton size="sm" label="Assinar agora →" id="cta-navbar-planos-mobile" gtmClass="gtm-cta-navbar" />
           </div>
         </div>
       </div>

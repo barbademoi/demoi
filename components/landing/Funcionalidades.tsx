@@ -65,7 +65,7 @@ export default function Funcionalidades() {
 
         <div className="mt-9 flex flex-col items-center gap-2">
           <CTAButton label="Ver planos mensal e anual" id="cta-funcionalidades-planos" gtmClass="gtm-cta-funcionalidades" />
-          <p className="text-xs text-[#8FA0B3]">A partir de R$ 34,90/mês · todos os módulos para assinantes</p>
+          <p className="text-xs text-[#8FA0B3]">Todos os módulos inclusos para assinantes</p>
         </div>
       </div>
     </section>
