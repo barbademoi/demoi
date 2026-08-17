@@ -14,6 +14,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // ── Paleta da landing ─────────────────────────────────────────────
+        // Contraste SELETIVO: o grosso da página é carvão + latão. O verde só
+        // onde se pede ação, o vermelho só em detalhe. Tokens (e não hex solto)
+        // porque a mesma cor aparece em botão, ícone e badge — e trocar em 20
+        // arquivos é como uma paleta vira remendo.
+        carvao: '#0A0A0C',        // fundo principal, mais fundo que o azul antigo
+        'carvao-2': '#131318',    // blocos e cards sobre o fundo
+        'carvao-3': '#1C1C22',    // bordas e divisores
+        latao: '#F4B942',         // números herói, badges editoriais (mantido)
+        'vermelho-poste': '#C8102E', // acento secundário: ícones e divisores
+        // Verde de ação: 9,5:1 sobre o carvão (AA folgado), e o texto do botão
+        // é o próprio carvão, que dá o mesmo contraste no sentido inverso.
+        'verde-acao': '#22C55E',
+        'verde-acao-hover': '#3DDC7A',
         background: '#08090D',
         surface: '#0F1117',
         'surface-2': '#161820',

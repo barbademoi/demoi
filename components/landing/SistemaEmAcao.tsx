@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react'
 import CarouselNudge from './CarouselNudge'
+import CTAButton from './CTAButton'
 
 type Grupo = 'Metas' | 'Campanhas' | 'Feedback' | 'Brindoleta' | 'Financeiro' | 'Equipe' | 'Reuniões'
 
@@ -21,9 +22,9 @@ const slides: Slide[] = [
   {
     grupo: 'Metas',
     passo: 'Passo 1 de 3',
-    titulo: 'Saiba todos os dias se a barbearia está no ritmo.',
-    descricao: 'O painel mostra quanto a equipe já faturou, quanto falta e qual precisa ser o resultado por dia de trabalho para chegar à meta.',
-    ganho: 'Você corrige a rota durante o mês, em vez de descobrir o problema quando já é tarde.',
+    titulo: 'Saiba todo dia se o mês vai fechar.',
+    descricao: 'O painel mostra quanto a equipe faturou, quanto falta e o resultado necessário por dia.',
+    ganho: 'Você corrige o rumo no dia 10, não na virada do mês.',
     imagem: '/prints/carrossel-sistema/02-meta-coletiva.jpg',
     alt: 'Painel de meta coletiva com faturamento, progresso e ritmo diário',
     cor: '#FFD84D',
@@ -31,9 +32,9 @@ const slides: Slide[] = [
   {
     grupo: 'Metas',
     passo: 'Passo 2 de 3',
-    titulo: 'Defina metas e prêmios que a equipe entende.',
-    descricao: 'Crie objetivos coletivos e individuais em níveis Bronze, Prata e Ouro. Cada conquista pode ter uma recompensa clara para manter o time motivado até o fim do mês.',
-    ganho: 'Você transforma um número distante em etapas que dão vontade de alcançar.',
+    titulo: 'Meta que a equipe entende na primeira olhada.',
+    descricao: 'Defina objetivos coletivos e individuais em Bronze, Prata e Ouro, cada um com seu prêmio.',
+    ganho: 'O número deixa de assustar e vira degrau que dá vontade de subir.',
     imagem: '/prints/carrossel-sistema/01-configure-metas.jpg',
     alt: 'Configuração de metas coletivas e individuais com níveis e prêmios no BarberMeta',
     cor: '#F2B84B',
@@ -41,9 +42,9 @@ const slides: Slide[] = [
   {
     grupo: 'Metas',
     passo: 'Passo 3 de 3',
-    titulo: 'Mostre a evolução e coloque a equipe em movimento.',
-    descricao: 'Cada profissional acompanha sua comissão, sua posição e o avanço nos níveis da meta. O objetivo deixa de ficar só na cabeça do dono.',
-    ganho: 'A equipe enxerga o próximo passo e passa a participar do resultado.',
+    titulo: 'Cada barbeiro passa a disputar o próprio resultado.',
+    descricao: 'O profissional vê a comissão, a posição no ranking e o quanto falta para o próximo nível.',
+    ganho: 'A meta sai da sua cabeça e entra na conversa do salão.',
     imagem: '/prints/carrossel-sistema/03-ranking-comissao.jpg',
     alt: 'Ranking de barbeiros por comissão e progresso nas metas',
     cor: '#D8FF00',
@@ -51,9 +52,9 @@ const slides: Slide[] = [
   {
     grupo: 'Campanhas',
     passo: 'Passo 1 de 4',
-    titulo: 'Escolha exatamente o que você quer vender mais.',
-    descricao: 'Cadastre produtos, serviços extras, assinaturas e outras ações. Depois, defina quantos pontos cada venda ou atividade vale.',
-    ganho: 'Você direciona o esforço da equipe para o que mais ajuda o caixa da barbearia.',
+    titulo: 'Aponte o que você quer vender mais.',
+    descricao: 'Cadastre produtos, serviços e assinaturas e defina quantos pontos cada venda vale.',
+    ganho: 'A equipe para de empurrar o fácil e vende o que sustenta o caixa.',
     imagem: '/prints/carrossel-sistema/04-campanha-servicos.jpg',
     alt: 'Configuração dos serviços e pontos de uma campanha no BarberMeta',
     cor: '#2F6DF6',
@@ -61,9 +62,9 @@ const slides: Slide[] = [
   {
     grupo: 'Campanhas',
     passo: 'Passo 2 de 4',
-    titulo: 'Premie o ranking sem perder o controle do orçamento.',
-    descricao: 'Defina quanto cada posição recebe e ajuste a premiação de acordo com a realidade da sua barbearia.',
-    ganho: 'A disputa fica saudável, transparente e financeiramente planejada.',
+    titulo: 'Premie sem estourar o orçamento.',
+    descricao: 'Monte a premiação por colocação e veja o custo total antes de publicar.',
+    ganho: 'Você motiva com prêmio de verdade sabendo exatamente quanto vai gastar.',
     imagem: '/prints/carrossel-sistema/05-campanha-premios.jpg',
     alt: 'Configuração de prêmios por posição no ranking da campanha',
     cor: '#9B6CFF',
@@ -71,9 +72,9 @@ const slides: Slide[] = [
   {
     grupo: 'Campanhas',
     passo: 'Passo 3 de 4',
-    titulo: 'A equipe vê quem se classificou e o que ainda falta.',
-    descricao: 'O ranking separa os profissionais qualificados de quem ainda busca a pontuação mínima e avisa quando alguém está sem lançamento no dia.',
-    ganho: 'Ninguém precisa esperar o fechamento do mês para saber como está indo.',
+    titulo: 'A disputa fica visível — e ninguém quer ficar para trás.',
+    descricao: 'O ranking da campanha mostra quem se classificou e quantos pontos faltam.',
+    ganho: 'A competição saudável faz o time acelerar sozinho na reta final.',
     imagem: '/prints/carrossel-sistema/06-ranking-pontos.jpg',
     alt: 'Ranking de pontos com profissionais qualificados e alertas de lançamento',
     cor: '#FF9B42',
@@ -81,9 +82,9 @@ const slides: Slide[] = [
   {
     grupo: 'Campanhas',
     passo: 'Passo 4 de 4',
-    titulo: 'Confira de onde veio cada ponto da campanha.',
-    descricao: 'O relatório reúne as atividades, quantidades, pontos por unidade e o total conquistado pela equipe no período.',
-    ganho: 'Você premia com segurança e identifica quais ações realmente aconteceram.',
+    titulo: 'Ponto contestado se resolve na hora.',
+    descricao: 'A conferência abre de onde veio cada ponto, por dia e por venda.',
+    ganho: 'Acabou o \'esse ponto não é meu\' no fim do mês.',
     imagem: '/prints/carrossel-sistema/07-conferencia-pontos.jpg',
     alt: 'Relatório de conferência dos pontos da equipe por atividade',
     cor: '#36BFFA',
@@ -91,9 +92,9 @@ const slides: Slide[] = [
   {
     grupo: 'Feedback',
     passo: 'Visão completa',
-    titulo: 'Transforme a opinião do cliente em reconhecimento e melhoria.',
-    descricao: 'Veja avaliações, comentários, o profissional responsável e o benefício sorteado. Tudo fica organizado para acompanhar e responder com mais atenção.',
-    ganho: 'Você reconhece quem atende bem e encontra oportunidades reais de melhorar a experiência.',
+    titulo: 'O elogio do cliente chega em quem atendeu.',
+    descricao: 'O cliente avalia por um link e aponta quem cuidou dele.',
+    ganho: 'O barbeiro ouve o reconhecimento direto, e o que precisa melhorar também.',
     imagem: '/prints/carrossel-sistema/08-feedback-clientes.jpg',
     alt: 'Painel de avaliações dos clientes com comentários e brindes sorteados',
     cor: '#FFD84D',
@@ -101,9 +102,9 @@ const slides: Slide[] = [
   {
     grupo: 'Brindoleta',
     passo: 'Passo 1 de 3',
-    titulo: 'O QR Code transforma o atendimento em oportunidade de venda.',
-    descricao: 'Cada profissional recebe seu próprio QR Code. O cliente aponta o celular, abre a Brindoleta e gira para descobrir uma condição preparada pela barbearia.',
-    ganho: 'A oferta chega de um jeito leve, divertido e sem criar uma abordagem desconfortável.',
+    titulo: 'Cada atendimento vira uma chance de vender.',
+    descricao: 'O cliente lê o QR Code do barbeiro e gira a roleta de ofertas.',
+    ganho: 'O que era um \'até a próxima\' termina com um produto na sacola.',
     imagem: '/prints/carrossel-sistema/09-brindoleta-roleta.jpg',
     alt: 'Brindoleta aberta no celular do cliente com ofertas na roleta',
     cor: '#D8FF00',
@@ -111,9 +112,9 @@ const slides: Slide[] = [
   {
     grupo: 'Brindoleta',
     passo: 'Passo 2 de 3',
-    titulo: 'O cliente vê a oferta e decide se quer aproveitar.',
-    descricao: 'Quando a roleta para, o benefício aparece de forma clara com um botão para aceitar. A condição pode incentivar a compra de um produto ou serviço extra.',
-    ganho: 'Você cria urgência e desejo sem depender de descontos iguais para todo mundo.',
+    titulo: 'A oferta chega na hora certa, sem empurra-empurra.',
+    descricao: 'O cliente vê o prêmio que sorteou e decide se quer aproveitar.',
+    ganho: 'Ele compra porque quis, e sai com a sensação de ter ganhado algo.',
     imagem: '/prints/carrossel-sistema/10-brindoleta-oferta.jpg',
     alt: 'Oferta de desconto revelada ao cliente depois do giro da Brindoleta',
     cor: '#FF5F45',
@@ -121,9 +122,9 @@ const slides: Slide[] = [
   {
     grupo: 'Brindoleta',
     passo: 'Passo 3 de 3',
-    titulo: 'Descubra quem está transformando giros em vendas.',
-    descricao: 'O painel mostra giros, ofertas aceitas, conversão e vendas confirmadas por colaborador. O dono valida o que realmente foi vendido.',
-    ganho: 'Você mede o retorno da ação e reconhece quem mais gera novas oportunidades.',
+    titulo: 'Descubra quem vende de verdade com a roleta.',
+    descricao: 'O painel mostra giros, resgates e quanto cada barbeiro gerou.',
+    ganho: 'Você para de adivinhar quem puxa a venda e passa a saber.',
     imagem: '/prints/carrossel-sistema/11-brindoleta-resultados.jpg',
     alt: 'Painel de resultados da Brindoleta por colaborador',
     cor: '#D8FF00',
@@ -131,9 +132,9 @@ const slides: Slide[] = [
   {
     grupo: 'Financeiro',
     passo: 'Visão geral',
-    titulo: 'Veja o que entrou, o que vai sair e quanto sobra no caixa.',
-    descricao: 'Organize contas a pagar e a receber, folha da equipe, caixa da empresa e finanças pessoais em áreas separadas ou em uma visão completa.',
-    ganho: 'Você toma decisões com os números à vista, sem depender de contas espalhadas.',
+    titulo: 'Enxergue quanto sobra, não só quanto entra.',
+    descricao: 'Caixa, contas a pagar e receber e a folha da equipe em um lugar só.',
+    ganho: 'Você descobre o lucro real antes que o mês acabe.',
     imagem: '/prints/carrossel-sistema/12-controle-financeiro.jpg',
     alt: 'Visão geral do controle financeiro do BarberMeta',
     cor: '#E0B765',
@@ -141,9 +142,9 @@ const slides: Slide[] = [
   {
     grupo: 'Equipe',
     passo: 'Gestão privada',
-    titulo: 'Alinhe comportamentos sem misturar tudo com as vendas.',
-    descricao: 'Cadastre regras de conduta e registre ocorrências positivas ou negativas em uma trilha privada que somente o dono vê.',
-    ganho: 'Você conduz conversas difíceis com histórico e clareza, sem expor o profissional.',
+    titulo: 'Trate comportamento sem contaminar a meta.',
+    descricao: 'Registre atrasos, faltas e combinados no lugar certo, separado das vendas.',
+    ganho: 'A conversa difícil deixa de ser desabafo e passa a ter histórico.',
     imagem: '/prints/carrossel-sistema/13-comportamento-equipe.jpg',
     alt: 'Configuração privada de metas de comportamento da equipe',
     cor: '#2F6DF6',
@@ -151,9 +152,9 @@ const slides: Slide[] = [
   {
     grupo: 'Reuniões',
     passo: 'Passo 1 de 5',
-    titulo: 'Comece a reunião com os números reais da barbearia.',
-    descricao: 'O BarberMeta compara o faturamento mês a mês e o período atual com os mesmos dias do mês anterior.',
-    ganho: 'A conversa sai do achismo e começa pelo que realmente está acontecendo.',
+    titulo: 'Comece a reunião com número, não com achismo.',
+    descricao: 'O resumo abre com o faturamento do mês e a comparação com o anterior.',
+    ganho: 'Ninguém discute percepção quando o dado está na tela.',
     imagem: '/prints/carrossel-sistema/14-reuniao-faturamento.jpg',
     alt: 'Raio-x do faturamento geral para reunião de equipe',
     cor: '#32D583',
@@ -161,9 +162,9 @@ const slides: Slide[] = [
   {
     grupo: 'Reuniões',
     passo: 'Passo 2 de 5',
-    titulo: 'Descubra quem precisa de atenção antes do mês acabar.',
-    descricao: 'A projeção mostra o ritmo da equipe e destaca quem está abaixo do período anterior ou atrasado em relação à própria meta.',
-    ganho: 'Você age enquanto ainda existe tempo para recuperar o resultado.',
+    titulo: 'Veja quem está ficando para trás a tempo.',
+    descricao: 'O sistema aponta quem caiu de ritmo e quanto falta para cada um.',
+    ganho: 'Você age enquanto ainda dá para virar o mês.',
     imagem: '/prints/carrossel-sistema/15-reuniao-atencao.jpg',
     alt: 'Panorama da equipe com projeção e profissionais que precisam de atenção',
     cor: '#FFB547',
@@ -171,9 +172,9 @@ const slides: Slide[] = [
   {
     grupo: 'Reuniões',
     passo: 'Passo 3 de 5',
-    titulo: 'Conduza uma conversa justa com cada profissional.',
-    descricao: 'Compare comissão, evolução em relação ao mês anterior, pontos e alertas de cada barbeiro em uma mesma visão.',
-    ganho: 'O feedback individual fica objetivo e baseado em fatos, não em impressão.',
+    titulo: 'Converse com cada um olhando os fatos dele.',
+    descricao: 'Abre o desempenho individual, com evolução e pontos de atenção.',
+    ganho: 'A cobrança vira orientação, e o barbeiro sai da conversa sabendo o que fazer.',
     imagem: '/prints/carrossel-sistema/16-reuniao-por-barbeiro.jpg',
     alt: 'Comparativo por barbeiro com comissão, evolução e pontos',
     cor: '#36BFFA',
@@ -181,9 +182,9 @@ const slides: Slide[] = [
   {
     grupo: 'Reuniões',
     passo: 'Passo 4 de 5',
-    titulo: 'Reconheça as vitórias que merecem ser celebradas.',
-    descricao: 'Veja quem teve maior pontuação, maior comissão e maior evolução para destacar bons exemplos diante da equipe.',
-    ganho: 'O reconhecimento reforça os comportamentos que você quer ver se repetir.',
+    titulo: 'Reconheça quem merece na frente de todos.',
+    descricao: 'Os destaques do mês saem prontos, por vendas, evolução e constância.',
+    ganho: 'O elogio público faz mais pela equipe que qualquer bronca.',
     imagem: '/prints/carrossel-sistema/17-reuniao-destaques.jpg',
     alt: 'Destaques do mês com maior pontuação, comissão e evolução',
     cor: '#C47A2C',
@@ -191,9 +192,9 @@ const slides: Slide[] = [
   {
     grupo: 'Reuniões',
     passo: 'Passo 5 de 5',
-    titulo: 'Chegue à reunião com uma pauta criada por IA.',
-    descricao: 'A inteligência artificial analisa os números reais e organiza um resumo com pontos de atenção. Depois, você pode copiar ou enviar pelo WhatsApp.',
-    ganho: 'Você economiza tempo e conduz uma reunião mais objetiva, preparada e produtiva.',
+    titulo: 'Chegue na reunião com a pauta pronta.',
+    descricao: 'O sistema monta os tópicos a partir dos números do mês, sem você preparar nada.',
+    ganho: 'Trinta minutos de preparo viram zero, e a reunião começa direto no que importa.',
     imagem: '/prints/carrossel-sistema/18-reuniao-ia.jpg',
     alt: 'Pauta de reunião criada por inteligência artificial com base nos dados reais',
     cor: '#2F6DF6',
@@ -259,10 +260,6 @@ export default function SistemaEmAcao() {
       <div className="mx-auto max-w-6xl">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#101828]/10 bg-white px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-[#2C4FE4] shadow-sm">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-[#FF4FA3]" aria-hidden="true" />
-              18 telas reais · 7 áreas do sistema
-            </span>
             <h2 className="mt-5 text-balance text-3xl font-bold tracking-[-0.035em] text-[#101828] sm:text-4xl lg:text-5xl">
               Veja como o BarberMeta trabalha a favor da sua barbearia.
             </h2>
@@ -334,6 +331,7 @@ export default function SistemaEmAcao() {
                         alt={slide.alt}
                         fill
                         sizes="(max-width: 640px) 220px, 266px"
+                        quality={72}
                         className="pointer-events-none object-cover object-top"
                         priority={indice === 0}
                         draggable={false}
@@ -399,6 +397,22 @@ export default function SistemaEmAcao() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Convite a cada 6 telas. O carrossel mostra um card por vez, então
+            "a cada 6 cards" vira marco: ao cruzar a 6ª, a 12ª e a 18ª tela, o
+            texto muda e reconhece o quanto a pessoa já viu. */}
+        <div className="mt-8 flex flex-col items-center gap-3 rounded-2xl border border-verde-acao/25 bg-verde-acao/[0.06] px-5 py-6 text-center">
+          <p className="text-base font-bold text-[#101828] sm:text-lg">
+            {ativo >= 17
+              ? 'Você viu o sistema inteiro. Falta só começar.'
+              : ativo >= 11
+                ? 'Já dá pra imaginar sua equipe usando isso?'
+                : ativo >= 5
+                  ? 'Gostou até aqui?'
+                  : 'Tudo isso já vem no seu acesso.'}
+          </p>
+          <CTAButton label="Quero começar →" size="md" id="cta-carrossel-planos" gtmClass="gtm-cta-carrossel" />
         </div>
 
         <p className="mt-4 text-center text-xs font-medium text-[#7A8798]">

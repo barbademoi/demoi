@@ -25,13 +25,13 @@ export default function CTAButton({ size = 'lg', className = '', label, href = '
     <a
       href={href}
       id={id}
-      className={`cta cta-oferta gtm-cta ${gtmClass} inline-flex rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#F4B942] ${className}`}
+      className={`cta cta-oferta gtm-cta ${gtmClass} inline-flex rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-verde-acao ${className}`}
       {...trackingHandlers}
     >
       <motion.span
         whileHover={{ scale: 1.03 }}
         whileTap={{ scale: 0.97 }}
-        className={`inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl bg-[#F4B942] font-bold text-[#111827] shadow-lg shadow-[#F4B942]/20 transition-colors hover:bg-[#FFD16A] ${padding}`}
+        className={`inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl bg-verde-acao font-bold text-carvao shadow-lg shadow-verde-acao/25 transition-colors hover:bg-verde-acao-hover ${padding}`}
       >
         {text}
       </motion.span>

@@ -31,7 +31,7 @@ export default function Preco() {
                 <p className="text-5xl font-bold leading-none text-[#101828]">R$ 34,90</p>
                 <p className="pb-1 text-sm font-semibold text-[#667384]">/mês</p>
               </div>
-              <p className="mt-4 text-sm font-bold text-emerald-700">✓ Garantia de reembolso por 30 dias</p>
+              <p className="mt-4 text-sm font-bold text-verde-acao">✓ Garantia de reembolso por 30 dias</p>
             </div>
             <div className="border-t border-[#E7EAEE] bg-[#F8F9FA] p-6 sm:px-9 sm:py-7">
               <a
@@ -50,7 +50,7 @@ export default function Preco() {
           </article>
 
           <article className="relative flex flex-col overflow-hidden rounded-3xl border-2 border-[#D7A63E] bg-[#101828] text-white shadow-2xl shadow-[#101828]/20">
-            <div className="absolute right-5 top-5 rounded-full bg-[#F4B942] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#101828]">Melhor valor</div>
+            <div className="absolute right-5 top-5 rounded-full bg-verde-acao px-3 py-1 text-[10px] font-black uppercase tracking-wider text-carvao">Melhor valor</div>
             <div className="flex-1 p-7 sm:p-9">
               <span className="inline-flex rounded-full border border-[#F4B942]/30 bg-[#F4B942]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#FFD16A]">Economize R$ 121,80</span>
               <h3 className="mt-5 text-2xl font-bold">Plano anual</h3>
@@ -59,8 +59,8 @@ export default function Preco() {
                 <p className="text-5xl font-bold leading-none">R$ 297</p>
                 <p className="pb-1 text-sm font-semibold text-[#9DACBD]">/ano à vista</p>
               </div>
-              <p className="mt-3 inline-flex rounded-lg bg-emerald-400/10 px-3 py-2 text-sm font-bold text-emerald-300">Equivale a R$ 24,75 por mês</p>
-              <p className="mt-4 text-sm font-bold text-emerald-300">✓ Garantia de reembolso por 30 dias</p>
+              <p className="mt-3 inline-flex rounded-lg bg-verde-acao/12 px-3 py-2 text-sm font-bold text-verde-acao">Equivale a R$ 24,75 por mês</p>
+              <p className="mt-4 text-sm font-bold text-verde-acao">✓ Garantia de reembolso por 30 dias</p>
             </div>
             <div className="border-t border-white/10 bg-white/[0.035] p-6 sm:px-9 sm:py-7">
               <a
@@ -82,7 +82,6 @@ export default function Preco() {
         <p className="mt-6 text-center text-xs text-[#667384]">Pagamento e renovação processados com segurança pela Hotmart. Se não gostar dentro de 30 dias, você recebe 100% do investimento de volta.</p>
 
         <aside className="mx-auto mt-7 max-w-4xl rounded-2xl border border-[#B77916]/25 bg-[#FFF8E7] px-5 py-4 text-sm leading-relaxed text-[#6D4B12]">
-          <strong>Já é cliente vitalício?</strong> Nada muda: você continua com tudo o que já possui. Se quiser uma ferramenta extra, ela continua disponível para compra separada.
         </aside>
       </div>
     </section>
