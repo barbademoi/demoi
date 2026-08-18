@@ -2,7 +2,11 @@ import CTAButton from './CTAButton'
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden bg-carvao px-4 pb-14 pt-24 sm:px-6 sm:pb-20 sm:pt-28 lg:pb-24 lg:pt-32">
+    // O topo é curto porque o hero deixou de ser a primeira seção: quem abre a
+    // landing vê o vídeo antes, e a folga do menu fixo já é dada lá. Padding de
+    // menu aqui viraria um vão vazio entre o vídeo e a headline — e empurraria
+    // o CTA pra fora da primeira dobra no celular.
+    <section className="relative overflow-hidden bg-carvao px-4 pb-14 pt-8 sm:px-6 sm:pb-20 sm:pt-10 lg:pb-24 lg:pt-12">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-[0.035]"
