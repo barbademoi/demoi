@@ -1,4 +1,5 @@
 import Navbar from '@/components/landing/Navbar'
+import VideoTopo from '@/components/landing/VideoTopo'
 import Hero from '@/components/landing/Hero'
 import Depoimentos from '@/components/landing/Depoimentos'
 import BrindoletaSpotlight from '@/components/landing/BrindoletaSpotlight'
@@ -66,6 +67,10 @@ export default function LandingPage() {
       />
       <Navbar />
       <main>
+        {/* VÍDEO ANTES DO HERO: mostrar o sistema rodando convence mais rápido
+            do que qualquer headline. Fica embutido e sempre visível — nunca em
+            modal — e o hero continua logo abaixo, sem rolagem longa. */}
+        <VideoTopo />
         <Hero />
         <SistemaEmAcao />
         {/* PREÇO logo depois do carrossel: quem se convenceu vendo o sistema
