@@ -24,6 +24,7 @@ import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import FecharMesButton from '@/components/dashboard/FecharMesButton'
 import DestaquesMes from '@/components/dashboard/DestaquesMes'
 import { calcularDestaquesMes } from '@/lib/destaquesMes'
+import { montarComparativoPeriodo } from '@/lib/comparativoPeriodo'
 import { verificarAssinatura } from '@/lib/assinatura/verificar'
 import AvisoAssinatura from '@/components/dashboard/AvisoAssinatura'
 import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetalhes, CampanhaServico, CampanhaPremio, ControleDiario } from '@/types/database'
@@ -458,6 +459,43 @@ export default async function DashboardPage({
   const faturamentoMesAnterior = mostrarFaturamentoGeral ? faturamentoMesAnteriorReal : 0
   const historicoBarbeariaExibido = mostrarFaturamentoGeral ? historicoBarbearia : []
 
+  // ── Comparativo com o MESMO PONTO do ciclo anterior ──────────────────────
+  // O bloco antigo comparava o ciclo em andamento com o mês passado INTEIRO —
+  // no dia 8 a barbearia "perdia" de um mês de 31 dias que já acabou. Aqui a
+  // fatia é a mesma régua já validada na reunião e nos destaques
+  // (lib/mesmoPeriodo.ts), e o resultado alimenta tanto a seção nova quanto o
+  // card "Comparativo" que já existia.
+  const anteriorCheioPorBarbeiro: Record<string, number> = {}
+  for (const id of idsParaHistorico) {
+    const h = historicoPorBarbeiro[id] ?? []
+    anteriorCheioPorBarbeiro[id] = h[h.length - 2]?.comissao ?? 0
+  }
+  const atualPorBarbeiro: Record<string, number> = {}
+  for (const r of ranking) atualPorBarbeiro[r.id] = r.comissao
+
+  const comparativoReal = await montarComparativoPeriodo(supabase, {
+    barbeariaId: barbearia.id,
+    ciclo,
+    diaFechamento,
+    hoje,
+    ehPeriodoAtual,
+    barbeiroIds: idsParaHistorico,
+    totalAtual: faturamentoReal,
+    totalAnteriorCheio: faturamentoMesAnteriorReal,
+    atualPorBarbeiro,
+    anteriorCheioPorBarbeiro,
+  })
+
+  // Mesmo critério do resto da tela: com "Mostrar faturamento geral" desligado,
+  // o R$ da casa não sai do servidor — não basta esconder na UI, porque a série
+  // viajaria inteira no HTML. O individual não é afetado pelo toggle.
+  const comparativo = mostrarFaturamentoGeral
+    ? comparativoReal
+    : {
+        ...comparativoReal,
+        coletivo: { atual: 0, anterior: 0, serieAtual: [], serieAnterior: [], medido: false },
+      }
+
   return (
     <DashboardShell
       premiacao={premiacao}
@@ -474,6 +512,7 @@ export default async function DashboardPage({
       historicoPorBarbeiro={historicoPorBarbeiro}
       historicoBarbearia={historicoBarbeariaExibido}
       faturamentoMesAnterior={faturamentoMesAnterior}
+      comparativo={comparativo}
       mostrarFaturamentoGeral={mostrarFaturamentoGeral}
       modoMeta={barbearia.modo_meta ?? 'comissao'}
       baseMeta={barbearia.base_meta ?? 'comissao'}

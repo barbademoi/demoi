@@ -15,6 +15,7 @@
  */
 import { formatBRL } from './utils'
 import { cicloAtual, cicloDeData, hojeBrasil } from './ciclo'
+import { diasDecorridosInclusive, fatorMesmoPeriodo } from './mesmoPeriodo'
 import { gerarRelatorioPontos } from './relatorioPontos'
 
 export interface Destaque {
@@ -34,12 +35,6 @@ export interface DestaquesMes {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseLike = any
-
-function diasDecorridosInclusive(inicio: Date, hoje: Date): number {
-  const a = new Date(inicio); a.setHours(0, 0, 0, 0)
-  const b = new Date(hoje); b.setHours(0, 0, 0, 0)
-  return Math.floor((b.getTime() - a.getTime()) / 86_400_000) + 1
-}
 
 // Escolhe o maior de um mapa (id → valor > 0), desempate alfabético.
 function maiorPositivo(
@@ -123,7 +118,7 @@ export async function calcularDestaquesMes(
 
   // ── Evolução: crescimento % vs MESMO PERÍODO do ciclo anterior (prorrateado
   //    à mesma proporção de dias decorridos — nunca o mês inteiro). ──
-  const fator = Math.min(1, diasDecorridos / cicloAnterior.totalDias)
+  const fator = fatorMesmoPeriodo(diasDecorridos, cicloAnterior.totalDias)
   const evolCandidatos = Array.from(nomeById.entries())
     .map(([id, nome]) => {
       const atual = atualMap.get(id) ?? 0
