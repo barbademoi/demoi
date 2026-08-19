@@ -8,12 +8,14 @@ import EditarBarbeiroModal from './EditarBarbeiroModal'
 import ComunidadeCard from './ComunidadeCard'
 import LancamentosBarbeiroModal from './LancamentosBarbeiroModal'
 import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
+import ComparativoPeriodo from './ComparativoPeriodo'
 import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
 import TicketMedio from '@/components/autonomo/TicketMedio'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/utils'
 import { calcularRitmo } from '@/lib/ritmo'
 import { nomeValor } from '@/lib/rotuloValor'
 import type { MetaIndividual, ModoPontos, CampanhaComDetalhes } from '@/types/database'
+import type { ComparativoPeriodo as ComparativoPeriodoDados, EscopoComparativo } from '@/lib/comparativoPeriodo'
 
 type BarbeiroRow = {
   id: string
@@ -51,6 +53,7 @@ interface Props {
   historicoPorBarbeiro: Record<string, { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]>
   historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
   faturamentoMesAnterior: number
+  comparativo: ComparativoPeriodoDados
   meta: MetaSimples | null
   faturamentoExibido: number
   progressoColetivo: number
@@ -102,6 +105,7 @@ export default function DashboardMain({
   historicoPorBarbeiro,
   historicoBarbearia,
   faturamentoMesAnterior,
+  comparativo,
   meta,
   faturamentoExibido,
   progressoColetivo,
@@ -197,6 +201,7 @@ export default function DashboardMain({
           baseMeta={baseMeta}
           historicoBarbearia={historicoBarbearia}
           faturamentoMesAnterior={faturamentoMesAnterior}
+          comparativo={comparativo}
         />
       ) : barbeiroSel ? (
         <BarbeiroView
@@ -225,6 +230,8 @@ export default function DashboardMain({
               : (historicoPorBarbeiro[barbeiroSel.id] ?? [])
           }
           mostrarTicketMedio={mostrarTicketMedio}
+          comparativo={comparativo}
+          escopoComparativo={comparativo.porBarbeiro[barbeiroSel.id] ?? null}
         />
       ) : null}
 
@@ -266,6 +273,7 @@ interface TodosProps {
   baseMeta: 'faturamento' | 'comissao'
   historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
   faturamentoMesAnterior: number
+  comparativo: ComparativoPeriodoDados
 }
 
 function TodosView({
@@ -299,6 +307,7 @@ function TodosView({
   baseMeta,
   historicoBarbearia,
   faturamentoMesAnterior,
+  comparativo,
 }: TodosProps) {
   const falta = meta ? meta.meta_coletiva - faturamentoExibido : 0
   // Ritmo coletivo com base nos dias de trabalho padrão da barbearia (ou dias
@@ -466,14 +475,35 @@ function TodosView({
       {/* Métricas da barbearia inteira (qualquer modalidade, modo metas).
           Comparativo + histórico + ticket coletivo são todos em R$ — somem
           quando o faturamento geral está oculto. */}
+      {/* Comparativo com o MESMO PONTO do ciclo anterior — logo depois do card
+          de dias restantes/ritmo, porque responde a mesma pergunta ("dá tempo?")
+          por outro ângulo: não contra a meta, contra o próprio mês passado. */}
+      {modoAtual !== 'pontos' && mostrarFaturamentoGeral && (
+        <ComparativoPeriodo
+          escopo={comparativo.coletivo}
+          labelAnterior={comparativo.labelAnterior}
+          diasDecorridos={comparativo.diasDecorridos}
+          parcial={comparativo.parcial}
+          baseDecorridos={ritmoColet.baseDecorridos}
+          unidadeDia={unidadeDiaColet}
+          ritmoAtual={ritmoColetivo}
+        />
+      )}
       {modoAtual !== 'pontos' && mostrarFaturamentoGeral && (
         <ComparativoMesAnterior
           comissaoAtual={faturamentoExibido}
-          comissaoMesAnterior={faturamentoMesAnterior}
+          // MESMO PERÍODO, não o mês fechado inteiro: comparar o ciclo em
+          // andamento com um mês que já acabou fazia a barbearia parecer em
+          // queda todo início de mês. Mesma régua da reunião.
+          comissaoMesAnterior={comparativo.coletivo.anterior}
           mesAtual={mes}
           variant="dark"
           escopo="coletivo"
-          labelPeriodoAnterior={historicoBarbearia[historicoBarbearia.length - 2]?.label}
+          labelPeriodoAnterior={
+            comparativo.parcial
+              ? `${comparativo.labelAnterior} até o dia ${comparativo.diasDecorridos}`
+              : historicoBarbearia[historicoBarbearia.length - 2]?.label
+          }
           labelPeriodoAtual={`Esse ${cicloLabel.includes('—') ? 'ciclo' : 'mês'} até agora`}
         />
       )}
@@ -896,9 +926,11 @@ interface BarbeiroViewProps {
   comissaoMesAnterior: number
   historicoMeses: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
   mostrarTicketMedio: boolean
+  comparativo: ComparativoPeriodoDados
+  escopoComparativo: EscopoComparativo | null
 }
 
-function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontosBarb, rankingPontosRecep, isAutonomo, cicloLabel, mes, comissaoMesAnterior, historicoMeses, mostrarTicketMedio }: BarbeiroViewProps) {
+function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, rankingPontosBarb, rankingPontosRecep, isAutonomo, cicloLabel, mes, comissaoMesAnterior, historicoMeses, mostrarTicketMedio, comparativo, escopoComparativo }: BarbeiroViewProps) {
   const tier = barbeiro.metaInd
     ? calcTier(barbeiro.comissao, barbeiro.metaInd.bronze_comm, barbeiro.metaInd.prata_comm, barbeiro.metaInd.ouro_comm)
     : null
@@ -958,14 +990,37 @@ function BarbeiroView({ barbeiro, posicao, modoAtual, campanha, pontosMap, ranki
         </div>
       </div>
 
+      {/* Comparativo com o mesmo ponto do ciclo anterior — o filtro de barbeiro
+          troca a view inteira, então esta seção já reflete quem está
+          selecionado: o escopo vem calculado por barbeiro no servidor. */}
+      {modoAtual !== 'pontos' && escopoComparativo && (
+        <ComparativoPeriodo
+          escopo={escopoComparativo}
+          labelAnterior={comparativo.labelAnterior}
+          diasDecorridos={comparativo.diasDecorridos}
+          parcial={comparativo.parcial}
+          // Aqui a base é o dia corrido do ciclo: a tela do barbeiro não mostra
+          // "Ritmo atual" por dia de trabalho, então não há com o que conflitar.
+          baseDecorridos={comparativo.diasDecorridos}
+          unidadeDia="dia"
+          ritmoAtual={comparativo.diasDecorridos > 0 ? escopoComparativo.atual / comparativo.diasDecorridos : 0}
+        />
+      )}
+
       {/* Comparativo mês anterior (qualquer modalidade, modo metas) */}
       {modoAtual !== 'pontos' && (
         <ComparativoMesAnterior
           comissaoAtual={barbeiro.comissao}
-          comissaoMesAnterior={comissaoMesAnterior}
+          // MESMO PERÍODO, não o mês fechado inteiro (mesma correção da visão
+          // coletiva). Sem escopo calculado, cai no valor antigo.
+          comissaoMesAnterior={escopoComparativo ? escopoComparativo.anterior : comissaoMesAnterior}
           mesAtual={mes}
           variant="dark"
-          labelPeriodoAnterior={historicoMeses[historicoMeses.length - 2]?.label}
+          labelPeriodoAnterior={
+            comparativo.parcial
+              ? `${comparativo.labelAnterior} até o dia ${comparativo.diasDecorridos}`
+              : historicoMeses[historicoMeses.length - 2]?.label
+          }
           labelPeriodoAtual={`Esse ${cicloLabel.includes('—') ? 'ciclo' : 'mês'} até agora`}
         />
       )}

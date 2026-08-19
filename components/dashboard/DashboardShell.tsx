@@ -10,6 +10,7 @@ import BrindoletaAdminAlerta from '@/components/brindoleta/BrindoletaAdminAlerta
 import BrindoletaOfertaPopup from '@/components/brindoleta/BrindoletaOfertaPopup'
 import type { ModoPontos, CampanhaComDetalhes, MetaIndividual } from '@/types/database'
 import type { PremiacaoResumo } from '@/lib/premios'
+import type { ComparativoPeriodo } from '@/lib/comparativoPeriodo'
 import type { BrindoletaStatus } from '@/lib/brindoleta/config'
 
 type MetaSimples = {
@@ -51,6 +52,7 @@ interface Props {
   historicoPorBarbeiro: Record<string, { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]>
   historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
   faturamentoMesAnterior: number
+  comparativo: ComparativoPeriodo
   mes: number
   ano: number
   // DashboardMain data
@@ -124,7 +126,7 @@ interface Props {
 export default function DashboardShell({
   premiacao,
   barbeariaNome, cicloLabel, isAutonomo, comissaoMesAnterior, historicoMeses, historicoPorBarbeiro,
-  historicoBarbearia, faturamentoMesAnterior, mes, ano,
+  historicoBarbearia, faturamentoMesAnterior, comparativo, mes, ano,
   meta, faturamentoExibido, progressoColetivo, progressoColetivoBronze, progressoColetivoPrata,
   rankingBarbeiros, rankingRecepcionistas,
   modoAtual, campanha, pontosMap, pontosHojePorBarbeiro,
@@ -283,6 +285,7 @@ export default function DashboardShell({
             historicoPorBarbeiro={historicoPorBarbeiro}
             historicoBarbearia={historicoBarbearia}
             faturamentoMesAnterior={faturamentoMesAnterior}
+            comparativo={comparativo}
             meta={meta}
             faturamentoExibido={faturamentoExibido}
             progressoColetivo={progressoColetivo}

@@ -17,6 +17,7 @@
  * em destaquesMes. Fuso America/Sao_Paulo.
  */
 import { cicloAtual, cicloDeData, hojeBrasil, calcDiasUteisCiclo } from './../ciclo'
+import { diasDecorridosInclusive, fatorMesmoPeriodo } from './../mesmoPeriodo'
 import { calcularRitmo, resolverDiasTrabalho } from './../ritmo'
 import { gerarRelatorioPontos } from './../relatorioPontos'
 import { calcularDestaquesMes, type DestaquesMes } from './../destaquesMes'
@@ -71,12 +72,6 @@ export interface RaioXReuniao {
   faturamentoGeral: FaturamentoGeralMes[] | null
 }
 
-function diasDecorridosInclusive(inicio: Date, hoje: Date): number {
-  const a = new Date(inicio); a.setHours(0, 0, 0, 0)
-  const b = new Date(hoje); b.setHours(0, 0, 0, 0)
-  return Math.floor((b.getTime() - a.getTime()) / 86_400_000) + 1
-}
-
 function pctCrescimento(atual: number, anterior: number): number | null {
   if (anterior <= 0) return null
   return ((atual - anterior) / anterior) * 100
@@ -107,7 +102,7 @@ export async function gerarRaioXReuniao(
   const cicloAnterior = cicloDeData(antes, diaFechamento)
   const totalDiasCiclo = ciclo.totalDias
   const diasDecorridos = Math.min(totalDiasCiclo, Math.max(1, diasDecorridosInclusive(ciclo.inicio, hoje)))
-  const fator = Math.min(1, diasDecorridos / cicloAnterior.totalDias)
+  const fator = fatorMesmoPeriodo(diasDecorridos, cicloAnterior.totalDias)
   const { diasUteisCorridos, diasUteisRestantes } = calcDiasUteisCiclo(ciclo.inicio, ciclo.fim, hoje)
 
   // ── Resumo do FATURAMENTO GERAL da casa (últimos 6 meses) ──
