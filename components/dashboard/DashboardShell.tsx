@@ -286,6 +286,7 @@ export default function DashboardShell({
             historicoBarbearia={historicoBarbearia}
             faturamentoMesAnterior={faturamentoMesAnterior}
             comparativo={comparativo}
+            premiacao={premiacao}
             meta={meta}
             faturamentoExibido={faturamentoExibido}
             progressoColetivo={progressoColetivo}

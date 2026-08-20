@@ -9,6 +9,7 @@ import ComunidadeCard from './ComunidadeCard'
 import LancamentosBarbeiroModal from './LancamentosBarbeiroModal'
 import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
 import ComparativoPeriodo from './ComparativoPeriodo'
+import CardRanking from './CardRanking'
 import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
 import TicketMedio from '@/components/autonomo/TicketMedio'
 import { formatBRL, nomeMes, TIER_CONFIG, calcProgresso, calcTier } from '@/lib/utils'
@@ -16,6 +17,7 @@ import { calcularRitmo } from '@/lib/ritmo'
 import { nomeValor } from '@/lib/rotuloValor'
 import type { MetaIndividual, ModoPontos, CampanhaComDetalhes } from '@/types/database'
 import type { ComparativoPeriodo as ComparativoPeriodoDados, EscopoComparativo } from '@/lib/comparativoPeriodo'
+import type { PremiacaoResumo } from '@/lib/premios'
 
 type BarbeiroRow = {
   id: string
@@ -54,6 +56,7 @@ interface Props {
   historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
   faturamentoMesAnterior: number
   comparativo: ComparativoPeriodoDados
+  premiacao: PremiacaoResumo
   meta: MetaSimples | null
   faturamentoExibido: number
   progressoColetivo: number
@@ -106,6 +109,7 @@ export default function DashboardMain({
   historicoBarbearia,
   faturamentoMesAnterior,
   comparativo,
+  premiacao,
   meta,
   faturamentoExibido,
   progressoColetivo,
@@ -202,6 +206,7 @@ export default function DashboardMain({
           historicoBarbearia={historicoBarbearia}
           faturamentoMesAnterior={faturamentoMesAnterior}
           comparativo={comparativo}
+          premiacao={premiacao}
         />
       ) : barbeiroSel ? (
         <BarbeiroView
@@ -274,6 +279,7 @@ interface TodosProps {
   historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
   faturamentoMesAnterior: number
   comparativo: ComparativoPeriodoDados
+  premiacao: PremiacaoResumo
 }
 
 function TodosView({
@@ -308,6 +314,7 @@ function TodosView({
   historicoBarbearia,
   faturamentoMesAnterior,
   comparativo,
+  premiacao,
 }: TodosProps) {
   const falta = meta ? meta.meta_coletiva - faturamentoExibido : 0
   // Ritmo coletivo com base nos dias de trabalho padrão da barbearia (ou dias
@@ -326,6 +333,11 @@ function TodosView({
   const ritmoOk = ritmoColet.ritmoOk
   const unidadeDiaColet = ritmoColet.usaDiasTrabalho ? 'dia de trabalho' : 'dia'
   const diasRestantesColet = Math.round(ritmoColet.baseRestantes)
+
+  // Prêmio por barbeiro vem pronto de calcularPremiacao — a MESMA função do
+  // bloco de premiação do dono e da tela do barbeiro. O card só exibe.
+  const premioPorBarbeiro = new Map(premiacao.barbeiros.map(p => [p.barbeiroId, p]))
+  const campanhaAtiva = campanha != null && campanha.ativo !== false
 
   // Tiers da meta coletiva (só quando bronze/prata também foram configurados;
   // caso contrário cai no display legado de 1 barra)
@@ -527,15 +539,16 @@ function TodosView({
           </h2>
           <div className="space-y-3">
             {rankingBarbeiros.map((barbeiro, idx) => (
-              <RankingCard
+              <CardRanking
                 key={barbeiro.id}
                 barbeiro={barbeiro}
                 posicao={idx + 1}
+                premio={premioPorBarbeiro.get(barbeiro.id) ?? null}
+                pontos={pontosMap[barbeiro.id] ?? 0}
+                pontosHoje={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
+                minPontos={campanha?.min_pontos ?? 0}
+                temCampanha={campanhaAtiva}
                 modoAtual={modoAtual}
-                campanha={campanha}
-                pontosMap={pontosMap}
-                pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
-                rankingPontos={rankingPontosBarb}
                 vista="comissao"
               />
             ))}
@@ -559,15 +572,16 @@ function TodosView({
                 </h2>
                 <div className="space-y-3">
                   {qualificados.map((barbeiro, idx) => (
-                    <RankingCard
+                    <CardRanking
                       key={barbeiro.id}
                       barbeiro={barbeiro}
                       posicao={idx + 1}
+                      premio={premioPorBarbeiro.get(barbeiro.id) ?? null}
+                      pontos={pontosMap[barbeiro.id] ?? 0}
+                      pontosHoje={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
+                      minPontos={campanha.min_pontos}
+                      temCampanha={campanhaAtiva}
                       modoAtual={modoAtual}
-                      campanha={campanha}
-                      pontosMap={pontosMap}
-                      pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
-                      rankingPontos={rankingPontosBarb}
                       vista="pontos"
                     />
                   ))}
@@ -583,15 +597,16 @@ function TodosView({
                 </h2>
                 <div className="space-y-3">
                   {abaixoMin.map((barbeiro, idx) => (
-                    <RankingCard
+                    <CardRanking
                       key={barbeiro.id}
                       barbeiro={barbeiro}
                       posicao={qualificados.length + idx + 1}
+                      premio={premioPorBarbeiro.get(barbeiro.id) ?? null}
+                      pontos={pontosMap[barbeiro.id] ?? 0}
+                      pontosHoje={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
+                      minPontos={campanha.min_pontos}
+                      temCampanha={campanhaAtiva}
                       modoAtual={modoAtual}
-                      campanha={campanha}
-                      pontosMap={pontosMap}
-                      pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
-                      rankingPontos={rankingPontosBarb}
                       vista="pontos"
                     />
                   ))}
@@ -620,17 +635,18 @@ function TodosView({
                 </h2>
                 <div className="space-y-3">
                   {qualificados.map((barbeiro, idx) => (
-                    <RankingCard
+                    <CardRanking
                       key={barbeiro.id}
                       barbeiro={barbeiro}
                       posicao={idx + 1}
+                      premio={premioPorBarbeiro.get(barbeiro.id) ?? null}
+                      pontos={pontosMap[barbeiro.id] ?? 0}
+                      pontosHoje={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
+                      minPontos={campanha.min_pontos_recep}
+                      temCampanha={campanhaAtiva}
                       modoAtual={modoAtual}
-                      campanha={campanha}
-                      pontosMap={pontosMap}
-                      pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
-                      rankingPontos={rankingPontosRecep}
-                      isRecep
                       vista="pontos"
+                      isRecep
                     />
                   ))}
                 </div>
@@ -645,17 +661,18 @@ function TodosView({
                 </h2>
                 <div className="space-y-3">
                   {abaixoMin.map((barbeiro, idx) => (
-                    <RankingCard
+                    <CardRanking
                       key={barbeiro.id}
                       barbeiro={barbeiro}
                       posicao={qualificados.length + idx + 1}
+                      premio={premioPorBarbeiro.get(barbeiro.id) ?? null}
+                      pontos={pontosMap[barbeiro.id] ?? 0}
+                      pontosHoje={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
+                      minPontos={campanha.min_pontos_recep}
+                      temCampanha={campanhaAtiva}
                       modoAtual={modoAtual}
-                      campanha={campanha}
-                      pontosMap={pontosMap}
-                      pontosHojeBarbeiro={pontosHojePorBarbeiro[barbeiro.id] ?? 0}
-                      rankingPontos={rankingPontosRecep}
-                      isRecep
                       vista="pontos"
+                      isRecep
                     />
                   ))}
                 </div>
@@ -671,240 +688,6 @@ function TodosView({
             Nenhum colaborador cadastrado. Use &ldquo;+ Barbeiro&rdquo; no menu lateral para começar.
           </p>
         </div>
-      )}
-    </div>
-  )
-}
-
-// ── Ranking card ─────────────────────────────────────────────────────────────
-
-interface RankingCardProps {
-  barbeiro: BarbeiroRow
-  posicao: number
-  modoAtual: ModoPontos
-  campanha: CampanhaComDetalhes | null
-  pontosMap: Record<string, number>
-  pontosHojeBarbeiro: number
-  rankingPontos: { id: string; pts: number }[]
-  isRecep?: boolean
-  // 'comissao' = card foca em comissão/metas (esconde badges/valor de pontos).
-  // 'pontos'   = card foca em pontos (esconde barras/valor de comissão).
-  // omitido    = legacy: deriva do `modoAtual` (modo 'ambos' mostra os dois,
-  //              mas é caso a caso — preferir passar vista explícita).
-  vista?: 'comissao' | 'pontos'
-}
-
-function RankingCard({ barbeiro, posicao, modoAtual, campanha, pontosMap, pontosHojeBarbeiro, rankingPontos, isRecep, vista }: RankingCardProps) {
-  // Quando `vista` é passada, ela manda no que o card exibe — permite que
-  // o dashboard renderize duas seções (Comissão + Pontos) sem misturar
-  // métricas no mesmo card. Sem `vista`, cai no comportamento legacy
-  // baseado em modoAtual.
-  const mostraComissao = vista ? vista === 'comissao' : modoAtual !== 'pontos'
-  const mostraPontos   = vista ? vista === 'pontos'   : modoAtual !== 'metas'
-  const tier = barbeiro.metaInd
-    ? calcTier(barbeiro.comissao, barbeiro.metaInd.bronze_comm, barbeiro.metaInd.prata_comm, barbeiro.metaInd.ouro_comm)
-    : null
-  const progresso = barbeiro.metaInd ? {
-    bronze: calcProgresso(barbeiro.comissao, barbeiro.metaInd.bronze_comm),
-    prata:  calcProgresso(barbeiro.comissao, barbeiro.metaInd.prata_comm),
-    ouro:   calcProgresso(barbeiro.comissao, barbeiro.metaInd.ouro_comm),
-  } : null
-
-  const pts = pontosMap[barbeiro.id] ?? 0
-  const posicaoPts = rankingPontos.findIndex(r => r.id === barbeiro.id)
-  const minPts = isRecep ? (campanha?.min_pontos_recep ?? 400) : (campanha?.min_pontos ?? 0)
-  const qualificado = campanha ? pts >= minPts : false
-
-  const posColors = ['metal-text-gold', 'metal-text-silver', 'metal-text-bronze']
-  const posClass = posicao <= 3 ? posColors[posicao - 1] : 'text-on-cream-muted'
-
-  const [lancamentosOpen, setLancamentosOpen] = useState(false)
-  const podeVerLancamentos = mostraPontos && campanha !== null
-
-  return (
-    <div className="card-light p-4 sm:p-5 relative">
-      {/* ✏️ no top-right só em mobile */}
-      <div className="sm:hidden absolute top-3 right-3 z-10">
-        <EditarBarbeiroModal barbeiro={barbeiro} />
-      </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-        {/* Linha 1 mobile: posição + foto + (nome+tier no mobile) | Desktop: só posição+foto */}
-        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-          <span className={`font-serif text-xl w-7 text-center shrink-0 ${posClass}`}>{posicao}</span>
-
-          <div
-            className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full shrink-0 border-2 overflow-hidden flex items-center justify-center bg-cream-surface font-serif text-xl sm:text-2xl text-on-cream-muted ${tierBorderClass(tier)}`}
-            style={{ boxShadow: tierGlowClass(tier) }}
-          >
-            {barbeiro.foto_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={barbeiro.foto_url} alt={barbeiro.nome} className="w-full h-full object-cover" />
-            ) : barbeiro.nome[0]}
-          </div>
-
-          {/* No mobile, nome + badges ficam aqui na mesma linha da foto. Desktop esconde. */}
-          <div className="sm:hidden flex-1 min-w-0 pr-8">
-            <p className="font-sans font-semibold text-on-cream text-base leading-tight break-words">
-              {barbeiro.nome}
-            </p>
-            <div className="flex items-center gap-1.5 flex-wrap mt-1">
-              {tier && (
-                <span className={`text-[11px] font-sans font-semibold ${TIER_CONFIG[tier].textClass}`}>
-                  ★ {TIER_CONFIG[tier].label}
-                </span>
-              )}
-              {mostraPontos && campanha && (
-                <span className={`text-[11px] font-sans font-semibold px-2 py-0.5 rounded-full
-                  ${qualificado ? 'bg-primary/10 text-primary' : 'bg-cream-surface text-on-cream-muted'}`}>
-                  🏅 {pts} pts{posicaoPts >= 0 && qualificado ? ` · #${posicaoPts + 1}` : ''}
-                </span>
-              )}
-              {mostraPontos && campanha && (
-                pontosHojeBarbeiro > 0 ? (
-                  <span className="text-[11px] font-sans font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600">
-                    ✅ Lançou hoje · {pontosHojeBarbeiro} pts
-                  </span>
-                ) : (
-                  <span className="text-[11px] font-sans font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">
-                    ⏳ Sem lançamento hoje
-                  </span>
-                )
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Info (desktop): nome + badges + link + barras */}
-        <div className="hidden sm:block flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-sans font-semibold text-on-cream">{barbeiro.nome}</p>
-            <EditarBarbeiroModal barbeiro={barbeiro} />
-            {tier && (
-              <span className={`text-xs font-sans font-semibold ${TIER_CONFIG[tier].textClass}`}>
-                ★ {TIER_CONFIG[tier].label}
-              </span>
-            )}
-            {mostraPontos && campanha && (
-              <span className={`text-xs font-sans font-semibold px-2 py-0.5 rounded-full
-                ${qualificado ? 'bg-primary/10 text-primary' : 'bg-cream-surface text-on-cream-muted'}`}>
-                🏅 {pts} pts{posicaoPts >= 0 && qualificado ? ` · #${posicaoPts + 1}` : ''}
-              </span>
-            )}
-            {mostraPontos && campanha && (
-              pontosHojeBarbeiro > 0 ? (
-                <span className="text-xs font-sans font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600">
-                  ✅ Lançou hoje · {pontosHojeBarbeiro} pts
-                </span>
-              ) : (
-                <span className="text-xs font-sans font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">
-                  ⏳ Sem lançamento hoje
-                </span>
-              )
-            )}
-          </div>
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <p className="text-on-cream-muted text-xs font-sans">/b/{barbeiro.link_codigo}</p>
-            <CopiarLinkBtn codigo={barbeiro.link_codigo} />
-            {podeVerLancamentos && (
-              <button
-                onClick={() => setLancamentosOpen(true)}
-                className="text-on-cream-muted hover:text-primary text-xs font-sans transition-colors underline"
-              >
-                Ver lançamentos
-              </button>
-            )}
-          </div>
-
-          {progresso && mostraComissao && (
-            <div className="mt-2.5 space-y-1.5">
-              {(['bronze', 'prata', 'ouro'] as const).map(t => {
-                const metaVal = barbeiro.metaInd![`${t}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm']
-                if (!metaVal || metaVal <= 0) return null
-                const pct = progresso[t]
-                return (
-                  <div key={t} className="flex items-center gap-2">
-                    <span className={`text-xs font-sans w-11 text-right shrink-0 ${TIER_CONFIG[t].textClass}`}>
-                      {TIER_CONFIG[t].label}
-                    </span>
-                    <div className="bar-track flex-1 h-2">
-                      <div
-                        className={`${TIER_CONFIG[t].barClass} h-full rounded-full transition-all duration-700`}
-                        style={{ width: pct > 0 ? `${pct}%` : '3px' }}
-                      />
-                    </div>
-                    <span className="text-on-cream-muted text-xs font-sans w-8 shrink-0">{pct}%</span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Mobile: link + barras + valor full width */}
-        <div className="sm:hidden space-y-2.5">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-on-cream-muted text-xs font-sans truncate">/b/{barbeiro.link_codigo}</p>
-            <CopiarLinkBtn codigo={barbeiro.link_codigo} />
-            {podeVerLancamentos && (
-              <button
-                onClick={() => setLancamentosOpen(true)}
-                className="text-on-cream-muted hover:text-primary text-xs font-sans transition-colors underline"
-              >
-                Ver lançamentos
-              </button>
-            )}
-          </div>
-
-          {progresso && mostraComissao && (
-            <div className="space-y-1.5">
-              {(['bronze', 'prata', 'ouro'] as const).map(t => {
-                const metaVal = barbeiro.metaInd![`${t}_comm` as 'bronze_comm' | 'prata_comm' | 'ouro_comm']
-                if (!metaVal || metaVal <= 0) return null
-                const pct = progresso[t]
-                return (
-                  <div key={t} className="flex items-center gap-2">
-                    <span className={`text-[11px] font-sans w-12 text-right shrink-0 ${TIER_CONFIG[t].textClass}`}>
-                      {TIER_CONFIG[t].label}
-                    </span>
-                    <div className="bar-track flex-1 h-2">
-                      <div
-                        className={`${TIER_CONFIG[t].barClass} h-full rounded-full transition-all duration-700`}
-                        style={{ width: pct > 0 ? `${pct}%` : '3px' }}
-                      />
-                    </div>
-                    <span className="text-on-cream-muted text-[11px] font-sans w-9 shrink-0 text-right">{pct}%</span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between pt-1">
-            {mostraComissao ? (
-              <p className="font-serif text-lg text-on-cream">{formatBRL(barbeiro.comissao)}</p>
-            ) : (
-              <p className="font-serif text-lg text-on-cream">{pts} pts</p>
-            )}
-          </div>
-        </div>
-
-        {/* Desktop: valor à direita — comissão OU pontos, conforme a vista */}
-        <div className="hidden sm:block text-right shrink-0">
-          {mostraComissao ? (
-            <p className="font-serif text-xl text-on-cream">{formatBRL(barbeiro.comissao)}</p>
-          ) : (
-            <p className="font-serif text-xl text-on-cream">{pts} pts</p>
-          )}
-        </div>
-      </div>
-
-      {lancamentosOpen && (
-        <LancamentosBarbeiroModal
-          barbeiroId={barbeiro.id}
-          barbeiroNome={barbeiro.nome}
-          onClose={() => setLancamentosOpen(false)}
-        />
       )}
     </div>
   )
