@@ -73,17 +73,22 @@ export default function RingsProgress({
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {/* `overflow: visible` é o que faz o brilho ficar REDONDO. O anel de Ouro
+          para a 2px da borda do viewBox e o borrão se espalha ~15px, então o
+          <svg> — que recorta no retângulo por padrão — cortava o halo em reta
+          nos quatro lados: a "sombra quadrada". O brilho já era vetorial
+          (feGaussianBlur preso ao traço); faltava deixar ele caber. */}
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ overflow: 'visible' }}>
         <defs>
-          <filter id={glowBronze} x="-30%" y="-30%" width="160%" height="160%">
+          <filter id={glowBronze} x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur in="SourceGraphic" stdDeviation={pctBronze >= 100 ? 5 : 2.5} result="blur" />
             <feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
           </filter>
-          <filter id={glowPrata} x="-30%" y="-30%" width="160%" height="160%">
+          <filter id={glowPrata} x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur in="SourceGraphic" stdDeviation={pctPrata >= 100 ? 5 : 2.5} result="blur" />
             <feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
           </filter>
-          <filter id={glowOuro} x="-30%" y="-30%" width="160%" height="160%">
+          <filter id={glowOuro} x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur in="SourceGraphic" stdDeviation={pctOuro >= 100 ? 5 : 2.5} result="blur" />
             <feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
           </filter>

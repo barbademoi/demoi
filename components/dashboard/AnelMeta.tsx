@@ -54,7 +54,13 @@ export default function AnelMeta({
       role="img"
       aria-label={rotulo}
     >
-      <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+      {/* `overflow-visible` é o que faz o brilho ficar REDONDO.
+          O halo do drop-shadow se espalha ~7px pra fora do traço, mas o anel
+          quase encosta na borda do viewBox — e o <svg> recorta no retângulo por
+          padrão. O resultado era um brilho cortado em reta nos quatro lados,
+          lido como "sombra quadrada". A técnica de brilho já estava certa
+          (drop-shadow segue o alfa do desenho); faltava deixar ele caber. */}
+      <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90 overflow-visible">
         <defs>
           <linearGradient id={`g-${id}`} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor={t.paradas[0]} />

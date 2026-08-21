@@ -1,5 +1,7 @@
 'use client'
 
+import { useId } from 'react'
+
 interface Props {
   pct: number
   size?: number
@@ -20,16 +22,25 @@ export default function CircularProgress({
   const cy = size / 2
   const circumference = 2 * Math.PI * r
   const dash = Math.min(Math.max(pct, 0), 100) / 100 * circumference
+  // O filtro é referenciado por id, e a tela pode ter mais de um mostrador.
+  // Id fixo faria todos apontarem pro primeiro <filter> renderizado.
+  const uid = useId().replace(/:/g, '')
+  const glowId = `arc-glow-${uid}`
   const hue = Math.round(pct * 1.2)
   const stroke = `hsl(${hue}, 80%, 42%)`
   const glow  = `hsl(${hue}, 80%, 42%)`
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {/* `overflow: visible` é o que faz o brilho ficar REDONDO. O arco quase
+          encosta na borda do viewBox e o <svg> recorta no retângulo por padrão,
+          então o halo saía cortado em reta nos quatro lados — lido como sombra
+          quadrada. O brilho em si já era vetorial (feGaussianBlur, preso à forma
+          do arco); o que faltava era deixar ele caber. */}
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ overflow: 'visible' }}>
         <defs>
           {/* Filtro SVG nativo — segue a forma do arco, sem caixa retangular */}
-          <filter id="arc-glow" x="-30%" y="-30%" width="160%" height="160%">
+          <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
@@ -50,7 +61,7 @@ export default function CircularProgress({
             strokeLinecap="round"
             strokeDasharray={`${dash} ${circumference}`}
             transform={`rotate(-90 ${cx} ${cy})`}
-            filter="url(#arc-glow)"
+            filter={`url(#${glowId})`}
             style={{ transition: 'stroke-dasharray 1s ease' }}
           />
         )}
