@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
-  extrair, classificar, calcularValidoAte, statusDoEvento, eventoRelevante,
-  EVENTOS_ATIVA,
+  extrair, classificar, calcularValidoAte, calcularValidoAteAnual,
+  statusDoEvento, eventoRelevante, EVENTOS_ATIVA,
 } from '@/lib/assinatura/hotmart'
 
 function gerarSenhaInterna(): string {
@@ -205,6 +205,18 @@ async function aplicarEventoAssinatura(
   const nova = classificar(dados)
   if (evento === 'SWITCH_PLAN' && nova.periodicidade) patch.periodicidade = nova.periodicidade
 
+  // ESTORNO DE COMPRA ÚNICA encerra o acesso na hora.
+  // No assinante recorrente, marcar 'cancelada' basta: ele já pagou o período
+  // corrente e o corte é não renovar. Na compra única de 1 ano é o contrário —
+  // o dinheiro voltou pro cliente, e sem encerrar a validade ele ficaria um ano
+  // inteiro usando o sistema de graça. Só vale pro tipo 'anual': o
+  // comportamento do assinante recorrente fica exatamente como era.
+  const ESTORNOS = new Set(['PURCHASE_REFUNDED', 'PURCHASE_CHARGEBACK', 'PURCHASE_PROTEST', 'PURCHASE_CANCELED'])
+  if (conta.tipo_acesso === 'anual' && ESTORNOS.has(evento)) {
+    patch.valido_ate = new Date().toISOString()
+    console.log('[webhook/hotmart] acesso anual encerrado por estorno:', evento, email)
+  }
+
   if (Object.keys(patch).length === 0) return 'Nothing to update'
 
   const { error } = await supabase.from('usuarios').update(patch).eq('id', conta.id)
@@ -366,16 +378,33 @@ export async function POST(request: NextRequest) {
     // acesso permanente; a assinatura nova não pode transformá-lo em alguém
     // que perde o sistema quando parar de pagar.
     const acessoPatch: Record<string, unknown> = {}
+    const validoAtual = existente.valido_ate ? new Date(existente.valido_ate) : null
+
     if (existente.tipo_acesso === 'vitalicio') {
+      // ESTE É O RAMO QUE PROTEGE OS ~600 VITALÍCIOS.
+      // O produto 7737399 vendia acesso permanente e hoje vende 1 ano. Quem
+      // comprou na época do permanente comprou permanente — uma compra nova,
+      // um reenvio de webhook ou qualquer evento futuro desse produto passa
+      // por aqui e NÃO ESCREVE NADA. Nem valido_ate, nem tipo, nem status.
       console.log('[webhook/hotmart] vitalício mantido apesar da nova compra:', email)
     } else if (acesso.tipo === 'vitalicio') {
-      // Assinante comprou o vitalício → sobe de patamar e larga a régua de validade.
+      // Hoje NENHUM produto classifica como vitalício — `classificar` deixou de
+      // devolver esse tipo quando o 7737399 virou anual. O ramo fica porque a
+      // decisão é de negócio e pode voltar; se voltar, o comportamento certo
+      // (subir de patamar e largar a régua de validade) já está aqui.
       acessoPatch.tipo_acesso = 'vitalicio'
       acessoPatch.status_assinatura = null
       acessoPatch.valido_ate = null
       acessoPatch.periodicidade = null
+    } else if (acesso.tipo === 'anual') {
+      // COMPRA ÚNICA DE 1 ANO. Renovar é comprar de novo pelo mesmo link:
+      // se ainda está dentro da validade, o ano novo soma a partir dela e
+      // ninguém perde dia pago.
+      acessoPatch.tipo_acesso = 'anual'
+      acessoPatch.status_assinatura = 'ativa'
+      acessoPatch.periodicidade = 'anual'
+      acessoPatch.valido_ate = calcularValidoAteAnual(new Date(), validoAtual).toISOString()
     } else {
-      const validoAtual = existente.valido_ate ? new Date(existente.valido_ate) : null
       acessoPatch.tipo_acesso = 'mensal'
       acessoPatch.status_assinatura = acesso.desconhecido ? 'revisar' : 'ativa'
       acessoPatch.periodicidade = acesso.periodicidade
@@ -383,6 +412,18 @@ export async function POST(request: NextRequest) {
         new Date(), validoAtual, acesso.periodicidade, dados.proximaCobranca,
       ).toISOString()
       if (dados.assinaturaId) acessoPatch.assinatura_id = dados.assinaturaId
+    }
+
+    // TRAVA ANTI-ENCOLHIMENTO: nenhum evento pode devolver uma validade MENOR
+    // do que a que já estava gravada. Vale principalmente pra quem tem 1 ano
+    // pago e assina o mensal por cima — o mês novo não pode comer os meses que
+    // ele já comprou. Uma trava aqui é mais barata que um pedido de reembolso.
+    if (typeof acessoPatch.valido_ate === 'string' && validoAtual) {
+      const proposto = new Date(acessoPatch.valido_ate as string)
+      if (proposto.getTime() < validoAtual.getTime()) {
+        console.log('[webhook/hotmart] validade proposta menor que a atual; mantida a maior:', email)
+        acessoPatch.valido_ate = validoAtual.toISOString()
+      }
     }
 
     if (emailMudou || txMudou || Object.keys(acessoPatch).length > 0) {
@@ -459,6 +500,12 @@ export async function POST(request: NextRequest) {
       // vitalício por omissão. `classificar` já garante isso.
       tipo_acesso: acesso.tipo,
       origem: `hotmart:${dados.productId ?? 'desconhecido'}`,
+      ...(acesso.tipo === 'anual' ? {
+        // 1 ano a partir de agora. Sem assinatura_id: não há recorrência.
+        status_assinatura: 'ativa',
+        periodicidade: 'anual',
+        valido_ate: calcularValidoAteAnual(new Date(), null).toISOString(),
+      } : {}),
       ...(acesso.tipo === 'mensal' ? {
         status_assinatura: acesso.desconhecido ? 'revisar' : 'ativa',
         periodicidade: acesso.periodicidade,

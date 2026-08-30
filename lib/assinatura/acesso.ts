@@ -10,6 +10,23 @@
 export const DIAS_AVISO = 3     // avisa 3 dias antes de vencer
 export const DIAS_CARENCIA = 3  // depois de vencer, ainda entra por 3 dias
 
+/**
+ * TIPOS REGIDOS POR VALIDADE.
+ *
+ * A conferência era `tipo_acesso !== 'mensal'` → vitalício. Com a chegada do
+ * acesso anual isso viraria um buraco silencioso: `anual` não é 'mensal',
+ * então cairia no ramo do vitalício e NUNCA bloquearia — o cliente teria
+ * acesso para sempre por R$ 97.
+ *
+ * A lista é explícita pra que adicionar um tipo novo obrigue a decidir de que
+ * lado ele fica, em vez de herdar o lado errado por omissão.
+ *
+ * Quem NÃO está aqui é liberado sem checagem — inclusive `null` e valores
+ * desconhecidos. Isso é deliberado: diante de um dado que não entendemos, o
+ * erro barato é deixar o cliente trabalhar.
+ */
+export const TIPOS_COM_VALIDADE: ReadonlySet<string> = new Set(['mensal', 'anual'])
+
 export type EstadoAcesso =
   | 'vitalicio'   // permanente — nada a checar
   | 'ok'          // assinatura em dia
@@ -27,6 +44,8 @@ export interface ContaAcesso {
 export interface Avaliacao {
   liberado: boolean
   estado: EstadoAcesso
+  /** Tipo lido da conta — a tela de bloqueio usa pra escolher o texto e o CTA. */
+  tipo: 'vitalicio' | 'mensal' | 'anual'
   /** Dias até vencer (negativo = já venceu). null quando não se aplica. */
   diasParaVencer: number | null
   /** Dias que ainda restam de carência depois de vencido. */
@@ -49,12 +68,14 @@ function diasEntre(de: Date, ate: Date): number {
 
 export function avaliarAcesso(conta: ContaAcesso, agora: Date = new Date()): Avaliacao {
   // ── VITALÍCIO SAI AQUI. Não olha status, não olha data. ──────────────────
-  if (conta.tipo_acesso !== 'mensal') {
+  if (!TIPOS_COM_VALIDADE.has(conta.tipo_acesso ?? '')) {
     return {
-      liberado: true, estado: 'vitalicio', diasParaVencer: null,
+      liberado: true, estado: 'vitalicio', tipo: 'vitalicio', diasParaVencer: null,
       diasDeCarencia: null, validoAte: null, cancelada: false, atrasada: false,
     }
   }
+
+  const tipo = conta.tipo_acesso === 'anual' ? 'anual' as const : 'mensal' as const
 
   const cancelada = conta.status_assinatura === 'cancelada'
   const atrasada  = conta.status_assinatura === 'atrasada'
@@ -68,7 +89,7 @@ export function avaliarAcesso(conta: ContaAcesso, agora: Date = new Date()): Ava
   // erros possíveis aqui — libera e marca pra revisão no painel.
   if (!validoAte || isNaN(validoAte.getTime())) {
     return {
-      liberado: true, estado: 'revisar', diasParaVencer: null,
+      liberado: true, estado: 'revisar', tipo, diasParaVencer: null,
       diasDeCarencia: null, validoAte: null, cancelada, atrasada,
     }
   }
@@ -80,14 +101,14 @@ export function avaliarAcesso(conta: ContaAcesso, agora: Date = new Date()): Ava
   // sem entregar. O que o cancelamento faz é não renovar depois.
   if (dias > DIAS_AVISO) {
     return {
-      liberado: true, estado: 'ok', diasParaVencer: dias,
+      liberado: true, estado: 'ok', tipo, diasParaVencer: dias,
       diasDeCarencia: null, validoAte, cancelada, atrasada,
     }
   }
 
   if (dias >= 0) {
     return {
-      liberado: true, estado: 'avisar', diasParaVencer: dias,
+      liberado: true, estado: 'avisar', tipo, diasParaVencer: dias,
       diasDeCarencia: null, validoAte, cancelada, atrasada,
     }
   }
@@ -95,30 +116,41 @@ export function avaliarAcesso(conta: ContaAcesso, agora: Date = new Date()): Ava
   const diasVencidos = -dias
   if (diasVencidos <= DIAS_CARENCIA) {
     return {
-      liberado: true, estado: 'carencia', diasParaVencer: dias,
+      liberado: true, estado: 'carencia', tipo, diasParaVencer: dias,
       diasDeCarencia: DIAS_CARENCIA - diasVencidos, validoAte, cancelada, atrasada,
     }
   }
 
   return {
-    liberado: false, estado: 'bloqueado', diasParaVencer: dias,
+    liberado: false, estado: 'bloqueado', tipo, diasParaVencer: dias,
     diasDeCarencia: 0, validoAte, cancelada, atrasada,
   }
 }
 
-/** Frase curta pro banner, escolhida pelo estado. */
+/**
+ * Frase curta pro banner, escolhida pelo estado.
+ *
+ * O sujeito muda com o tipo: quem comprou 1 ano não tem "assinatura" e não vai
+ * entender um aviso pedindo pra regularizar pagamento — o que ele precisa
+ * fazer é comprar de novo.
+ */
 export function mensagemAcesso(a: Avaliacao): string | null {
+  const sujeito = a.tipo === 'anual' ? 'Seu acesso anual' : 'Sua assinatura'
+  const dias = (n: number) => `${n} ${n === 1 ? 'dia' : 'dias'}`
+
   switch (a.estado) {
     case 'avisar':
       return a.diasParaVencer === 0
-        ? 'Sua assinatura vence hoje.'
-        : `Sua assinatura vence em ${a.diasParaVencer} ${a.diasParaVencer === 1 ? 'dia' : 'dias'}.`
+        ? `${sujeito} vence hoje.`
+        : `${sujeito} vence em ${dias(a.diasParaVencer!)}.`
     case 'carencia':
       return a.diasDeCarencia === 0
-        ? 'Sua assinatura venceu. Hoje é o último dia de acesso.'
-        : `Sua assinatura venceu. Você ainda tem ${a.diasDeCarencia} ${a.diasDeCarencia === 1 ? 'dia' : 'dias'} de acesso.`
+        ? `${sujeito} venceu. Hoje é o último dia de acesso.`
+        : `${sujeito} venceu. Você ainda tem ${dias(a.diasDeCarencia!)} de acesso.`
     case 'revisar':
-      return 'Estamos confirmando os dados da sua assinatura. O acesso segue liberado.'
+      return a.tipo === 'anual'
+        ? 'Estamos confirmando os dados da sua compra. O acesso segue liberado.'
+        : 'Estamos confirmando os dados da sua assinatura. O acesso segue liberado.'
     default:
       return null
   }
