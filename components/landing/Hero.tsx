@@ -1,30 +1,30 @@
 import CTAButton from './CTAButton'
 
 /**
- * HERO — o reposicionamento mora aqui.
+ * HERO.
  *
- * "Sistema" é uma palavra cara: quem ouve pensa em implantação, treinamento,
- * migrar dados, trocar a agenda que já usa. Metade dos donos desiste na
- * palavra, antes de saber o que a ferramenta faz.
+ * A headline é a promessa que o dono já entende sem explicação: barbeiro que
+ * sabe onde está fica motivado o mês inteiro. Não é uma frase sobre software,
+ * é sobre a pessoa que trabalha na cadeira — e é por isso que ela funciona.
  *
- * MiniApp de performance diz outra coisa: é leve, abre no celular, entra por
- * cima do que já existe e começa a funcionar hoje. Mesma ferramenta, medo
- * removido — e o medo é o que estava travando a compra.
+ * O parágrafo abaixo entrega a resposta pra "e eu vou saber montar isso?"
+ * ANTES de qualquer funcionalidade. As aulas dentro do app são o que separa a
+ * ferramenta de uma planilha bonita: ninguém trava por não ter onde digitar a
+ * meta, trava por não saber que meta colocar.
  *
- * As três provas embaixo do CTA são as três respostas que a pessoa dá pra si
- * mesma antes de clicar: "é grande o suficiente?", "vou ficar sozinho?",
- * "e se não der certo?".
+ * "MiniApp" continua no badge de propósito: é o que tira o peso de "mais um
+ * sistema pra implantar", que é a objeção que faz o dono fechar a página.
  */
 
 const PROVAS = [
   { icone: '🏆', texto: '+600 barbearias' },
-  { icone: '💬', texto: 'Comunidade ativa no WhatsApp' },
+  { icone: '💬', texto: 'Comunidade no WhatsApp' },
   { icone: '🛡️', texto: '30 dias de garantia' },
 ]
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden bg-carvao px-4 pb-14 pt-24 sm:px-6 sm:pb-20 sm:pt-28 lg:pb-24 lg:pt-32">
+    <section className="relative overflow-hidden bg-carvao px-4 pb-14 pt-24 sm:px-6 sm:pb-18 sm:pt-28 lg:pb-20 lg:pt-32">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-[0.035]"
@@ -43,14 +43,16 @@ export default function Hero() {
           MiniApp de performance para barbearias
         </span>
 
-        <h1 className="text-balance text-[2.35rem] font-bold leading-[1.04] tracking-[-0.035em] text-white sm:text-5xl lg:text-[3.65rem]">
-          Não é mais um sistema pra você aprender.{' '}
-          <span className="text-latao">É um MiniApp que faz sua equipe vender hoje.</span>
+        <h1 className="text-balance text-[2.35rem] font-bold leading-[1.05] tracking-[-0.035em] text-white sm:text-5xl lg:text-[3.5rem]">
+          Barbeiro que sabe onde está fica{' '}
+          <span className="text-latao">motivado o mês inteiro.</span>
         </h1>
 
         <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-[#C6D0DD] sm:mt-6 sm:text-lg">
-          Abre no celular, entra por cima da agenda que você já usa e transforma meta em
-          ação todo dia. Sem instalar nada, sem migrar nada, sem treinamento.
+          <span className="font-semibold text-white">Dentro do app, eu te ensino em aulas curtas</span>{' '}
+          a montar a meta coletiva e a de cada barbeiro, a meta de venda de produtos,
+          de serviços extras e de assinaturas — e a acompanhar tudo isso com
+          organização, sem planilha e sem complicação.
         </p>
 
         <div className="mx-auto mt-7 flex max-w-xl flex-col items-center gap-3">
@@ -60,7 +62,7 @@ export default function Hero() {
           </p>
         </div>
 
-        <ul className="mx-auto mt-8 flex max-w-xl flex-wrap items-center justify-center gap-x-5 gap-y-2">
+        <ul className="mx-auto mt-7 flex max-w-xl flex-wrap items-center justify-center gap-x-5 gap-y-2">
           {PROVAS.map((p) => (
             <li key={p.texto} className="flex items-center gap-1.5 text-xs font-semibold text-white/55 sm:text-sm">
               <span aria-hidden="true">{p.icone}</span>

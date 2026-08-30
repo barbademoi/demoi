@@ -28,15 +28,15 @@ export default function BrindoletaSpotlight() {
       <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[.92fr_1.08fr] lg:gap-14">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-[#D8FF00]/30 bg-[#D8FF00]/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-[#D8FF00]">
-            🎁 A roleta de vendas — inclusa
+            🎁 Inclusa no MiniApp
           </span>
           <h2 className="mt-5 text-balance text-3xl font-bold leading-tight tracking-[-0.03em] text-white sm:text-4xl lg:text-5xl">
-            Seu barbeiro tem vergonha de oferecer produto. A Brindoleta oferece por ele.
+            E ainda tem a Brindoleta, pra vender mais no fim do atendimento.
           </h2>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-white/65 sm:text-lg">
-            Terminou o corte, o cliente lê o QR Code, gira a roleta e ganha um brinde ou uma
-            oferta. Virou brincadeira — e brincadeira ninguém recusa. Se ele aceitar, a venda
-            entra no nome do barbeiro que atendeu e sobe no ranking dele na hora.
+            Terminou o corte, o cliente lê o QR Code do barbeiro, gira a roleta e ganha um brinde
+            ou uma oferta que você escolheu. Vira brincadeira em vez de venda empurrada — e se ele
+            aceitar, a venda entra no nome de quem atendeu.
           </p>
 
           <ul className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -51,7 +51,7 @@ export default function BrindoletaSpotlight() {
           </ul>
 
           <div className="mt-7 flex flex-col items-start gap-2">
-            <CTAButton label="Quero a Brindoleta girando na minha barbearia" id="cta-brindoleta-planos" gtmClass="gtm-cta-brindoleta" />
+            <CTAButton label="Quero 1 ano por R$ 97" id="cta-brindoleta-planos" gtmClass="gtm-cta-brindoleta" />
             <p className="text-xs text-white/45">Já vem inclusa no MiniApp — sem custo extra, sem módulo à parte.</p>
           </div>
         </div>

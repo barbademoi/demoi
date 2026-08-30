@@ -2,7 +2,6 @@ import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
 import Depoimentos from '@/components/landing/Depoimentos'
 import BrindoletaSpotlight from '@/components/landing/BrindoletaSpotlight'
-import TudoIncluso from '@/components/landing/TudoIncluso'
 import Preco from '@/components/landing/Preco'
 import FAQ from '@/components/landing/FAQ'
 import Footer from '@/components/landing/Footer'
@@ -10,10 +9,8 @@ import MobileStickyCTA from '@/components/landing/MobileStickyCTA'
 import CrescimentoReal from '@/components/landing/CrescimentoReal'
 import SistemaEmAcao from '@/components/landing/SistemaEmAcao'
 import DivisorBarbearia from '@/components/landing/DivisorBarbearia'
-import PorQueMiniApp from '@/components/landing/PorQueMiniApp'
-import StackValor from '@/components/landing/StackValor'
-import SuporteHumano from '@/components/landing/SuporteHumano'
-import Comunidade from '@/components/landing/Comunidade'
+import OQueTem from '@/components/landing/OQueTem'
+import ApoioProximo from '@/components/landing/ApoioProximo'
 import Garantia from '@/components/landing/Garantia'
 import CTAFinal from '@/components/landing/CTAFinal'
 import type { Metadata } from 'next'
@@ -21,13 +18,13 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'BarberMeta — o MiniApp de performance da sua barbearia',
   description:
-    'MiniApp de performance para barbearias: metas, ranking e a Brindoleta, a roleta de vendas no QR Code. Comunidade ativa no WhatsApp e suporte humanizado. 1 ano por R$ 97, pagamento único.',
+    'MiniApp de performance para barbearias. Aulas dentro do app ensinando a montar meta coletiva, individual, de produtos, de serviços extras e de assinaturas — e a acompanhar tudo com organização. 1 ano por R$ 97, pagamento único.',
   alternates: {
     canonical: 'https://www.barbermeta.com.br',
   },
   openGraph: {
     title: 'BarberMeta — o MiniApp de performance da sua barbearia',
-    description: 'Acesso completo por 1 ano por R$ 97, pagamento único: metas, ranking, Brindoleta, Financeiro e Feedback Premiado, com aulas, suporte e garantia de 30 dias.',
+    description: 'Barbeiro que sabe onde está fica motivado o mês inteiro. Metas, ranking, financeiro e mais, com aulas dentro do app, comunidade no WhatsApp e suporte humanizado. 1 ano por R$ 97.',
     url: 'https://www.barbermeta.com.br',
     siteName: 'BarberMeta',
     locale: 'pt_BR',
@@ -72,39 +69,32 @@ export default function LandingPage() {
       />
       <Navbar />
       <main>
-        {/* A ORDEM É UM FUNIL, e cada seção responde a UMA pergunta que a
-            pessoa faz nessa sequência:
+        {/* A ORDEM RESPONDE, NESTA SEQUÊNCIA, ÀS PERGUNTAS QUE O DONO FAZ:
+            o que é isso e eu vou saber usar → Hero (as aulas respondem cedo)
+            funciona pra gente como eu?      → Depoimentos, logo no começo
+            como funciona no dia a dia?      → carrossel do MiniApp rodando
+            o que exatamente eu levo?        → a lista completa, item por item
+            tem prova de resultado?          → o caso real, com números
+            tem algo que eu não tenha visto? → Brindoleta
+            quanto custa e qual o risco?     → preço + garantia
+            e se eu travar?                  → aulas, comunidade e suporte
+            ainda tenho dúvida               → FAQ
+            decide                           → CTA final
 
-            1. o que é isso?            → Hero
-            2. vou dar conta?           → PorQueMiniApp  (a objeção nº 1)
-            3. o que tem de diferente?  → Brindoleta     (o que ela não viu em outro lugar)
-            4. funciona mesmo?          → SistemaEmAcao + CrescimentoReal + Depoimentos
-            5. o que eu levo?           → StackValor     (ancoragem)
-            6. quanto custa?            → Preço
-            7. e se não der certo?      → Garantia
-            8. vou ficar sozinho?       → Comunidade + Suporte
-            9. ainda tenho dúvida       → FAQ
-           10. decide                   → CTA final
-
-            A Brindoleta subiu pra terceira posição de propósito: é o único
-            item da página que o dono não encontra em concorrente nenhum, e é o
-            que ele consegue imaginar acontecendo na cadeira hoje à tarde. */}
+            A página encolheu de 18 blocos pra 11: seções que repetiam o mesmo
+            argumento foram fundidas, e argumento repetido não convence duas
+            vezes — cansa, e o dono passa rolando pelas duas. */}
         <Hero />
-        <PorQueMiniApp />
+        <Depoimentos />
+        <SistemaEmAcao />
+        <OQueTem />
+        <CrescimentoReal />
         <DivisorBarbearia simbolo="poste" />
         <BrindoletaSpotlight />
-        <DivisorBarbearia simbolo="tesoura" />
-        <SistemaEmAcao />
-        <CrescimentoReal />
-        <Depoimentos />
-        <DivisorBarbearia simbolo="navalha" />
-        <StackValor />
         <Preco />
         <Garantia />
-        <DivisorBarbearia simbolo="pente" />
-        <Comunidade />
-        <SuporteHumano />
-        <TudoIncluso />
+        <DivisorBarbearia simbolo="tesoura" />
+        <ApoioProximo />
         <FAQ />
         <CTAFinal />
       </main>
