@@ -115,7 +115,7 @@ export default function VideoAulas() {
 
         {/* nota */}
         <motion.p {...fadeIn(0.5)} className="mt-6 text-center text-sm text-[#A0AEC0]">
-          Acesso às aulas liberado junto com o sistema, na mesma compra.
+          Acesso às aulas liberado junto com o MiniApp, na mesma compra.
         </motion.p>
 
       </div>

@@ -1,5 +1,4 @@
 import Navbar from '@/components/landing/Navbar'
-import VideoTopo from '@/components/landing/VideoTopo'
 import Hero from '@/components/landing/Hero'
 import Depoimentos from '@/components/landing/Depoimentos'
 import BrindoletaSpotlight from '@/components/landing/BrindoletaSpotlight'
@@ -11,17 +10,23 @@ import MobileStickyCTA from '@/components/landing/MobileStickyCTA'
 import CrescimentoReal from '@/components/landing/CrescimentoReal'
 import SistemaEmAcao from '@/components/landing/SistemaEmAcao'
 import DivisorBarbearia from '@/components/landing/DivisorBarbearia'
+import PorQueMiniApp from '@/components/landing/PorQueMiniApp'
+import StackValor from '@/components/landing/StackValor'
+import SuporteHumano from '@/components/landing/SuporteHumano'
+import Comunidade from '@/components/landing/Comunidade'
+import Garantia from '@/components/landing/Garantia'
+import CTAFinal from '@/components/landing/CTAFinal'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'BarberMeta — Engaje sua equipe e venda mais',
+  title: 'BarberMeta — o MiniApp de performance da sua barbearia',
   description:
-    'Engaje a equipe, acompanhe metas e crie mais oportunidades de venda com sistema completo, aulas, comunidade, suporte e garantia de 30 dias.',
+    'MiniApp de performance para barbearias: metas, ranking e a Brindoleta, a roleta de vendas no QR Code. Comunidade ativa no WhatsApp e suporte humanizado. 1 ano por R$ 97, pagamento único.',
   alternates: {
     canonical: 'https://www.barbermeta.com.br',
   },
   openGraph: {
-    title: 'BarberMeta — sua equipe mais engajada e vendendo mais',
+    title: 'BarberMeta — o MiniApp de performance da sua barbearia',
     description: 'Acesso completo por 1 ano por R$ 97, pagamento único: metas, ranking, Brindoleta, Financeiro e Feedback Premiado, com aulas, suporte e garantia de 30 dias.',
     url: 'https://www.barbermeta.com.br',
     siteName: 'BarberMeta',
@@ -67,26 +72,41 @@ export default function LandingPage() {
       />
       <Navbar />
       <main>
-        {/* VÍDEO ANTES DO HERO: mostrar o sistema rodando convence mais rápido
-            do que qualquer headline. Fica embutido e sempre visível — nunca em
-            modal — e o hero continua logo abaixo, sem rolagem longa. */}
-        <VideoTopo />
+        {/* A ORDEM É UM FUNIL, e cada seção responde a UMA pergunta que a
+            pessoa faz nessa sequência:
+
+            1. o que é isso?            → Hero
+            2. vou dar conta?           → PorQueMiniApp  (a objeção nº 1)
+            3. o que tem de diferente?  → Brindoleta     (o que ela não viu em outro lugar)
+            4. funciona mesmo?          → SistemaEmAcao + CrescimentoReal + Depoimentos
+            5. o que eu levo?           → StackValor     (ancoragem)
+            6. quanto custa?            → Preço
+            7. e se não der certo?      → Garantia
+            8. vou ficar sozinho?       → Comunidade + Suporte
+            9. ainda tenho dúvida       → FAQ
+           10. decide                   → CTA final
+
+            A Brindoleta subiu pra terceira posição de propósito: é o único
+            item da página que o dono não encontra em concorrente nenhum, e é o
+            que ele consegue imaginar acontecendo na cadeira hoje à tarde. */}
         <Hero />
-        <SistemaEmAcao />
-        {/* PREÇO logo depois do carrossel: quem se convenceu vendo o sistema
-            não deveria ter que atravessar quatro seções pra achar o valor. O
-            que vem abaixo continua existindo como reforço pra quem ainda está
-            em dúvida. */}
-        <Preco />
-        <DivisorBarbearia simbolo="tesoura" />
-        <Depoimentos />
-        <CrescimentoReal />
+        <PorQueMiniApp />
         <DivisorBarbearia simbolo="poste" />
         <BrindoletaSpotlight />
+        <DivisorBarbearia simbolo="tesoura" />
+        <SistemaEmAcao />
+        <CrescimentoReal />
+        <Depoimentos />
         <DivisorBarbearia simbolo="navalha" />
-        <TudoIncluso />
+        <StackValor />
+        <Preco />
+        <Garantia />
         <DivisorBarbearia simbolo="pente" />
+        <Comunidade />
+        <SuporteHumano />
+        <TudoIncluso />
         <FAQ />
+        <CTAFinal />
       </main>
       <Footer />
       <MobileStickyCTA />

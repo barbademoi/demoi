@@ -32,7 +32,7 @@ export default function QuemSomos() {
             compartilhar com outros donos.
           </p>
           <p className="text-[#A0AEC0] text-base leading-relaxed">
-            Você não tá pagando pra ver vídeo. Tá pagando por um sistema que roda,
+            Você não tá pagando pra ver vídeo. Tá pagando por um MiniApp que roda,
             funciona, e foi testado em barbearia de verdade antes de chegar até você.
           </p>
           <div className="pt-2 flex items-center gap-3">

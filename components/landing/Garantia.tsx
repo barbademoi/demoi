@@ -4,7 +4,7 @@ const pilares = [
   {
     destaque: '30 dias',
     titulo: 'Garantia sem enrolação',
-    texto: 'Você assina hoje e usa o BarberMeta na rotina. Se não gostar, peça o cancelamento dentro do prazo e receba 100% do valor pago.',
+    texto: 'Você compra hoje e usa o BarberMeta na rotina. Se não gostar, peça o reembolso dentro do prazo e receba 100% do valor pago.',
   },
   {
     destaque: '8 aulas',
@@ -27,7 +27,7 @@ export default function Garantia() {
             <span aria-hidden="true">✓</span> Garantia de reembolso por 30 dias
           </span>
           <h2 className="mt-5 text-balance text-3xl font-bold tracking-[-0.03em] text-white sm:text-5xl">
-            Assine hoje e use por 30 dias. Se não gostar, devolvemos{' '}
+            Compre hoje e use por 30 dias. Se não gostar, devolvemos{' '}
             <span className="text-[#F4B942]">100% do investimento.</span>
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-[#B8C3D1] sm:text-lg">

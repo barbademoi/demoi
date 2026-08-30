@@ -2,11 +2,24 @@ import BrindoletaDemo from '@/components/brindoleta/BrindoletaDemo'
 import CTAButton from './CTAButton'
 import LandingIcon, { type LandingIconName } from './LandingIcon'
 
+/**
+ * A BRINDOLETA É A ARMA DE VENDAS DA PÁGINA.
+ *
+ * Metas e ranking todo concorrente promete. A roleta de brindes no QR Code é a
+ * única coisa aqui que o dono não viu em outro lugar — e é a única que ele
+ * consegue imaginar acontecendo na cadeira, hoje à tarde. Por isso ela vem
+ * cedo, com o nome do que ela faz: roleta DE VENDAS, não "de brindes".
+ *
+ * O ângulo é vender sem parecer vendedor. A objeção real do dono não é o preço
+ * do brinde, é o barbeiro que tem vergonha de oferecer produto. A roleta tira
+ * essa conversa das costas dele: quem oferece é o QR Code, e o cliente decide
+ * girando — vira brincadeira, e brincadeira não soa como empurrar venda.
+ */
 const beneficios = [
-  { texto: 'Um QR Code para cada profissional', icon: 'qr' as LandingIconName, classe: 'bg-[#D8FF00] text-[#11110F]' },
-  { texto: 'Você escolhe as ofertas, produtos e brindes', icon: 'gift' as LandingIconName, classe: 'bg-[#FF4FA3] text-white' },
-  { texto: 'O dono confirma as vendas que realmente aconteceram', icon: 'check' as LandingIconName, classe: 'bg-[#36BFFA] text-[#061723]' },
-  { texto: 'O cliente participa pelo próprio celular', icon: 'phone' as LandingIconName, classe: 'bg-[#9B6CFF] text-white' },
+  { texto: 'Um QR Code exclusivo para cada barbeiro', icon: 'qr' as LandingIconName, classe: 'bg-[#D8FF00] text-[#11110F]' },
+  { texto: 'Você escolhe os brindes, ofertas e produtos que giram', icon: 'gift' as LandingIconName, classe: 'bg-[#FF4FA3] text-white' },
+  { texto: 'Cada venda fica no nome de quem atendeu — e no ranking dele', icon: 'check' as LandingIconName, classe: 'bg-[#36BFFA] text-[#061723]' },
+  { texto: 'O cliente gira no próprio celular, sem instalar nada', icon: 'phone' as LandingIconName, classe: 'bg-[#9B6CFF] text-white' },
 ]
 
 export default function BrindoletaSpotlight() {
@@ -15,13 +28,15 @@ export default function BrindoletaSpotlight() {
       <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[.92fr_1.08fr] lg:gap-14">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-[#D8FF00]/30 bg-[#D8FF00]/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-[#D8FF00]">
-            Incluída para assinantes
+            🎁 A roleta de vendas — inclusa
           </span>
           <h2 className="mt-5 text-balance text-3xl font-bold leading-tight tracking-[-0.03em] text-white sm:text-4xl lg:text-5xl">
-            A Brindoleta ajuda sua equipe a oferecer mais sem forçar a venda.
+            Seu barbeiro tem vergonha de oferecer produto. A Brindoleta oferece por ele.
           </h2>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-white/65 sm:text-lg">
-            O cliente lê o QR Code do profissional, gira a roleta e descobre uma oferta. Se aceitar, a venda aparece para o dono conferir e fica ligada a quem fez o atendimento.
+            Terminou o corte, o cliente lê o QR Code, gira a roleta e ganha um brinde ou uma
+            oferta. Virou brincadeira — e brincadeira ninguém recusa. Se ele aceitar, a venda
+            entra no nome do barbeiro que atendeu e sobe no ranking dele na hora.
           </p>
 
           <ul className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -36,8 +51,8 @@ export default function BrindoletaSpotlight() {
           </ul>
 
           <div className="mt-7 flex flex-col items-start gap-2">
-            <CTAButton label="Quero isso na minha equipe" id="cta-brindoleta-planos" gtmClass="gtm-cta-brindoleta" />
-            <p className="text-xs text-white/45">A Brindoleta já está incluída para novos assinantes.</p>
+            <CTAButton label="Quero a Brindoleta girando na minha barbearia" id="cta-brindoleta-planos" gtmClass="gtm-cta-brindoleta" />
+            <p className="text-xs text-white/45">Já vem inclusa no MiniApp — sem custo extra, sem módulo à parte.</p>
           </div>
         </div>
 

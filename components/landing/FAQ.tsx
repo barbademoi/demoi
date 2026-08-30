@@ -1,7 +1,11 @@
 const perguntas = [
   {
     q: 'O que está incluído nos R$ 97?',
-    a: 'Tudo que aparece nesta página. Metas, ranking, campanhas, Brindoleta, financeiro, Feedback Premiado, cards, 8 aulas, comunidade e suporte.',
+    a: 'Tudo que aparece nesta página, sem módulo à parte: Brindoleta, metas, ranking, campanhas, financeiro, Feedback Premiado, cards, link individual de cada barbeiro, 8 aulas, comunidade no WhatsApp e suporte humanizado.',
+  },
+  {
+    q: 'A Brindoleta funciona mesmo, ou é só enfeite?',
+    a: 'É a parte que mais vende. O cliente lê o QR Code do barbeiro no fim do atendimento, gira e ganha um brinde ou uma oferta que você escolheu. Vira brincadeira em vez de venda empurrada — e o barbeiro deixa de ter vergonha de oferecer, porque quem oferece é a roleta.',
   },
   {
     q: 'Como funciona a garantia de 30 dias?',
@@ -21,15 +25,15 @@ const perguntas = [
   },
   {
     q: 'Preciso trocar meu sistema de agendamento?',
-    a: 'Não. O BarberMeta trabalha junto com a agenda que você já usa.',
+    a: 'Não. O BarberMeta é um MiniApp: ele roda por cima da agenda que você já usa, sem substituir nada e sem migrar dado nenhum.',
   },
   {
     q: 'Como cada profissional acessa?',
-    a: 'Por um link próprio, sem conta e sem senha. Na Brindoleta, cada um ganha o seu QR Code.',
+    a: 'Por um link próprio, sem conta e sem senha, direto no celular. Na Brindoleta, cada um ganha o seu QR Code — e toda venda girada nele entra no nome dele.',
   },
   {
     q: 'E se eu não souber configurar?',
-    a: 'São 8 aulas práticas, comunidade no WhatsApp e suporte direto. A configuração é simples.',
+    a: 'Você não fica sozinho. São 8 aulas práticas, uma comunidade ativa no WhatsApp com mais de 600 donos e suporte humanizado: você fala com gente, no mesmo dia, e a ajuda inclui pensar junto qual meta colocar e o que pôr na roleta.',
   },
 ]
 
