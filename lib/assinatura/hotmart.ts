@@ -10,7 +10,19 @@
 
 // ── Identificadores da Hotmart ─────────────────────────────────────────────
 export const PRODUTO_ASSINATURA = '8272423'
-export const PRODUTO_VITALICIO  = '7737399'
+/**
+ * PRODUTO DE ACESSO ANUAL — compra ÚNICA, 1 ano.
+ *
+ * Este é o MESMO produto que até então concedia acesso VITALÍCIO por R$ 47.
+ * O dono trocou o preço na Hotmart pra R$ 97 e o que ele vende passou a ser
+ * 1 ano, no mesmo link de checkout. A partir daqui, compra nova deste produto
+ * vira `anual`.
+ *
+ * Quem comprou ANTES e está gravado como `vitalicio` NÃO é afetado: a regra
+ * "nunca rebaixa vitalício" no webhook é anterior a qualquer classificação, e
+ * nada aqui reprocessa compra antiga.
+ */
+export const PRODUTO_ANUAL = '7737399'
 
 /**
  * Ofertas do produto de assinatura. É a FONTE PRIMÁRIA da periodicidade:
@@ -30,7 +42,11 @@ export const PRECOS: Record<Periodicidade, number> = {
 }
 
 export type Periodicidade = 'mensal' | 'anual'
-export type TipoAcesso = 'vitalicio' | 'mensal'
+/**
+ * `mensal` = assinatura RECORRENTE (a periodicidade diz se cobra por mês ou
+ * por ano). `anual` = compra ÚNICA de 1 ano, que não renova sozinha.
+ */
+export type TipoAcesso = 'vitalicio' | 'mensal' | 'anual'
 export type StatusAssinatura = 'ativa' | 'atrasada' | 'cancelada' | 'revisar'
 
 // ── Eventos ────────────────────────────────────────────────────────────────
@@ -132,8 +148,11 @@ export interface Classificacao {
 export function classificar(d: DadosHotmart): Classificacao {
   const avisos: string[] = []
 
-  if (d.productId === PRODUTO_VITALICIO) {
-    return { tipo: 'vitalicio', periodicidade: null, desconhecido: false, avisos }
+  // Produto de acesso anual: compra única, 1 ano. Já foi o produto do
+  // vitalício — a mudança vale só daqui pra frente, e quem já é vitalício
+  // não é rebaixado por isto (a decisão fica no webhook, antes desta função).
+  if (d.productId === PRODUTO_ANUAL) {
+    return { tipo: 'anual', periodicidade: 'anual', desconhecido: false, avisos }
   }
 
   const ofertaConhecida = d.offerCode ? OFERTAS[d.offerCode] : undefined
@@ -142,7 +161,7 @@ export function classificar(d: DadosHotmart): Classificacao {
   if (!ehAssinatura) {
     avisos.push(
       `Produto não reconhecido (product_id=${d.productId ?? 'ausente'}, oferta=${d.offerCode ?? 'ausente'}). ` +
-      'Acesso NÃO concedido como vitalício; criado como assinatura pra revisão.',
+      'Acesso NÃO concedido como permanente; criado como assinatura pra revisão.',
     )
     return { tipo: 'mensal', periodicidade: null, desconhecido: true, avisos }
   }
@@ -214,6 +233,31 @@ export function calcularValidoAte(
 
   const d = new Date(base.getTime())
   d.setDate(d.getDate() + 7)
+  return d
+}
+
+/** Um ano de acesso, em dias corridos. */
+export const DIAS_ACESSO_ANUAL = 365
+
+/**
+ * Validade da COMPRA ÚNICA de 1 ano.
+ *
+ * Separada de `calcularValidoAte` de propósito, por duas diferenças que
+ * importam:
+ *
+ * 1. `proximaCobranca` NÃO entra. Aqui não existe próxima cobrança — se a
+ *    Hotmart mandar esse campo por algum motivo, usá-lo daria uma validade
+ *    inventada por uma recorrência que não existe.
+ * 2. São 365 DIAS CORRIDOS, não "12 meses". É o que foi vendido, e é o que o
+ *    cliente consegue conferir contando no calendário.
+ *
+ * Quem renova adiantado não perde o que pagou: se ainda está dentro da
+ * validade, o ano novo é somado a partir dela; se já venceu, conta de agora.
+ */
+export function calcularValidoAteAnual(agora: Date, validoAteAtual: Date | null): Date {
+  const base = validoAteAtual && validoAteAtual.getTime() > agora.getTime() ? validoAteAtual : agora
+  const d = new Date(base.getTime())
+  d.setDate(d.getDate() + DIAS_ACESSO_ANUAL)
   return d
 }
 

@@ -6,7 +6,7 @@ export default function CTAFinal() {
     <section className="overflow-hidden bg-[#07111F] px-4 py-16 sm:px-6 sm:py-20">
       <div className="mx-auto grid max-w-5xl items-center gap-9 lg:grid-cols-[1fr_260px] lg:gap-14">
         <div className="text-center lg:text-left">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#F4B942]">Sistema completo. Ajuda de verdade.</p>
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#F4B942]">MiniApp completo. Gente de verdade do outro lado.</p>
           <h2 className="text-balance text-3xl font-bold leading-tight tracking-[-0.025em] text-white sm:text-4xl lg:text-5xl">
             Dê o próximo passo com sua barbearia.
           </h2>
@@ -14,8 +14,8 @@ export default function CTAFinal() {
             Organize a gestão, movimente sua equipe e crie novas oportunidades de venda com todos os módulos do BarberMeta liberados para assinantes.
           </p>
           <div className="mt-7 flex flex-col items-center gap-3 lg:items-start">
-            <CTAButton label="Conhecer os planos de assinatura" id="cta-final-planos" gtmClass="gtm-cta-final" />
-            <p className="text-sm text-[#8FA0B3]">Mensal por R$ 34,90 ou anual por R$ 297 à vista</p>
+            <CTAButton label="Quero 1 ano por R$ 97" id="cta-final-planos" gtmClass="gtm-cta-final" />
+            <p className="text-sm text-[#8FA0B3]">Pagamento único · 1 ano de acesso completo · garantia de 30 dias</p>
           </div>
         </div>
 

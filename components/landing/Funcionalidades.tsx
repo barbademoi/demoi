@@ -39,9 +39,9 @@ export default function Funcionalidades() {
     <section id="funcionalidades" className="scroll-mt-20 bg-[#07111F] px-4 py-16 sm:px-6 sm:py-20">
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto mb-10 max-w-3xl text-center">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#F4B942]">Tudo dentro da assinatura</p>
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#F4B942]">Tudo dentro do acesso anual</p>
           <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] text-white sm:text-4xl">Um sistema completo para organizar, engajar e vender mais.</h2>
-          <p className="mt-4 text-base leading-relaxed text-[#B8C3D1] sm:text-lg">Novos assinantes recebem todos os módulos liberados. Você escolhe apenas se prefere pagar mensalmente ou anualmente.</p>
+          <p className="mt-4 text-base leading-relaxed text-[#B8C3D1] sm:text-lg">Todos os módulos entram juntos, sem plano pra escolher e sem cobrança extra por módulo.</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -64,8 +64,8 @@ export default function Funcionalidades() {
         </ul>
 
         <div className="mt-9 flex flex-col items-center gap-2">
-          <CTAButton label="Ver planos mensal e anual" id="cta-funcionalidades-planos" gtmClass="gtm-cta-funcionalidades" />
-          <p className="text-xs text-[#8FA0B3]">A partir de R$ 34,90/mês · todos os módulos para assinantes</p>
+          <CTAButton label="Quero 1 ano por R$ 97" id="cta-funcionalidades-planos" gtmClass="gtm-cta-funcionalidades" />
+          <p className="text-xs text-[#8FA0B3]">Pagamento único de R$ 97 · 1 ano com todos os módulos</p>
         </div>
       </div>
     </section>

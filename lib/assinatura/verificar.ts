@@ -10,8 +10,9 @@ import { avaliarAcesso, type Avaliacao } from './acesso'
  */
 export async function verificarAssinatura(): Promise<Avaliacao & { userId: string | null }> {
   const liberado = {
-    liberado: true as const, estado: 'vitalicio' as const, diasParaVencer: null,
-    diasDeCarencia: null, validoAte: null, cancelada: false, atrasada: false,
+    liberado: true as const, estado: 'vitalicio' as const, tipo: 'vitalicio' as const,
+    diasParaVencer: null, diasDeCarencia: null, validoAte: null,
+    cancelada: false, atrasada: false,
   }
   try {
     const supabase = createClient()

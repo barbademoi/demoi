@@ -1,31 +1,39 @@
 const perguntas = [
   {
-    q: 'O que está incluído na assinatura?',
-    a: 'Tudo que aparece nesta página. Metas, ranking, campanhas, Brindoleta, financeiro, Feedback Premiado, cards, 8 aulas, comunidade e suporte.',
+    q: 'O que está incluído nos R$ 97?',
+    a: 'Tudo que aparece nesta página, sem módulo à parte: Brindoleta, metas, ranking, campanhas, financeiro, Feedback Premiado, cards, link individual de cada barbeiro, 8 aulas, comunidade no WhatsApp e suporte humanizado.',
+  },
+  {
+    q: 'A Brindoleta funciona mesmo, ou é só enfeite?',
+    a: 'É a parte que mais vende. O cliente lê o QR Code do barbeiro no fim do atendimento, gira e ganha um brinde ou uma oferta que você escolheu. Vira brincadeira em vez de venda empurrada — e o barbeiro deixa de ter vergonha de oferecer, porque quem oferece é a roleta.',
   },
   {
     q: 'Como funciona a garantia de 30 dias?',
     a: 'Você tem 30 dias para usar com sua equipe. Se não gostar, cancela dentro do prazo e devolvemos 100%.',
   },
   {
-    q: 'Qual é a diferença entre o plano mensal e o anual?',
-    a: 'As ferramentas são as mesmas. O anual sai por R$ 24,75/mês e economiza R$ 121,80 no ano.',
+    q: 'É mensalidade? Vai cobrar de novo no meu cartão?',
+    a: 'Não. É pagamento único de R$ 97 e dá 1 ano de acesso completo. Não há renovação automática: quando o ano acabar, você decide se compra outro.',
   },
   {
     q: 'Já sou cliente vitalício. O que muda para mim?',
-    a: 'Nada muda: você continua com tudo o que já tem. Ferramenta extra fora do seu acesso segue disponível à parte.',
+    a: 'Nada muda: seu acesso é permanente e continua sendo. Esta oferta de 1 ano vale para quem está comprando agora e não altera nada do que você já tem.',
+  },
+  {
+    q: 'E quando o ano acabar?',
+    a: 'Você recebe um aviso 3 dias antes. Se não renovar, o acesso é bloqueado — mas nada é apagado: barbeiros, metas, lançamentos e histórico continuam no lugar, esperando você voltar.',
   },
   {
     q: 'Preciso trocar meu sistema de agendamento?',
-    a: 'Não. O BarberMeta trabalha junto com a agenda que você já usa.',
+    a: 'Não. O BarberMeta é um MiniApp: ele roda por cima da agenda que você já usa, sem substituir nada e sem migrar dado nenhum.',
   },
   {
     q: 'Como cada profissional acessa?',
-    a: 'Por um link próprio, sem conta e sem senha. Na Brindoleta, cada um ganha o seu QR Code.',
+    a: 'Por um link próprio, sem conta e sem senha, direto no celular. Na Brindoleta, cada um ganha o seu QR Code — e toda venda girada nele entra no nome dele.',
   },
   {
     q: 'E se eu não souber configurar?',
-    a: 'São 8 aulas práticas, comunidade no WhatsApp e suporte direto. A configuração é simples.',
+    a: 'Você não fica sozinho. São 8 aulas práticas, uma comunidade ativa no WhatsApp com mais de 600 donos e suporte humanizado: você fala com gente, no mesmo dia, e a ajuda inclui pensar junto qual meta colocar e o que pôr na roleta.',
   },
 ]
 

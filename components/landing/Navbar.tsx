@@ -35,7 +35,7 @@ export default function Navbar() {
             Já tenho acesso →
           </Link>
           <div className="hidden sm:block">
-            <CTAButton size="sm" label="Assinar agora →" id="cta-navbar-planos-desktop" gtmClass="gtm-cta-navbar" />
+            <CTAButton size="sm" label="Quero por R$ 97 →" id="cta-navbar-planos-desktop" gtmClass="gtm-cta-navbar" />
           </div>
 
           <div className="flex min-w-0 items-center gap-1.5 sm:hidden">
@@ -46,7 +46,7 @@ export default function Navbar() {
             >
               Entrar
             </Link>
-            <CTAButton size="sm" label="Assinar · R$ 34,90" id="cta-navbar-planos-mobile" gtmClass="gtm-cta-navbar" />
+            <CTAButton size="sm" label="1 ano · R$ 97" id="cta-navbar-planos-mobile" gtmClass="gtm-cta-navbar" />
           </div>
         </div>
       </div>
