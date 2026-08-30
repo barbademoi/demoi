@@ -31,7 +31,7 @@ export default function Garantia() {
             <span className="text-[#F4B942]">100% do investimento.</span>
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-[#B8C3D1] sm:text-lg">
-            O pagamento é feito no momento da assinatura. Depois, você configura, aplica com a equipe e tem 30 dias para decidir com tranquilidade.
+            O pagamento é feito uma vez só, na compra. Depois, você configura, aplica com a equipe e tem 30 dias para decidir com tranquilidade.
           </p>
         </div>
 
@@ -46,7 +46,7 @@ export default function Garantia() {
         </div>
 
         <div className="mt-9 flex flex-col items-center gap-3 text-center">
-          <CTAButton label="Assinar com garantia de 30 dias" id="cta-garantia-planos" gtmClass="gtm-cta-garantia" />
+          <CTAButton label="Comprar com garantia de 30 dias" id="cta-garantia-planos" gtmClass="gtm-cta-garantia" />
           <p className="text-xs font-semibold text-emerald-300">Compra segura pela Hotmart · garantia de 30 dias · reembolso de 100%</p>
         </div>
       </div>

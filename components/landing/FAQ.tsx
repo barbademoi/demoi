@@ -1,6 +1,6 @@
 const perguntas = [
   {
-    q: 'O que está incluído na assinatura?',
+    q: 'O que está incluído nos R$ 97?',
     a: 'Tudo que aparece nesta página. Metas, ranking, campanhas, Brindoleta, financeiro, Feedback Premiado, cards, 8 aulas, comunidade e suporte.',
   },
   {
@@ -8,12 +8,16 @@ const perguntas = [
     a: 'Você tem 30 dias para usar com sua equipe. Se não gostar, cancela dentro do prazo e devolvemos 100%.',
   },
   {
-    q: 'Qual é a diferença entre o plano mensal e o anual?',
-    a: 'As ferramentas são as mesmas. O anual sai por R$ 24,75/mês e economiza R$ 121,80 no ano.',
+    q: 'É mensalidade? Vai cobrar de novo no meu cartão?',
+    a: 'Não. É pagamento único de R$ 97 e dá 1 ano de acesso completo. Não há renovação automática: quando o ano acabar, você decide se compra outro.',
   },
   {
     q: 'Já sou cliente vitalício. O que muda para mim?',
-    a: 'Nada muda: você continua com tudo o que já tem. Ferramenta extra fora do seu acesso segue disponível à parte.',
+    a: 'Nada muda: seu acesso é permanente e continua sendo. Esta oferta de 1 ano vale para quem está comprando agora e não altera nada do que você já tem.',
+  },
+  {
+    q: 'E quando o ano acabar?',
+    a: 'Você recebe um aviso 3 dias antes. Se não renovar, o acesso é bloqueado — mas nada é apagado: barbeiros, metas, lançamentos e histórico continuam no lugar, esperando você voltar.',
   },
   {
     q: 'Preciso trocar meu sistema de agendamento?',

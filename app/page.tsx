@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'BarberMeta — sua equipe mais engajada e vendendo mais',
-    description: 'Metas, ranking, campanhas e Brindoleta para colocar a equipe em movimento, com aulas, suporte e garantia de 30 dias.',
+    description: 'Acesso completo por 1 ano por R$ 97, pagamento único: metas, ranking, Brindoleta, Financeiro e Feedback Premiado, com aulas, suporte e garantia de 30 dias.',
     url: 'https://www.barbermeta.com.br',
     siteName: 'BarberMeta',
     locale: 'pt_BR',
@@ -42,8 +42,8 @@ const faqSchema = {
     },
     {
       '@type': 'Question',
-      name: 'Quanto custa a assinatura do BarberMeta?',
-      acceptedAnswer: { '@type': 'Answer', text: 'O plano mensal custa R$ 34,90 por mês. O plano anual custa R$ 297 à vista e equivale a R$ 24,75 por mês.' },
+      name: 'Quanto custa o BarberMeta?',
+      acceptedAnswer: { '@type': 'Answer', text: 'R$ 97 em pagamento único, dando 1 ano de acesso completo a todos os módulos. Não é mensalidade e não há renovação automática.' },
     },
     {
       '@type': 'Question',
@@ -53,7 +53,7 @@ const faqSchema = {
     {
       '@type': 'Question',
       name: 'Como funciona a garantia do BarberMeta?',
-      acceptedAnswer: { '@type': 'Answer', text: 'O pagamento é feito no momento da assinatura. Você pode usar o BarberMeta por 30 dias e, se não gostar, solicitar o cancelamento dentro do prazo para receber 100% do valor pago.' },
+      acceptedAnswer: { '@type': 'Answer', text: 'O pagamento é feito uma vez só, na compra. Você pode usar o BarberMeta por 30 dias e, se não gostar, solicitar o reembolso dentro do prazo para receber 100% do valor pago.' },
     },
   ],
 }

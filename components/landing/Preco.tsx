@@ -1,88 +1,100 @@
 'use client'
 
-import {
-  CHECKOUT_ANUAL_URL,
-  CHECKOUT_MENSAL_URL,
-  PRECO_ANUAL,
-  PRECO_MENSAL,
-} from '@/lib/checkout'
+import { CHECKOUT_ANUAL_UNICO_URL, PRECO_ANUAL_UNICO } from '@/lib/checkout'
 import { trackAddToCart } from '@/lib/pixel'
 import { useTrackingHandlers } from '@/lib/utms'
+
+/**
+ * A OFERTA PÚBLICA: 1 ano de acesso completo por R$ 97, pagamento único.
+ *
+ * Saiu a grade de dois planos de assinatura. Não porque a assinatura tenha
+ * acabado — quem já assina continua sendo cobrado e atendido normalmente —
+ * mas porque a página vende UMA coisa agora, e escolher entre planos é um
+ * trabalho que a página passava pro visitante justamente no momento em que ele
+ * já tinha decidido comprar.
+ *
+ * "Pagamento único" aparece três vezes de propósito: no selo, no preço e
+ * embaixo do botão. É a informação que evita o medo de assinatura que não se
+ * consegue cancelar — e é ela que faz o R$ 97 parecer o que é.
+ */
+
+const INCLUSO = [
+  'Metas por barbeiro e meta coletiva',
+  'Ranking, campanhas e premiação',
+  'Brindoleta — a roleta de brindes no QR Code',
+  'Financeiro da barbearia',
+  'Feedback Premiado dos clientes',
+  'Link individual para cada barbeiro',
+  '8 aulas práticas e comunidade no WhatsApp',
+]
 
 export default function Preco() {
   const trackingHandlers = useTrackingHandlers()
 
   return (
     <section id="preco" className="scroll-mt-20 bg-[#F6F4EF] px-4 py-16 sm:px-6 sm:py-20">
-      <div className="mx-auto max-w-6xl">
-        <div className="mx-auto mb-9 max-w-3xl text-center">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#B77916]">Assine com garantia de 30 dias</p>
-          <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] text-[#101828] sm:text-4xl">Escolha seu plano e comece a aplicar com a equipe.</h2>
-          <p className="mt-4 text-base leading-relaxed text-[#59677A] sm:text-lg">Mensal e anual liberam o BarberMeta completo para novos assinantes, com 30 dias de garantia.</p>
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-8 text-center">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#B77916]">
+            Pagamento único · garantia de 30 dias
+          </p>
+          <h2 className="text-balance text-3xl font-bold tracking-[-0.025em] text-[#101828] sm:text-4xl">
+            Acesso completo por 1 ano.
+          </h2>
+          <p className="mt-4 text-base leading-relaxed text-[#59677A] sm:text-lg">
+            Você paga uma vez e usa o BarberMeta inteiro por 12 meses. Sem mensalidade,
+            sem cobrança automática, sem plano pra escolher.
+          </p>
         </div>
 
-        <div className="mx-auto grid max-w-4xl gap-5 lg:grid-cols-2">
-          <article className="flex flex-col overflow-hidden rounded-3xl border border-[#D6DAE0] bg-white shadow-xl shadow-[#101828]/10">
-            <div className="flex-1 p-7 sm:p-9">
-              <span className="inline-flex rounded-full bg-[#EEF2F6] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#344054]">Flexibilidade</span>
-              <h3 className="mt-5 text-2xl font-bold text-[#101828]">Plano mensal</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#667384]">Acesso completo com cobrança mensal.</p>
-              <div className="mt-7 flex items-end gap-2">
-                <p className="text-5xl font-bold leading-none text-[#101828]">R$ 34,90</p>
-                <p className="pb-1 text-sm font-semibold text-[#667384]">/mês</p>
-              </div>
-              <p className="mt-4 text-sm font-bold text-verde-acao">✓ Garantia de reembolso por 30 dias</p>
-            </div>
-            <div className="border-t border-[#E7EAEE] bg-[#F8F9FA] p-6 sm:px-9 sm:py-7">
-              <a
-                href={CHECKOUT_MENSAL_URL}
-                id="cta-preco-mensal"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackAddToCart('mensal', PRECO_MENSAL)}
-                {...trackingHandlers}
-                className="gtm-cta gtm-cta-preco flex min-h-14 w-full items-center justify-center rounded-xl bg-[#101828] px-5 py-4 text-center text-base font-bold text-white transition-colors hover:bg-[#243247] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#101828]"
-              >
-                Começar por R$ 34,90/mês
-              </a>
-              <p className="mt-3 text-center text-xs text-[#667384]">Cancele quando quiser · garantia de 30 dias</p>
-            </div>
-          </article>
+        <article className="overflow-hidden rounded-3xl border-2 border-[#D7A63E] bg-[#101828] text-white shadow-2xl shadow-[#101828]/20">
+          <div className="p-7 sm:p-9">
+            <span className="inline-flex rounded-full bg-verde-acao px-3 py-1 text-[10px] font-black uppercase tracking-wider text-carvao">
+              Tudo incluso
+            </span>
 
-          <article className="relative flex flex-col overflow-hidden rounded-3xl border-2 border-[#D7A63E] bg-[#101828] text-white shadow-2xl shadow-[#101828]/20">
-            <div className="absolute right-5 top-5 rounded-full bg-verde-acao px-3 py-1 text-[10px] font-black uppercase tracking-wider text-carvao">Melhor valor</div>
-            <div className="flex-1 p-7 sm:p-9">
-              <span className="inline-flex rounded-full border border-[#F4B942]/30 bg-[#F4B942]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#FFD16A]">Economize R$ 121,80</span>
-              <h3 className="mt-5 text-2xl font-bold">Plano anual</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#C6D0DD]">Para usar durante o ano pagando menos por mês.</p>
-              <div className="mt-7 flex items-end gap-2">
-                <p className="text-5xl font-bold leading-none">R$ 297</p>
-                <p className="pb-1 text-sm font-semibold text-[#9DACBD]">/ano à vista</p>
-              </div>
-              <p className="mt-3 inline-flex rounded-lg bg-verde-acao/12 px-3 py-2 text-sm font-bold text-verde-acao">Equivale a R$ 24,75 por mês</p>
-              <p className="mt-4 text-sm font-bold text-verde-acao">✓ Garantia de reembolso por 30 dias</p>
+            <div className="mt-6 flex flex-wrap items-end gap-x-3 gap-y-1">
+              <p className="text-6xl font-bold leading-none">R$ {PRECO_ANUAL_UNICO}</p>
+              <p className="pb-1.5 text-base font-semibold text-[#9DACBD]">à vista, por 1 ano</p>
             </div>
-            <div className="border-t border-white/10 bg-white/[0.035] p-6 sm:px-9 sm:py-7">
-              <a
-                href={CHECKOUT_ANUAL_URL}
-                id="cta-preco-anual"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackAddToCart('anual', PRECO_ANUAL)}
-                {...trackingHandlers}
-                className="gtm-cta gtm-cta-preco flex min-h-14 w-full items-center justify-center rounded-xl bg-[#F4B942] px-5 py-4 text-center text-base font-bold text-[#101828] transition-colors hover:bg-[#FFD16A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#F4B942]"
-              >
-                Economizar com o plano anual
-              </a>
-              <p className="mt-3 text-center text-xs text-[#9DACBD]">Garantia de 30 dias · parcelamento com acréscimo</p>
-            </div>
-          </article>
-        </div>
+            <p className="mt-3 inline-flex rounded-lg bg-verde-acao/12 px-3 py-2 text-sm font-bold text-verde-acao">
+              Menos de R$ 9 por mês — e não vira mensalidade
+            </p>
 
-        <p className="mt-6 text-center text-xs text-[#667384]">Pagamento e renovação processados com segurança pela Hotmart. Se não gostar dentro de 30 dias, você recebe 100% do investimento de volta.</p>
+            <ul className="mt-7 space-y-2.5">
+              {INCLUSO.map((item) => (
+                <li key={item} className="flex items-start gap-2.5 text-sm leading-relaxed text-[#E4EAF2]">
+                  <span aria-hidden="true" className="mt-0.5 shrink-0 font-bold text-verde-acao">✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
 
-        <aside className="mx-auto mt-7 max-w-4xl rounded-2xl border border-[#B77916]/25 bg-[#FFF8E7] px-5 py-4 text-sm leading-relaxed text-[#6D4B12]">
-        </aside>
+            <p className="mt-6 text-sm font-bold text-verde-acao">✓ Garantia de reembolso por 30 dias</p>
+          </div>
+
+          <div className="border-t border-white/10 bg-white/[0.035] p-6 sm:px-9 sm:py-7">
+            <a
+              href={CHECKOUT_ANUAL_UNICO_URL}
+              id="cta-preco-anual-unico"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackAddToCart('anual_unico', PRECO_ANUAL_UNICO)}
+              {...trackingHandlers}
+              className="gtm-cta gtm-cta-preco flex min-h-14 w-full items-center justify-center rounded-xl bg-[#F4B942] px-5 py-4 text-center text-base font-bold text-[#101828] transition-colors hover:bg-[#FFD16A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#F4B942]"
+            >
+              Quero 1 ano por R$ {PRECO_ANUAL_UNICO}
+            </a>
+            <p className="mt-3 text-center text-xs text-[#9DACBD]">
+              Pagamento único · sem renovação automática · garantia de 30 dias
+            </p>
+          </div>
+        </article>
+
+        <p className="mt-6 text-center text-xs text-[#667384]">
+          Pagamento processado com segurança pela Hotmart. Se não gostar dentro de 30 dias,
+          você recebe 100% do investimento de volta.
+        </p>
       </div>
     </section>
   )

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { CHECKOUT_MENSAL_URL } from '@/lib/checkout'
+import { CHECKOUT_ANUAL_UNICO_URL } from '@/lib/checkout'
 
 /**
  * /comprar — VENDA ENCERRADA NESTE CAMINHO.
@@ -12,7 +12,8 @@ import { CHECKOUT_MENSAL_URL } from '@/lib/checkout'
  *
  * A rota não é apagada porque o endereço circula: pode estar num anúncio
  * antigo, numa conversa de WhatsApp ou num favorito. Dar 404 em quem queria
- * comprar é pior do que levar ao checkout certo.
+ * comprar é pior do que levar ao checkout certo — que hoje é o do ACESSO
+ * ANUAL (R$ 97, pagamento único), a oferta pública atual.
  *
  * O webhook do Mercado Pago segue no ar de propósito, pra não derrubar
  * pagamento que já estivesse em trânsito quando isto subiu.
@@ -20,5 +21,5 @@ import { CHECKOUT_MENSAL_URL } from '@/lib/checkout'
 export const dynamic = 'force-dynamic'
 
 export default function ComprarPage() {
-  redirect(CHECKOUT_MENSAL_URL)
+  redirect(CHECKOUT_ANUAL_UNICO_URL)
 }

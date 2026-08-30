@@ -81,7 +81,12 @@ export function trackInitiateCheckout(value: number, currency = 'BRL') {
   track('InitiateCheckout', { value, currency })
 }
 
-export type BarberMetaPlan = 'mensal' | 'anual'
+/**
+ * `anual_unico` é a oferta pública atual: pagamento único de 1 ano.
+ * `mensal` e `anual` são a assinatura recorrente, que saiu da página mas
+ * continua viva pra quem já assina — os eventos delas seguem existindo.
+ */
+export type BarberMetaPlan = 'mensal' | 'anual' | 'anual_unico'
 
 function createEventId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -104,7 +109,9 @@ export function trackAddToCart(plan: BarberMetaPlan, value: number, currency = '
   if (typeof window === 'undefined') return
 
   const eventId = createEventId()
-  const planLabel = plan === 'anual' ? 'Plano anual' : 'Plano mensal'
+  const planLabel = plan === 'anual_unico'
+    ? 'Acesso anual (pagamento único)'
+    : plan === 'anual' ? 'Plano anual' : 'Plano mensal'
   const customData = {
     value,
     currency,

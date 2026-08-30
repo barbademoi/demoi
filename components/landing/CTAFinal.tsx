@@ -14,8 +14,8 @@ export default function CTAFinal() {
             Organize a gestão, movimente sua equipe e crie novas oportunidades de venda com todos os módulos do BarberMeta liberados para assinantes.
           </p>
           <div className="mt-7 flex flex-col items-center gap-3 lg:items-start">
-            <CTAButton label="Conhecer os planos de assinatura" id="cta-final-planos" gtmClass="gtm-cta-final" />
-            <p className="text-sm text-[#8FA0B3]">Mensal por R$ 34,90 ou anual por R$ 297 à vista</p>
+            <CTAButton label="Quero 1 ano por R$ 97" id="cta-final-planos" gtmClass="gtm-cta-final" />
+            <p className="text-sm text-[#8FA0B3]">Pagamento único · 1 ano de acesso completo · garantia de 30 dias</p>
           </div>
         </div>
 

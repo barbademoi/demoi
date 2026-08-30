@@ -53,7 +53,7 @@ export default function TudoIncluso() {
       <div className="relative mx-auto max-w-6xl">
         <div className="mx-auto max-w-3xl text-center">
           <span className="inline-flex rounded-full border border-[#F4B942]/30 bg-[#F4B942]/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-[#FFD16A]">
-            Tudo incluso na assinatura
+            Tudo incluso no acesso anual
           </span>
           <h2 className="mt-4 text-balance text-3xl font-bold tracking-[-0.03em] text-white sm:text-4xl">
             Você recebe o sistema e o apoio para colocar em prática.
