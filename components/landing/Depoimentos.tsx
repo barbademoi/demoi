@@ -50,12 +50,30 @@ const RELATOS = [
   },
 ]
 
+/**
+ * PRINTS DAS CONVERSAS.
+ *
+ * As dimensões são as REAIS de cada arquivo, uma a uma. Antes havia um
+ * 1320x2585 fixo pra todo mundo: com prints de alturas diferentes, o navegador
+ * reservava o espaço errado e a página dava um pulo quando cada imagem
+ * carregava.
+ *
+ * Os telefones que apareciam nos prints de grupo do WhatsApp foram borrados
+ * antes de subir. Print de conversa com o número de um cliente vira spam e
+ * golpe na conta dele — e a força do depoimento está no texto, não no
+ * telefone. Os prints de Instagram mostram só o @, que já é público.
+ */
 const depoimentos = [
-  { src: '/prints/feedback-1.png', alt: 'Depoimento real sobre metas e participação da equipe no BarberMeta' },
-  { src: '/prints/feedback-2.png', alt: 'Depoimento real de cliente estudando o BarberMeta' },
-  { src: '/prints/feedback-3.png', alt: 'Depoimento real de cliente com a meta ouro atingida' },
-  { src: '/prints/feedback-4.png', alt: 'Depoimento real sobre o engajamento da equipe' },
-  { src: '/prints/feedback-5.png', alt: 'Depoimento real sobre a facilidade de uso do BarberMeta' },
+  { src: '/prints/feedback-6.png', w: 1320, h: 2868, alt: 'Dono relata na comunidade que o barbeiro que fazia R$ 250 de serviço extra passou a fazer R$ 998' },
+  { src: '/prints/feedback-7.png', w: 1320, h: 2610, alt: 'Continuação do relato: os três barbeiros citados eram os mais fracos em vendas, de um time de nove' },
+  { src: '/prints/feedback-9.png', w: 1320, h: 2682, alt: 'Dono conta que fez uma reunião faltando R$ 8.700 para a meta e o time fechou o mês' },
+  { src: '/prints/feedback-10.png', w: 1320, h: 2492, alt: 'Print da meta coletiva batida: R$ 60.287 no mês, com todos os tiers atingidos' },
+  { src: '/prints/feedback-8.png', w: 1320, h: 2731, alt: 'Cliente com dois dias de uso elogiando as funcionalidades e o contato direto com o dono' },
+  { src: '/prints/feedback-1.png', w: 1320, h: 2585, alt: 'Depoimento real sobre metas e participação da equipe no BarberMeta' },
+  { src: '/prints/feedback-2.png', w: 1320, h: 2572, alt: 'Depoimento real de cliente estudando o BarberMeta' },
+  { src: '/prints/feedback-3.png', w: 1320, h: 2585, alt: 'Depoimento real de cliente com a meta ouro atingida' },
+  { src: '/prints/feedback-4.png', w: 1320, h: 2570, alt: 'Depoimento real sobre o engajamento da equipe' },
+  { src: '/prints/feedback-5.png', w: 1302, h: 1614, alt: 'Depoimento real sobre a facilidade de uso do BarberMeta' },
 ]
 
 export default function Depoimentos() {
@@ -103,7 +121,7 @@ export default function Depoimentos() {
         <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:gap-5 sm:px-6">
           {depoimentos.map((depoimento) => (
             <figure key={depoimento.src} className="relative w-[68vw] max-w-[235px] shrink-0 snap-center overflow-hidden rounded-2xl border border-[#E2E6EA] bg-[#F7F8FA] shadow-lg shadow-black/10">
-              <Image src={depoimento.src} width={1320} height={2585} alt={depoimento.alt} sizes="235px" className="block h-auto w-full" />
+              <Image src={depoimento.src} width={depoimento.w} height={depoimento.h} alt={depoimento.alt} sizes="235px" className="block h-auto w-full" />
             </figure>
           ))}
         </div>
