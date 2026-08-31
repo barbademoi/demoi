@@ -248,7 +248,10 @@
   --carousel-nudge-y: -50%;
 }
 
-.crescimento-carousel {
+/* Faixa que anda sozinha e continua arrastável na mão. Serve o carrossel de
+   crescimento e o de depoimentos — o movimento vem do hook useRolagemContinua.
+   Sem scroll-snap de propósito: o snap disputaria o scrollLeft a cada quadro. */
+.carrossel-continuo {
   overflow-x: auto;
   overflow-y: hidden;
   cursor: grab;
@@ -260,20 +263,27 @@
   mask-image: linear-gradient(to right, transparent, #000 4%, #000 96%, transparent);
 }
 
-.crescimento-carousel::-webkit-scrollbar {
+.carrossel-continuo::-webkit-scrollbar {
   display: none;
 }
 
-.crescimento-carousel:active {
+.carrossel-continuo:active {
   cursor: grabbing;
 }
 
-.crescimento-carousel-track {
+/* Em fundo claro a máscara comeria a borda dos cards sem disfarçar nada:
+   o desbotado só funciona quando o card é escuro como o fundo atrás dele. */
+.carrossel-continuo--claro {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.carrossel-continuo-track {
   display: flex;
   width: max-content;
 }
 
-.crescimento-carousel-group {
+.carrossel-continuo-group {
   display: flex;
   flex: 0 0 auto;
   gap: 1rem;
@@ -296,7 +306,7 @@
     opacity: 1;
   }
 
-  .crescimento-carousel {
+  .carrossel-continuo {
     -webkit-mask-image: none;
     mask-image: none;
   }
