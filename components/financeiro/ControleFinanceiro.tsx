@@ -24,6 +24,12 @@ import {
   nomeArquivoZip,
   selecionarParaZip,
 } from '@/lib/financeiro/comprovantes'
+import {
+  montarPreviaImport,
+  aplicarImport,
+  type ComissaoImportada,
+  type PreviaImport,
+} from '@/lib/financeiro/importComissoes'
 
 // ---- Design tokens (alinhados com BarberMeta) ----------------------------
 const C = {
@@ -356,11 +362,16 @@ export default function ControleFinanceiro({ barbeariaNome = '', barbeariaLogo =
   }, [state, ready])
 
   // Auto-sync das comissoes do BarberMeta:
-  // Apos carregar o state, busca a comissao acumulada do ciclo atual e
+  // Apos carregar o state, busca a comissao acumulada do CICLO ATUAL e
   // atualiza monthly[mesAno] dos colaboradores tipo 'comissao' que ja
   // existem (matching por nome, case-insensitive). NAO cria novos — quem
-  // ainda nao foi importado nem aparece (botao "Importar agora" faz isso).
+  // ainda nao foi importado nem aparece (o botao de importar faz isso).
   // Colaboradores tipo 'salario' ou de scope 'pessoal' ficam intocados.
+  //
+  // Aqui o ciclo atual E' o certo, e por isso a chamada segue sem `ym`: este
+  // sync existe pra manter o mes corrente vivo sozinho. Meses passados nao
+  // sao mexidos por ele — quem escolhe outro mes e' o botao de importar, com
+  // o mes da tela e confirmacao antes de sobrescrever.
   const synced = useRef(false)
   useEffect(() => {
     if (!ready || synced.current) return
@@ -983,6 +994,14 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
   const [fVal, setFVal] = useState('')
   const [importando, setImportando] = useState(false)
   const [importMsg, setImportMsg] = useState<string | null>(null)
+  // Import aguardando decisão: o mês de destino já tem valor lançado e o dono
+  // precisa ver o que seria substituído antes de qualquer coisa mudar.
+  const [previaImport, setPreviaImport] = useState<{
+    previa: PreviaImport
+    barbeiros: ComissaoImportada[]
+    mesAno: string
+    cicloLabel: string
+  } | null>(null)
 
   // Detalhes (descontos + pagar): so 1 colaborador expandido por vez.
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -1347,47 +1366,92 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
     }
   }
 
-  // Importa barbeiros + comissao acumulada do ciclo atual do BarberMeta.
-  // Pra cada barbeiro: se ja existe colaborador com mesmo nome (case-insensitive),
-  // atualiza monthly[mesAno] com a comissao. Se nao existe, cria como 'comissao'.
+  // ── Importar comissões do BarberMeta ──
+  //
+  // O destino é o MÊS QUE ESTÁ NA TELA (`month`), o mesmo da navegação que já
+  // manda em todo o resto da aba. Antes o botão ignorava essa navegação e
+  // gravava sempre no ciclo de hoje: o dono voltava até agosto, clicava em
+  // importar, e o valor caía em setembro sem aviso nenhum.
+  //
+  // Em dois passos, e não porque dá mais trabalho: importar sobrescreve. Se o
+  // mês já tem número lançado — à mão ou por um import anterior — o dono vê o
+  // que vai mudar antes de qualquer coisa ser alterada.
+  const novoColaboradorDeBarbeiro = (b: ComissaoImportada, ym: string) => ({
+    id: uid(), scope: 'empresa', barbeiroId: b.id, name: b.nome,
+    type: 'comissao', monthly: { [ym]: b.comissao },
+  })
+
   const importarBM = async () => {
-    setImportando(true); setImportMsg(null)
+    setImportando(true)
+    setImportMsg(null)
+    setPreviaImport(null)
     try {
-      const res = await buscarComissoesBarbermeta()
+      const res = await buscarComissoesBarbermeta(month)
       if ('error' in res) { setImportMsg(res.error); return }
-      const { mesAno, barbeiros } = res
+      const { mesAno, cicloLabel, barbeiros } = res
       if (barbeiros.length === 0) {
         setImportMsg('Nenhum barbeiro ativo encontrado no BarberMeta.')
         return
       }
 
-      const norm = (s: string) => s.trim().toLowerCase()
-      const next = [...state.collaborators]
-      let atualizados = 0
-      let criados = 0
-      for (const b of barbeiros) {
-        // Casa pelo barbeiroId quando já existe; cai no nome só pra quem foi
-        // importado antes do vínculo existir.
-        let idx = next.findIndex((c: any) => c.scope === 'empresa' && c.barbeiroId === b.id)
-        if (idx < 0) {
-          idx = next.findIndex((c: any) => c.scope === 'empresa' && c.type === 'comissao' && norm(c.name) === norm(b.nome))
-        }
-        if (idx >= 0) {
-          const c = next[idx]
-          next[idx] = { ...c, barbeiroId: b.id, monthly: { ...(c.monthly || {}), [mesAno]: b.comissao } }
-          atualizados++
-        } else {
-          next.push({ id: uid(), scope: 'empresa', barbeiroId: b.id, name: b.nome, type: 'comissao', monthly: { [mesAno]: b.comissao } })
-          criados++
-        }
+      // O mês pode não existir do LADO DE LÁ. É o caso que motivou o seletor:
+      // "agosto ficou sem dado". Importar puxa do BarberMeta pro Financeiro —
+      // se lá está vazio, não há o que puxar, e insistir só apagaria o que foi
+      // digitado à mão aqui. Melhor dizer isso e apontar o caminho que resolve.
+      if (barbeiros.every((b) => b.comissao === 0)) {
+        setImportMsg(
+          `O BarberMeta não tem comissão lançada em ${monthLabel(mesAno)}${sufixoCiclo(mesAno, cicloLabel)} — não há o que importar. ` +
+          'Pra preencher esse mês, edite a comissão bruta de cada colaborador aqui embaixo: o valor vai pro BarberMeta e entra no ranking.',
+        )
+        return
       }
-      update({ collaborators: next })
-      setImportMsg(`Importados ${barbeiros.length} barbeiros para ${mesAno} (${criados} novos · ${atualizados} atualizados).`)
+
+      const previa = montarPreviaImport<any>(state.collaborators, barbeiros, mesAno, collabValue)
+
+      if (previa.mudam.length === 0) {
+        setImportMsg(`O Financeiro já está igual ao BarberMeta em ${monthLabel(mesAno)}${sufixoCiclo(mesAno, cicloLabel)}. Nada a importar.`)
+        return
+      }
+
+      // Sem nada a substituir, aplica direto — parar pra confirmar o
+      // preenchimento de um mês vazio seria só um clique a mais.
+      if (previa.semConflito) {
+        aplicarImportNaTela(previa, barbeiros, mesAno, cicloLabel, false)
+        return
+      }
+
+      setPreviaImport({ previa, barbeiros, mesAno, cicloLabel })
     } catch (e: any) {
       setImportMsg(e?.message || 'Erro ao importar.')
     } finally {
       setImportando(false)
     }
+  }
+
+  // O label do ciclo só aparece quando diz algo que o nome do mês não diz.
+  // Com fechamento no dia 1 ele É o mês ("agosto 2026") e repetir viraria
+  // "Agosto 2026 (agosto 2026)"; num ciclo deslocado ele vira "26 ago — 25 set",
+  // que é a informação de que o dono precisa pra saber o intervalo real.
+  const sufixoCiclo = (mesAno: string, cicloLabel: string) =>
+    cicloLabel.toLowerCase() === monthLabel(mesAno).toLowerCase() ? '' : ` (${cicloLabel})`
+
+  const aplicarImportNaTela = (
+    previa: PreviaImport,
+    barbeiros: ComissaoImportada[],
+    mesAno: string,
+    cicloLabel: string,
+    manterConflitos: boolean,
+  ) => {
+    const r = aplicarImport<any>(
+      state.collaborators, previa, barbeiros, mesAno, novoColaboradorDeBarbeiro,
+      { manterConflitos },
+    )
+    update({ collaborators: r.lista })
+    setPreviaImport(null)
+    setImportMsg(
+      `${monthLabel(mesAno)}${sufixoCiclo(mesAno, cicloLabel)}: ${r.criados} novo(s) · ${r.atualizados} atualizado(s)` +
+      (r.mantidos > 0 ? ` · ${r.mantidos} preservado(s)` : '') + '.',
+    )
   }
 
   const submit = () => {
@@ -1473,22 +1537,75 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
         </p>
       </Card>
 
-      {/* Importar comissões do BarberMeta */}
+      {/* Importar comissões do BarberMeta — para o mês que está na tela */}
       <Card style={{ background: C.surface, border: `1px dashed ${C.primary}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 14, color: C.ink, fontWeight: 700 }}>
-              <span style={{ marginRight: 6 }}>⚡</span>Importar comissões do BarberMeta
+              <span style={{ marginRight: 6 }}>⚡</span>Importar comissões de {monthLabel(month)}
             </div>
             <div style={{ fontSize: 12.5, color: C.faint, marginTop: 4 }}>
-              Puxa todos os barbeiros ativos e a comissão acumulada do ciclo atual.
-              Cria os que faltam e atualiza os já cadastrados.
+              Puxa os barbeiros ativos e a comissão acumulada <strong style={{ color: C.inkSoft }}>de {monthLabel(month)}</strong>.
+              Pra importar outro mês, mude o mês aí em cima e clique de novo.
             </div>
           </div>
           <Btn small onClick={importarBM}>
-            {importando ? 'Importando…' : 'Importar agora'}
+            {importando ? 'Buscando…' : `Importar ${monthLabel(month)}`}
           </Btn>
         </div>
+
+        {/* Conflito: o mês já tem valor lançado. Mostra o antes e o depois e
+            deixa a decisão com o dono — nada foi alterado ainda. */}
+        {previaImport && (
+          <div style={{ marginTop: 12, background: C.surface2, border: `1px solid ${C.out}`, borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ fontSize: 13.5, color: C.ink, fontWeight: 700 }}>
+              {monthLabel(previaImport.mesAno)} já tem valor lançado
+            </div>
+            <div style={{ fontSize: 12, color: C.faint, lineHeight: 1.5 }}>
+              Nada foi alterado ainda — veja o que muda e escolha.{sufixoCiclo(previaImport.mesAno, previaImport.cicloLabel) && ` Ciclo ${previaImport.cicloLabel}.`}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 260, overflowY: 'auto' }}>
+              {previaImport.previa.mudam.map((l) => {
+                const cor = l.efeito === 'zera' ? C.out : (l.efeito === 'novo' || l.efeito === 'preenche' ? C.in : C.primary)
+                const rotulo = l.efeito === 'novo' ? 'novo colaborador'
+                  : l.efeito === 'preenche' ? 'mês vazio'
+                  : l.efeito === 'zera' ? 'APAGA o valor'
+                  : 'substitui'
+                return (
+                  <div key={l.barbeiroId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '7px 10px', background: C.surface, border: `1px solid ${C.line}`, borderRadius: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 13, color: C.ink, fontWeight: 600, minWidth: 0 }}>
+                      {l.nome} <Badge color={cor}>{rotulo}</Badge>
+                    </span>
+                    <span style={{ fontSize: 12.5, color: C.inkSoft }}>
+                      {l.atual === null ? <span style={{ color: C.faint }}>—</span> : brl(l.atual)}
+                      <span style={{ color: C.faint }}> → </span>
+                      <strong style={{ color: cor }}>{brl(l.novo)}</strong>
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {previaImport.previa.linhas.some((l) => l.efeito === 'zera') && (
+              <div style={{ fontSize: 12, color: C.out, lineHeight: 1.5 }}>
+                ⚠️ Os marcados em vermelho não têm valor no BarberMeta neste ciclo.
+                Substituir tudo APAGA o que está lançado aqui, sem colocar nada no lugar.
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Btn small tone="ghost" onClick={() => aplicarImportNaTela(previaImport.previa, previaImport.barbeiros, previaImport.mesAno, previaImport.cicloLabel, true)}>
+                Importar só o que falta ({previaImport.previa.mudam.length - previaImport.previa.conflitos.length})
+              </Btn>
+              <Btn small tone="danger" onClick={() => aplicarImportNaTela(previaImport.previa, previaImport.barbeiros, previaImport.mesAno, previaImport.cicloLabel, false)}>
+                Substituir tudo ({previaImport.previa.mudam.length})
+              </Btn>
+              <Btn small tone="ghost" onClick={() => setPreviaImport(null)}>Cancelar</Btn>
+            </div>
+          </div>
+        )}
+
         {importMsg && (
           <p style={{ margin: '10px 4px 0', fontSize: 12.5, color: C.in }}>{importMsg}</p>
         )}
