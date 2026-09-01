@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useMemo, useState, useTransition, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import BrindoletaQr from '@/components/brindoleta/BrindoletaQr'
@@ -19,6 +19,7 @@ import type {
   BrindoletaSale,
   BrindoletaSpin,
 } from '@/lib/brindoleta/types'
+import { totaisDoCiclo, desempenhoPorBarbeiro, listaParaConferencia } from '@/lib/brindoleta/periodo'
 
 type Tab = 'campaign' | 'qr' | 'results' | 'guide'
 
@@ -84,12 +85,21 @@ interface Props {
   businessName: string
   publicBaseUrl: string
   offers: BrindoletaOffer[]
+  /** Giros e vendas JÁ CORTADOS pelo ciclo exibido — o corte é feito no servidor. */
   barbers: BrindoletaBarber[]
   spins: BrindoletaSpin[]
   sales: BrindoletaSale[]
+  /** Pendentes de TODO o período: fila de trabalho, não placar do mês. */
+  pendentesTotais: BrindoletaSale[]
+  cicloLabel: string
+  ehCicloAtual: boolean
+  navegacaoCicloSlot: ReactNode
 }
 
-export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, barbers, spins, sales }: Props) {
+export default function BrindoletaPanel({
+  businessName, publicBaseUrl, offers, barbers, spins, sales,
+  pendentesTotais, cicloLabel, ehCicloAtual, navegacaoCicloSlot,
+}: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('campaign')
   const [draft, setDraft] = useState<OfferDraft | null>(null)
@@ -104,23 +114,31 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
 
   const activeOffers = offers.filter((offer) => offer.enabled && offer.stock > 0)
   const chanceTotal = activeOffers.reduce((sum, offer) => sum + offer.chance, 0)
-  const confirmed = sales.filter((sale) => sale.status === 'confirmed')
-  const pendingSales = sales.filter((sale) => sale.status === 'pending')
-  const revenue = confirmed.reduce((sum, sale) => sum + sale.amount_cents, 0)
+
+  // `spins` e `sales` chegam já cortados pelo ciclo — o servidor não manda o
+  // que é de outro mês. Os totais são calculados pela mesma função da régua
+  // compartilhada, e não por reduces soltos aqui.
+  const totais = useMemo(() => totaisDoCiclo(spins, sales), [spins, sales])
+
+  // A lista de conferência é o ciclo MAIS as pendentes de qualquer outro:
+  // uma venda de agosto que ninguém decidiu precisa continuar tendo onde ser
+  // confirmada depois que setembro começa.
+  const idsDoCiclo = useMemo(() => new Set(sales.map((s) => s.id)), [sales])
+  const vendasParaConferir = useMemo(
+    () => listaParaConferencia(sales, pendentesTotais),
+    [sales, pendentesTotais],
+  )
+
   const barberById = useMemo(() => new Map(barbers.map((barber) => [barber.id, barber])), [barbers])
-  const barberStats = useMemo(() => barbers.map((barber) => {
-    const barberSpins = spins.filter((spin) => spin.barbeiro_id === barber.id).length
-    const barberSales = sales.filter((sale) => sale.barbeiro_id === barber.id)
-    const barberConfirmed = barberSales.filter((sale) => sale.status === 'confirmed')
-    return {
-      ...barber,
-      spins: barberSpins,
-      accepted: barberSales.length,
-      confirmed: barberConfirmed.length,
-      revenue: barberConfirmed.reduce((sum, sale) => sum + sale.amount_cents, 0),
-      conversion: barberSpins > 0 ? Math.round((barberSales.length / barberSpins) * 100) : 0,
-    }
-  }).sort((a, b) => b.revenue - a.revenue || b.confirmed - a.confirmed), [barbers, sales, spins])
+  const barberStats = useMemo(() => {
+    const porBarbeiro = desempenhoPorBarbeiro(barbers.map((b) => b.id), spins, sales)
+    return porBarbeiro
+      .map((d) => {
+        const barber = barberById.get(d.barbeiroId)
+        return barber ? { ...barber, ...d } : null
+      })
+      .filter((b): b is NonNullable<typeof b> => b !== null)
+  }, [barbers, barberById, sales, spins])
 
   function run(action: () => Promise<{ ok?: boolean; error?: string }>, success: string) {
     if (isPending) return
@@ -396,12 +414,31 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
 
       {tab === 'results' && (
         <div className="space-y-5">
+          {navegacaoCicloSlot}
+
+          <p className="px-1 text-xs leading-relaxed text-text-muted">
+            Os números abaixo são <strong className="text-text">só do ciclo {cicloLabel}</strong>
+            {ehCicloAtual ? ' (o que está correndo agora)' : ' (mês já fechado)'}.
+            Cada ciclo tem o seu — o histórico continua aqui, é só voltar acima.
+          </p>
+
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Metric label="Giros" value={String(spins.length)} />
-            <Metric label="Ofertas aceitas" value={String(sales.length)} />
-            <Metric label="Pendentes" value={String(pendingSales.length)} highlight />
-            <Metric label="Vendas confirmadas" value={money(revenue)} />
+            <Metric label="Giros no ciclo" value={String(totais.giros)} />
+            <Metric label="Ofertas aceitas" value={String(totais.aceitas)} />
+            {/* Pendentes NÃO seguem o ciclo: é fila de trabalho. Uma venda de
+                agosto que ninguém confirmou continua esperando decisão, e
+                escondê-la na virada do mês tiraria dinheiro real da tela. */}
+            <Metric label="Pendentes (todo o período)" value={String(pendentesTotais.length)} highlight />
+            <Metric label="Vendas confirmadas" value={money(totais.receitaCents)} />
           </div>
+
+          {pendentesTotais.some((v) => !sales.some((s) => s.id === v.id)) && (
+            <p className="rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-4 py-3 text-xs leading-relaxed text-amber-100">
+              Há {pendentesTotais.filter((v) => !sales.some((s) => s.id === v.id)).length} venda(s) de outros
+              ciclos ainda esperando sua confirmação. Elas continuam na lista de pendentes abaixo até você decidir —
+              não somem na virada do mês.
+            </p>
+          )}
 
           <section className="card p-5 sm:p-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
@@ -427,15 +464,15 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
                         )}
                         <div className="min-w-0">
                           <h3 className="truncate text-sm font-bold text-text">{barber.nome}</h3>
-                          <p className="text-xs text-text-muted">{barber.confirmed} venda{barber.confirmed === 1 ? '' : 's'} confirmada{barber.confirmed === 1 ? '' : 's'}</p>
+                          <p className="text-xs text-text-muted">{barber.confirmadas} venda{barber.confirmadas === 1 ? '' : 's'} confirmada{barber.confirmadas === 1 ? '' : 's'}</p>
                         </div>
                       </div>
-                      <strong className="shrink-0 text-sm text-[#d8ff00]">{money(barber.revenue)}</strong>
+                      <strong className="shrink-0 text-sm text-[#d8ff00]">{money(barber.receitaCents)}</strong>
                     </div>
                     <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[10px]">
-                      <div className="rounded-lg bg-surface p-2"><span className="block text-text-muted">Giros</span><strong className="text-text">{barber.spins}</strong></div>
-                      <div className="rounded-lg bg-surface p-2"><span className="block text-text-muted">Aceites</span><strong className="text-text">{barber.accepted}</strong></div>
-                      <div className="rounded-lg bg-surface p-2"><span className="block text-text-muted">Conversão</span><strong className="text-text">{barber.conversion}%</strong></div>
+                      <div className="rounded-lg bg-surface p-2"><span className="block text-text-muted">Giros</span><strong className="text-text">{barber.giros}</strong></div>
+                      <div className="rounded-lg bg-surface p-2"><span className="block text-text-muted">Aceites</span><strong className="text-text">{barber.aceitas}</strong></div>
+                      <div className="rounded-lg bg-surface p-2"><span className="block text-text-muted">Conversão</span><strong className="text-text">{barber.conversao}%</strong></div>
                     </div>
                   </div>
                 ))}
@@ -449,21 +486,30 @@ export default function BrindoletaPanel({ businessName, publicBaseUrl, offers, b
             <p className="mt-2 text-sm text-text-muted">Confirme somente depois que o serviço ou produto realmente for vendido.</p>
           </section>
 
-          {sales.length === 0 ? (
-            <div className="card p-8 text-center text-sm text-text-muted">As ofertas aceitas pelos clientes aparecerão aqui.</div>
+          {vendasParaConferir.length === 0 ? (
+            <div className="card p-8 text-center text-sm text-text-muted">Nenhuma oferta aceita em {cicloLabel}.</div>
           ) : (
             <div className="space-y-3">
-              {sales.map((sale) => {
+              {vendasParaConferir.map((sale) => {
                 const barber = barberById.get(sale.barbeiro_id)
                 const statusStyle = sale.status === 'confirmed' ? 'bg-emerald-400/10 text-emerald-300' : sale.status === 'rejected' ? 'bg-red-400/10 text-red-200' : 'bg-amber-400/10 text-amber-200'
                 const statusLabel = sale.status === 'confirmed' ? 'Confirmada' : sale.status === 'rejected' ? 'Não realizada' : 'Aguardando confirmação'
+                // Pendente de outro ciclo, trazida pra cá pra não ficar órfã.
+                const deOutroCiclo = !idsDoCiclo.has(sale.id)
                 return (
-                  <article key={sale.id} className="card p-4 sm:p-5">
+                  <article key={sale.id} className={`card p-4 sm:p-5 ${deOutroCiclo ? 'border-amber-400/30' : ''}`}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <h3 className="font-bold text-text">{sale.customer_name}</h3>
                         <p className="mt-1 text-sm text-text-muted">{sale.offer_title} · {sale.benefit}</p>
-                        <p className="mt-1 text-xs text-text-muted">{barber?.nome ?? 'Colaborador'} · {dateTime(sale.created_at)}</p>
+                        <p className="mt-1 text-xs text-text-muted">
+                          {barber?.nome ?? 'Colaborador'} · {dateTime(sale.created_at)}
+                          {deOutroCiclo && (
+                            <span className="ml-2 inline-flex rounded-full bg-amber-400/10 px-2 py-0.5 text-[10px] font-bold text-amber-200">
+                              de outro ciclo
+                            </span>
+                          )}
+                        </p>
                       </div>
                       <div className="text-right">
                         <strong className="block text-text">{sale.amount_cents > 0 ? money(sale.amount_cents) : '—'}</strong>
