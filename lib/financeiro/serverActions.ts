@@ -1,15 +1,15 @@
 'use server'
 
-// Server action: importa os barbeiros + comissao_acumulada do ciclo atual
-// pra dentro do Controle Financeiro. Cada barbeiro vira/atualiza um
-// colaborador tipo 'comissao' (so na Empresa) com o valor do mes.
+// Server action: importa os barbeiros + comissao_acumulada de um ciclo pra
+// dentro do Controle Financeiro. Cada barbeiro vira/atualiza um colaborador
+// tipo 'comissao' (so na Empresa) com o valor daquele mes.
 //
-// Retorna lista de barbeiros + comissao do ciclo atual. O lado client mescla
-// com os collaborators existentes do state e salva via remoteSave.
+// Retorna lista de barbeiros + comissao. O lado client mescla com os
+// collaborators existentes do state e salva via remoteSave.
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { cicloAtual } from '@/lib/ciclo'
+import { cicloAtual, cicloDeData } from '@/lib/ciclo'
 import { estaFechado } from '@/lib/mesFechado'
 import { valorBase, type ModoMeta, type BaseMeta } from '@/lib/modoMeta'
 import { mesAnoDoYm, normalizarValor, linhaLancamentoAjuste } from '@/lib/financeiro/comissaoBruta'
@@ -21,8 +21,25 @@ interface BarbeiroComissao {
   comissao: number
 }
 
-export async function buscarComissoesBarbermeta(): Promise<
-  { ok: true; mesAno: string; barbeiros: BarbeiroComissao[] } | { error: string }
+/**
+ * Comissões de um CICLO, pra o Financeiro importar.
+ *
+ * `ym` ('YYYY-MM') escolhe o ciclo. Sem ele, vale o ciclo de hoje — que é
+ * como esta função se comportava antes de aceitar o parâmetro, e continua
+ * sendo o que o auto-sync da tela precisa.
+ *
+ * ATÉ AQUI O CICLO ERA SEMPRE O DE HOJE, sem jeito de apontar pra outro: o
+ * dono navegava a tela até agosto, clicava em importar, e o valor caía em
+ * setembro. Agora o mês da tela chega até aqui.
+ *
+ * O ciclo de hoje passa a sair de `hojeBrasil()`. Antes vinha de um
+ * `new Date()` passado à mão, que ANULAVA o default e reintroduzia justamente
+ * o bug de fuso que `lib/ciclo.ts` documenta: na Vercel o servidor roda em
+ * UTC, e depois das 21h de Brasília ele já marca o dia seguinte — no dia da
+ * virada, o import pulava um ciclo inteiro.
+ */
+export async function buscarComissoesBarbermeta(ym?: string): Promise<
+  { ok: true; mesAno: string; cicloLabel: string; barbeiros: BarbeiroComissao[] } | { error: string }
 > {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -37,9 +54,27 @@ export async function buscarComissoesBarbermeta(): Promise<
   if (!usuario) return { error: 'Barbearia não encontrada.' }
 
   const diaFechamento = usuario.barbearias?.dia_fechamento ?? 1
-  const ciclo = cicloAtual(diaFechamento, new Date())
-  const mes = ciclo.mesRef
-  const ano = ciclo.anoRef
+
+  let mes: number
+  let ano: number
+  let cicloLabel: string
+  if (ym === undefined) {
+    const ciclo = cicloAtual(diaFechamento)
+    mes = ciclo.mesRef
+    ano = ciclo.anoRef
+    cicloLabel = ciclo.label
+  } else {
+    const alvo = mesAnoDoYm(ym)
+    if (!alvo) return { error: 'Mês inválido.' }
+    mes = alvo.mes
+    ano = alvo.ano
+    // O label do ciclo vem de uma data DENTRO dele. (mes, ano) é o início do
+    // ciclo, então o dia_fechamento no próprio mes/ano cai no primeiro dia —
+    // é dali que sai "26 ago — 25 set" pra barbearia de ciclo deslocado.
+    cicloLabel = cicloDeData(new Date(ano, mes - 1, diaFechamento, 12, 0, 0), diaFechamento).label
+  }
+
+  const mesAno = `${ano}-${String(mes).padStart(2, '0')}`
 
   // Barbeiros ativos da barbearia (recepcionistas tambem podem ter comissao,
   // entao nao filtra por tipo — quem nao quiser, ignora no lado do app)
@@ -53,10 +88,10 @@ export async function buscarComissoesBarbermeta(): Promise<
   const barbeiros = ((bs ?? []) as { id: string; nome: string }[])
 
   if (barbeiros.length === 0) {
-    return { ok: true, mesAno: `${ano}-${String(mes).padStart(2, '0')}`, barbeiros: [] }
+    return { ok: true, mesAno, cicloLabel, barbeiros: [] }
   }
 
-  // Comissao acumulada do ciclo atual por barbeiro
+  // Comissao acumulada do ciclo escolhido, por barbeiro
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: ls } = await (supabase as any)
     .from('lancamentos')
@@ -75,7 +110,7 @@ export async function buscarComissoesBarbermeta(): Promise<
     comissao: porBarbeiro[b.id] ?? 0,
   }))
 
-  return { ok: true, mesAno: `${ano}-${String(mes).padStart(2, '0')}`, barbeiros: out }
+  return { ok: true, mesAno, cicloLabel, barbeiros: out }
 }
 
 // Le nome + logo da barbearia do usuario logado. Usado pra montar o card
