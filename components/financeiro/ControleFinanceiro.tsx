@@ -13,7 +13,17 @@ import {
   loadState as remoteLoad,
   saveState as remoteSave,
 } from '@/lib/financeiro/supabaseStore'
-import { buscarComissoesBarbermeta } from '@/lib/financeiro/serverActions'
+import {
+  buscarComissoesBarbermeta,
+  salvarComissaoBrutaBarbeiro,
+  listarAjustesComissao,
+  type AjusteComissao,
+} from '@/lib/financeiro/serverActions'
+import {
+  nomeArquivoComprovante,
+  nomeArquivoZip,
+  selecionarParaZip,
+} from '@/lib/financeiro/comprovantes'
 
 // ---- Design tokens (alinhados com BarberMeta) ----------------------------
 const C = {
@@ -40,6 +50,18 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 const pad = (n: number) => String(n).padStart(2, '0')
 
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+
+// Timestamps do banco vêm em UTC. O dono lê a hora dele — sem forçar o fuso,
+// um ajuste das 22h de São Paulo apareceria como do dia seguinte.
+const fmtDataHoraBR = (iso: string) => {
+  try {
+    return new Date(iso).toLocaleString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      day: '2-digit', month: '2-digit', year: '2-digit',
+      hour: '2-digit', minute: '2-digit',
+    })
+  } catch { return iso }
+}
 function currentMonth() { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}` }
 function addMonths(ym: string, delta: number) {
   const [y, m] = ym.split('-').map(Number)
@@ -351,22 +373,36 @@ export default function ControleFinanceiro({ barbeariaNome = '', barbeariaLogo =
       if ('error' in res) return
       const { mesAno, barbeiros } = res
       const norm = (s: string) => s.trim().toLowerCase()
-      const mapa = new Map(barbeiros.map((b) => [norm(b.nome), b.comissao]))
+      const mapa = new Map(barbeiros.map((b) => [norm(b.nome), b]))
       setState((s: any) => ({
         ...s,
         collaborators: s.collaborators.map((c: any) => {
           if (c.scope !== 'empresa' || c.type !== 'comissao') return c
-          const v = mapa.get(norm(c.name))
-          if (v === undefined) return c
-          if ((c.monthly?.[mesAno] ?? null) === v) return c
-          return { ...c, monthly: { ...(c.monthly || {}), [mesAno]: v } }
+          const b = mapa.get(norm(c.name))
+          if (b === undefined) return c
+          // Carimba o barbeiroId em quem foi importado antes de existir esse
+          // vínculo. É ele que permite a edição gravar de volta no BarberMeta
+          // em vez de só no blob do Financeiro — o nome sozinho não serve como
+          // chave: dois barbeiros podem trocar de nome, e um nome digitado
+          // diferente quebraria o vínculo em silêncio.
+          const jaCasa = c.barbeiroId === b.id && (c.monthly?.[mesAno] ?? null) === b.comissao
+          if (jaCasa) return c
+          return {
+            ...c,
+            barbeiroId: b.id,
+            monthly: { ...(c.monthly || {}), [mesAno]: b.comissao },
+          }
         }),
       }))
     }).catch(() => { /* sync silencioso, ignora erros */ })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready])
 
-  const update = (patch: any) => setState((s: any) => ({ ...s, ...patch }))
+  // Aceita objeto (uso historico) ou funcao do estado atual. A forma de funcao
+  // existe pra patch assincrono — o rollback de uma gravacao que falhou nao
+  // pode partir de um `state` capturado antes da requisicao.
+  const update = (patch: any) =>
+    setState((s: any) => ({ ...s, ...(typeof patch === 'function' ? patch(s) : patch) }))
 
   const [showGuide, setShowGuide] = useState(false)
   const isEmpty = state.accounts.length === 0 && state.payables.length === 0 && state.receivables.length === 0 && state.collaborators.length === 0
@@ -958,6 +994,88 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
   const [payingId, setPayingId] = useState<string | null>(null)
   // ID do colaborador gerando card. Pra mostrar feedback de loading.
   const [generatingCardId, setGeneratingCardId] = useState<string | null>(null)
+  // Zip de todos os comprovantes do mes.
+  const [zipando, setZipando] = useState(false)
+  const [zipMsg, setZipMsg] = useState<string | null>(null)
+
+  // ── Sincronia da comissao bruta com o BarberMeta ──
+  // Por colaborador: { estado: 'salvando'|'ok'|'erro', msg }. O bruto de quem
+  // tem barbeiroId nao vive so no blob do Financeiro — ele e' o mesmo numero
+  // do ranking, entao a tela precisa dizer se a gravacao pegou ou nao.
+  const [syncBruto, setSyncBruto] = useState<Record<string, { estado: 'salvando' | 'ok' | 'erro'; msg: string }>>({})
+  // Colaborador aguardando confirmacao pra zerar o bruto (protecao contra
+  // apagar premiacao por engano — mesmo espirito do guard anti-zerar do
+  // lancamento diario, mas sem impedir o zero quando ele e' de proposito).
+  const [zerarId, setZerarId] = useState<string | null>(null)
+  // Historico de ajustes carregado por colaborador (painel de detalhes).
+  const [ajustes, setAjustes] = useState<Record<string, AjusteComissao[]>>({})
+
+  const marcarSync = (id: string, estado: 'salvando' | 'ok' | 'erro', msg: string) =>
+    setSyncBruto((s) => ({ ...s, [id]: { estado, msg } }))
+
+  const carregarAjustes = (c: any) => {
+    if (!c?.barbeiroId) return
+    listarAjustesComissao(c.barbeiroId, month).then((res) => {
+      if ('error' in res) return
+      setAjustes((a) => ({ ...a, [c.id]: res.ajustes }))
+    }).catch(() => { /* historico e' informativo; falha nao trava a tela */ })
+  }
+
+  /**
+   * Manda a comissao BRUTA pro BarberMeta.
+   *
+   * Quando o colaborador esta vinculado a um barbeiro, o valor vai pro MESMO
+   * lugar que alimenta ranking, meta e historico (`lancamentos`) — nao e' um
+   * campo paralelo. O blob do Financeiro ja foi atualizado por quem chamou,
+   * pra a tela responder na hora; se o servidor recusar, ele VOLTA ao valor
+   * anterior, senao o dono ficaria olhando um numero que o ranking nao tem.
+   *
+   * Salario fixo e colaborador sem vinculo nao passam por aqui: nao existe
+   * barbeiro do outro lado pra receber o valor.
+   */
+  const sincronizarBruto = (c: any, v: number, anterior: number) => {
+    if (c?.type !== 'comissao' || !c?.barbeiroId) return
+
+    marcarSync(c.id, 'salvando', 'Salvando no BarberMeta…')
+    salvarComissaoBrutaBarbeiro(c.barbeiroId, month, v)
+      .then((res) => {
+        if ('error' in res) {
+          // Desfaz o valor otimista — o ranking nao mudou, a tela nao pode
+          // dizer que mudou.
+          update((s: any) => ({
+            collaborators: s.collaborators.map((x: any) =>
+              x.id === c.id ? { ...x, monthly: { ...(x.monthly || {}), [month]: anterior } } : x,
+            ),
+          }))
+          marcarSync(c.id, 'erro', res.error)
+          return
+        }
+        const rotulo = res.campo === 'faturamento' ? 'faturamento' : 'comissão'
+        marcarSync(
+          c.id,
+          'ok',
+          res.avisoMetaCasa
+            ? `✓ ${rotulo} do ranking atualizada. O total da casa é digitado à parte no Lançamento e continua como está.`
+            : `✓ ${rotulo} atualizada no ranking e na meta.`,
+        )
+        carregarAjustes(c)
+      })
+      .catch((e: any) => marcarSync(c.id, 'erro', e?.message || 'Falha ao salvar no BarberMeta.'))
+  }
+
+  /** Grava o bruto no Financeiro e manda pro BarberMeta na sequencia. */
+  const aplicarBruto = (c: any, v: number) => {
+    const anterior = collabValue(c, month)
+    update({
+      collaborators: state.collaborators.map((x: any) => {
+        if (x.id !== c.id) return x
+        return c.type === 'comissao'
+          ? { ...x, monthly: { ...(x.monthly || {}), [month]: v } }
+          : { ...x, amount: v }
+      }),
+    })
+    sincronizarBruto(c, v, anterior)
+  }
 
   // Helper: ajusta saldo da conta (delta pode ser + ou -). Reaproveita o
   // padrao usado nas contas a pagar/receber.
@@ -1084,74 +1202,148 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
     })
   }
 
-  // ── Gerar card PNG de pagamento ──
-  // Monta SVG inline com logo + dados do colaborador, converte pra PNG via
-  // canvas e dispara download. Tudo client-side, sem servidor.
-  const gerarCardPagamento = async (colabId: string) => {
-    const c = state.collaborators.find((x: any) => x.id === colabId)
-    if (!c) return
-    setGeneratingCardId(colabId)
-    try {
-      const bruto = collabValue(c, month)
-      const descs = descontosDoMes(c, month)
-      const bons = bonusDoMes(c, month)
-      const descSum = descontoSumDoMes(c, month)
-      const bonSum = bonusSumDoMes(c, month)
-      const liq = liquidoDoMes(c, month)
+  // ── Card PNG de pagamento ──
+  // O comprovante do BarberMeta é GERADO, não anexado: monta um SVG inline com
+  // logo + dados do colaborador e rasteriza em PNG via canvas. Tudo no
+  // navegador, sem servidor e sem armazenamento — o arquivo nasce na hora do
+  // download, a partir do que já está no state.
 
-      // Logo em base64 se houver — pra embutir no SVG sem CORS.
-      let logoData: string | null = null
-      if (barbeariaLogo) {
-        try {
-          const res = await fetch(barbeariaLogo)
-          const blob = await res.blob()
-          logoData = await new Promise<string>((resolve) => {
-            const reader = new FileReader()
-            reader.onloadend = () => resolve(reader.result as string)
-            reader.readAsDataURL(blob)
-          })
-        } catch { /* segue sem logo */ }
-      }
+  // Logo em base64, buscada UMA vez e guardada. O zip do mês inteiro chamaria
+  // o mesmo fetch uma vez por colaborador sem isso.
+  const logoDataRef = useRef<string | null | undefined>(undefined)
+  const carregarLogo = async (): Promise<string | null> => {
+    if (logoDataRef.current !== undefined) return logoDataRef.current
+    let out: string | null = null
+    if (barbeariaLogo) {
+      try {
+        const res = await fetch(barbeariaLogo)
+        const blob = await res.blob()
+        out = await new Promise<string>((resolve) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.readAsDataURL(blob)
+        })
+      } catch { /* segue sem logo */ }
+    }
+    logoDataRef.current = out
+    return out
+  }
 
-      const svg = buildCardSVG({
-        barbeariaNome: barbeariaNome || 'Barbearia',
-        logoData,
-        colaboradorNome: c.name,
-        mes: monthLabel(month),
-        tipo: c.type,
-        bruto, descs, bons, descSum, bonSum, liq,
-      })
+  /** Rasteriza o comprovante de um colaborador. null = não deu pra gerar. */
+  const renderCardBlob = async (c: any, logoData: string | null): Promise<Blob | null> => {
+    const descs = descontosDoMes(c, month)
+    const bons = bonusDoMes(c, month)
 
-      // Converte SVG -> PNG via canvas
-      const width = 1080
-      const height = computeCardHeight(descs.length, bons.length)
+    const svg = buildCardSVG({
+      barbeariaNome: barbeariaNome || 'Barbearia',
+      logoData,
+      colaboradorNome: c.name,
+      mes: monthLabel(month),
+      tipo: c.type,
+      bruto: collabValue(c, month),
+      descs, bons,
+      descSum: descontoSumDoMes(c, month),
+      bonSum: bonusSumDoMes(c, month),
+      liq: liquidoDoMes(c, month),
+    })
+
+    const width = 1080
+    const height = computeCardHeight(descs.length, bons.length)
+
+    return new Promise<Blob | null>((resolve) => {
       const canvas = document.createElement('canvas')
       canvas.width = width
       canvas.height = height
-      const ctx = canvas.getContext('2d')!
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { resolve(null); return }
       const img = new Image()
       img.onload = () => {
         ctx.fillStyle = '#08090D'
         ctx.fillRect(0, 0, width, height)
         ctx.drawImage(img, 0, 0, width, height)
-        canvas.toBlob((blob) => {
-          if (!blob) { setGeneratingCardId(null); return }
-          const url = URL.createObjectURL(blob)
-          const a = document.createElement('a')
-          a.href = url
-          a.download = `pagamento-${c.name.replace(/\s+/g, '-').toLowerCase()}-${month}.png`
-          document.body.appendChild(a)
-          a.click()
-          a.remove()
-          URL.revokeObjectURL(url)
-          setGeneratingCardId(null)
-        }, 'image/png')
+        canvas.toBlob((blob) => resolve(blob), 'image/png')
       }
-      img.onerror = () => setGeneratingCardId(null)
+      img.onerror = () => resolve(null)
       img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
+    })
+  }
+
+  const baixarBlob = (blob: Blob, nome: string) => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = nome
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  const gerarCardPagamento = async (colabId: string) => {
+    const c = state.collaborators.find((x: any) => x.id === colabId)
+    if (!c) return
+    setGeneratingCardId(colabId)
+    try {
+      const blob = await renderCardBlob(c, await carregarLogo())
+      if (blob) baixarBlob(blob, `${nomeArquivoComprovante(c, month)}.png`)
     } catch (e) {
       console.error('[gerarCardPagamento]', e)
+    } finally {
       setGeneratingCardId(null)
+    }
+  }
+
+  // ── Baixar TODOS os comprovantes do mês num zip ──
+  //
+  // Reúne os comprovantes de todos os colaboradores do perfil que têm valor no
+  // mês selecionado — o mesmo mês da navegação da tela, não o de hoje. Gera com
+  // a MESMA função do download individual: um comprovante do zip é byte a byte
+  // o mesmo arquivo que o botão de cada colaborador produz.
+  //
+  // Quem não tem valor no mês fica de fora, em silêncio: colaborador cadastrado
+  // que ainda não teve comissão lançada não gera comprovante de R$ 0,00, e a
+  // ausência dele não é erro nem trava o resto do lote.
+  const baixarTodosComprovantes = async () => {
+    setZipando(true)
+    setZipMsg(null)
+    try {
+      const doMes = selecionarParaZip<any>(visible, month, liquidoDoMes)
+      if (doMes.length === 0) {
+        setZipMsg(`Nenhum colaborador com valor em ${monthLabel(month)} — não há comprovante pra baixar.`)
+        return
+      }
+
+      const logoData = await carregarLogo()
+      const JSZip = (await import('jszip')).default
+      const zip = new JSZip()
+
+      let dentro = 0
+      const falharam: string[] = []
+      for (const c of doMes) {
+        const blob = await renderCardBlob(c, logoData)
+        if (!blob) { falharam.push(c.name); continue }
+        zip.file(`${nomeArquivoComprovante(c, month)}.png`, blob)
+        dentro++
+      }
+
+      if (dentro === 0) {
+        setZipMsg('Não foi possível gerar nenhum comprovante. Tente de novo.')
+        return
+      }
+
+      const conteudo = await zip.generateAsync({ type: 'blob' })
+      baixarBlob(conteudo, nomeArquivoZip(barbeariaNome, month))
+
+      const forasDoLote = doMes.length - dentro
+      setZipMsg(
+        `${dentro} comprovante(s) de ${monthLabel(month)} no zip.` +
+        (forasDoLote > 0 ? ` ${forasDoLote} não gerou: ${falharam.join(', ')}.` : ''),
+      )
+    } catch (e: any) {
+      console.error('[baixarTodosComprovantes]', e)
+      setZipMsg(e?.message || 'Erro ao montar o zip.')
+    } finally {
+      setZipando(false)
     }
   }
 
@@ -1174,13 +1366,18 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
       let atualizados = 0
       let criados = 0
       for (const b of barbeiros) {
-        const idx = next.findIndex((c: any) => c.scope === 'empresa' && c.type === 'comissao' && norm(c.name) === norm(b.nome))
+        // Casa pelo barbeiroId quando já existe; cai no nome só pra quem foi
+        // importado antes do vínculo existir.
+        let idx = next.findIndex((c: any) => c.scope === 'empresa' && c.barbeiroId === b.id)
+        if (idx < 0) {
+          idx = next.findIndex((c: any) => c.scope === 'empresa' && c.type === 'comissao' && norm(c.name) === norm(b.nome))
+        }
         if (idx >= 0) {
           const c = next[idx]
-          next[idx] = { ...c, monthly: { ...(c.monthly || {}), [mesAno]: b.comissao } }
+          next[idx] = { ...c, barbeiroId: b.id, monthly: { ...(c.monthly || {}), [mesAno]: b.comissao } }
           atualizados++
         } else {
-          next.push({ id: uid(), scope: 'empresa', name: b.nome, type: 'comissao', monthly: { [mesAno]: b.comissao } })
+          next.push({ id: uid(), scope: 'empresa', barbeiroId: b.id, name: b.nome, type: 'comissao', monthly: { [mesAno]: b.comissao } })
           criados++
         }
       }
@@ -1211,6 +1408,10 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
   const saveFull = () => {
     if (!fName.trim()) return
     const v = parseFloat(fVal) || 0
+    const alvo = state.collaborators.find((x: any) => x.id === fullId)
+    const anterior = alvo ? collabValue(alvo, month) : 0
+    const brutoMudou = !!alvo && fType === 'comissao' && anterior !== v
+
     update({
       collaborators: state.collaborators.map((x: any) => {
         if (x.id !== fullId) return x
@@ -1222,18 +1423,25 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
         return { ...rest, name: fName.trim(), type: 'salario', amount: v }
       }),
     })
+    // Nome e tipo sao so do Financeiro; o BRUTO e' que precisa ir pro
+    // BarberMeta, e so quando mudou de fato — reenviar o mesmo valor sujaria
+    // a auditoria com ajustes que nao ajustaram nada.
+    if (brutoMudou) sincronizarBruto({ ...alvo, type: 'comissao' }, v, anterior)
     setFullId(null)
   }
+
   const saveEdit = (c: any) => {
     const v = parseFloat(editVal) || 0
-    update({
-      collaborators: state.collaborators.map((x: any) => {
-        if (x.id !== c.id) return x
-        return c.type === 'comissao'
-          ? { ...x, monthly: { ...(x.monthly || {}), [month]: v } }
-          : { ...x, amount: v }
-      }),
-    })
+    const anterior = collabValue(c, month)
+    // Zerar um bruto que tinha valor apaga a premiacao do mes desse barbeiro.
+    // Pede confirmacao — mas nao proibe: barbeiro que faltou o mes inteiro
+    // fecha em zero de verdade.
+    if (v === 0 && anterior > 0 && c.type === 'comissao' && c.barbeiroId && zerarId !== c.id) {
+      setZerarId(c.id)
+      return
+    }
+    setZerarId(null)
+    aplicarBruto(c, v)
     setEditing(null)
   }
 
@@ -1286,6 +1494,29 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
         )}
       </Card>
 
+      {/* Baixar todos os comprovantes do mês de uma vez */}
+      {visible.length > 0 && (
+        <Card style={{ background: C.surface, border: `1px dashed ${C.line}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 14, color: C.ink, fontWeight: 700 }}>
+                <span style={{ marginRight: 6 }}>🗂️</span>Baixar todos os comprovantes
+              </div>
+              <div style={{ fontSize: 12.5, color: C.faint, marginTop: 4 }}>
+                Um .zip com o comprovante de cada colaborador com valor em {monthLabel(month)}.
+                Os arquivos vêm nomeados por mês, nome e tipo — quem não tem valor no mês fica de fora.
+              </div>
+            </div>
+            <Btn small onClick={baixarTodosComprovantes}>
+              {zipando ? 'Montando o zip…' : 'Baixar .zip'}
+            </Btn>
+          </div>
+          {zipMsg && (
+            <p style={{ margin: '10px 4px 0', fontSize: 12.5, color: C.inkSoft }}>{zipMsg}</p>
+          )}
+        </Card>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px', flexWrap: 'wrap', gap: 6 }}>
         <span style={{ fontSize: 13.5, color: C.inkSoft, fontWeight: 600 }}>{visible.length} colaborador(es)</span>
         <span style={{ fontSize: 13.5, color: C.inkSoft }}>
@@ -1336,6 +1567,10 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
             const pagoAccName = pagoAcc ? (state.accounts.find((a: any) => a.id === pagoAcc)?.name || '') : ''
             const expanded = expandedId === c.id
             const accent = pago ? C.line : (isComm ? C.in : C.primary)
+            // Vinculado = o bruto deste colaborador E' o numero do ranking.
+            const vinculado = isComm && !!c.barbeiroId
+            const sync = syncBruto[c.id]
+            const confirmandoZero = zerarId === c.id
 
             // ── Picker "Pagar de qual caixa?" pra este colaborador ──
             if (payingId === c.id) {
@@ -1379,6 +1614,7 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
                     <div style={{ fontWeight: 600, fontSize: 15, color: pago ? C.faint : C.ink, textDecoration: pago ? 'line-through' : 'none' }}>{c.name}</div>
                     <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <Badge color={isComm ? C.in : C.inkSoft}>{isComm ? 'Comissão' : 'Salário fixo'}</Badge>
+                      {vinculado && <Badge color={C.primary}>⚡ ranking</Badge>}
                       {pago && <Badge color={C.in}>✓ Pago{pagoAccName ? ` · ${pagoAccName}` : ''}</Badge>}
                       {descontos.length > 0 && !pago && (
                         <Badge color={C.out}>{descontos.length} desconto{descontos.length > 1 ? 's' : ''}</Badge>
@@ -1393,27 +1629,17 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                    {editing === c.id ? (
-                      <>
-                        <input autoFocus style={{ ...inputStyle, width: 120, padding: '7px 10px' }} type="number" min="0" step="0.01"
-                          value={editVal} onChange={(e) => setEditVal(e.target.value)} onKeyDown={(e: any) => e.key === 'Enter' && saveEdit(c)} />
-                        <Btn small onClick={() => saveEdit(c)}>Salvar</Btn>
-                      </>
-                    ) : (
-                      <>
-                        <div style={{ textAlign: 'right' }}>
-                          <Num value={descSum > 0 ? liq : val} color={notSet ? C.faint : (pago ? C.faint : C.ink)} />
-                          {descSum > 0 && !notSet && (
-                            <div style={{ fontSize: 10.5, color: C.faint, marginTop: 1 }}>
-                              líquido (bruto {brl(val)})
-                            </div>
-                          )}
+                    <div style={{ textAlign: 'right' }}>
+                      <Num value={descSum > 0 ? liq : val} color={notSet ? C.faint : (pago ? C.faint : C.ink)} />
+                      {descSum > 0 && !notSet && (
+                        <div style={{ fontSize: 10.5, color: C.faint, marginTop: 1 }}>
+                          líquido (bruto {brl(val)})
                         </div>
-                        <Btn small tone="ghost" onClick={() => setExpandedId(expanded ? null : c.id)}>
-                          {expanded ? 'Fechar' : 'Detalhes'}
-                        </Btn>
-                      </>
-                    )}
+                      )}
+                    </div>
+                    <Btn small tone="ghost" onClick={() => { const abrindo = !expanded; setExpandedId(abrindo ? c.id : null); if (abrindo) carregarAjustes(c) }}>
+                      {expanded ? 'Fechar' : 'Detalhes'}
+                    </Btn>
                     <Btn small tone="danger" onClick={() => remove(c.id)}>✕</Btn>
                   </div>
                 </div>
@@ -1425,7 +1651,17 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '8px 10px', background: C.surface2, borderRadius: 8 }}>
                       <div>
                         <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>Bruto</div>
-                        <Num value={val} size={15} weight={700} color={C.ink} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Num value={val} size={15} weight={700} color={C.ink} />
+                          {!pago && (
+                            <span
+                              onClick={() => { setEditing(c.id); setEditVal(val ? String(val) : ''); setZerarId(null) }}
+                              style={{ ...linkStyle, fontSize: 11.5 }}
+                            >
+                              editar
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>− Descontos</div>
@@ -1440,6 +1676,86 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
                         <Num value={liq} size={17} weight={700} color={C.primary} />
                       </div>
                     </div>
+
+                    {/* ── Editar a comissão BRUTA ──
+                        Quando o colaborador está vinculado a um barbeiro, este
+                        campo NÃO é do Financeiro: é o mesmo número que o
+                        ranking, a meta e o histórico leem. A tela diz isso em
+                        letras, porque o dono precisa saber que está mexendo na
+                        premiação e não numa anotação de folha. */}
+                    {editing === c.id && (
+                      <div style={{ background: C.surface2, border: `1px dashed ${vinculado ? C.primary : C.line}`, borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div style={{ fontSize: 13, color: C.ink, fontWeight: 600 }}>
+                          {isComm ? `Comissão bruta de ${monthLabel(month)}` : 'Salário fixo'}
+                        </div>
+                        {vinculado && (
+                          <div style={{ fontSize: 11.5, color: C.primary, lineHeight: 1.5 }}>
+                            ⚡ Este valor é o mesmo que alimenta o ranking e a meta de {monthLabel(month)}.
+                            Salvar aqui altera o BarberMeta, não só o Financeiro — e o ajuste fica
+                            registrado com data e valor anterior.
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                          <Field label="Valor (R$)" grow="0 1 150px">
+                            <input
+                              autoFocus style={inputStyle} type="number" min="0" step="0.01"
+                              value={editVal}
+                              onChange={(e) => { setEditVal(e.target.value); setZerarId(null) }}
+                              onKeyDown={(e: any) => e.key === 'Enter' && saveEdit(c)}
+                              placeholder="0,00"
+                            />
+                          </Field>
+                        </div>
+                        {confirmandoZero ? (
+                          <>
+                            <div style={{ fontSize: 12, color: C.out, lineHeight: 1.5 }}>
+                              Zerar o bruto de {c.name} apaga a premiação dele em {monthLabel(month)}.
+                              Se foi isso mesmo, confirme.
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                              <Btn small tone="danger" onClick={() => saveEdit(c)}>Confirmar zerar</Btn>
+                              <Btn small tone="ghost" onClick={() => { setZerarId(null); setEditing(null) }}>Cancelar</Btn>
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            <Btn small onClick={() => saveEdit(c)}>Salvar</Btn>
+                            <Btn small tone="ghost" onClick={() => { setEditing(null); setZerarId(null) }}>Cancelar</Btn>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {sync && (
+                      <div style={{
+                        fontSize: 12, lineHeight: 1.5, padding: '8px 10px', borderRadius: 8,
+                        background: C.surface2,
+                        color: sync.estado === 'erro' ? C.out : (sync.estado === 'ok' ? C.in : C.faint),
+                        border: `1px solid ${sync.estado === 'erro' ? C.out : C.line}`,
+                      }}>
+                        {sync.msg}
+                      </div>
+                    )}
+
+                    {/* Histórico dos ajustes manuais deste ciclo */}
+                    {vinculado && (ajustes[c.id]?.length ?? 0) > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ fontSize: 11, color: C.faint, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, padding: '0 4px' }}>
+                          Ajustes manuais em {monthLabel(month)}
+                        </div>
+                        {ajustes[c.id].map((a) => (
+                          <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '7px 12px', background: C.surface2, border: `1px solid ${C.line}`, borderRadius: 8, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 12.5, color: C.inkSoft }}>
+                              {brl(a.valorAnterior)} <span style={{ color: C.faint }}>→</span>{' '}
+                              <strong style={{ color: C.ink }}>{brl(a.valorNovo)}</strong>
+                            </span>
+                            <span style={{ fontSize: 11.5, color: C.faint }}>
+                              {fmtDataHoraBR(a.criadoEm)}{a.autor ? ` · ${a.autor}` : ''}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Lista de descontos */}
                     {descontos.length === 0 ? (
