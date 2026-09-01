@@ -13,9 +13,162 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Supa = any
 
+interface PeriodoCampanha {
+  mes: number
+  ano: number
+}
+
+export type ResultadoCopiaCampanha =
+  | { ok: true; campanhaId: string }
+  | { ok: false; motivo: 'origem_nao_encontrada' | 'destino_existente' | 'erro'; erro?: string }
+
 function mesAnterior(mes: number, ano: number): { mes: number; ano: number } {
   if (mes === 1) return { mes: 12, ano: ano - 1 }
   return { mes: mes - 1, ano }
+}
+
+export function mesSeguinte(mes: number, ano: number): PeriodoCampanha {
+  if (mes === 12) return { mes: 1, ano: ano + 1 }
+  return { mes: mes + 1, ano }
+}
+
+/**
+ * Copia uma campanha completa entre dois ciclos da mesma barbearia.
+ *
+ * O destino nunca e sobrescrito: se ja existir, a operacao para sem alterar
+ * nada. Servicos, premios e modo do mes seguem a configuracao de origem.
+ */
+export async function copiarCampanhaEntreCiclos(
+  supabase: Supa,
+  barbearia_id: string,
+  origem: PeriodoCampanha,
+  destino: PeriodoCampanha,
+): Promise<ResultadoCopiaCampanha> {
+  const { data: anteriorCamp, error: erroOrigem } = await (supabase as Supa)
+    .from('campanha')
+    .select('id, min_pontos, min_pontos_recep, bonus_assin_qtd, bonus_assin_valor, regras_personalizadas, quem_lanca, ativo')
+    .eq('barbearia_id', barbearia_id)
+    .eq('mes', origem.mes)
+    .eq('ano', origem.ano)
+    .maybeSingle()
+
+  if (erroOrigem) {
+    return { ok: false, motivo: 'erro', erro: erroOrigem.message }
+  }
+  if (!anteriorCamp) {
+    return { ok: false, motivo: 'origem_nao_encontrada' }
+  }
+
+  const { data: existente, error: erroDestino } = await (supabase as Supa)
+    .from('campanha')
+    .select('id')
+    .eq('barbearia_id', barbearia_id)
+    .eq('mes', destino.mes)
+    .eq('ano', destino.ano)
+    .maybeSingle()
+
+  if (erroDestino) {
+    return { ok: false, motivo: 'erro', erro: erroDestino.message }
+  }
+  if (existente) {
+    return { ok: false, motivo: 'destino_existente' }
+  }
+
+  const { data: nova, error: errCamp } = await (supabase as Supa)
+    .from('campanha')
+    .insert({
+      barbearia_id,
+      mes: destino.mes,
+      ano: destino.ano,
+      min_pontos: anteriorCamp.min_pontos,
+      min_pontos_recep: anteriorCamp.min_pontos_recep,
+      bonus_assin_qtd: anteriorCamp.bonus_assin_qtd,
+      bonus_assin_valor: anteriorCamp.bonus_assin_valor,
+      regras_personalizadas: anteriorCamp.regras_personalizadas,
+      quem_lanca: anteriorCamp.quem_lanca,
+      ativo: anteriorCamp.ativo ?? true,
+    })
+    .select('id')
+    .single()
+
+  if (errCamp || !nova) {
+    // Uma requisicao concorrente pode ter criado o destino entre a consulta
+    // e o insert. Nesse caso, mantemos o destino intacto e avisamos a UI.
+    if (errCamp?.code === '23505') {
+      return { ok: false, motivo: 'destino_existente' }
+    }
+    return { ok: false, motivo: 'erro', erro: errCamp?.message ?? 'Não foi possível criar a campanha.' }
+  }
+
+  const desfazerCampanha = async () => {
+    await (supabase as Supa).from('campanha').delete().eq('id', nova.id).eq('barbearia_id', barbearia_id)
+  }
+
+  const { data: servicosAnt, error: erroServicosLeitura } = await (supabase as Supa)
+    .from('campanha_servicos')
+    .select('emoji, nome, pontos, conta_como_assinatura, eh_servico_feedback')
+    .eq('campanha_id', anteriorCamp.id)
+
+  if (erroServicosLeitura) {
+    await desfazerCampanha()
+    return { ok: false, motivo: 'erro', erro: erroServicosLeitura.message }
+  }
+
+  const servicos = (servicosAnt ?? []) as Array<{
+    emoji: string
+    nome: string
+    pontos: number
+    conta_como_assinatura: boolean | null
+    eh_servico_feedback: boolean | null
+  }>
+  if (servicos.length > 0) {
+    const { error: erroServicos } = await (supabase as Supa).from('campanha_servicos').insert(
+      servicos.map(s => ({
+        campanha_id: nova.id,
+        ...s,
+        conta_como_assinatura: !!s.conta_como_assinatura,
+        eh_servico_feedback: !!s.eh_servico_feedback,
+      }))
+    )
+    if (erroServicos) {
+      await desfazerCampanha()
+      return { ok: false, motivo: 'erro', erro: erroServicos.message }
+    }
+  }
+
+  const { data: premiosAnt, error: erroPremiosLeitura } = await (supabase as Supa)
+    .from('campanha_premios')
+    .select('posicao, valor')
+    .eq('campanha_id', anteriorCamp.id)
+
+  if (erroPremiosLeitura) {
+    await desfazerCampanha()
+    return { ok: false, motivo: 'erro', erro: erroPremiosLeitura.message }
+  }
+
+  const premios = (premiosAnt ?? []) as Array<{ posicao: number; valor: number }>
+  if (premios.length > 0) {
+    const { error: erroPremios } = await (supabase as Supa).from('campanha_premios').insert(
+      premios.map(p => ({ campanha_id: nova.id, ...p }))
+    )
+    if (erroPremios) {
+      await desfazerCampanha()
+      return { ok: false, motivo: 'erro', erro: erroPremios.message }
+    }
+  }
+
+  const modoCopiado = await copiarModoEntreCiclosSePreciso(
+    supabase,
+    barbearia_id,
+    origem,
+    destino,
+  )
+  if (!modoCopiado.ok) {
+    await desfazerCampanha()
+    return modoCopiado
+  }
+
+  return { ok: true, campanhaId: nova.id }
 }
 
 /**
@@ -41,58 +194,36 @@ export async function garantirCampanhaCicloAtual(
 
   // 2. Busca campanha do ciclo anterior
   const ant = mesAnterior(mes, ano)
-  const { data: anteriorCamp } = await (supabase as Supa)
-    .from('campanha').select('*')
-    .eq('barbearia_id', barbearia_id).eq('mes', ant.mes).eq('ano', ant.ano)
+  await copiarCampanhaEntreCiclos(supabase, barbearia_id, ant, { mes, ano })
+}
+
+async function copiarModoEntreCiclosSePreciso(
+  supabase: Supa,
+  barbearia_id: string,
+  origem: PeriodoCampanha,
+  destino: PeriodoCampanha,
+): Promise<{ ok: true } | { ok: false; motivo: 'erro'; erro: string }> {
+  const { data: existe, error: erroDestino } = await (supabase as Supa)
+    .from('modo_mes').select('modo')
+    .eq('barbearia_id', barbearia_id).eq('mes', destino.mes).eq('ano', destino.ano)
     .maybeSingle()
-  if (!anteriorCamp) return
+  if (erroDestino) return { ok: false, motivo: 'erro', erro: erroDestino.message }
+  if (existe) return { ok: true }
 
-  // 3. Cria nova campanha copiando a config
-  const { data: nova, error: errCamp } = await (supabase as Supa)
-    .from('campanha').insert({
-      barbearia_id,
-      mes, ano,
-      min_pontos: anteriorCamp.min_pontos,
-      min_pontos_recep: anteriorCamp.min_pontos_recep,
-      bonus_assin_qtd: anteriorCamp.bonus_assin_qtd,
-      bonus_assin_valor: anteriorCamp.bonus_assin_valor,
-      regras_personalizadas: anteriorCamp.regras_personalizadas,
-      quem_lanca: anteriorCamp.quem_lanca,
-      ativo: anteriorCamp.ativo ?? true,
-    })
-    .select('id').single()
+  const { data: anterior, error: erroOrigem } = await (supabase as Supa)
+    .from('modo_mes').select('modo')
+    .eq('barbearia_id', barbearia_id).eq('mes', origem.mes).eq('ano', origem.ano)
+    .maybeSingle()
+  if (erroOrigem) return { ok: false, motivo: 'erro', erro: erroOrigem.message }
+  if (!anterior) return { ok: true }
 
-  if (errCamp || !nova) return // race ou constraint — outra request criou primeiro
-
-  // 4. Copia servicos
-  const { data: servicosAnt } = await (supabase as Supa)
-    .from('campanha_servicos')
-    .select('emoji, nome, pontos, conta_como_assinatura')
-    .eq('campanha_id', anteriorCamp.id)
-
-  const servicos = (servicosAnt ?? []) as Array<{
-    emoji: string; nome: string; pontos: number; conta_como_assinatura: boolean | null
-  }>
-  if (servicos.length > 0) {
-    await (supabase as Supa).from('campanha_servicos').insert(
-      servicos.map(s => ({ campanha_id: nova.id, ...s }))
-    )
+  const { error: erroInsert } = await (supabase as Supa)
+    .from('modo_mes')
+    .insert({ barbearia_id, mes: destino.mes, ano: destino.ano, modo: anterior.modo })
+  if (erroInsert && erroInsert.code !== '23505') {
+    return { ok: false, motivo: 'erro', erro: erroInsert.message }
   }
-
-  // 5. Copia premios
-  const { data: premiosAnt } = await (supabase as Supa)
-    .from('campanha_premios').select('posicao, valor')
-    .eq('campanha_id', anteriorCamp.id)
-
-  const premios = (premiosAnt ?? []) as Array<{ posicao: number; valor: number }>
-  if (premios.length > 0) {
-    await (supabase as Supa).from('campanha_premios').insert(
-      premios.map(p => ({ campanha_id: nova.id, ...p }))
-    )
-  }
-
-  // 6. Garante modo_mes tambem (pra campanha efetivamente aparecer no dashboard)
-  await copiarModoMesSePreciso(supabase, barbearia_id, mes, ano)
+  return { ok: true }
 }
 
 async function copiarModoMesSePreciso(
@@ -101,20 +232,6 @@ async function copiarModoMesSePreciso(
   mes: number,
   ano: number,
 ): Promise<void> {
-  const { data: existe } = await (supabase as Supa)
-    .from('modo_mes').select('modo')
-    .eq('barbearia_id', barbearia_id).eq('mes', mes).eq('ano', ano)
-    .maybeSingle()
-  if (existe) return
-
   const ant = mesAnterior(mes, ano)
-  const { data: anterior } = await (supabase as Supa)
-    .from('modo_mes').select('modo')
-    .eq('barbearia_id', barbearia_id).eq('mes', ant.mes).eq('ano', ant.ano)
-    .maybeSingle()
-  if (!anterior) return
-
-  await (supabase as Supa)
-    .from('modo_mes')
-    .insert({ barbearia_id, mes, ano, modo: anterior.modo })
+  await copiarModoEntreCiclosSePreciso(supabase, barbearia_id, ant, { mes, ano })
 }
