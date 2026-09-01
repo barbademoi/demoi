@@ -2,6 +2,7 @@ import { headers } from 'next/headers'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import Sidebar from '@/components/dashboard/Sidebar'
+import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import BrindoletaDemo from '@/components/brindoleta/BrindoletaDemo'
 import BrindoletaPanel from '@/components/brindoleta/BrindoletaPanel'
 import { createClient } from '@/lib/supabase/server'
@@ -18,6 +19,8 @@ import type {
   BrindoletaSpin,
 } from '@/lib/brindoleta/types'
 import { brindoletaLiberada } from '@/lib/brindoleta/liberacao'
+import { cicloAtual } from '@/lib/ciclo'
+import { janelaDoCiclo } from '@/lib/brindoleta/periodo'
 import BrindoletaCheckout from './BrindoletaCheckout'
 
 export const metadata = { title: 'Brindoleta — BarberMeta' }
@@ -25,10 +28,14 @@ export const dynamic = 'force-dynamic'
 
 type UsuarioComBarbearia = {
   barbearia_id: string
-  barbearias: { id: string; nome: string; logo_url: string | null } | null
+  barbearias: { id: string; nome: string; logo_url: string | null; dia_fechamento: number | null } | null
 }
 
-export default async function BrindoletaPage() {
+export default async function BrindoletaPage({
+  searchParams,
+}: {
+  searchParams?: { mes?: string; ano?: string }
+}) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -36,7 +43,7 @@ export default async function BrindoletaPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, barbearias(id, nome, logo_url)')
+    .select('barbearia_id, barbearias(id, nome, logo_url, dia_fechamento)')
     .eq('id', user.id)
     .single()
 
@@ -58,35 +65,73 @@ export default async function BrindoletaPage() {
   const payment = brindoletaPaymentConfig()
   const isAdmin = emailEhAdminCortesia(user.email)
 
+  // ── CICLO EXIBIDO ────────────────────────────────────────────────────────
+  // Mesma régua do resto do sistema: (mes, ano) identificam o INÍCIO do ciclo
+  // da barbearia, e o padrão é o ciclo corrente. Antes não havia período
+  // nenhum aqui — o painel somava desde a primeira venda e nunca zerava.
+  const diaFechamento = usuario.barbearias.dia_fechamento ?? 1
+  const cicloHoje = cicloAtual(diaFechamento)
+  const mesParam = parseInt(searchParams?.mes ?? '', 10)
+  const anoParam = parseInt(searchParams?.ano ?? '', 10)
+  const mes = mesParam >= 1 && mesParam <= 12 ? mesParam : cicloHoje.mesRef
+  const ano = anoParam >= 2024 && anoParam <= 2100 ? anoParam : cicloHoje.anoRef
+  const janela = janelaDoCiclo(mes, ano, diaFechamento)
+
+  const ehCicloAtual = mes === cicloHoje.mesRef && ano === cicloHoje.anoRef
+  const podeVoltar = !(ano === 2024 && mes === 1)
+  // Ciclo futuro não tem o que mostrar — a Brindoleta ainda não rodou nele.
+  const podeAvancar = !ehCicloAtual && (ano < cicloHoje.anoRef || (ano === cicloHoje.anoRef && mes < cicloHoje.mesRef))
+
   let offers: BrindoletaOffer[] = []
   let barbers: BrindoletaBarber[] = []
   let spins: BrindoletaSpin[] = []
   let sales: BrindoletaSale[] = []
+  let pendentesTotais: BrindoletaSale[] = []
   let publicBaseUrl = ''
   let panelError = ''
 
   if (liberado) {
-    const [offersResult, barbersResult, spinsResult, salesResult] = await Promise.all([
+    const [offersResult, barbersResult, spinsResult, salesResult, pendentesResult] = await Promise.all([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase as any).from('brindoleta_offers').select('*')
         .eq('barbearia_id', usuario.barbearia_id).order('created_at', { ascending: true }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase as any).from('barbeiros').select('id, nome, foto_url, link_codigo, tipo')
         .eq('barbearia_id', usuario.barbearia_id).eq('ativo', true).order('nome'),
+      // Giros e vendas: SÓ os do ciclo exibido. O corte é por `created_at`,
+      // a mesma coluna que a tela do barbeiro usa — é o que faz os dois
+      // números baterem. E sem `limit`: com a janela do ciclo o volume é de
+      // um mês, e o limite de 500 que existia aqui não recortava o mais
+      // recente, recortava o TOTAL — passando de 500 vendas, a soma exibida
+      // começava a encolher sozinha.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase as any).from('brindoleta_spins').select('id, barbeiro_id, offer_id, created_at')
-        .eq('barbearia_id', usuario.barbearia_id).order('created_at', { ascending: false }).limit(500),
+        .eq('barbearia_id', usuario.barbearia_id)
+        .gte('created_at', janela.inicioIso).lt('created_at', janela.fimExclusivoIso)
+        .order('created_at', { ascending: false }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase as any).from('brindoleta_sales')
         .select('id, spin_id, barbeiro_id, offer_id, customer_name, offer_title, benefit, amount_cents, status, created_at, decided_at')
-        .eq('barbearia_id', usuario.barbearia_id).order('created_at', { ascending: false }).limit(500),
+        .eq('barbearia_id', usuario.barbearia_id)
+        .gte('created_at', janela.inicioIso).lt('created_at', janela.fimExclusivoIso)
+        .order('created_at', { ascending: false }),
+      // PENDENTES ficam FORA do corte, de propósito: é fila de trabalho, não
+      // placar. Venda de agosto que ninguém confirmou continua precisando de
+      // decisão — sumir com ela na virada do mês esconderia dinheiro real sem
+      // que ninguém tivesse decidido nada.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any).from('brindoleta_sales')
+        .select('id, spin_id, barbeiro_id, offer_id, customer_name, offer_title, benefit, amount_cents, status, created_at, decided_at')
+        .eq('barbearia_id', usuario.barbearia_id).eq('status', 'pending')
+        .order('created_at', { ascending: false }),
     ])
     offers = (offersResult.data ?? []) as BrindoletaOffer[]
     barbers = (barbersResult.data ?? []) as BrindoletaBarber[]
     spins = (spinsResult.data ?? []) as BrindoletaSpin[]
     sales = (salesResult.data ?? []) as BrindoletaSale[]
+    pendentesTotais = (pendentesResult.data ?? []) as BrindoletaSale[]
 
-    const dataError = offersResult.error ?? barbersResult.error ?? spinsResult.error ?? salesResult.error
+    const dataError = offersResult.error ?? barbersResult.error ?? spinsResult.error ?? salesResult.error ?? pendentesResult.error
     if (dataError) {
       console.error('[brindoleta/painel] falha ao carregar dados:', dataError)
       panelError = 'Não foi possível carregar a central da Brindoleta. Atualize a página em instantes; nenhuma configuração foi alterada.'
@@ -137,6 +182,21 @@ export default async function BrindoletaPage() {
                 barbers={barbers}
                 spins={spins}
                 sales={sales}
+                pendentesTotais={pendentesTotais}
+                cicloLabel={janela.ciclo.label}
+                ehCicloAtual={ehCicloAtual}
+                navegacaoCicloSlot={
+                  <MonthNavigator
+                    mesSel={mes}
+                    anoSel={ano}
+                    mesAtual={cicloHoje.mesRef}
+                    anoAtual={cicloHoje.anoRef}
+                    diaFechamento={diaFechamento}
+                    podeVoltar={podeVoltar}
+                    podeAvancar={podeAvancar}
+                    hrefBase="/dashboard/brindoleta"
+                  />
+                }
               />
             )
           ) : (
