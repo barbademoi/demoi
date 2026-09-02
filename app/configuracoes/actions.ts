@@ -4,6 +4,14 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { gerarLinkCodigo } from '@/lib/utils'
+import {
+  TABELAS_EM_CASCATA,
+  confirmacaoConfere,
+  podeExcluir,
+  totalDoInventario,
+  type CicloComDado,
+  type Inventario,
+} from '@/lib/equipe/exclusaoBarbeiro'
 
 async function getBarbeariaId() {
   const supabase = createClient()
@@ -218,4 +226,139 @@ export async function reativarBarbeiroConfig(id: string) {
 
   revalidatePath('/configuracoes')
   return { ok: true }
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// EXCLUSÃO DEFINITIVA DE UM PROFISSIONAL
+// ───────────────────────────────────────────────────────────────────────────
+//
+// Desativar continua sendo a saída certa para quem foi demitido: o barbeiro
+// sai das telas e o que ele faturou continua no histórico da barbearia.
+// Excluir é para o cadastro que não deveria existir — nome duplicado, digitado
+// errado, teste que ficou.
+//
+// A exclusão é IRREVERSÍVEL e leva junto, pelo cascade das chaves
+// estrangeiras, tudo que estava pendurado no barbeiro. Por isso ela acontece
+// em duas etapas: primeiro a tela mostra exatamente o que será apagado, depois
+// o dono confirma digitando o nome.
+
+/**
+ * O que a exclusão apagaria, e se ela é permitida.
+ *
+ * Nada é alterado aqui — é a prévia que a tela mostra antes de perguntar.
+ */
+export async function inventarioExclusaoBarbeiro(id: string): Promise<
+  | { ok: true; nome: string; inventario: Inventario; bloqueio: string | null }
+  | { error: string }
+> {
+  const supabase = createClient()
+  const barbeariaId = await getBarbeariaId()
+  if (!barbeariaId) return { error: 'Não autenticado.' }
+
+  // O barbeiro tem que ser DESTA barbearia. A RLS já barraria, mas sem a
+  // checagem um id de fora devolveria um inventário vazio — que na tela
+  // pareceria "não há nada a perder".
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: barbeiro } = await (supabase as any)
+    .from('barbeiros').select('id, nome')
+    .eq('id', id).eq('barbearia_id', barbeariaId).maybeSingle() as
+    { data: { id: string; nome: string } | null }
+  if (!barbeiro) return { error: 'Profissional não encontrado nesta barbearia.' }
+
+  // Conta linha por tabela. `head: true` traz só o total, sem baixar os dados.
+  const contagens = await Promise.all(
+    TABELAS_EM_CASCATA.map(async (t) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { count, error } = await (supabase as any)
+        .from(t.tabela).select('id', { count: 'exact', head: true })
+        .eq('barbeiro_id', id)
+      // Uma tabela que ainda não existe no ambiente não pode derrubar a
+      // prévia inteira — ela simplesmente não tem nada a apagar.
+      if (error) return [t.tabela, 0] as const
+      return [t.tabela, Number(count) || 0] as const
+    }),
+  )
+  const inventario = Object.fromEntries(contagens) as Inventario
+
+  // Meses fechados COM lançamento deste barbeiro — o único bloqueio.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [{ data: lancs }, { data: fechados }] = await Promise.all([
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).from('lancamentos').select('mes, ano')
+      .eq('barbearia_id', barbeariaId).eq('barbeiro_id', id),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).from('meses_fechados').select('mes, ano')
+      .eq('barbearia_id', barbeariaId),
+  ])
+  const chavesFechadas = new Set(
+    ((fechados ?? []) as CicloComDado[]).map((c) => `${c.mes}/${c.ano}`),
+  )
+  const fechadosComDado = ((lancs ?? []) as CicloComDado[])
+    .filter((l) => chavesFechadas.has(`${l.mes}/${l.ano}`))
+  const veredito = podeExcluir(fechadosComDado)
+
+  return {
+    ok: true,
+    nome: barbeiro.nome,
+    inventario,
+    bloqueio: veredito.ok ? null : veredito.motivo,
+  }
+}
+
+/**
+ * Exclui o profissional de vez.
+ *
+ * `nomeDigitado` tem que bater com o nome cadastrado — é a última barreira
+ * antes de algo que não tem volta. A conferência é feita AQUI, no servidor, e
+ * não só na tela: uma validação que mora apenas no cliente não é validação.
+ */
+export async function excluirBarbeiroConfig(id: string, nomeDigitado: string) {
+  const supabase = createClient()
+  const barbeariaId = await getBarbeariaId()
+  if (!barbeariaId) return { error: 'Não autenticado.' }
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Reapura tudo na hora da exclusão, e não confia no que a tela mandou: entre
+  // a prévia e o clique o dono pode ter fechado o mês em outra aba.
+  const previa = await inventarioExclusaoBarbeiro(id)
+  if ('error' in previa) return previa
+  if (previa.bloqueio) return { error: previa.bloqueio }
+  if (!confirmacaoConfere(nomeDigitado, previa.nome)) {
+    return { error: 'O nome digitado não confere com o do profissional.' }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: barbeiro } = await (supabase as any)
+    .from('barbeiros').select('id, nome, tipo')
+    .eq('id', id).eq('barbearia_id', barbeariaId).maybeSingle() as
+    { data: { id: string; nome: string; tipo: string | null } | null }
+  if (!barbeiro) return { error: 'Profissional não encontrado nesta barbearia.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: errDelete } = await (supabase as any)
+    .from('barbeiros').delete()
+    .eq('id', id).eq('barbearia_id', barbeariaId)
+  if (errDelete) return { error: 'Não foi possível excluir. Nada foi alterado.' }
+
+  // O rastro vai DEPOIS do delete: registrar uma exclusão que não aconteceu
+  // seria pior que não registrar. Se ele falhar, o barbeiro já foi (não há como
+  // desfazer) e o erro sobe no log — nunca o contrário.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: errAudit } = await (supabase as any)
+    .from('barbeiros_excluidos')
+    .insert({
+      barbearia_id: barbeariaId,
+      barbeiro_id: id,
+      nome: barbeiro.nome,
+      tipo: barbeiro.tipo,
+      apagados: previa.inventario,
+      excluido_por: user?.id ?? null,
+    })
+  if (errAudit) console.error('[configuracoes] rastro da exclusão do barbeiro:', errAudit)
+
+  revalidatePath('/configuracoes')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/brindoleta')
+  return { ok: true, nome: barbeiro.nome, apagados: totalDoInventario(previa.inventario) }
 }

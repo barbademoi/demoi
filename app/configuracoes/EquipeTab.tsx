@@ -3,8 +3,19 @@
 import { useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
 import { uploadFoto } from '@/lib/uploadFoto'
-import { adicionarBarbeiroConfig, desativarBarbeiroConfig, reativarBarbeiroConfig, atualizarDiasBarbeiroConfig } from './actions'
+import {
+  adicionarBarbeiroConfig, desativarBarbeiroConfig, reativarBarbeiroConfig,
+  atualizarDiasBarbeiroConfig, inventarioExclusaoBarbeiro, excluirBarbeiroConfig,
+} from './actions'
+import { itensDoInventario, totalDoInventario, confirmacaoConfere, type Inventario } from '@/lib/equipe/exclusaoBarbeiro'
 import type { Barbeiro } from '@/types/database'
+
+type Exclusao = {
+  id: string
+  nome: string
+  inventario: Inventario
+  bloqueio: string | null
+}
 
 interface Props {
   barbeiros: Barbeiro[]
@@ -23,6 +34,12 @@ export default function EquipeTab({ barbeiros: inicial, isAutonomo = false }: Pr
   const [erro, setErro] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const fotoRef = useRef<HTMLInputElement>(null)
+  // Exclusão definitiva: prévia carregada, texto de confirmação e recados.
+  const [exclusao, setExclusao] = useState<Exclusao | null>(null)
+  const [carregandoExclusao, setCarregandoExclusao] = useState<string | null>(null)
+  const [confirmacao, setConfirmacao] = useState('')
+  const [erroExcluir, setErroExcluir] = useState<string | null>(null)
+  const [avisoExclusao, setAvisoExclusao] = useState<string | null>(null)
 
   async function handleFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -67,6 +84,39 @@ export default function EquipeTab({ barbeiros: inicial, isAutonomo = false }: Pr
     })
   }
 
+  // ── Excluir de vez ──
+  // Duas etapas de propósito: primeiro o dono VÊ o que some junto, depois
+  // confirma digitando o nome. Não há lixeira nem desfazer do outro lado.
+  function abrirExclusao(id: string) {
+    setErroExcluir(null)
+    setConfirmacao('')
+    setCarregandoExclusao(id)
+    startTransition(async () => {
+      const res = await inventarioExclusaoBarbeiro(id)
+      setCarregandoExclusao(null)
+      if ('error' in res) { setErroExcluir(res.error); return }
+      setExclusao({ id, nome: res.nome, inventario: res.inventario, bloqueio: res.bloqueio })
+    })
+  }
+
+  function confirmarExclusao() {
+    if (!exclusao || exclusao.bloqueio) return
+    setErroExcluir(null)
+    const alvo = exclusao
+    startTransition(async () => {
+      const res = await excluirBarbeiroConfig(alvo.id, confirmacao)
+      if ('error' in res && res.error) { setErroExcluir(res.error); return }
+      setLista(prev => prev.filter(b => b.id !== alvo.id))
+      setExclusao(null)
+      setConfirmacao('')
+      const total = totalDoInventario(alvo.inventario)
+      setAvisoExclusao(
+        `${alvo.nome} foi excluído` +
+        (total > 0 ? ` junto com ${total} registro(s) do histórico dele.` : '.'),
+      )
+    })
+  }
+
   const ativos = lista.filter(b => b.ativo)
   const inativos = lista.filter(b => !b.ativo)
 
@@ -107,13 +157,22 @@ export default function EquipeTab({ barbeiros: inicial, isAutonomo = false }: Pr
                 />
               </div>
             )}
-            <button
-              onClick={() => handleToggleAtivo(b.id, b.ativo)}
-              disabled={isPending}
-              className="text-xs text-text-muted hover:text-red-400 font-sans transition-colors self-center"
-            >
-              Desativar
-            </button>
+            <div className="flex flex-col items-end gap-1 self-center">
+              <button
+                onClick={() => handleToggleAtivo(b.id, b.ativo)}
+                disabled={isPending}
+                className="text-xs text-text-muted hover:text-red-400 font-sans transition-colors"
+              >
+                Desativar
+              </button>
+              <button
+                onClick={() => abrirExclusao(b.id)}
+                disabled={isPending}
+                className="text-[11px] text-text-muted/70 hover:text-red-400 font-sans transition-colors"
+              >
+                {carregandoExclusao === b.id ? 'Verificando…' : 'Excluir'}
+              </button>
+            </div>
           </div>
         ))}
 
@@ -128,18 +187,121 @@ export default function EquipeTab({ barbeiros: inicial, isAutonomo = false }: Pr
                 <div className="flex-1">
                   <p className="text-sm font-sans text-text">{b.nome}</p>
                 </div>
-                <button
-                  onClick={() => handleToggleAtivo(b.id, b.ativo)}
-                  disabled={isPending}
-                  className="text-xs text-primary hover:text-primary/70 font-sans transition-colors"
-                >
-                  Reativar
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleToggleAtivo(b.id, b.ativo)}
+                    disabled={isPending}
+                    className="text-xs text-primary hover:text-primary/70 font-sans transition-colors"
+                  >
+                    Reativar
+                  </button>
+                  <button
+                    onClick={() => abrirExclusao(b.id)}
+                    disabled={isPending}
+                    className="text-[11px] text-text-muted/70 hover:text-red-400 font-sans transition-colors"
+                  >
+                    {carregandoExclusao === b.id ? 'Verificando…' : 'Excluir'}
+                  </button>
+                </div>
               </div>
             ))}
           </>
         )}
       </div>
+
+      {avisoExclusao && (
+        <p className="rounded-xl border border-border bg-surface-2 px-4 py-3 text-xs font-sans leading-relaxed text-text-muted">
+          {avisoExclusao}
+        </p>
+      )}
+      {erroExcluir && !exclusao && (
+        <p className="rounded-xl border border-red-400/30 bg-red-400/[0.06] px-4 py-3 text-xs font-sans leading-relaxed text-red-200">
+          {erroExcluir}
+        </p>
+      )}
+
+      {/* Confirmação da exclusão — nada foi apagado ainda */}
+      {exclusao && (
+        <div className="rounded-xl border border-red-400/30 bg-red-400/[0.05] p-4 space-y-3">
+          <p className="text-sm font-semibold font-sans text-text">
+            Excluir {exclusao.nome} de vez?
+          </p>
+
+          {exclusao.bloqueio ? (
+            <>
+              <p className="text-xs font-sans leading-relaxed text-amber-200">{exclusao.bloqueio}</p>
+              <div className="flex gap-2">
+                <button onClick={() => setExclusao(null)} className="btn-ghost text-xs flex-1">Fechar</button>
+                <button
+                  onClick={() => { handleToggleAtivo(exclusao.id, true); setExclusao(null) }}
+                  disabled={isPending}
+                  className="btn-primary text-xs flex-1"
+                >
+                  Desativar em vez disso
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {totalDoInventario(exclusao.inventario) === 0 ? (
+                <p className="text-xs font-sans leading-relaxed text-text-muted">
+                  Este cadastro não tem nenhum histórico — nada além dele será apagado.
+                </p>
+              ) : (
+                <>
+                  <p className="text-xs font-sans leading-relaxed text-text-muted">
+                    Isto apaga também, e <strong className="text-text">sem volta</strong>:
+                  </p>
+                  <ul className="space-y-1">
+                    {itensDoInventario(exclusao.inventario).map(item => (
+                      <li key={item.tabela} className="flex items-center justify-between gap-3 rounded-lg bg-surface px-3 py-1.5 text-xs font-sans">
+                        <span className="text-text-muted">{item.rotulo}</span>
+                        <strong className="text-text">{item.quantidade}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs font-sans leading-relaxed text-text-muted">
+                    Se ele apenas saiu da barbearia, <strong className="text-text">Desativar</strong> é melhor:
+                    ele some das telas e o que faturou continua no histórico.
+                  </p>
+                </>
+              )}
+
+              <div>
+                <label htmlFor="confirmar-exclusao" className="text-xs font-sans text-text-muted">
+                  Digite <strong className="text-text">{exclusao.nome}</strong> para confirmar
+                </label>
+                <input
+                  id="confirmar-exclusao"
+                  autoFocus
+                  value={confirmacao}
+                  onChange={e => { setConfirmacao(e.target.value); setErroExcluir(null) }}
+                  placeholder={exclusao.nome}
+                  className="input mt-1.5 w-full text-sm"
+                />
+              </div>
+
+              {erroExcluir && <p className="text-red-400 text-xs font-sans">{erroExcluir}</p>}
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setExclusao(null); setConfirmacao(''); setErroExcluir(null) }}
+                  className="btn-ghost text-xs flex-1"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmarExclusao}
+                  disabled={isPending || !confirmacaoConfere(confirmacao, exclusao.nome)}
+                  className="flex-1 rounded-xl bg-red-500/90 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {isPending ? 'Excluindo…' : 'Excluir definitivamente'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Form adicionar (oculto em modo autônomo — barbeiro único) */}
       {isAutonomo ? null : mostrarForm ? (
