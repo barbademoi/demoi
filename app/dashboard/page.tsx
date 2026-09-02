@@ -7,6 +7,8 @@ import { getPlatformStats } from '@/lib/stats'
 import { buscarHistoricoMesesPorBarbeiros, buscarHistoricoBarbearia, type HistoricoMes } from '@/lib/historicoMeses'
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
+import LembreteMetaModal from '@/components/dashboard/LembreteMetaModal'
+import { montarLembreteMeta } from '@/lib/metas/lembreteServer'
 import LogoUpload from '@/components/dashboard/LogoUpload'
 import ModoMesSelector from '@/components/dashboard/ModoMesSelector'
 import CampanhaModal from '@/components/dashboard/CampanhaModal'
@@ -496,12 +498,23 @@ export default async function DashboardPage({
         coletivo: { atual: 0, anterior: 0, serieAtual: [], serieAnterior: [], medido: false },
       }
 
+  // LEMBRETE DE CADASTRAR A META DO CICLO VIGENTE.
+  // Decidido no servidor: quando a meta já existe (ou não é hora de perguntar),
+  // o componente nem chega ao navegador. O ciclo é sempre o corrente, mesmo
+  // que o dono esteja navegando um mês passado — olhar agosto não muda o fato
+  // de setembro estar sem meta.
+  const lembreteMeta = await montarLembreteMeta(supabase, barbearia.id, user.id, diaFechamento)
+
   return (
+    <>
     <DashboardShell
       premiacao={premiacao}
       mostrarCortesias={emailEhAdminCortesia(user.email)}
       brindoletaStatus={brindoletaStatus}
-      popupBrindoleta={popupBrindoleta}
+      // Dois popups na mesma carga é um a mais. O lembrete de meta é do
+      // negócio do dono e tem prazo (o mês corrente); a oferta pode esperar
+      // a próxima visita.
+      popupBrindoleta={lembreteMeta ? null : popupBrindoleta}
       brindoletaAdmin={brindoletaAdmin}
       brindoletaVendas={brindoletaVendas}
       barbeariaNome={barbearia.nome}
@@ -595,5 +608,7 @@ export default async function DashboardPage({
       }
       resumoReuniaoSlot={<ResumoReuniaoModal mes={mes} ano={ano} diaFechamento={diaFechamento} />}
     />
+    {lembreteMeta && <LembreteMetaModal lembrete={lembreteMeta} />}
+    </>
   )
 }
