@@ -285,3 +285,46 @@ export async function salvarMetas(formData: FormData) {
   revalidatePath('/b/[codigo]', 'page')
   return { ok: true, salvos, erros: erros.length > 0 ? erros : undefined }
 }
+
+/**
+ * Adia o lembrete de cadastrar a meta por um dia.
+ *
+ * Não existe "não mostrar mais": quem some com o lembrete é a meta cadastrada.
+ * O adiamento é por CICLO — adiar setembro não silencia outubro, e é
+ * justamente o lembrete de outubro que impede o mês novo de começar sem meta.
+ */
+export async function adiarLembreteMeta(mes: number, ano: number) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  if (!(mes >= 1 && mes <= 12) || !(ano >= 2000 && ano <= 2100)) {
+    return { error: 'Período inválido.' }
+  }
+
+  const ate = new Date()
+  ate.setDate(ate.getDate() + 1)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: atual } = await (supabase as any)
+    .from('lembrete_meta_estado').select('vezes')
+    .eq('usuario_id', user.id).eq('mes', mes).eq('ano', ano).maybeSingle() as
+    { data: { vezes: number } | null }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('lembrete_meta_estado')
+    .upsert({
+      usuario_id: user.id,
+      mes,
+      ano,
+      adiado_ate: ate.toISOString(),
+      vezes: (Number(atual?.vezes) || 0) + 1,
+      atualizado_em: new Date().toISOString(),
+    }, { onConflict: 'usuario_id,mes,ano' })
+
+  if (error) return { error: 'Não foi possível adiar agora.' }
+
+  revalidatePath('/dashboard')
+  return { ok: true }
+}

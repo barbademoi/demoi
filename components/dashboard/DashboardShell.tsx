@@ -408,7 +408,9 @@ function ConfigPanel({
 
       {/* Metas */}
       {modoAtual !== 'pontos' && metasSlot && (
-        <section className="card p-5 space-y-3">
+        // O id é o alvo do "Cadastrar agora" do lembrete de meta: ele rola até
+        // aqui em vez de duplicar o formulário dentro do popup.
+        <section id="secao-metas" className="card scroll-mt-24 p-5 space-y-3">
           <div>
             <h2 className="font-serif text-lg text-text">Metas Individuais</h2>
             <p className="text-text-muted text-xs font-sans mt-0.5">

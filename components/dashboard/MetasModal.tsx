@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { salvarMetas, buscarMetasPeriodo, buscarMetasMaisRecenteAntes } from '@/app/dashboard/metas/actions'
 import { cicloDeData } from '@/lib/ciclo'
 import { formatBRL } from '@/lib/utils'
@@ -82,6 +82,15 @@ export default function MetasModal({
   mes, ano, herdadoDeMesAnterior, diaFechamento = 1,
 }: Props) {
   const [open, setOpen] = useState(false)
+
+  // O lembrete de meta abre este formulário de fora, por evento: ele rola até
+  // a seção e manda abrir. Assim continua existindo UM só lugar onde a meta é
+  // cadastrada, em vez de um formulário duplicado dentro do popup.
+  useEffect(() => {
+    const abrir = () => setOpen(true)
+    window.addEventListener('bm:abrir-metas', abrir)
+    return () => window.removeEventListener('bm:abrir-metas', abrir)
+  }, [])
   const [isPending, startTransition] = useTransition()
   const [erro, setErro] = useState<string | null>(null)
   const [sucesso, setSucesso] = useState(false)
