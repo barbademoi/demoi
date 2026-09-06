@@ -101,17 +101,36 @@ botao.addEventListener('click', async () => {
     }
 
     if (!resp.ok) {
-      mostrar('BarberMeta recusou: ' + (dados?.error || `erro ${resp.status}`), 'err')
+      // Um 500 sem texto quase sempre é variável de ambiente faltando no
+      // servidor — dizer isso poupa o dono de procurar erro no cadastro dele.
+      const detalhe = dados?.error
+        || (resp.status >= 500
+          ? `erro ${resp.status} no servidor (nenhuma mensagem). Isso costuma ser configuração do BarberMeta, não do seu cadastro — avise o suporte.`
+          : `erro ${resp.status}`)
+      mostrar('BarberMeta recusou: ' + detalhe, 'err')
       return
     }
 
-    // Sucesso — monta o resumo.
-    let msg = `✓ Enviado — ${dados.atualizados} barbeiro(s) atualizados`
-    if (dados.ciclo) msg += `\nCiclo ${dados.ciclo} · fonte: ${resultado.via === 'json' ? 'endpoint interno' : 'tela (HTML)'}`
-    if (Array.isArray(dados.naoEncontrados) && dados.naoEncontrados.length) {
-      msg += `\n⚠ Sem correspondência (confira o nome no BarberMeta): ${dados.naoEncontrados.join(', ')}`
+    // Resumo — o servidor manda as frases já prontas, com a AÇÃO de cada caso
+    // (renomear, reativar, cadastrar). Manter esse texto em um lugar só evita
+    // que a extensão e o painel expliquem a mesma coisa de jeitos diferentes.
+    const linhas = []
+    if (Array.isArray(dados.mensagens) && dados.mensagens.length) {
+      linhas.push(...dados.mensagens)
+    } else {
+      // Versão antiga do servidor: mantém o formato anterior.
+      linhas.push(`✓ Enviado — ${dados.atualizados} barbeiro(s) atualizados`)
+      if (Array.isArray(dados.naoEncontrados) && dados.naoEncontrados.length) {
+        linhas.push(`○ Sem correspondência: ${dados.naoEncontrados.join(', ')}`)
+      }
     }
-    mostrar(msg, 'ok')
+    if (dados.ciclo) {
+      linhas.push(`Ciclo ${dados.ciclo} · fonte: ${resultado.via === 'json' ? 'endpoint interno' : 'tela (HTML)'}`)
+    }
+
+    // Importar ninguém não é sucesso, mesmo o servidor tendo respondido 200.
+    const nenhum = dados.resumo ? dados.resumo.importados.length === 0 : dados.atualizados === 0
+    mostrar(linhas.join('\n\n'), nenhum ? 'err' : 'ok')
   } finally {
     botao.disabled = false
   }
