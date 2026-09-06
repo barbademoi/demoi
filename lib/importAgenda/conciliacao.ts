@@ -13,11 +13,15 @@
 export type Situacao =
   /** Casou com um barbeiro ativo — vai ser importado. */
   | 'ativo'
+  /** Não casa pelo nome, mas o dono já confirmou o de-para. Também importa. */
+  | 'confirmado'
+  /** O dono disse que este nome não corresponde a ninguém. Silêncio. */
+  | 'ignorado'
   /** O nome existe no BarberMeta, mas o barbeiro está desativado. */
   | 'inativo'
   /** O nome bate com alguém que foi excluído de vez. */
   | 'excluido'
-  /** Ninguém com esse nome, nem ativo, nem inativo, nem excluído. */
+  /** Ninguém com esse nome. Vira pendência pro dono confirmar uma vez. */
   | 'desconhecido'
 
 export interface BarbeiroDoBanco {
@@ -59,10 +63,19 @@ export function normalizarNome(n: string): string {
  * exclusões (migration 057), que é a única memória que sobra de quem foi
  * apagado.
  */
+export interface DeParaConfirmado {
+  /** Nome do Agenda, já normalizado. */
+  nomeOrigem: string
+  /** null quando a linha é um "ignorar sempre". */
+  barbeiroId: string | null
+  ignorar: boolean
+}
+
 export function conciliar(
   nomesDoRelatorio: string[],
   barbeiros: BarbeiroDoBanco[],
   nomesExcluidos: string[] = [],
+  depara: DeParaConfirmado[] = [],
 ): LinhaConciliada[] {
   const porNome = new Map<string, BarbeiroDoBanco>()
   // Ativo tem precedência: se existir um ativo e um inativo com o mesmo nome
@@ -75,8 +88,31 @@ export function conciliar(
   }
   const excluidos = new Set((nomesExcluidos ?? []).map(normalizarNome))
 
+  const porId = new Map((barbeiros ?? []).map((b) => [b.id, b]))
+  const confirmados = new Map((depara ?? []).map((d) => [normalizarNome(d.nomeOrigem), d]))
+
   return (nomesDoRelatorio ?? []).map((nomeRelatorio) => {
     const chave = normalizarNome(nomeRelatorio)
+
+    // O DE-PARA VEM PRIMEIRO. Ele é uma decisão explícita do dono; o
+    // casamento por nome é um palpite. Quando os dois discordam, quem manda é
+    // quem foi confirmado à mão.
+    const conf = confirmados.get(chave)
+    if (conf?.ignorar) {
+      return { nomeRelatorio, situacao: 'ignorado' as const }
+    }
+    if (conf?.barbeiroId) {
+      const alvo = porId.get(conf.barbeiroId)
+      // O barbeiro confirmado pode ter sido desativado depois. Aí o de-para
+      // não vale mais sozinho: cai na mesma explicação de qualquer inativo.
+      if (alvo?.ativo) {
+        return { nomeRelatorio, situacao: 'confirmado' as const, barbeiroId: alvo.id, nomeCadastrado: alvo.nome }
+      }
+      if (alvo) {
+        return { nomeRelatorio, situacao: 'inativo' as const, nomeCadastrado: alvo.nome }
+      }
+    }
+
     const achado = porNome.get(chave)
 
     if (achado?.ativo) {
@@ -96,7 +132,10 @@ export interface ResumoImport {
   importados: string[]
   inativos: string[]
   excluidos: string[]
-  desconhecidos: string[]
+  /** Nomes novos, esperando o dono confirmar o de-para uma vez. */
+  pendentes: string[]
+  /** O dono já disse que não correspondem a ninguém — não viram recado. */
+  ignorados: string[]
   /** Casaram, mas a gravação falhou. Isso é erro de sistema, não de cadastro. */
   falharam: string[]
 }
@@ -107,9 +146,15 @@ export function resumir(linhas: LinhaConciliada[], importados: string[], falhara
     importados: importados ?? [],
     inativos: por('inativo'),
     excluidos: por('excluido'),
-    desconhecidos: por('desconhecido'),
+    pendentes: por('desconhecido'),
+    ignorados: por('ignorado'),
     falharam: falharam ?? [],
   }
+}
+
+/** Os nomes que o endpoint precisa registrar como pendência pra tela listar. */
+export function nomesParaRegistrarPendencia(linhas: LinhaConciliada[]): string[] {
+  return (linhas ?? []).filter((l) => l.situacao === 'desconhecido').map((l) => l.nomeRelatorio)
 }
 
 const lista = (ns: string[]) => ns.join(', ')
@@ -141,8 +186,11 @@ export function mensagensDoResumo(r: ResumoImport): string[] {
     out.push(`○ Ignorado por ter sido EXCLUÍDO do BarberMeta: ${lista(r.excluidos)}. Se voltou a trabalhar, cadastre de novo.`)
   }
 
-  if (r.desconhecidos.length > 0) {
-    out.push(`○ Sem cadastro no BarberMeta: ${lista(r.desconhecidos)}. Cadastre em Configurações → Equipe, ou ajuste o nome pra ficar igual ao do Agenda Serviço.`)
+  if (r.pendentes.length > 0) {
+    // Não manda mais "ajuste o nome": renomear o barbeiro pra agradar um
+    // relatório externo mudaria o nome que aparece no ranking e no card de
+    // pagamento dele. Confirmar o de-para resolve sem mexer em nada disso.
+    out.push(`○ Falta confirmar o de-para de: ${lista(r.pendentes)}. Abra "Importar relatório" no BarberMeta e confirme esse nome uma vez — depois disso ele entra sozinho em toda importação.`)
   }
 
   // O caso que mais confundia: 200 com zero importados parecia sucesso.

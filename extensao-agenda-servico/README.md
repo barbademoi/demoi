@@ -121,5 +121,5 @@ A importação **nunca falha inteira** por causa de um nome: quem casa entra, qu
 |---|---|
 | "○ Ignorado por estar DESATIVADO no BarberMeta: Fulano" | O nome está certo. Reative em Configurações → Equipe se ele ainda trabalha aí. Não procure erro de digitação. |
 | "○ Ignorado por ter sido EXCLUÍDO do BarberMeta: Fulano" | Ele foi apagado de vez. Se voltou, cadastre de novo. |
-| "○ Sem cadastro no BarberMeta: Fulano" | Aí sim: cadastre em Configurações → Equipe, ou deixe o nome igual ao do Agenda Serviço. |
+| "○ Falta confirmar o de-para de: Fulano" | Abra **Importar relatório** no BarberMeta e diga uma vez quem é esse nome. Depois disso ele entra sozinho em toda importação — sem precisar renomear ninguém. Se o nome não for uma pessoa (linha de total, serviço avulso), marque "Não é ninguém" e ele para de aparecer. |
 | "Nenhum barbeiro foi importado…" | Nenhum nome do relatório casou com a equipe. A extensão mostra isso em vermelho — não é sucesso. |

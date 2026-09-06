@@ -4,7 +4,8 @@ import { cicloDeData } from '@/lib/ciclo'
 import { estaFechado } from '@/lib/mesFechado'
 import {
   conciliar, resumir, mensagensDoResumo, tudoFalhouAoGravar,
-  type BarbeiroDoBanco,
+  nomesParaRegistrarPendencia, normalizarNome,
+  type BarbeiroDoBanco, type DeParaConfirmado,
 } from '@/lib/importAgenda/conciliacao'
 
 /**
@@ -116,11 +117,38 @@ export async function POST(request: NextRequest) {
     .from('barbeiros_excluidos').select('nome').eq('barbearia_id', barbeariaId)
   const nomesExcluidos = ((excRaw ?? []) as { nome: string }[]).map(e => e.nome)
 
-  const linhas = conciliar(
-    barbeirosPayload.map(p => String(p.nome ?? '(sem nome)')),
-    barbeiros,
-    nomesExcluidos,
-  )
+  // De-para confirmado pelo dono na tela "Importar relatório". Tem precedência
+  // sobre o casamento por nome: é decisão explícita contra palpite.
+  const { data: deparaRaw } = await supabase
+    .from('import_agenda_depara').select('nome_origem, barbeiro_id, ignorar')
+    .eq('barbearia_id', barbeariaId)
+  const depara = ((deparaRaw ?? []) as { nome_origem: string; barbeiro_id: string | null; ignorar: boolean }[])
+    .map(d => ({ nomeOrigem: d.nome_origem, barbeiroId: d.barbeiro_id, ignorar: d.ignorar })) as DeParaConfirmado[]
+
+  const nomesDoRelatorio = barbeirosPayload.map(p => String(p.nome ?? '(sem nome)'))
+  const linhas = conciliar(nomesDoRelatorio, barbeiros, nomesExcluidos, depara)
+
+  // Registra os nomes novos como PENDÊNCIA. Sem isto a tela do dono não teria
+  // o que listar: só a importação sabe quais nomes o Agenda Serviço manda.
+  // `vezes` sobe a cada aparição, pra a tela pôr na frente o que vem todo dia.
+  const pendentes = nomesParaRegistrarPendencia(linhas)
+  for (const nome of pendentes) {
+    const chave = normalizarNome(nome)
+    const { data: ja } = await supabase
+      .from('import_agenda_depara').select('id, vezes')
+      .eq('barbearia_id', barbeariaId).eq('nome_origem', chave).maybeSingle()
+    if (ja) {
+      await supabase.from('import_agenda_depara')
+        .update({ vezes: (Number(ja.vezes) || 0) + 1, visto_em: new Date().toISOString(), nome_exibicao: nome })
+        .eq('id', ja.id)
+    } else {
+      const { error: errPend } = await supabase.from('import_agenda_depara')
+        .insert({ barbearia_id: barbeariaId, nome_origem: chave, nome_exibicao: nome })
+      // Registrar a pendência é conveniência: se a tabela ainda não existe no
+      // ambiente, a importação segue e o nome só aparece na mensagem.
+      if (errPend) console.error('[import-agenda] não registrei a pendência de', nome, errPend)
+    }
+  }
 
   const atualizados: string[] = []
   const falharam: string[] = []
@@ -129,8 +157,9 @@ export async function POST(request: NextRequest) {
   for (let i = 0; i < barbeirosPayload.length; i++) {
     const p = barbeirosPayload[i]
     const linha = linhas[i]
-    // Quem não é 'ativo' já está classificado — pula sem derrubar o resto.
-    if (linha.situacao !== 'ativo' || !linha.barbeiroId) continue
+    // 'ativo' (casou pelo nome) e 'confirmado' (o dono ligou os dois à mão)
+    // importam igual. O resto já está classificado — pula sem derrubar nada.
+    if ((linha.situacao !== 'ativo' && linha.situacao !== 'confirmado') || !linha.barbeiroId) continue
 
     const alvo = { id: linha.barbeiroId, nome: linha.nomeCadastrado ?? linha.nomeRelatorio }
     const fat = num(p.faturamento)
@@ -215,6 +244,6 @@ export async function POST(request: NextRequest) {
     mensagens,
     // Mantido pra não quebrar versões antigas da extensão que ainda leem este
     // campo — agora é a soma das três situações de "não importado".
-    naoEncontrados: [...resumo.inativos, ...resumo.excluidos, ...resumo.desconhecidos],
+    naoEncontrados: [...resumo.inativos, ...resumo.excluidos, ...resumo.pendentes],
   })
 }
