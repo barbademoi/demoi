@@ -108,4 +108,18 @@ Depois de setar as duas, faça um redeploy pra elas entrarem em vigor.
 | "Abra e faça login no Agenda Serviço…" | Vá pra aba do Agenda Serviço, na tela do relatório, e clique de novo. |
 | "BarberMeta recusou: Não autorizado." | Token da extensão ≠ `AGENDA_IMPORT_TOKEN` da Vercel. |
 | "…Ciclo … está fechado." | Reabra o ciclo no BarberMeta e reimporte. |
-| "⚠ Sem correspondência: Fulano" | O nome no Agenda Serviço não bate com nenhum barbeiro ativo no BarberMeta. Ajuste o nome (ou os sinônimos de coluna). |
+| "…Importação indisponível no momento." | Faltam `AGENDA_IMPORT_TOKEN`/`AGENDA_IMPORT_EMAIL` no ambiente da Vercel. |
+| "…Conta configurada não encontrada." | `AGENDA_IMPORT_EMAIL` não bate com nenhum usuário do BarberMeta. |
+| "…erro 500 no servidor (nenhuma mensagem)" | Variável de ambiente faltando na Vercel — em geral `SUPABASE_SERVICE_ROLE_KEY`. Não é problema do seu cadastro. |
+| "…Nada foi gravado: as escritas no banco falharam." | Os nomes casaram, mas o banco recusou a escrita. Tente de novo; se persistir, é problema no BarberMeta. |
+
+### Barbeiro que não foi importado
+
+A importação **nunca falha inteira** por causa de um nome: quem casa entra, quem não casa é listado com o motivo. São três motivos diferentes, e a ação é diferente em cada um:
+
+| Mensagem | O que fazer |
+|---|---|
+| "○ Ignorado por estar DESATIVADO no BarberMeta: Fulano" | O nome está certo. Reative em Configurações → Equipe se ele ainda trabalha aí. Não procure erro de digitação. |
+| "○ Ignorado por ter sido EXCLUÍDO do BarberMeta: Fulano" | Ele foi apagado de vez. Se voltou, cadastre de novo. |
+| "○ Sem cadastro no BarberMeta: Fulano" | Aí sim: cadastre em Configurações → Equipe, ou deixe o nome igual ao do Agenda Serviço. |
+| "Nenhum barbeiro foi importado…" | Nenhum nome do relatório casou com a equipe. A extensão mostra isso em vermelho — não é sucesso. |

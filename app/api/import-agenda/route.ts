@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { cicloDeData } from '@/lib/ciclo'
 import { estaFechado } from '@/lib/mesFechado'
+import {
+  conciliar, resumir, mensagensDoResumo, tudoFalhouAoGravar,
+  type BarbeiroDoBanco,
+} from '@/lib/importAgenda/conciliacao'
 
 /**
  * IMPORT DA EXTENSÃO (Agenda Serviço → BarberMeta).
@@ -28,9 +32,6 @@ import { estaFechado } from '@/lib/mesFechado'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Supa = any
 
-function normalizarNome(n: string): string {
-  return n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
-}
 const num = (v: unknown) => {
   const n = Number(v)
   return Number.isFinite(n) && n > 0 ? n : 0
@@ -97,20 +98,41 @@ export async function POST(request: NextRequest) {
   const trava = await estaFechado(supabase, barbeariaId, mes, ano)
   if (trava.fechado) return NextResponse.json({ error: `Ciclo ${ciclo.label} está fechado. Reabra pra importar.` }, { status: 409 })
 
-  // ── 5. De-para por nome (Agenda Serviço → barbeiro do BarberMeta) ─────────
+  // ── 5. Conciliação dos nomes (Agenda Serviço → barbeiro do BarberMeta) ────
+  //
+  // A lista vem SEM filtro de `ativo`, de propósito. Antes ela filtrava por
+  // ativo, e com isso um barbeiro DESATIVADO caía no mesmo balaio de quem não
+  // tem cadastro nenhum, com a frase "confira o nome" — mandando o dono
+  // procurar erro de digitação num nome que estava certo. Agora as duas
+  // situações são distinguidas, e a de quem foi EXCLUÍDO também, lendo o
+  // rastro de exclusões.
   const { data: barbsRaw } = await supabase
-    .from('barbeiros').select('id, nome').eq('barbearia_id', barbeariaId).eq('ativo', true)
-  const porNome = new Map<string, { id: string; nome: string }>()
-  for (const b of (barbsRaw ?? []) as { id: string; nome: string }[]) porNome.set(normalizarNome(b.nome), b)
+    .from('barbeiros').select('id, nome, ativo').eq('barbearia_id', barbeariaId)
+  const barbeiros = (barbsRaw ?? []) as BarbeiroDoBanco[]
 
-  const naoEncontrados: string[] = []
+  // O rastro de exclusão é informativo: se a tabela ainda não existe no
+  // ambiente, o import segue e esses nomes só caem como "sem cadastro".
+  const { data: excRaw } = await supabase
+    .from('barbeiros_excluidos').select('nome').eq('barbearia_id', barbeariaId)
+  const nomesExcluidos = ((excRaw ?? []) as { nome: string }[]).map(e => e.nome)
+
+  const linhas = conciliar(
+    barbeirosPayload.map(p => String(p.nome ?? '(sem nome)')),
+    barbeiros,
+    nomesExcluidos,
+  )
+
   const atualizados: string[] = []
+  const falharam: string[] = []
   let somaFatCasa = 0, somaAtendCasa = 0
 
-  for (const p of barbeirosPayload) {
-    const alvo = porNome.get(normalizarNome(String(p.nome ?? '')))
-    if (!alvo) { naoEncontrados.push(String(p.nome ?? '(sem nome)')); continue }
+  for (let i = 0; i < barbeirosPayload.length; i++) {
+    const p = barbeirosPayload[i]
+    const linha = linhas[i]
+    // Quem não é 'ativo' já está classificado — pula sem derrubar o resto.
+    if (linha.situacao !== 'ativo' || !linha.barbeiroId) continue
 
+    const alvo = { id: linha.barbeiroId, nome: linha.nomeCadastrado ?? linha.nomeRelatorio }
     const fat = num(p.faturamento)
     const com = num(p.comissao)
     const atend = num(p.atendimentos)
@@ -130,13 +152,26 @@ export async function POST(request: NextRequest) {
     if (fat > 0 || base === 'faturamento') row.valor_faturamento = fat
     if (com > 0 || base === 'comissao') row.valor_comissao = com
     row.comissao_acumulada = espelho
-    await supabase.from('lancamentos').upsert(row, { onConflict: 'barbearia_id,barbeiro_id,mes,ano' })
 
-    // Foto do dia (sobrescreve o dia se reenviado; não duplica).
-    await supabase.from('lancamentos_diarios').upsert(
+    // O ERRO DO UPSERT É CHECADO. Antes não era: uma escrita recusada passava
+    // batida e o endpoint respondia "atualizado" para um número que não tinha
+    // sido gravado. Reportar sucesso falso é pior que reportar falha.
+    const { error: errLanc } = await supabase
+      .from('lancamentos').upsert(row, { onConflict: 'barbearia_id,barbeiro_id,mes,ano' })
+    if (errLanc) {
+      console.error('[import-agenda] falha ao gravar lancamento de', alvo.nome, errLanc)
+      falharam.push(alvo.nome)
+      continue
+    }
+
+    // Foto do dia (sobrescreve o dia se reenviado; não duplica). Se ela
+    // falhar, o acumulado — que é o que alimenta ranking e meta — já foi
+    // gravado: o barbeiro conta como importado e o erro fica no log.
+    const { error: errDia } = await supabase.from('lancamentos_diarios').upsert(
       { barbearia_id: barbeariaId, barbeiro_id: alvo.id, data: referencia, valor: espelho, numero_atendimentos: atend, atualizado_em: new Date().toISOString() },
       { onConflict: 'barbeiro_id,data' },
     )
+    if (errDia) console.error('[import-agenda] falha na foto do dia de', alvo.nome, errDia)
 
     somaFatCasa += fat
     somaAtendCasa += atend
@@ -157,11 +192,29 @@ export async function POST(request: NextRequest) {
     if (Object.keys(patch).length > 0) await supabase.from('metas').update(patch).eq('id', metaRaw.id)
   }
 
+  const resumo = resumir(linhas, atualizados, falharam)
+  const mensagens = mensagensDoResumo(resumo)
+
+  // Nada gravado POR FALHA DE ESCRITA é erro de sistema e sai como erro. Nada
+  // gravado por nenhum nome casar é outra coisa: o endpoint funcionou, o
+  // cadastro é que não bate — e sai como 200 com a explicação, pra o dono não
+  // caçar um problema no servidor que não existe.
+  if (tudoFalhouAoGravar(resumo)) {
+    return NextResponse.json(
+      { error: 'Nada foi gravado: as escritas no banco falharam. Tente de novo em instantes.', resumo, mensagens },
+      { status: 502 },
+    )
+  }
+
   return NextResponse.json({
     ok: true,
     ciclo: ciclo.label,
     atualizados: atualizados.length,
     barbeiros: atualizados,
-    naoEncontrados,
+    resumo,
+    mensagens,
+    // Mantido pra não quebrar versões antigas da extensão que ainda leem este
+    // campo — agora é a soma das três situações de "não importado".
+    naoEncontrados: [...resumo.inativos, ...resumo.excluidos, ...resumo.desconhecidos],
   })
 }
