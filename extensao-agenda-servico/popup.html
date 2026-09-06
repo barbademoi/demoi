@@ -17,6 +17,7 @@
     label { display: block; font-size: 11px; color: #8B8FA8; margin: 8px 0 3px; }
     input { width: 100%; box-sizing: border-box; padding: 8px; border-radius: 8px; border: 1px solid #1E2028; background: #161820; color: #EEF0F6; font-size: 12px; }
     .save { background: #1E2028; color: #EEF0F6; margin-top: 8px; }
+    #cfgStatus { margin-top: 10px; font-size: 12px; line-height: 1.45; white-space: pre-wrap; min-height: 1em; }
   </style>
 </head>
 <body>
@@ -32,7 +33,12 @@
       <input id="cfgUrl" placeholder="https://barbermeta.com.br" />
       <label>Token de importação (AGENDA_IMPORT_TOKEN)</label>
       <input id="cfgToken" type="password" placeholder="cole o token" />
-      <button class="save" id="salvar">Salvar config</button>
+      <button class="save" id="verToken" type="button">Mostrar o token</button>
+      <button class="save" id="salvar" type="button">Salvar config</button>
+      <!-- A confirmação fica AQUI, colada no botão. Antes ela aparecia lá em
+           cima, fora da vista de quem está com este bloco aberto — o clique
+           parecia não fazer nada. -->
+      <div id="cfgStatus" class="cfgmsg"></div>
     </details>
   </div>
   <script src="extrator.js"></script>

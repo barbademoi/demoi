@@ -12,10 +12,20 @@
 const $ = (id) => document.getElementById(id)
 const statusEl = $('status')
 const botao = $('go')
+const cfgStatusEl = $('cfgStatus')
 
 function mostrar(texto, classe) {
   statusEl.textContent = texto
   statusEl.className = classe || 'muted'
+}
+
+// Recado da área de configuração — fica colado no botão Salvar. O #status
+// principal está acima e some da vista quando o bloco "Configurar" está
+// aberto: a confirmação aparecia num canto que ninguém estava olhando.
+function mostrarCfg(texto, classe) {
+  if (!cfgStatusEl) { mostrar(texto, classe); return }
+  cfgStatusEl.textContent = texto
+  cfgStatusEl.className = 'cfgmsg ' + (classe || 'muted')
 }
 
 // ── Config (URL + token) persistida localmente ──
@@ -33,11 +43,46 @@ async function carregarCampos() {
   $('cfgToken').value = token
 }
 
+// Deixa ver o que foi colado. Campo de senha escondendo um token que a pessoa
+// acabou de colar não protege nada — ninguém decora esse valor — e impede de
+// conferir se veio inteiro ou com espaço sobrando.
+$('verToken').addEventListener('click', () => {
+  const campo = $('cfgToken')
+  const escondido = campo.type === 'password'
+  campo.type = escondido ? 'text' : 'password'
+  $('verToken').textContent = escondido ? 'Esconder o token' : 'Mostrar o token'
+})
+
 $('salvar').addEventListener('click', async () => {
   const url = $('cfgUrl').value.trim().replace(/\/+$/, '')
   const token = $('cfgToken').value.trim()
-  await chrome.storage.local.set({ cfgUrl: url, cfgToken: token })
-  mostrar('Config salva.', 'ok')
+
+  if (!token) {
+    mostrarCfg('Cole o token antes de salvar.', 'err')
+    return
+  }
+
+  try {
+    await chrome.storage.local.set({ cfgUrl: url, cfgToken: token })
+
+    // LÊ DE VOLTA pra confirmar. Sem isso, "Config salva." é só uma promessa:
+    // se o storage recusar a escrita, a mensagem verde aparece do mesmo jeito
+    // e a pessoa fica horas procurando erro no token.
+    const { cfgToken: gravado } = await chrome.storage.local.get(['cfgToken'])
+    if (gravado !== token) {
+      mostrarCfg('O navegador não guardou o token. Feche e abra o popup e tente de novo.', 'err')
+      return
+    }
+
+    // Mostra o começo e o fim do que ficou guardado: dá pra conferir contra o
+    // que está na Vercel sem expor o valor inteiro na tela.
+    const marca = token.length > 10
+      ? `${token.slice(0, 4)}…${token.slice(-4)} (${token.length} caracteres)`
+      : `${token.length} caracteres`
+    mostrarCfg(`✓ Token salvo: ${marca}\nURL: ${url}`, 'ok')
+  } catch (e) {
+    mostrarCfg('Não consegui salvar: ' + (e?.message || e), 'err')
+  }
 })
 
 // ── Fluxo principal ──
@@ -136,4 +181,10 @@ botao.addEventListener('click', async () => {
   }
 })
 
-carregarCampos()
+// Um erro aqui deixaria a extensão inteira muda — sem listener, todo botão
+// vira enfeite e nada explica por quê. Melhor dizer na tela.
+try {
+  carregarCampos()
+} catch (e) {
+  mostrar('A extensão não carregou direito: ' + (e?.message || e), 'err')
+}
