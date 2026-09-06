@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { confirmarDePara, ignorarNome, reabrirDePara } from './actions'
+import { confirmarDePara, ignorarNome, reabrirDePara, vincularNomeManual } from './actions'
 import type { LinhaDePara } from './page'
 
 interface Props {
@@ -18,6 +18,8 @@ const fmtData = (iso: string) => {
 export default function DeParaClient({ linhas, barbeiros }: Props) {
   const [erro, setErro] = useState<string | null>(null)
   const [escolha, setEscolha] = useState<Record<string, string>>({})
+  const [novoNome, setNovoNome] = useState('')
+  const [novoBarbeiro, setNovoBarbeiro] = useState('')
   const [isPending, startTransition] = useTransition()
 
   // Pendentes primeiro, e dentro delas o nome que mais aparece — é o que está
@@ -26,6 +28,8 @@ export default function DeParaClient({ linhas, barbeiros }: Props) {
     .filter(l => !l.barbeiroId && !l.ignorar)
     .sort((a, b) => b.vezes - a.vezes)
   const resolvidas = linhas.filter(l => l.barbeiroId || l.ignorar)
+  // Tabela inteiramente vazia = nenhuma importação passou por aqui ainda.
+  const nuncaImportou = linhas.length === 0
 
   const nomeDoBarbeiro = (id: string | null) =>
     barbeiros.find(b => b.id === id)?.nome ?? 'profissional removido'
@@ -50,12 +54,26 @@ export default function DeParaClient({ linhas, barbeiros }: Props) {
           <div>
             <h2 className="font-serif text-2xl text-text">Falta confirmar</h2>
             <p className="mt-1 text-sm text-text-muted">
-              {pendentes.length === 0
-                ? 'Nenhum nome pendente — toda a última importação foi reconhecida.'
-                : `${pendentes.length} nome${pendentes.length === 1 ? '' : 's'} do relatório sem correspondência.`}
+              {pendentes.length > 0
+                ? `${pendentes.length} nome${pendentes.length === 1 ? '' : 's'} do relatório sem correspondência.`
+                : nuncaImportou
+                // Dizer "tudo reconhecido" aqui seria mentira: nenhuma
+                // importação passou por esta tela ainda, então não há o que
+                // reconhecer. As duas situações parecem iguais na tela e são
+                // opostas na prática.
+                ? 'Nenhuma importação registrou nomes aqui ainda.'
+                : 'Nenhum nome pendente — a última importação foi toda reconhecida.'}
             </p>
           </div>
         </div>
+
+        {pendentes.length === 0 && nuncaImportou && (
+          <div className="mt-4 rounded-xl border border-border bg-surface-2 p-4 text-sm leading-relaxed text-text-muted">
+            Os nomes chegam sozinhos: <strong className="text-text">rode uma importação pela
+            extensão</strong> e todo nome que o BarberMeta não reconhecer aparece aqui.
+            Se você já sabe qual nome vai dar problema, pode adiantar no campo abaixo.
+          </div>
+        )}
 
         {pendentes.length > 0 && (
           <div className="mt-5 space-y-3">
@@ -106,6 +124,52 @@ export default function DeParaClient({ linhas, barbeiros }: Props) {
             ))}
           </div>
         )}
+      </section>
+
+      {/* Adiantar um nome, sem esperar a próxima importação */}
+      <section className="card p-5 sm:p-6">
+        <h2 className="font-serif text-xl text-text">Adiantar um nome</h2>
+        <p className="mt-1 text-sm leading-relaxed text-text-muted">
+          Digite o nome <strong className="text-text">exatamente como aparece no relatório do
+          Agenda Serviço</strong> e diga quem é. Acento e maiúscula não importam; o resto sim.
+        </p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <input
+            value={novoNome}
+            onChange={e => setNovoNome(e.target.value)}
+            placeholder="Nome no Agenda Serviço"
+            maxLength={200}
+            className="input flex-1 text-sm"
+            aria-label="Nome como aparece no relatório do Agenda Serviço"
+          />
+          <select
+            value={novoBarbeiro}
+            onChange={e => setNovoBarbeiro(e.target.value)}
+            className="input flex-1 text-sm"
+            aria-label="Quem é esse nome no BarberMeta"
+          >
+            <option value="">É quem no BarberMeta?</option>
+            {barbeiros.map(b => (
+              <option key={b.id} value={b.id}>{b.nome}</option>
+            ))}
+            <option value="__ninguem__">— Não é ninguém (total, serviço avulso…)</option>
+          </select>
+          <button
+            onClick={() => rodar(async () => {
+              const res = await vincularNomeManual(
+                novoNome,
+                novoBarbeiro === '__ninguem__' ? null : novoBarbeiro,
+              )
+              if (res?.ok) { setNovoNome(''); setNovoBarbeiro('') }
+              return res
+            })}
+            disabled={isPending || !novoNome.trim() || !novoBarbeiro}
+            className="btn-primary text-sm disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Salvar
+          </button>
+        </div>
       </section>
 
       {/* Já resolvidos */}
