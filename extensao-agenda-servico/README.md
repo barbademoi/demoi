@@ -111,12 +111,35 @@ Depois de setar as duas, faça um redeploy pra elas entrarem em vigor.
 |---|---|
 | "Abra e faça login no Agenda Serviço…" | Vá pra aba do Agenda Serviço, na tela do relatório, e clique de novo. |
 | "Entre no BarberMeta neste navegador…" | Abra barbermeta.com.br numa aba, faça login, e clique de novo. É assim que a extensão sabe quem você é — o token virou opcional. |
+| "Falha ao falar com o BarberMeta" | Só aparece se **os dois** caminhos de envio falharem (veja abaixo). Abra "Configurar (uma vez)" → **Testar conexão**: ele diz se o problema é alcance ou login. |
 | "BarberMeta recusou: Não autorizado." | Só acontece se você preencheu um token: ele está diferente do `AGENDA_IMPORT_TOKEN` da Vercel. Apague o campo e use a sessão. |
 | "…Ciclo … está fechado." | Reabra o ciclo no BarberMeta e reimporte. |
 | "…Importação indisponível no momento." | Faltam `AGENDA_IMPORT_TOKEN`/`AGENDA_IMPORT_EMAIL` no ambiente da Vercel. |
 | "…Conta configurada não encontrada." | `AGENDA_IMPORT_EMAIL` não bate com nenhum usuário do BarberMeta. |
 | "…erro 500 no servidor (nenhuma mensagem)" | Variável de ambiente faltando na Vercel — em geral `SUPABASE_SERVICE_ROLE_KEY`. Não é problema do seu cadastro. |
 | "…Nada foi gravado: as escritas no banco falharam." | Os nomes casaram, mas o banco recusou a escrita. Tente de novo; se persistir, é problema no BarberMeta. |
+
+### Como o envio chega no BarberMeta (dois caminhos)
+
+O popup é uma página `chrome-extension://`. Pra ele, o BarberMeta é um site de
+terceiros — e isso quebra de duas formas que dão a **mesma** mensagem seca
+("Failed to fetch"): se o domínio redireciona pra outro host, o Chrome só segue
+o salto se o destino estiver no `host_permissions`; e o cookie de sessão é de
+primeira parte, então dependendo da política do navegador ele não acompanha um
+POST vindo de outra origem.
+
+Por isso o envio tem dois caminhos e a extensão troca sozinha:
+
+1. **Direto** do popup pra `https://barbermeta.com.br/api/import-agenda`.
+2. **Pela aba**: se o primeiro falhar na rede, ou voltar 401 sem token, a
+   extensão procura uma aba do BarberMeta aberta (e abre uma em segundo plano
+   se não houver) e refaz a chamada de lá — mesma origem, cookie garantido,
+   redirecionamento irrelevante. Aba que ela abriu, ela fecha; aba sua, ela
+   deixa em paz.
+
+A linha final do resultado diz por onde foi (`envio: direto` ou `envio: pela aba
+do BarberMeta`). O botão **Testar conexão** sonda os dois e informa, de cada um,
+se alcançou e se a sessão chegou junto.
 
 ### Barbeiro que não foi importado
 
