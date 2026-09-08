@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { cicloDeData } from '@/lib/ciclo'
 import { estaFechado } from '@/lib/mesFechado'
 import {
@@ -56,17 +57,45 @@ interface CasaPayload {
 }
 
 export async function POST(request: NextRequest) {
-  // ── 1. Token ──────────────────────────────────────────────────────────────
-  const token = process.env.AGENDA_IMPORT_TOKEN
-  const email = process.env.AGENDA_IMPORT_EMAIL
-  if (!token || !email) {
-    console.error('[import-agenda] AGENDA_IMPORT_TOKEN/EMAIL não configurados')
-    return NextResponse.json({ error: 'Importação indisponível no momento.' }, { status: 500 })
-  }
+  // ── 1. Quem está mandando ─────────────────────────────────────────────────
+  //
+  // Dois caminhos, e o primeiro existe pra dispensar o segundo.
+  //
+  // SESSÃO: a extensão manda o cookie do BarberMeta (credentials: 'include').
+  // Se o dono está logado no mesmo navegador, isso já diz quem ele é e em qual
+  // barbearia gravar. Sem token, sem variável de ambiente, sem redeploy — e
+  // mais correto do que o token, porque cada dono importa pra barbearia DELE
+  // em vez de todo mundo cair na conta de um e-mail fixo.
+  //
+  // TOKEN: continua valendo pra quem já configurou e pra chamada sem
+  // navegador. Ele é conferido primeiro só quando veio no cabeçalho.
+  const tokenServidor = process.env.AGENDA_IMPORT_TOKEN
+  const emailServidor = process.env.AGENDA_IMPORT_EMAIL
   const auth = request.headers.get('authorization') ?? ''
-  const enviado = auth.replace(/^Bearer\s+/i, '').trim() || request.headers.get('x-import-token') || ''
-  if (enviado !== token) {
-    return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  const tokenEnviado = auth.replace(/^Bearer\s+/i, '').trim() || request.headers.get('x-import-token') || ''
+
+  let emailDoDono: string | null = null
+
+  if (tokenEnviado) {
+    if (!tokenServidor || tokenEnviado !== tokenServidor) {
+      return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+    }
+    if (!emailServidor) {
+      console.error('[import-agenda] AGENDA_IMPORT_EMAIL não configurado')
+      return NextResponse.json({ error: 'Importação indisponível no momento.' }, { status: 500 })
+    }
+    emailDoDono = emailServidor
+  } else {
+    // Sem token: tenta a sessão do navegador.
+    const sessao = createClient()
+    const { data: { user } } = await sessao.auth.getUser()
+    if (!user?.email) {
+      return NextResponse.json({
+        error: 'Entre no BarberMeta neste navegador e tente de novo. '
+          + '(Ou configure o token na extensão, se preferir usar sem estar logado.)',
+      }, { status: 401 })
+    }
+    emailDoDono = user.email
   }
 
   // ── 2. Payload ────────────────────────────────────────────────────────────
@@ -82,7 +111,7 @@ export async function POST(request: NextRequest) {
 
   // ── 3. Conta (só minha) + config ──────────────────────────────────────────
   const { data: usuario } = await supabase
-    .from('usuarios').select('barbearia_id').eq('email', email).maybeSingle()
+    .from('usuarios').select('barbearia_id').eq('email', emailDoDono).maybeSingle()
   const barbeariaId = (usuario as { barbearia_id: string } | null)?.barbearia_id
   if (!barbeariaId) return NextResponse.json({ error: 'Conta configurada não encontrada.' }, { status: 500 })
 

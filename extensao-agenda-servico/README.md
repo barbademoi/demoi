@@ -63,17 +63,22 @@ Abra `extrator.js` e ajuste:
 2. Ligue o **Modo do desenvolvedor** (canto superior direito).
 3. **Carregar sem compactação** → selecione a pasta `extensao-agenda-servico`.
 4. Fixe a extensão na barra (opcional).
-5. Clique no ícone → **Configurar (uma vez)**:
-   - **URL do BarberMeta:** `https://barbermeta.com.br` (ou seu domínio).
-   - **Token de importação:** o mesmo valor de `AGENDA_IMPORT_TOKEN` (abaixo).
-   - **Salvar config.**
+5. **Faça login no barbermeta.com.br** numa aba do mesmo navegador. É só isso —
+   não precisa configurar token nem mexer na Vercel.
+
+O campo de token continua no popup, mas é **opcional**: serve pra quem quer usar
+sem estar logado. Deixe em branco e a extensão se identifica pela sua sessão.
 
 ---
 
-## Lado BarberMeta — variáveis de ambiente (na Vercel)
+## Lado BarberMeta — variáveis de ambiente (OPCIONAIS)
 
-O endpoint `/api/import-agenda` só funciona com estas duas variáveis
-configuradas (Project → Settings → Environment Variables → Production):
+**Não são mais necessárias.** O endpoint aceita a sessão do dono logado, que é
+o caminho normal e é também mais correto: cada dono importa pra barbearia dele,
+em vez de todo mundo cair na conta de um e-mail fixo.
+
+As duas abaixo continuam funcionando pra quem quer chamar o endpoint **sem
+navegador** (um agendador, por exemplo):
 
 | Variável | O que é |
 |---|---|
@@ -104,9 +109,9 @@ Depois de setar as duas, faça um redeploy pra elas entrarem em vigor.
 
 | Mensagem | O que fazer |
 |---|---|
-| "Configure o token…" | Preencha o token em Configurar e salve. |
 | "Abra e faça login no Agenda Serviço…" | Vá pra aba do Agenda Serviço, na tela do relatório, e clique de novo. |
-| "BarberMeta recusou: Não autorizado." | Token da extensão ≠ `AGENDA_IMPORT_TOKEN` da Vercel. |
+| "Entre no BarberMeta neste navegador…" | Abra barbermeta.com.br numa aba, faça login, e clique de novo. É assim que a extensão sabe quem você é — o token virou opcional. |
+| "BarberMeta recusou: Não autorizado." | Só acontece se você preencheu um token: ele está diferente do `AGENDA_IMPORT_TOKEN` da Vercel. Apague o campo e use a sessão. |
 | "…Ciclo … está fechado." | Reabra o ciclo no BarberMeta e reimporte. |
 | "…Importação indisponível no momento." | Faltam `AGENDA_IMPORT_TOKEN`/`AGENDA_IMPORT_EMAIL` no ambiente da Vercel. |
 | "…Conta configurada não encontrada." | `AGENDA_IMPORT_EMAIL` não bate com nenhum usuário do BarberMeta. |

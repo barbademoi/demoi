@@ -92,10 +92,10 @@ botao.addEventListener('click', async () => {
 
   try {
     const { url, token } = await lerConfig()
-    if (!token) {
-      mostrar('Configure o token de importação em "Configurar (uma vez)".', 'err')
-      return
-    }
+    // O token virou OPCIONAL: sem ele, a chamada vai com o cookie do
+    // BarberMeta e o servidor identifica o dono pela sessão logada. Exigir
+    // token aqui obrigava a passar pela Vercel antes de a extensão servir
+    // pra alguma coisa — e era onde todo mundo empacava.
 
     // Aba ativa = a que você está vendo (o Agenda Serviço aberto no relatório).
     const [aba] = await chrome.tabs.query({ active: true, currentWindow: true })
@@ -134,9 +134,15 @@ botao.addEventListener('click', async () => {
     // Manda pro BarberMeta (token protege o endpoint; nada de senha aqui).
     let resp, dados
     try {
+      // `credentials: 'include'` é o que leva o cookie do BarberMeta junto —
+      // é ele que substitui o token. O cabeçalho de autorização só vai se
+      // houver token configurado.
+      const cabecalhos = { 'content-type': 'application/json' }
+      if (token) cabecalhos.authorization = `Bearer ${token}`
       resp = await fetch(`${url}/api/import-agenda`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        credentials: 'include',
+        headers: cabecalhos,
         body: JSON.stringify({ referencia: resultado.referencia, barbeiros, casa: resultado.casa || null }),
       })
       dados = await resp.json().catch(() => ({}))
