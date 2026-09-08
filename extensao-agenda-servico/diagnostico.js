@@ -41,13 +41,23 @@ async function diagnosticarAgendaServico() {
   // ── 2. Onde está o "Total detalhado" e do que ele é feito ──
   // É o bloco que tem os números por barbeiro. Saber a TAG e as classes do
   // container é o que permite escrever o seletor certo.
-  const alvos = Array.from(document.querySelectorAll('*')).filter((el) => {
+  const candidatos = Array.from(document.querySelectorAll('*')).filter((el) => {
     if (el.children.length > 3) return false
     const t = (el.textContent || '').trim().toLowerCase()
     return t.length < 40 && /total detalhado|faturamento bruto|saldos/.test(t)
   })
-  p(`rótulos-âncora encontrados: ${alvos.length}`)
-  alvos.slice(0, 4).forEach((el, i) => {
+  // Um rótulo casa em vários níveis (o <h5>, o pai dele, o avô…). Sem
+  // deduplicar, três cópias de "Saldos" comem as vagas e o "Total detalhado" —
+  // que é o bloco que importa — fica de fora do relatório.
+  const maisFundo = new Map()
+  for (const el of candidatos) {
+    const chave = (el.textContent || '').trim().toLowerCase()
+    const atual = maisFundo.get(chave)
+    if (!atual || atual.contains(el)) maisFundo.set(chave, el)
+  }
+  const alvos = Array.from(maisFundo.values())
+  p(`rótulos-âncora encontrados: ${alvos.length} (de ${candidatos.length} ocorrências)`)
+  alvos.slice(0, 6).forEach((el, i) => {
     p(`  [${i}] "${corta(el.textContent, 30)}" em <${el.tagName.toLowerCase()} class="${corta(el.className, 60)}">`)
     // Sobe alguns níveis: o container do bloco costuma estar 2-4 acima.
     let pai = el.parentElement
