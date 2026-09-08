@@ -19,6 +19,9 @@
     input { width: 100%; box-sizing: border-box; padding: 8px; border-radius: 8px; border: 1px solid #1E2028; background: #161820; color: #EEF0F6; font-size: 12px; }
     .save { background: #1E2028; color: #EEF0F6; margin-top: 8px; }
     #cfgStatus { margin-top: 10px; font-size: 12px; line-height: 1.45; white-space: pre-wrap; min-height: 1em; }
+    #permAviso { border: 1px solid #7F1D1D; background: #1A1012; border-radius: 10px; padding: 10px; margin-bottom: 12px; }
+    p.alerta { font-size: 12px; color: #FCA5A5; margin: 0 0 8px; line-height: 1.45; }
+    .destaque { background: #D4A85A; color: #0F1117; margin-top: 0; }
   </style>
 </head>
 <body>
@@ -26,6 +29,15 @@
     <h1>Atualizar infos no BarberMeta</h1>
     <p class="sub">Deixe a aba do <b>Agenda Serviço</b> aberta e logada, na tela do relatório.<br />
       Você também precisa estar logado no <b>BarberMeta</b> neste mesmo navegador.</p>
+    <!-- Aparece só quando o Chrome está com o acesso ao BarberMeta RETIDO. Sem
+         isso, a falta de permissão chega como "Failed to fetch" — indistinguível
+         de site fora do ar, e sem nenhuma pista do que fazer. -->
+    <div id="permAviso" hidden>
+      <p class="alerta">O Chrome está com o acesso ao BarberMeta <b>bloqueado</b> para esta extensão.
+        É por isso que o envio falha, mesmo com o site abrindo normalmente numa aba.</p>
+      <button class="save destaque" id="permitir" type="button">Permitir acesso ao BarberMeta</button>
+    </div>
+
     <button id="go">Atualizar infos</button>
     <div id="status" class="muted">Pronto.</div>
 

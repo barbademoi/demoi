@@ -111,13 +111,27 @@ Depois de setar as duas, faça um redeploy pra elas entrarem em vigor.
 |---|---|
 | "Abra e faça login no Agenda Serviço…" | Vá pra aba do Agenda Serviço, na tela do relatório, e clique de novo. |
 | "Entre no BarberMeta neste navegador…" | Abra barbermeta.com.br numa aba, faça login, e clique de novo. É assim que a extensão sabe quem você é — o token virou opcional. |
-| "Falha ao falar com o BarberMeta" | Só aparece se **os dois** caminhos de envio falharem (veja abaixo). Abra "Configurar (uma vez)" → **Testar conexão**: ele diz se o problema é alcance ou login. |
+| "Falha ao falar com o BarberMeta" | Só aparece se **os dois** caminhos de envio falharem (veja abaixo). Abra "Configurar (uma vez)" → **Testar conexão**: ele diz se o problema é permissão, alcance ou login. |
+| Aviso vermelho "acesso ao BarberMeta bloqueado" | O Chrome está com o **acesso ao site retido** pra esta extensão. Clique em "Permitir acesso ao BarberMeta". À mão: `chrome://extensions` → esta extensão → Detalhes → **Acesso ao site** → "Em todos os sites". |
 | "BarberMeta recusou: Não autorizado." | Só acontece se você preencheu um token: ele está diferente do `AGENDA_IMPORT_TOKEN` da Vercel. Apague o campo e use a sessão. |
 | "…Ciclo … está fechado." | Reabra o ciclo no BarberMeta e reimporte. |
 | "…Importação indisponível no momento." | Faltam `AGENDA_IMPORT_TOKEN`/`AGENDA_IMPORT_EMAIL` no ambiente da Vercel. |
 | "…Conta configurada não encontrada." | `AGENDA_IMPORT_EMAIL` não bate com nenhum usuário do BarberMeta. |
 | "…erro 500 no servidor (nenhuma mensagem)" | Variável de ambiente faltando na Vercel — em geral `SUPABASE_SERVICE_ROLE_KEY`. Não é problema do seu cadastro. |
 | "…Nada foi gravado: as escritas no banco falharam." | Os nomes casaram, mas o banco recusou a escrita. Tente de novo; se persistir, é problema no BarberMeta. |
+
+### Permissão de acesso ao site (a causa que se disfarça de site fora do ar)
+
+Estar no `host_permissions` **não garante** o acesso: o Chrome deixa a pessoa
+retê-lo ("Acesso ao site → Ao clicar"), e a extensão nunca é avisada. O sintoma
+é cruel — o `fetch` some com "Failed to fetch", igualzinho a site fora do ar,
+enquanto o BarberMeta abre normalmente numa aba comum.
+
+E o extrator seguir funcionando reforça o engano: ele lê o Agenda Serviço por
+`activeTab`, que o Chrome concede a cada clique no ícone. O BarberMeta não é a
+aba ativa, então depende da permissão de verdade.
+
+O popup detecta isso ao abrir e mostra um botão que pede o acesso.
 
 ### Como o envio chega no BarberMeta (dois caminhos)
 
