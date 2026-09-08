@@ -77,6 +77,43 @@ function candidatosDeUrl(url) {
   return lista
 }
 
+/* ────────────────────────────────────────────────────────────────────────────
+ * PERMISSÃO DE ACESSO AO SITE
+ *
+ * Estar no `host_permissions` não garante nada: o Chrome deixa a pessoa RETER
+ * esse acesso ("Acesso ao site → Ao clicar"), e aí a extensão vive sem ele sem
+ * nunca ser avisada. O sintoma é cruel — `fetch` some com "Failed to fetch",
+ * exatamente igual a site fora do ar.
+ *
+ * E o extrator seguir funcionando reforça o engano: ele roda no Agenda Serviço
+ * por `activeTab`, que o Chrome concede a cada clique no ícone. O BarberMeta
+ * não é a aba ativa, então depende da permissão de verdade.
+ * ──────────────────────────────────────────────────────────────────────────*/
+
+// Guardado fora do handler: `chrome.permissions.request` exige gesto do
+// usuário, e qualquer `await` antes da chamada pode consumir o gesto do clique.
+let origensFaltando = []
+
+function origensDe(url) {
+  return candidatosDeUrl(url)
+    .map((b) => { try { return new URL(b).origin + '/*' } catch { return null } })
+    .filter(Boolean)
+}
+
+async function origensNegadas(url) {
+  const faltam = []
+  for (const origem of origensDe(url)) {
+    try {
+      const tem = await chrome.permissions.contains({ origins: [origem] })
+      if (!tem) faltam.push(origem)
+    } catch {
+      // API indisponível: não dá pra afirmar que falta. Melhor calar do que
+      // acusar uma permissão que talvez esteja lá.
+    }
+  }
+  return faltam
+}
+
 // Caminho 1: direto do popup. Devolve `base` = o endereço que respondeu, pra
 // quem chama poder gravar e não repetir a tentativa perdida na próxima vez.
 async function enviarDoPopup(url, token, corpo) {
@@ -237,6 +274,13 @@ $('testar').addEventListener('click', async () => {
   let alcancou = false
   let logado = false
 
+  // A permissão vem PRIMEIRO: sem ela o resto do teste só produz "Failed to
+  // fetch", e quem lê conclui que o site está fora do ar.
+  const negadas = await origensNegadas(url)
+  linhas.push(negadas.length === 0
+    ? 'Permissão de acesso: concedida'
+    : `Permissão de acesso: BLOQUEADA em ${negadas.join(', ')} — é isso que derruba o envio`)
+
   // Direto do popup — em cada host candidato, um por linha. Testar só o que
   // está configurado esconde justamente o caso em que a configuração é que
   // está errada.
@@ -294,7 +338,9 @@ $('testar').addEventListener('click', async () => {
   linhas.push(
     logado ? 'Pronto pra importar.'
       : alcancou ? 'O BarberMeta responde, mas você não está logado nele neste navegador. Faça login e teste de novo.'
-        : 'NENHUM endereço respondeu. Abra o BarberMeta numa aba comum: se ele abrir, me diga qual endereço aparece na barra; se não abrir, o problema é a rede deste computador.',
+        : negadas.length > 0
+          ? 'Nada respondeu porque o acesso está bloqueado. Clique em "Permitir acesso ao BarberMeta", lá em cima.'
+          : 'NENHUM endereço respondeu. Abra o BarberMeta numa aba comum: se ele abrir, me diga qual endereço aparece na barra; se não abrir, o problema é a rede deste computador.',
   )
   mostrarCfg(linhas.join('\n'), logado ? 'ok' : 'err')
 })
@@ -462,10 +508,39 @@ botao.addEventListener('click', async () => {
   }
 })
 
+// Pede o acesso retido. Chamada DIRETA no clique, sem `await` antes: o Chrome
+// só abre o diálogo enquanto o gesto do usuário ainda vale.
+$('permitir').addEventListener('click', () => {
+  chrome.permissions.request({ origins: origensFaltando }).then((concedeu) => {
+    if (concedeu) {
+      $('permAviso').hidden = true
+      mostrar('✓ Acesso liberado. Clique em "Atualizar infos".', 'ok')
+      return
+    }
+    mostrar(
+      'Você recusou o acesso. Sem ele a extensão não consegue falar com o BarberMeta.\n\n'
+      + 'Dá pra liberar à mão: chrome://extensions → esta extensão → Detalhes → '
+      + 'Acesso ao site → "Em todos os sites".',
+      'err',
+    )
+  }).catch((e) => mostrar('Não consegui pedir o acesso: ' + (e?.message || e), 'err'))
+})
+
+async function conferirPermissao() {
+  const { url } = await lerConfig()
+  origensFaltando = await origensNegadas(url)
+  // Só o endereço configurado é motivo de alarme. O host alternativo (www ou
+  // apex) é tentativa extra: faltar permissão nele não impede nada e o aviso
+  // vermelho só assustaria à toa.
+  const configurada = origensDe(url)[0]
+  $('permAviso').hidden = !origensFaltando.includes(configurada)
+}
+
 // Um erro aqui deixaria a extensão inteira muda — sem listener, todo botão
 // vira enfeite e nada explica por quê. Melhor dizer na tela.
 try {
   carregarCampos()
+  conferirPermissao()
 } catch (e) {
   mostrar('A extensão não carregou direito: ' + (e?.message || e), 'err')
 }
