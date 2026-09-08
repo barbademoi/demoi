@@ -53,6 +53,39 @@ $('verToken').addEventListener('click', () => {
   $('verToken').textContent = escondido ? 'Esconder o token' : 'Mostrar o token'
 })
 
+// Roda o diagnóstico NA ABA do Agenda Serviço e põe o resultado na área de
+// transferência. Sem isso, "não achei o relatório" é um beco sem saída: nem
+// quem usa nem quem escreve o código sabe o que a página tem.
+$('diag').addEventListener('click', async () => {
+  mostrarCfg('Lendo a estrutura da página…', 'muted')
+  try {
+    const [aba] = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (!aba?.id) { mostrarCfg('Não achei a aba ativa.', 'err'); return }
+
+    const [inj] = await chrome.scripting.executeScript({
+      target: { tabId: aba.id },
+      func: diagnosticarAgendaServico,
+    })
+    const texto = inj?.result
+    if (!texto) { mostrarCfg('Não consegui ler a página. Ela está aberta e logada?', 'err'); return }
+
+    try {
+      await navigator.clipboard.writeText(texto)
+      mostrarCfg(`✓ Diagnóstico copiado (${texto.length} caracteres).\nCole no chat do suporte.`, 'ok')
+    } catch {
+      // A área de transferência pode ser negada. Mostrar o texto é melhor do
+      // que dizer "não consegui" e deixar a pessoa sem o dado na mão.
+      const caixa = $('diagTexto')
+      caixa.value = texto
+      caixa.hidden = false
+      caixa.select()
+      mostrarCfg('Não consegui copiar sozinho. O texto está aí embaixo — selecione tudo e copie.', 'muted')
+    }
+  } catch (e) {
+    mostrarCfg('Não consegui ler a página: ' + (e?.message || e), 'err')
+  }
+})
+
 $('salvar').addEventListener('click', async () => {
   const url = $('cfgUrl').value.trim().replace(/\/+$/, '')
   const token = $('cfgToken').value.trim()
@@ -119,7 +152,13 @@ botao.addEventListener('click', async () => {
     }
 
     if (!resultado || !resultado.ok) {
-      mostrar('Não achei o relatório nesta aba.\nAbra e faça login no Agenda Serviço, vá até a tela do relatório de faturamento e tente de novo.', 'err')
+      mostrar(
+        'Não achei o relatório nesta aba.\n\n'
+        + 'Se a tela do relatório JÁ está aberta e logada, então ela é montada de um jeito '
+        + 'que o leitor ainda não conhece. Abra "Configurar (uma vez)" aqui embaixo e clique '
+        + 'em "Copiar diagnóstico da tela" — é isso que permite corrigir o leitor.',
+        'err',
+      )
       return
     }
 
