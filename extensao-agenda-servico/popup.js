@@ -60,22 +60,45 @@ async function carregarCampos() {
  * que a gente não controle.
  * ──────────────────────────────────────────────────────────────────────────*/
 
-// Caminho 1: direto do popup.
+// Pro navegador, `barbermeta.com.br` e `www.barbermeta.com.br` são hosts
+// diferentes, e é comum só um dos dois responder. Um "www" a mais ou a menos na
+// configuração derrubava a extensão inteira com "Failed to fetch" — que não diz
+// nada sobre a causa.
+function candidatosDeUrl(url) {
+  const lista = []
+  const juntar = (u) => { if (u && !lista.includes(u)) lista.push(u) }
+  juntar(url)
+  try {
+    const { protocol, hostname } = new URL(url)
+    juntar(hostname.startsWith('www.')
+      ? `${protocol}//${hostname.slice(4)}`
+      : `${protocol}//www.${hostname}`)
+  } catch { /* URL malformada: sobra o que veio */ }
+  return lista
+}
+
+// Caminho 1: direto do popup. Devolve `base` = o endereço que respondeu, pra
+// quem chama poder gravar e não repetir a tentativa perdida na próxima vez.
 async function enviarDoPopup(url, token, corpo) {
   const cabecalhos = { 'content-type': 'application/json' }
   if (token) cabecalhos.authorization = `Bearer ${token}`
-  try {
-    const resp = await fetch(`${url}/api/import-agenda`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: cabecalhos,
-      body: JSON.stringify(corpo),
-    })
-    const dados = await resp.json().catch(() => ({}))
-    return { via: 'popup', ok: resp.ok, status: resp.status, dados }
-  } catch (e) {
-    return { via: 'popup', erroRede: String(e?.message || e) }
+  let ultimoErro = 'Failed to fetch'
+
+  for (const base of candidatosDeUrl(url)) {
+    try {
+      const resp = await fetch(`${base}/api/import-agenda`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: cabecalhos,
+        body: JSON.stringify(corpo),
+      })
+      const dados = await resp.json().catch(() => ({}))
+      return { via: 'popup', base, ok: resp.ok, status: resp.status, dados }
+    } catch (e) {
+      ultimoErro = String(e?.message || e)
+    }
   }
+  return { via: 'popup', erroRede: ultimoErro }
 }
 
 // Acha uma aba do BarberMeta; se não houver, abre uma em segundo plano. Abrir
@@ -98,6 +121,21 @@ async function abaDoBarberMeta(url) {
     if (t.status === 'complete') break
   }
   return { id: nova.id, criada: true }
+}
+
+// O Chrome recusa injetar numa aba que virou página de erro, e diz isso em
+// inglês e em termos de frame. Traduzido, é o diagnóstico mais útil que a
+// extensão consegue dar: o endereço não abre NESTE navegador — e aí o problema
+// não é a extensão, é o endereço ou a rede da máquina.
+function traduzirErroDeAba(msg, url) {
+  if (/showing error page/i.test(msg)) {
+    return `o navegador não conseguiu abrir ${url} (mostrou página de erro). `
+      + 'Abra esse endereço numa aba comum: se também não abrir, o problema é o endereço ou a rede deste computador, não a extensão.'
+  }
+  if (/Cannot access|Missing host permission/i.test(msg)) {
+    return `a extensão não tem permissão pra ${url}. Confira a URL configurada.`
+  }
+  return msg
 }
 
 // Caminho 2: de dentro da aba do BarberMeta (mesma origem).
@@ -139,7 +177,7 @@ async function enviarPelaAba(url, token, corpo) {
     return { via: 'aba', ...r }
   } catch (e) {
     if (aba.criada) chrome.tabs.remove(aba.id).catch(() => {})
-    return { via: 'aba', erroRede: String(e?.message || e) }
+    return { via: 'aba', erroRede: traduzirErroDeAba(String(e?.message || e), url) }
   }
 }
 
@@ -193,19 +231,40 @@ $('testar').addEventListener('click', async () => {
   mostrarCfg('Testando…', 'muted')
   const url = $('cfgUrl').value.trim().replace(/\/+$/, '') || 'https://barbermeta.com.br'
   const linhas = []
+  // Sinalizadores explícitos. Decidir o veredito relendo as frases é frágil:
+  // "não alcançou" contém "alcançou", e com TUDO fora do ar a conclusão saía
+  // "faça login" — mandando caçar o problema errado.
+  let alcancou = false
+  let logado = false
 
-  // Direto do popup.
-  try {
-    const r = await fetch(`${url}/api/import-agenda`, { credentials: 'include' })
-    const d = await r.json().catch(() => ({}))
-    linhas.push(`Direto: alcançou (HTTP ${r.status})` + (d.logado ? ` · logado como ${d.email}` : ' · SEM sessão'))
-  } catch (e) {
-    linhas.push('Direto: não alcançou (' + (e?.message || e) + ')')
+  // Direto do popup — em cada host candidato, um por linha. Testar só o que
+  // está configurado esconde justamente o caso em que a configuração é que
+  // está errada.
+  let baseViva = null
+  for (const base of candidatosDeUrl(url)) {
+    try {
+      const r = await fetch(`${base}/api/import-agenda`, { credentials: 'include' })
+      const d = await r.json().catch(() => ({}))
+      if (!baseViva) baseViva = base
+      alcancou = true
+      if (d.logado) logado = true
+      linhas.push(`Direto em ${base}: alcançou (HTTP ${r.status})` + (d.logado ? ` · logado como ${d.email}` : ' · SEM sessão'))
+    } catch (e) {
+      linhas.push(`Direto em ${base}: não alcançou (${e?.message || e})`)
+    }
+  }
+  // Se o endereço configurado é o que não responde, corrige sozinho: deixar a
+  // pessoa descobrir e digitar o "www" é jogar o problema de volta pra ela.
+  if (baseViva && baseViva !== url) {
+    await chrome.storage.local.set({ cfgUrl: baseViva }).catch(() => {})
+    $('cfgUrl').value = baseViva
+    linhas.push(`→ Troquei a URL configurada pra ${baseViva}, que é a que responde.`)
   }
 
   // Por dentro de uma aba do BarberMeta.
+  const alvoDaAba = baseViva || url
   try {
-    const aba = await abaDoBarberMeta(url)
+    const aba = await abaDoBarberMeta(alvoDaAba)
     const [inj] = await chrome.scripting.executeScript({
       target: { tabId: aba.id },
       func: async () => {
@@ -219,17 +278,25 @@ $('testar').addEventListener('click', async () => {
     if (aba.criada) chrome.tabs.remove(aba.id).catch(() => {})
     const r = inj?.result
     if (!r) linhas.push('Pela aba: a aba não respondeu')
-    else if (r.erro) linhas.push('Pela aba: ' + r.erro)
-    else linhas.push(`Pela aba: alcançou (HTTP ${r.status})` + (r.logado ? ` · logado como ${r.email}` : ' · SEM sessão'))
+    else if (r.erro) linhas.push('Pela aba: ' + traduzirErroDeAba(r.erro, alvoDaAba))
+    else {
+      alcancou = true
+      if (r.logado) logado = true
+      linhas.push(`Pela aba: alcançou (HTTP ${r.status})` + (r.logado ? ` · logado como ${r.email}` : ' · SEM sessão'))
+    }
   } catch (e) {
-    linhas.push('Pela aba: ' + (e?.message || e))
+    linhas.push('Pela aba: ' + traduzirErroDeAba(String(e?.message || e), alvoDaAba))
   }
 
-  const algumLogado = linhas.some((l) => l.includes('logado como'))
-  linhas.push(algumLogado
-    ? 'Pronto pra importar.'
-    : 'Falta entrar no BarberMeta neste navegador (ou preencher o token).')
-  mostrarCfg(linhas.join('\n'), algumLogado ? 'ok' : 'err')
+  // Três desfechos, três recados. Antes, "nenhum logado" mandava entrar no
+  // BarberMeta mesmo quando nenhum endereço tinha respondido — conselho errado
+  // pra quem nem consegue abrir o site.
+  linhas.push(
+    logado ? 'Pronto pra importar.'
+      : alcancou ? 'O BarberMeta responde, mas você não está logado nele neste navegador. Faça login e teste de novo.'
+        : 'NENHUM endereço respondeu. Abra o BarberMeta numa aba comum: se ele abrir, me diga qual endereço aparece na barra; se não abrir, o problema é a rede deste computador.',
+  )
+  mostrarCfg(linhas.join('\n'), logado ? 'ok' : 'err')
 })
 
 $('salvar').addEventListener('click', async () => {
@@ -326,10 +393,15 @@ botao.addEventListener('click', async () => {
     const corpo = { referencia: resultado.referencia, barbeiros, casa: resultado.casa || null }
 
     let envio = await enviarDoPopup(url, token, corpo)
+    // Se quem respondeu foi o outro host (www ou apex), guarda: na próxima vez
+    // a extensão já vai direto no que funciona.
+    if (envio.base && envio.base !== url) {
+      await chrome.storage.local.set({ cfgUrl: envio.base }).catch(() => {})
+    }
     const cookieNaoViajou = envio.status === 401 && !token
     if (envio.erroRede || cookieNaoViajou) {
       mostrar('Refazendo por dentro do BarberMeta…', 'muted')
-      const pelaAba = await enviarPelaAba(url, token, corpo)
+      const pelaAba = await enviarPelaAba(envio.base || url, token, corpo)
       // Só troca se a segunda tentativa realmente chegou a algum lugar: um erro
       // de rede substituindo o outro não ajudaria ninguém.
       if (!pelaAba.erroRede) envio = pelaAba
@@ -339,10 +411,10 @@ botao.addEventListener('click', async () => {
     if (envio.erroRede) {
       mostrar(
         'Falha ao falar com o BarberMeta.\n\n'
-        + `Tentei ${url}/api/import-agenda e também de dentro de uma aba do BarberMeta.\n`
+        + `Tentei ${candidatosDeUrl(url).map((b) => `${b}/api/import-agenda`).join('\ne ')}\ne também de dentro de uma aba do BarberMeta.\n`
         + '(' + envio.erroRede + ')\n\n'
-        + 'Abra "Configurar (uma vez)" e clique em "Testar conexão" — ele diz em qual '
-        + 'das etapas está parando.',
+        + 'Abra "Configurar (uma vez)" e clique em "Testar conexão" — ele testa cada '
+        + 'endereço separado e diz onde está parando.',
         'err',
       )
       return
