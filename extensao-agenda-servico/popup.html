@@ -42,9 +42,20 @@
            cima, fora da vista de quem está com este bloco aberto — o clique
            parecia não fazer nada. -->
       <div id="cfgStatus" class="cfgmsg"></div>
+
+      <hr style="border:0;border-top:1px solid #1E2028;margin:14px 0" />
+      <p class="dica">Se a extensão não achar o relatório: clique abaixo com a tela
+        do relatório aberta e mande o texto copiado pro suporte. Ele descreve como a
+        página está montada — e leva os nomes e valores que estão na tela.</p>
+      <button class="save" id="diag" type="button">Copiar diagnóstico da tela</button>
+      <!-- Plano B: se a área de transferência falhar, o texto aparece aqui pra
+           selecionar à mão. Um botão de copiar que falha em silêncio deixaria
+           a pessoa sem saída. -->
+      <textarea id="diagTexto" hidden rows="6" style="width:100%;box-sizing:border-box;margin-top:8px;font-size:10px;font-family:monospace;background:#161820;color:#EEF0F6;border:1px solid #1E2028;border-radius:8px;padding:8px"></textarea>
     </details>
   </div>
   <script src="extrator.js"></script>
+  <script src="diagnostico.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
