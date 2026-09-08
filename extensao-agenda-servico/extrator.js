@@ -2,17 +2,30 @@
  * EXTRATOR — roda DENTRO da página do Agenda Serviço (via chrome.scripting),
  * então reaproveita a sessão já logada (cookies) SEM pedir senha.
  *
- * PARTE 0 (confirmada pelo Network do agendas.link):
- *  - Os endpoints JSON do Agenda Serviço são a nível de CASA ou de cadastro:
- *      • get-dados-faturamento-bruto.ajax.php → totais da CASA
- *        { faturamento_total, faturamento_servicos, faturamento_assinaturas,
- *          faturamento_produtos }
- *      • getDadosFuncionarios.ajax.php → cadastro (id_funcionario, nome, % comissão)
- *      • getDadosServicosParaFuncionarios / details-faturamento-total → config/casa
- *    NENHUM devolve o valor em R$ POR BARBEIRO.
- *  - O detalhamento por barbeiro (tabela "Total detalhado" + cards) é montado
- *    na TELA. Então: totais da casa vêm do JSON; por barbeiro, lemos a tabela
- *    renderizada (mesma sessão logada). getPagamento fica como tentativa extra.
+ * ESTRUTURA REAL DA TELA (confirmada por diagnóstico no agendas.link):
+ *
+ *  1. CARDS DO TOPO ("Saldos") — um por barbeiro, mais um da "Casa" e um
+ *     "Total". Cada card é um bloco com o nome e um R$ logo abaixo.
+ *     O que esse R$ é: a soma dos cards dos barbeiros MAIS o card da Casa dá
+ *     exatamente o "Faturamento bruto: Total" da tela (conferido: 6.145,21 +
+ *     6.113,95 = 12.259,16 contra 12.259,15, um centavo de arredondamento).
+ *     Ou seja, é a REPARTIÇÃO do bruto — a parte de cada barbeiro é a comissão
+ *     dele, e o resto fica com a casa.
+ *
+ *  2. TABELA "Total detalhado" — uma <table> de verdade, com os barbeiros nas
+ *     COLUNAS. E aqui estava o bug: as linhas de valor NÃO têm célula de
+ *     rótulo. A primeira célula da linha já é o primeiro valor. Os rótulos
+ *     ("Serviços", "Produtos", …) moram FORA da tabela, num container irmão
+ *     (.titleInfoTableTotal), alinhados por posição.
+ *     O extrator antigo procurava o rótulo dentro da linha, classificava
+ *     "R$1.678,00" como métrica nenhuma, desistia do formato transposto, e
+ *     depois procurava uma coluna chamada "barbeiro" no cabeçalho — que é uma
+ *     fila de nomes de pessoas. Não achava nada e reportava "não achei o
+ *     relatório", com a tela do relatório aberta na frente.
+ *
+ *  3. ENDPOINTS JSON — o de totais da casa responde 500 hoje, e o getPagamento
+ *     devolve lista vazia. Ficam como tentativa: se um dia voltarem, entram na
+ *     frente. A tela é a fonte que funciona.
  *
  * Retorna:
  *  { ok:true, via, referencia:'YYYY-MM-DD',
@@ -22,15 +35,9 @@
  *  ou { ok:false, motivo } quando não achou o relatório / não está logado.
  * ==========================================================================*/
 async function extrairAgendaServico() {
-  // ── Endpoints JSON confirmados (relativos → usam a origem/sessão da página) ──
   const EP_CASA = [
     '/painel-adm/public/pages/relatorio/ajax/get-dados-faturamento-bruto.ajax.php',
     '/painel-adm/public/pages/ajax/relatorio/get-dados-faturamento-bruto.ajax.php',
-  ]
-  // Tentativa (best-effort) de comissão por barbeiro via JSON. Se responder
-  // com lista por id_funcionario/nome + valor em R$, usamos; senão, DOM.
-  const EP_PAGTO = [
-    '/painel-adm/public/pages/template/ajax/getPagamento.ajax.php',
   ]
 
   const brNum = (s) => {
@@ -42,12 +49,17 @@ async function extrairAgendaServico() {
     const n = Number(norm)
     return Number.isFinite(n) ? n : 0
   }
+  const temReais = (s) => /R\$\s*[\d.,]+/.test(String(s || ''))
   const hojeBR = () =>
     new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
-  const semAcento = (t) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+  const semAcento = (t) => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
   const texto = (el) => (el?.textContent || '').replace(/\s+/g, ' ').trim()
 
-  // Classifica um rótulo (de linha ou coluna) numa das nossas métricas.
+  // "Casa", "Total" e afins são somatórios, não pessoas. Entram como totais da
+  // casa, nunca como barbeiro — senão a barbearia vira um profissional no
+  // ranking, com o faturamento inteiro no nome dela.
+  const ehTotalizador = (nome) => /^(casa|total|geral|soma|todos)$/i.test(semAcento(nome))
+
   const classificar = (label) => {
     const t = semAcento(label)
     if (!t) return null
@@ -61,8 +73,9 @@ async function extrairAgendaServico() {
   }
 
   const referencia = hojeBR()
+  const base = (nome) => ({ nome, faturamento: 0, comissao: 0, servicos: 0, produtos: 0, assinaturas: 0, atendimentos: 0 })
 
-  // ── 1. Totais da CASA (JSON confiável) ──
+  // ── 1. Totais da CASA: JSON se responder, senão a própria tela ────────────
   let casa = null
   for (const url of EP_CASA) {
     try {
@@ -78,94 +91,175 @@ async function extrairAgendaServico() {
         }
         break
       }
-    } catch { /* segue */ }
+    } catch { /* segue pra tela */ }
+  }
+  if (!casa) casa = lerCasaDaTela()
+
+  // ── 2. Comissão por barbeiro: cards do topo ──────────────────────────────
+  const comissaoPorNome = lerCardsDoTopo()
+
+  // ── 3. Serviços/produtos/assinaturas por barbeiro: tabela detalhada ──────
+  const porNome = new Map()
+  for (const [nome, valor] of comissaoPorNome) {
+    porNome.set(semAcento(nome), Object.assign(base(nome), { comissao: valor }))
+  }
+  for (const linha of lerTabelaDetalhada()) {
+    const chave = semAcento(linha.nome)
+    const alvo = porNome.get(chave) || base(linha.nome)
+    for (const k of ['servicos', 'produtos', 'assinaturas', 'atendimentos', 'faturamento', 'comissao']) {
+      // A tabela não sobrescreve a comissão vinda do card: o card é o número
+      // que fecha com o bruto da tela.
+      if (linha[k] != null && (k !== 'comissao' || !alvo.comissao)) alvo[k] = linha[k]
+    }
+    porNome.set(chave, alvo)
   }
 
-  // ── 2. Comissão por barbeiro (best-effort JSON) ──
-  const comissaoPorNome = new Map() // nome normalizado -> R$
-  for (const url of EP_PAGTO) {
-    try {
-      const r = await fetch(url, { credentials: 'include', headers: { accept: 'application/json' } })
-      if (!r.ok) continue
-      const d = await r.json()
-      const arr = Array.isArray(d) ? d : Array.isArray(d?.data) ? d.data : []
-      for (const it of arr) {
-        const val = brNum(it.valor ?? it.comissao_valor ?? it.valor_comissao ?? it.total)
-        if (val > 0 && it.nome) comissaoPorNome.set(semAcento(it.nome), val)
-      }
-    } catch { /* segue */ }
-  }
-
-  // ── 3. Por barbeiro: tabela "Total detalhado" renderizada ──
-  const barbeiros = lerBarbeirosDaTela()
-  for (const b of barbeiros) {
-    const c = comissaoPorNome.get(semAcento(b.nome))
-    if ((!b.comissao || b.comissao === 0) && c) b.comissao = c
-  }
+  const barbeiros = Array.from(porNome.values())
+    .filter((b) => !ehTotalizador(b.nome))
+    .map(finalizar)
+    .filter(temAlgumValor)
 
   if (barbeiros.length === 0 && !casa) return { ok: false, motivo: 'nao_encontrado' }
 
-  return { ok: true, via: 'json+html', referencia, casa: casa || null, barbeiros }
+  return { ok: true, via: 'tela', referencia, casa: casa || null, barbeiros }
 
-  // ── helpers de DOM ────────────────────────────────────────────────────────
-  // Layout observado: barbeiros nas COLUNAS, métricas nas LINHAS (transposta).
-  // Também tratamos o layout tradicional (barbeiros nas linhas) como fallback.
-  function lerBarbeirosDaTela() {
-    for (const tabela of Array.from(document.querySelectorAll('table'))) {
-      const linhas = Array.from(tabela.querySelectorAll('tr')).filter(tr => tr.querySelector('td, th'))
-      if (linhas.length < 2) continue
-      const head = Array.from(linhas[0].querySelectorAll('th, td')).map(texto)
+  // ── helpers ──────────────────────────────────────────────────────────────
 
-      // TRANSPOSTA: rótulos de métrica na 1ª coluna das linhas seguintes.
-      const rotulos = linhas.slice(1).map(tr => classificar(texto(tr.querySelector('th, td'))))
-      if (rotulos.filter(Boolean).length >= 2) {
-        const nomes = head.slice(1).map(n => n.trim())
-        const alvo = nomes
-          .map((nome, col) => ({ nome, col }))
-          .filter(x => x.nome && !classificar(x.nome) && !/total|geral|casa|soma/i.test(x.nome))
-        if (alvo.length) {
-          const acc = new Map(alvo.map(a => [a.col, base(a.nome)]))
-          linhas.slice(1).forEach((tr, i) => {
-            const chave = rotulos[i]
-            if (!chave) return
-            const cels = Array.from(tr.querySelectorAll('td')).map(texto)
-            const offset = cels.length - nomes.length // rótulo pode ocupar a 1ª td
-            alvo.forEach(a => {
-              const raw = cels[a.col + Math.max(0, offset)]
-              if (raw != null) acc.get(a.col)[chave] = brNum(raw)
-            })
-          })
-          const lista = Array.from(acc.values()).map(finalizar).filter(temAlgumValor)
-          if (lista.length) return lista
-        }
+  /**
+   * Cards do topo: blocos com o nome numa linha e o R$ na outra.
+   *
+   * Ancorar no elemento-folha que tem o R$ e subir UM nível é o que torna isso
+   * robusto: as classes do Agenda Serviço são utilitárias do Bootstrap
+   * (d-flex, flex-column, ml-2…) e mudam com o layout. A forma "um nome e um
+   * valor juntos" é o que não muda.
+   */
+  function lerCardsDoTopo() {
+    const achados = new Map()
+    for (const el of Array.from(document.querySelectorAll('span, div, p, h1, h2, h3, h4, h5'))) {
+      if (el.children.length !== 0) continue
+      const t = texto(el)
+      if (!temReais(t)) continue
+
+      const pai = el.parentElement
+      if (!pai) continue
+      // Os irmãos-folha sem R$ são candidatos a nome. Pega o primeiro que
+      // pareça nome de gente (curto, com letra).
+      const irmaos = Array.from(pai.children).filter((c) => c !== el && c.children.length === 0)
+      const nome = irmaos.map(texto).find((s) => s && !temReais(s) && s.length <= 30 && /[a-zA-ZÀ-ÿ]/.test(s))
+      if (!nome) continue
+      // O bloco "Faturamento bruto" tem a MESMA forma dos cards — um rótulo e
+      // um R$ juntos. Sem esta linha, "Serviços", "Produtos" e "Assinaturas"
+      // entram no ranking como se fossem gente, cada um com o faturamento da
+      // casa inteira no nome.
+      if (classificar(nome)) continue
+      if (ehTotalizador(nome)) continue
+      // Um card por nome: o primeiro vence (os cards do topo vêm antes dos
+      // blocos de rodapé, que repetem os mesmos nomes com outros números).
+      if (!achados.has(nome)) achados.set(nome, brNum(t))
+    }
+    return achados
+  }
+
+  /**
+   * "Faturamento bruto": blocos Total / Serviços / Produtos / Assinaturas.
+   * Mesma âncora dos cards — rótulo e valor no mesmo bloco.
+   */
+  function lerCasaDaTela() {
+    const out = { faturamento: 0, servicos: 0, produtos: 0, assinaturas: 0 }
+    let achou = false
+    for (const el of Array.from(document.querySelectorAll('span, div, p, h1, h2, h3, h4, h5'))) {
+      if (el.children.length !== 0) continue
+      const t = texto(el)
+      if (!temReais(t)) continue
+      const pai = el.parentElement
+      if (!pai) continue
+      const irmaos = Array.from(pai.children).filter((c) => c !== el && c.children.length === 0)
+      const rotulo = irmaos.map(texto).find((s) => s && !temReais(s))
+      const chave = classificar(rotulo)
+      if (!chave || chave === 'atendimentos' || chave === 'comissao') continue
+      const valor = brNum(t)
+      if (chave === 'faturamento') {
+        // "Total" só conta se ainda não temos um — o primeiro da tela é o do
+        // bloco "Faturamento bruto".
+        if (!out.faturamento) { out.faturamento = valor; achou = true }
+      } else if (!out[chave]) {
+        out[chave] = valor
+        achou = true
       }
+    }
+    return achou ? out : null
+  }
 
-      // TRADICIONAL: barbeiros nas linhas, métricas nas colunas.
-      const idx = {}
-      head.forEach((h, i) => { const k = classificar(h); if (k && idx[k] == null) idx[k] = i })
-      const iNome = head.findIndex(h => /barbeiro|profissional|colaborador|funcionario|nome/.test(semAcento(h)))
-      if (iNome >= 0 && (idx.faturamento != null || idx.comissao != null || idx.servicos != null)) {
-        const lista = []
-        for (const tr of linhas.slice(1)) {
-          const cels = Array.from(tr.querySelectorAll('td')).map(texto)
-          const nome = (cels[iNome] || '').trim()
-          if (!nome || /total|geral|soma|casa/i.test(nome)) continue
-          const b = base(nome)
-          for (const k of ['faturamento', 'comissao', 'servicos', 'produtos', 'assinaturas', 'atendimentos']) {
-            if (idx[k] != null) b[k] = brNum(cels[idx[k]])
-          }
-          lista.push(finalizar(b))
+  /**
+   * Tabela "Total detalhado".
+   *
+   * Barbeiros nas COLUNAS (primeira linha = só nomes, sem célula de rótulo).
+   * Os rótulos das métricas ficam FORA da tabela, num container irmão com um
+   * filho por linha — casados por POSIÇÃO. Quando esse container não é
+   * encontrado, ainda dá pra usar a primeira célula da linha como rótulo, que
+   * é o formato mais comum em outras telas.
+   */
+  function lerTabelaDetalhada() {
+    for (const tabela of Array.from(document.querySelectorAll('table'))) {
+      const linhas = Array.from(tabela.querySelectorAll('tr')).filter((tr) => tr.querySelector('td, th'))
+      if (linhas.length < 2) continue
+
+      const head = Array.from(linhas[0].querySelectorAll('th, td')).map(texto)
+      const nomes = head.map((n, col) => ({ nome: n.trim(), col })).filter((x) => x.nome && !classificar(x.nome))
+      if (nomes.length === 0) continue
+
+      const rotulosFora = lerRotulosVizinhos(tabela, linhas.length)
+
+      const acc = new Map(nomes.map((x) => [x.col, base(x.nome)]))
+      let usou = false
+
+      linhas.slice(1).forEach((tr, i) => {
+        const cels = Array.from(tr.querySelectorAll('th, td')).map(texto)
+        // Rótulo: primeiro o vizinho (alinhado por posição, +1 porque a
+        // posição 0 corresponde à linha do cabeçalho), depois a 1ª célula.
+        const chave = classificar(rotulosFora[i + 1]) || classificar(cels[0])
+        if (!chave) return
+        // Offset: se a linha tem uma célula a mais que o cabeçalho, a primeira
+        // é o rótulo e os valores estão deslocados.
+        const offset = Math.max(0, cels.length - head.length)
+        for (const { col } of nomes) {
+          const bruto = cels[col + offset]
+          if (bruto == null) continue
+          acc.get(col)[chave] = brNum(bruto)
+          usou = true
         }
-        const filt = lista.filter(temAlgumValor)
-        if (filt.length) return filt
+      })
+
+      if (usou) return Array.from(acc.values())
+    }
+    return []
+  }
+
+  /**
+   * Os rótulos que moram ao lado da tabela, um por linha.
+   *
+   * Procura, subindo a partir da tabela, um elemento vizinho com exatamente a
+   * mesma quantidade de filhos que a tabela tem de linhas — é essa igualdade
+   * que autoriza casar por posição. Sem ela, seria chute.
+   */
+  function lerRotulosVizinhos(tabela, qtdLinhas) {
+    let no = tabela
+    for (let nivel = 0; nivel < 4 && no; nivel++, no = no.parentElement) {
+      const pai = no.parentElement
+      if (!pai) break
+      for (const irmao of Array.from(pai.children)) {
+        if (irmao === no || irmao.contains(tabela)) continue
+        const filhos = Array.from(irmao.children)
+        if (filhos.length !== qtdLinhas) continue
+        const rotulos = filhos.map(texto)
+        // Pelo menos dois têm que ser métricas reconhecíveis; senão é outra
+        // coisa com o mesmo número de filhos por coincidência.
+        if (rotulos.filter((r) => classificar(r)).length >= 2) return rotulos
       }
     }
     return []
   }
 
-  function base(nome) {
-    return { nome, faturamento: 0, comissao: 0, servicos: 0, produtos: 0, assinaturas: 0, atendimentos: 0 }
-  }
   // Sem faturamento explícito? soma os componentes.
   function finalizar(b) {
     if (!b.faturamento || b.faturamento === 0) {
