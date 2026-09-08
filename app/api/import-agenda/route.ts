@@ -56,6 +56,43 @@ interface CasaPayload {
   assinaturas?: number
 }
 
+/**
+ * SONDA (GET) — separa três perguntas que antes só davam uma resposta junta.
+ *
+ * Quando a extensão dizia "Falha ao falar com o BarberMeta", isso podia ser:
+ * (a) a URL não é alcançável dali, (b) é alcançável mas o cookie da sessão não
+ * viaja, (c) chega e a conta não existe. As três levam a ações diferentes e a
+ * mensagem única mandava caçar internet quando o problema era login.
+ *
+ * Responde 200 SEMPRE, inclusive deslogado: o 200 é justamente a prova de
+ * alcance. `logado` responde a segunda pergunta e `email` diz em qual conta a
+ * importação vai cair — é a sessão de quem chamou, ninguém vê a de outro.
+ */
+export async function GET() {
+  let logado = false
+  let email: string | null = null
+  try {
+    const sessao = createClient()
+    const { data: { user } } = await sessao.auth.getUser()
+    if (user?.email) { logado = true; email = user.email }
+  } catch {
+    // Sem cookie, cookie expirado ou Supabase fora do ar: não logado. A sonda
+    // não pode quebrar — ela existe pra responder, não pra dar outro erro.
+  }
+
+  return NextResponse.json(
+    {
+      ok: true,
+      logado,
+      email,
+      // Só pra quem já provou ser o dono da sessão. Dizer a um chamador anônimo
+      // que o caminho por token está configurado é entregar pista de graça.
+      ...(logado ? { tokenConfigurado: Boolean(process.env.AGENDA_IMPORT_TOKEN && process.env.AGENDA_IMPORT_EMAIL) } : {}),
+    },
+    { headers: { 'cache-control': 'no-store' } },
+  )
+}
+
 export async function POST(request: NextRequest) {
   // ── 1. Quem está mandando ─────────────────────────────────────────────────
   //

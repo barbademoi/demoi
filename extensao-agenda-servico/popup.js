@@ -43,6 +43,106 @@ async function carregarCampos() {
   $('cfgToken').value = token
 }
 
+/* ────────────────────────────────────────────────────────────────────────────
+ * DOIS CAMINHOS PRA FALAR COM O BARBERMETA
+ *
+ * O popup é uma página `chrome-extension://`. Pra ele, barbermeta.com.br é um
+ * site de terceiros — e isso quebra de duas formas que dão a MESMA mensagem
+ * seca ("Failed to fetch"):
+ *   1. se o domínio redireciona (apex → www, por exemplo), o Chrome só segue o
+ *      salto se o destino também estiver no host_permissions;
+ *   2. cookie de sessão é de primeira parte; dependendo da política do
+ *      navegador ele não acompanha um POST vindo de outra origem.
+ *
+ * Por isso existe o caminho 2: mandar de DENTRO de uma aba do BarberMeta. Ali a
+ * chamada é `/api/import-agenda` na própria origem — mesmo domínio, cookie
+ * garantido, redirecionamento irrelevante. É o caminho que não depende de nada
+ * que a gente não controle.
+ * ──────────────────────────────────────────────────────────────────────────*/
+
+// Caminho 1: direto do popup.
+async function enviarDoPopup(url, token, corpo) {
+  const cabecalhos = { 'content-type': 'application/json' }
+  if (token) cabecalhos.authorization = `Bearer ${token}`
+  try {
+    const resp = await fetch(`${url}/api/import-agenda`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: cabecalhos,
+      body: JSON.stringify(corpo),
+    })
+    const dados = await resp.json().catch(() => ({}))
+    return { via: 'popup', ok: resp.ok, status: resp.status, dados }
+  } catch (e) {
+    return { via: 'popup', erroRede: String(e?.message || e) }
+  }
+}
+
+// Acha uma aba do BarberMeta; se não houver, abre uma em segundo plano. Abrir
+// sozinho em vez de mandar a pessoa abrir: quem já não conseguiu configurar a
+// extensão não deveria ter que descobrir isso sozinho.
+async function abaDoBarberMeta(url) {
+  const host = new URL(url).host
+  let abas = []
+  try { abas = await chrome.tabs.query({ url: `*://${host}/*` }) } catch { abas = [] }
+  const pronta = abas.find((a) => a.id != null)
+  if (pronta) return { id: pronta.id, criada: false }
+
+  const nova = await chrome.tabs.create({ url: `${url}/dashboard`, active: false })
+  // Injetar numa aba que ainda está carregando dá erro. 15s é folga suficiente
+  // pra um carregamento normal e curto o bastante pra não travar o popup.
+  for (let i = 0; i < 60; i++) {
+    await new Promise((r) => setTimeout(r, 250))
+    const t = await chrome.tabs.get(nova.id).catch(() => null)
+    if (!t) break
+    if (t.status === 'complete') break
+  }
+  return { id: nova.id, criada: true }
+}
+
+// Caminho 2: de dentro da aba do BarberMeta (mesma origem).
+async function enviarPelaAba(url, token, corpo) {
+  let aba
+  try {
+    aba = await abaDoBarberMeta(url)
+  } catch (e) {
+    return { via: 'aba', erroRede: 'não consegui abrir o BarberMeta: ' + String(e?.message || e) }
+  }
+
+  try {
+    const [inj] = await chrome.scripting.executeScript({
+      target: { tabId: aba.id },
+      args: [corpo, token],
+      func: async (corpo, token) => {
+        const cab = { 'content-type': 'application/json' }
+        if (token) cab.authorization = 'Bearer ' + token
+        try {
+          const r = await fetch('/api/import-agenda', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: cab,
+            body: JSON.stringify(corpo),
+          })
+          const txt = await r.text()
+          let d = {}
+          try { d = JSON.parse(txt) } catch { /* resposta não-JSON: fica o status */ }
+          return { ok: r.ok, status: r.status, dados: d }
+        } catch (e) {
+          return { erroRede: String((e && e.message) || e) }
+        }
+      },
+    })
+    const r = inj?.result
+    if (!r) return { via: 'aba', erroRede: 'a aba do BarberMeta não respondeu' }
+    // A aba aberta por nós era um meio, não um resultado — não deixa lixo.
+    if (aba.criada) chrome.tabs.remove(aba.id).catch(() => {})
+    return { via: 'aba', ...r }
+  } catch (e) {
+    if (aba.criada) chrome.tabs.remove(aba.id).catch(() => {})
+    return { via: 'aba', erroRede: String(e?.message || e) }
+  }
+}
+
 // Deixa ver o que foi colado. Campo de senha escondendo um token que a pessoa
 // acabou de colar não protege nada — ninguém decora esse valor — e impede de
 // conferir se veio inteiro ou com espaço sobrando.
@@ -86,12 +186,60 @@ $('diag').addEventListener('click', async () => {
   }
 })
 
+// Sonda os dois caminhos e diz onde para. "Falha ao falar com o BarberMeta"
+// misturava três problemas diferentes — URL inalcançável, sessão ausente e
+// conta inexistente — e cada um pede uma ação distinta.
+$('testar').addEventListener('click', async () => {
+  mostrarCfg('Testando…', 'muted')
+  const url = $('cfgUrl').value.trim().replace(/\/+$/, '') || 'https://barbermeta.com.br'
+  const linhas = []
+
+  // Direto do popup.
+  try {
+    const r = await fetch(`${url}/api/import-agenda`, { credentials: 'include' })
+    const d = await r.json().catch(() => ({}))
+    linhas.push(`Direto: alcançou (HTTP ${r.status})` + (d.logado ? ` · logado como ${d.email}` : ' · SEM sessão'))
+  } catch (e) {
+    linhas.push('Direto: não alcançou (' + (e?.message || e) + ')')
+  }
+
+  // Por dentro de uma aba do BarberMeta.
+  try {
+    const aba = await abaDoBarberMeta(url)
+    const [inj] = await chrome.scripting.executeScript({
+      target: { tabId: aba.id },
+      func: async () => {
+        try {
+          const r = await fetch('/api/import-agenda', { credentials: 'same-origin' })
+          const d = await r.json().catch(() => ({}))
+          return { status: r.status, logado: !!d.logado, email: d.email || null }
+        } catch (e) { return { erro: String((e && e.message) || e) } }
+      },
+    })
+    if (aba.criada) chrome.tabs.remove(aba.id).catch(() => {})
+    const r = inj?.result
+    if (!r) linhas.push('Pela aba: a aba não respondeu')
+    else if (r.erro) linhas.push('Pela aba: ' + r.erro)
+    else linhas.push(`Pela aba: alcançou (HTTP ${r.status})` + (r.logado ? ` · logado como ${r.email}` : ' · SEM sessão'))
+  } catch (e) {
+    linhas.push('Pela aba: ' + (e?.message || e))
+  }
+
+  const algumLogado = linhas.some((l) => l.includes('logado como'))
+  linhas.push(algumLogado
+    ? 'Pronto pra importar.'
+    : 'Falta entrar no BarberMeta neste navegador (ou preencher o token).')
+  mostrarCfg(linhas.join('\n'), algumLogado ? 'ok' : 'err')
+})
+
 $('salvar').addEventListener('click', async () => {
   const url = $('cfgUrl').value.trim().replace(/\/+$/, '')
   const token = $('cfgToken').value.trim()
 
-  if (!token) {
-    mostrarCfg('Cole o token antes de salvar.', 'err')
+  // O token virou opcional, então salvar SÓ a URL passou a ser legítimo — antes
+  // isso era recusado, e quem usava a sessão não conseguia corrigir a URL.
+  if (!url) {
+    mostrarCfg('Preencha a URL do BarberMeta.', 'err')
     return
   }
 
@@ -109,10 +257,12 @@ $('salvar').addEventListener('click', async () => {
 
     // Mostra o começo e o fim do que ficou guardado: dá pra conferir contra o
     // que está na Vercel sem expor o valor inteiro na tela.
-    const marca = token.length > 10
-      ? `${token.slice(0, 4)}…${token.slice(-4)} (${token.length} caracteres)`
-      : `${token.length} caracteres`
-    mostrarCfg(`✓ Token salvo: ${marca}\nURL: ${url}`, 'ok')
+    const marca = !token
+      ? 'sem token — vai pela sua sessão do BarberMeta'
+      : token.length > 10
+        ? `${token.slice(0, 4)}…${token.slice(-4)} (${token.length} caracteres)`
+        : `${token.length} caracteres`
+    mostrarCfg(`✓ Salvo. Token: ${marca}\nURL: ${url}`, 'ok')
   } catch (e) {
     mostrarCfg('Não consegui salvar: ' + (e?.message || e), 'err')
   }
@@ -170,25 +320,36 @@ botao.addEventListener('click', async () => {
 
     mostrar(`Enviando ${barbeiros.length} barbeiro(s) pro BarberMeta…`, 'muted')
 
-    // Manda pro BarberMeta (token protege o endpoint; nada de senha aqui).
-    let resp, dados
-    try {
-      // `credentials: 'include'` é o que leva o cookie do BarberMeta junto —
-      // é ele que substitui o token. O cabeçalho de autorização só vai se
-      // houver token configurado.
-      const cabecalhos = { 'content-type': 'application/json' }
-      if (token) cabecalhos.authorization = `Bearer ${token}`
-      resp = await fetch(`${url}/api/import-agenda`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: cabecalhos,
-        body: JSON.stringify({ referencia: resultado.referencia, barbeiros, casa: resultado.casa || null }),
-      })
-      dados = await resp.json().catch(() => ({}))
-    } catch (e) {
-      mostrar('Falha ao falar com o BarberMeta. Confira a URL e sua internet.\n(' + (e?.message || e) + ')', 'err')
+    // Manda pro BarberMeta. Tenta o caminho direto e, se ele falhar por algo
+    // que a aba resolve (rede bloqueada ou cookie que não viajou), refaz por
+    // dentro do BarberMeta em vez de devolver um erro pra pessoa resolver.
+    const corpo = { referencia: resultado.referencia, barbeiros, casa: resultado.casa || null }
+
+    let envio = await enviarDoPopup(url, token, corpo)
+    const cookieNaoViajou = envio.status === 401 && !token
+    if (envio.erroRede || cookieNaoViajou) {
+      mostrar('Refazendo por dentro do BarberMeta…', 'muted')
+      const pelaAba = await enviarPelaAba(url, token, corpo)
+      // Só troca se a segunda tentativa realmente chegou a algum lugar: um erro
+      // de rede substituindo o outro não ajudaria ninguém.
+      if (!pelaAba.erroRede) envio = pelaAba
+      else if (envio.erroRede) envio = pelaAba
+    }
+
+    if (envio.erroRede) {
+      mostrar(
+        'Falha ao falar com o BarberMeta.\n\n'
+        + `Tentei ${url}/api/import-agenda e também de dentro de uma aba do BarberMeta.\n`
+        + '(' + envio.erroRede + ')\n\n'
+        + 'Abra "Configurar (uma vez)" e clique em "Testar conexão" — ele diz em qual '
+        + 'das etapas está parando.',
+        'err',
+      )
       return
     }
+
+    const dados = envio.dados || {}
+    const resp = { ok: envio.ok, status: envio.status }
 
     if (!resp.ok) {
       // Um 500 sem texto quase sempre é variável de ambiente faltando no
@@ -215,7 +376,10 @@ botao.addEventListener('click', async () => {
       }
     }
     if (dados.ciclo) {
-      linhas.push(`Ciclo ${dados.ciclo} · fonte: ${resultado.via === 'json' ? 'endpoint interno' : 'tela (HTML)'}`)
+      linhas.push(
+        `Ciclo ${dados.ciclo} · fonte: ${resultado.via === 'json' ? 'endpoint interno' : 'tela (HTML)'}`
+        + ` · envio: ${envio.via === 'aba' ? 'pela aba do BarberMeta' : 'direto'}`,
+      )
     }
 
     // Importar ninguém não é sucesso, mesmo o servidor tendo respondido 200.
