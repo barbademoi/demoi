@@ -7,6 +7,7 @@ import LancamentosBarbeiroModal from './LancamentosBarbeiroModal'
 import AnelMeta from './AnelMeta'
 import { useMontado } from './useContagem'
 import { formatBRL, calcProgresso, TIER_CONFIG } from '@/lib/utils'
+import { linhaComparativa, type EntradaLinha } from '@/lib/comparativoCard'
 import type { PremioBarbeiro } from '@/lib/premios'
 import type { MetaIndividual, ModoPontos, Tier } from '@/types/database'
 
@@ -84,6 +85,7 @@ export default function CardRanking({
   modoAtual,
   vista,
   isRecep,
+  comparativo,
 }: {
   barbeiro: BarbeiroCard
   posicao: number
@@ -95,6 +97,12 @@ export default function CardRanking({
   modoAtual: ModoPontos
   vista: 'comissao' | 'pontos'
   isRecep?: boolean
+  /**
+   * Comparativo com o mesmo ponto do ciclo anterior, JÁ CALCULADO pelo
+   * servidor (`comparativo.porBarbeiro[id]`). O card não busca nada e não
+   * refaz conta nenhuma — só exibe. Opcional: onde não vier, a linha some.
+   */
+  comparativo?: Omit<EntradaLinha, 'exibeValor'> | null
 }) {
   const [lancamentosOpen, setLancamentosOpen] = useState(false)
   const montado = useMontado()
@@ -110,6 +118,15 @@ export default function CardRanking({
   // de faturamento. Os pontos aparecem sempre que existe campanha rodando.
   const mostraValor = modoAtual !== 'pontos' && !isRecep
   const mostraPontos = temCampanha && modoAtual !== 'metas'
+
+  // A linha de comparativo acompanha o valor principal: onde o card não mostra
+  // R$ (modo só-pontos, recepcionista), comparar reais seria falar de um número
+  // que não está na tela. `barbeiro.comissao` já é o campo-base escolhido pelo
+  // modo da barbearia (faturamento/comissão), e é exatamente ele que alimentou
+  // `atualPorBarbeiro` no servidor — os dois lados comparam a mesma coisa.
+  const linha = comparativo
+    ? linhaComparativa({ ...comparativo, exibeValor: mostraValor })
+    : { tipo: 'oculta' as const }
 
   // ── Trilha de pontos ──
   const alvoPts = minPontos > 0 ? minPontos : 0
@@ -222,6 +239,38 @@ export default function CardRanking({
               <p className="font-serif text-2xl leading-none text-text">{pontos} pts</p>
             )}
           </div>
+
+          {/* Comparativo com o mesmo ponto do ciclo anterior. Texto pequeno e
+              uma linha só, de propósito: ele contextualiza o valor logo acima,
+              não disputa com ele. A paleta é a mesma dos indicadores do painel
+              — verde pra frente, âmbar pra atrás (o vermelho do sistema é
+              reservado a erro; um mês mais fraco não é falha). */}
+          {linha.tipo === 'numero' && (
+            <p
+              className={`mt-1 font-sans text-xs leading-snug ${
+                linha.sentido === 'empate'
+                  ? 'text-text-muted'
+                  : linha.sentido === 'frente' ? 'text-green-400' : 'text-amber-400'
+              }`}
+            >
+              <span className="text-text-muted">{linha.rotulo}: </span>
+              {linha.sentido === 'empate' ? (
+                'mesmo patamar'
+              ) : (
+                <span className="font-semibold">
+                  {linha.sentido === 'frente' ? '+' : '−'}
+                  {formatBRL(Math.abs(linha.diferenca))}{' '}
+                  <span aria-hidden="true">{linha.sentido === 'frente' ? '🔼' : '🔽'}</span>
+                  <span className="sr-only">
+                    {linha.sentido === 'frente' ? 'à frente' : 'atrás'}
+                  </span>
+                </span>
+              )}
+            </p>
+          )}
+          {linha.tipo === 'sem-historico' && (
+            <p className="mt-1 font-sans text-xs leading-snug text-text-muted">{linha.texto}</p>
+          )}
 
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
             <p className="font-sans text-xs text-text-muted">/b/{barbeiro.link_codigo}</p>

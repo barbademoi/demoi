@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import CircularProgress from './CircularProgress'
 import RingsProgress from './RingsProgress'
 import CopiarLinkBtn from './CopiarLinkBtn'
@@ -316,6 +316,25 @@ function TodosView({
   comparativo,
   premiacao,
 }: TodosProps) {
+  // Comparativo por barbeiro pros cards do ranking. Nada é calculado aqui: o
+  // `comparativo` já vem do servidor com `porBarbeiro` pronto, fatiado pela
+  // régua única de `lib/mesmoPeriodo.ts`. Isto só distribui.
+  //
+  // `haCicloAnterior` sai dos próprios barbeiros, e não de `coletivo.anterior`,
+  // porque o coletivo é ZERADO quando "Mostrar faturamento geral" está
+  // desligado — usá-lo faria a linha sumir de todos os cards por causa de um
+  // toggle que não tem nada a ver com histórico individual.
+  const haCicloAnterior = useMemo(
+    () => Object.values(comparativo.porBarbeiro).some((e) => e.anterior > 0),
+    [comparativo.porBarbeiro],
+  )
+  const cmpDoCard = (id: string) => ({
+    escopo: comparativo.porBarbeiro[id] ?? null,
+    labelAnterior: comparativo.labelAnterior,
+    parcial: comparativo.parcial,
+    haCicloAnterior,
+  })
+
   const falta = meta ? meta.meta_coletiva - faturamentoExibido : 0
   // Ritmo coletivo com base nos dias de trabalho padrão da barbearia (ou dias
   // úteis do ciclo, se não configurado). A meta coletiva em R$ não muda.
@@ -549,6 +568,7 @@ function TodosView({
                 minPontos={campanha?.min_pontos ?? 0}
                 temCampanha={campanhaAtiva}
                 modoAtual={modoAtual}
+                comparativo={cmpDoCard(barbeiro.id)}
                 vista="comissao"
               />
             ))}
@@ -582,6 +602,7 @@ function TodosView({
                       minPontos={campanha.min_pontos}
                       temCampanha={campanhaAtiva}
                       modoAtual={modoAtual}
+                      comparativo={cmpDoCard(barbeiro.id)}
                       vista="pontos"
                     />
                   ))}
@@ -607,6 +628,7 @@ function TodosView({
                       minPontos={campanha.min_pontos}
                       temCampanha={campanhaAtiva}
                       modoAtual={modoAtual}
+                      comparativo={cmpDoCard(barbeiro.id)}
                       vista="pontos"
                     />
                   ))}
@@ -645,6 +667,7 @@ function TodosView({
                       minPontos={campanha.min_pontos_recep}
                       temCampanha={campanhaAtiva}
                       modoAtual={modoAtual}
+                      comparativo={cmpDoCard(barbeiro.id)}
                       vista="pontos"
                       isRecep
                     />
@@ -671,6 +694,7 @@ function TodosView({
                       minPontos={campanha.min_pontos_recep}
                       temCampanha={campanhaAtiva}
                       modoAtual={modoAtual}
+                      comparativo={cmpDoCard(barbeiro.id)}
                       vista="pontos"
                       isRecep
                     />
