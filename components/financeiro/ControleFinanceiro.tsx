@@ -24,6 +24,22 @@ import {
   nomeArquivoZip,
   selecionarParaZip,
 } from '@/lib/financeiro/comprovantes'
+// Régua das parcelas: quem aparece em qual mês, quanto vale ali, e o que cada
+// escopo de exclusão/edição faz. Definição única — a tela não tem cópia.
+import {
+  addMonths,
+  monthDiff,
+  apareceNoMes as appearsIn,
+  estaPaga as isDone,
+  valorNoMes,
+  descricaoNoMes,
+  ehSerie,
+  resumoEscopo,
+  excluirParcela,
+  excluirSerie,
+  editarParcela,
+  editarSerie,
+} from '@/lib/financeiro/parcelas'
 import {
   montarPreviaImport,
   aplicarImport,
@@ -69,23 +85,7 @@ const fmtDataHoraBR = (iso: string) => {
   } catch { return iso }
 }
 function currentMonth() { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}` }
-function addMonths(ym: string, delta: number) {
-  const [y, m] = ym.split('-').map(Number)
-  const idx = y * 12 + (m - 1) + delta
-  return `${Math.floor(idx / 12)}-${pad((idx % 12) + 1)}`
-}
-function monthDiff(a: string, b: string) {
-  const [ya, ma] = a.split('-').map(Number)
-  const [yb, mb] = b.split('-').map(Number)
-  return (ya * 12 + ma) - (yb * 12 + mb)
-}
 function monthLabel(ym: string) { const [y, m] = ym.split('-').map(Number); return `${MESES[m - 1]} ${y}` }
-function appearsIn(b: any, ym: string) {
-  if (b.recurrence === 'fixed') return ym >= b.startMonth
-  if (b.recurrence === 'installments') { const d = monthDiff(ym, b.startMonth); return d >= 0 && d < (b.installments || 1) }
-  return b.startMonth === ym
-}
-const isDone = (b: any, ym: string) => !!(b.done && b.done[ym])
 const collabValue = (c: any, ym: string) => (c.type === 'comissao' ? Number(c.monthly && c.monthly[ym]) || 0 : Number(c.amount) || 0)
 
 const EMPTY: any = { accounts: [], payables: [], receivables: [], collaborators: [], openings: {}, seenGuide: false }
@@ -427,10 +427,10 @@ export default function ControleFinanceiro({ barbeariaNome = '', barbeariaLogo =
   const computeScope = (sf: string) => {
     const f = (arr: any[]) => arr.filter((i: any) => i.scope === sf)
     const caixa = accountsSum(sf)
-    const aPagar = f(state.payables).filter((p: any) => appearsIn(p, month) && !isDone(p, month)).reduce((a: number, x: any) => a + (Number(x.amount) || 0), 0)
-    const aReceber = f(state.receivables).filter((r: any) => appearsIn(r, month) && !isDone(r, month)).reduce((a: number, x: any) => a + (Number(x.amount) || 0), 0)
-    const pago = f(state.payables).filter((p: any) => appearsIn(p, month) && isDone(p, month)).reduce((a: number, x: any) => a + (Number(x.amount) || 0), 0)
-    const recebido = f(state.receivables).filter((r: any) => appearsIn(r, month) && isDone(r, month)).reduce((a: number, x: any) => a + (Number(x.amount) || 0), 0)
+    const aPagar = f(state.payables).filter((p: any) => appearsIn(p, month) && !isDone(p, month)).reduce((a: number, x: any) => a + valorNoMes(x, month), 0)
+    const aReceber = f(state.receivables).filter((r: any) => appearsIn(r, month) && !isDone(r, month)).reduce((a: number, x: any) => a + valorNoMes(x, month), 0)
+    const pago = f(state.payables).filter((p: any) => appearsIn(p, month) && isDone(p, month)).reduce((a: number, x: any) => a + valorNoMes(x, month), 0)
+    const recebido = f(state.receivables).filter((r: any) => appearsIn(r, month) && isDone(r, month)).reduce((a: number, x: any) => a + valorNoMes(x, month), 0)
     // Folha (a pagar) = soma do LIQUIDO dos colaboradores ainda nao pagos
     // no mes. Quem ja foi pago saiu do caixa e nao conta mais como saida
     // prevista — entra em pagoFolha (realizado).
@@ -461,7 +461,7 @@ export default function ControleFinanceiro({ barbeariaNome = '', barbeariaLogo =
     const list = state[listKey]
     const bill = list.find((b: any) => b.id === id)
     if (!bill) return
-    const amt = Number(bill.amount) || 0
+    const amt = valorNoMes(bill, ym)
     update({
       [listKey]: list.map((b: any) => (b.id === id ? { ...b, done: { ...(b.done || {}), [ym]: accId ? { account: accId } : true } } : b)),
       accounts: adjustAccount(state.accounts, accId, sign * amt),
@@ -473,7 +473,7 @@ export default function ControleFinanceiro({ barbeariaNome = '', barbeariaLogo =
     if (!bill) return
     const prev = bill.done && bill.done[ym]
     const accId = prev && typeof prev === 'object' ? prev.account : null
-    const amt = Number(bill.amount) || 0
+    const amt = valorNoMes(bill, ym)
     const nextDone = { ...(bill.done || {}) }
     delete nextDone[ym]
     update({
@@ -700,7 +700,85 @@ function Overview({ scoped, combined, scope, month, setTab }: any) {
   )
 }
 
-function BillSection({ items, scope, month, setMonth, onAdd, onSettle, onUnsettle, onRemove, onMove, onEdit, accounts, pickPrompt, showDest, destLabel, accent, addLabel, doneLabel }: any) {
+/**
+ * CONFIRMAÇÃO DE ESCOPO — o que acontece com as outras parcelas.
+ *
+ * Existe porque o botão ✕ apagava o registro inteiro no clique, e com ele as
+ * parcelas passadas já pagas. Quem quisesse tirar só a do mês não tinha como.
+ *
+ * Os dois botões são DELIBERADAMENTE diferentes — um tom, um tamanho e um
+ * texto cada. Dois botões parecidos lado a lado, num diálogo destrutivo, é
+ * convite a clicar no errado; e aqui o errado apaga um ano de histórico.
+ */
+function ModalEscopo({ titulo, aviso, rotuloUma, rotuloTodas, explicaUma, explicaTodas, onUma, onTodas, onCancelar }: any) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={titulo}
+      onClick={onCancelar}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 60 }}
+    >
+      <div
+        onClick={(e: any) => e.stopPropagation()}
+        style={{ background: C.surface, border: `1px solid ${C.line}`, borderRadius: 16, padding: 20, maxWidth: 460, width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}
+      >
+        <div style={{ fontSize: 16.5, fontWeight: 700, color: C.ink }}>{titulo}</div>
+
+        {aviso && (
+          <div style={{ fontSize: 13, lineHeight: 1.5, color: C.inkSoft, background: C.bg, border: `1px solid ${C.line}`, borderRadius: 10, padding: '10px 12px' }}>
+            {aviso}
+          </div>
+        )}
+
+        {/* Cada opção traz a própria explicação, colada no botão. Um parágrafo
+            solto acima obrigaria a pessoa a lembrar qual frase era de qual
+            botão na hora de clicar. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <Btn onClick={onUma}>{rotuloUma}</Btn>
+            <p style={{ margin: '6px 2px 0', fontSize: 12.5, lineHeight: 1.45, color: C.faint }}>{explicaUma}</p>
+          </div>
+          <div>
+            <Btn tone="ghost" onClick={onTodas}>{rotuloTodas}</Btn>
+            <p style={{ margin: '6px 2px 0', fontSize: 12.5, lineHeight: 1.45, color: C.faint }}>{explicaTodas}</p>
+          </div>
+        </div>
+
+        <div style={{ borderTop: `1px solid ${C.line}`, paddingTop: 12 }}>
+          <Btn small tone="ghost" onClick={onCancelar}>Cancelar</Btn>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Confirmação sem escopo — conta única, onde "todas" não quer dizer nada. */
+function ModalSimples({ titulo, texto, rotuloConfirmar, onConfirmar, onCancelar }: any) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={titulo}
+      onClick={onCancelar}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 60 }}
+    >
+      <div
+        onClick={(e: any) => e.stopPropagation()}
+        style={{ background: C.surface, border: `1px solid ${C.line}`, borderRadius: 16, padding: 20, maxWidth: 420, width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}
+      >
+        <div style={{ fontSize: 16.5, fontWeight: 700, color: C.ink }}>{titulo}</div>
+        <div style={{ fontSize: 13.5, lineHeight: 1.5, color: C.inkSoft }}>{texto}</div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <Btn onClick={onConfirmar}>{rotuloConfirmar}</Btn>
+          <Btn tone="ghost" onClick={onCancelar}>Cancelar</Btn>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function BillSection({ items, scope, month, setMonth, onAdd, onSettle, onUnsettle, onRemove, onRemoveParcela, onEditParcela, onEditSerie, onMove, accounts, pickPrompt, showDest, destLabel, accent, addLabel, doneLabel }: any) {
   const [desc, setDesc] = useState('')
   const [amount, setAmount] = useState('')
   const [due, setDue] = useState('')
@@ -717,6 +795,13 @@ function BillSection({ items, scope, month, setMonth, onAdd, onSettle, onUnsettl
   const [dest, setDest] = useState('')
   const [eDest, setEDest] = useState('')
   const [payingId, setPayingId] = useState<string | null>(null)
+  // Conta aguardando confirmação de exclusão, e escopo já escolhido pra edição.
+  // `editScope` guarda a resposta do modal até o Salvar — a pergunta é feita
+  // ANTES do formulário abrir, como manda o fluxo: quem já decidiu "só esta"
+  // não deve descobrir no fim que mudou tudo.
+  const [removendo, setRemovendo] = useState<any | null>(null)
+  const [perguntandoEdicao, setPerguntandoEdicao] = useState<any | null>(null)
+  const [editScope, setEditScope] = useState<'uma' | 'serie'>('serie')
   const scopeLabel = scope === 'empresa' ? 'Empresa' : 'Pessoal'
   const otherLabel = scope === 'empresa' ? 'Pessoal' : 'Empresa'
 
@@ -737,13 +822,13 @@ function BillSection({ items, scope, month, setMonth, onAdd, onSettle, onUnsettl
   const appearing = items.filter((i: any) => i.scope === scope && appearsIn(i, month))
   const pending = appearing.filter((i: any) => !isDone(i, month))
   const done = appearing.filter((i: any) => isDone(i, month))
-  const totalPending = pending.reduce((a: number, x: any) => a + (Number(x.amount) || 0), 0)
+  const totalPending = pending.reduce((a: number, x: any) => a + valorNoMes(x, month), 0)
 
   const meta = (i: any) => {
     if (i.recurrence === 'fixed') return i.dueDay ? `Fixa · vence todo dia ${i.dueDay}` : 'Fixa · repete todo mês'
     if (i.recurrence === 'installments') {
       const d = i.dueDay ? ` · vence dia ${i.dueDay}` : ''
-      return `Parcela ${monthDiff(month, i.startMonth) + 1}/${i.installments}${d} · total ${brl(i.amount * i.installments)}`
+      return `Parcela ${monthDiff(month, i.startMonth) + 1}/${i.installments}${d} · total ${brl(i.amount * i.installments)}${i.overrides && i.overrides[month] ? ' · valor ajustado só nesta' : ''}`
     }
     return i.dueDate ? `Vence ${fmtDate(i.dueDate)}` : 'Lançamento único'
   }
@@ -753,15 +838,39 @@ function BillSection({ items, scope, month, setMonth, onAdd, onSettle, onUnsettl
     return a ? a.name : null
   }
 
+  const abrirFormulario = (i: any, escopo: 'uma' | 'serie') => {
+    setEditScope(escopo)
+    setPerguntandoEdicao(null)
+    abrirEdicao(i, escopo)
+  }
+  // Conta única vai direto; série pergunta o escopo primeiro.
   const startEdit = (i: any) => {
-    setEditId(i.id); setEDesc(i.description); setEAmount(String(i.amount))
+    if (!ehSerie(i)) { setEditScope('serie'); abrirEdicao(i, 'serie'); return }
+    setPerguntandoEdicao(i)
+  }
+  const abrirEdicao = (i: any, escopo: 'uma' | 'serie') => {
+    // Editando só esta parcela, o formulário mostra o que vale NESTE mês — que
+    // pode já ser um ajuste anterior, não o valor da série.
+    const valor = escopo === 'uma' ? valorNoMes(i, month) : Number(i.amount) || 0
+    setEditId(i.id); setEDesc(escopo === 'uma' ? descricaoNoMes(i, month) : i.description); setEAmount(String(valor))
     setEDue(i.dueDate || ''); setERec(i.recurrence); setEInst(String(i.installments || 2)); setEDay(i.dueDay ? String(i.dueDay) : '')
     setEDest(i.destAccount || '')
   }
   const saveEdit = () => {
     if (!eDesc.trim() || !eAmount) return
     const day = (eRec === 'fixed' || eRec === 'installments') && eDay ? Math.min(31, Math.max(1, parseInt(eDay) || 0)) : null
-    onEdit(editId, {
+
+    // "Só esta parcela" grava um ajuste no mês, e nada mais. Repetição e número
+    // de parcelas ficam de fora de propósito: são propriedades da SÉRIE, e
+    // mudá-las a partir de uma parcela mexeria justamente no que a pessoa
+    // escolheu não mexer.
+    if (editScope === 'uma') {
+      onEditParcela(editId, month, { description: eDesc.trim(), amount: parseFloat(eAmount), dueDay: day })
+      setEditId(null)
+      return
+    }
+
+    onEditSerie(editId, month, {
       description: eDesc.trim(), amount: parseFloat(eAmount),
       recurrence: eRec, installments: eRec === 'installments' ? Math.max(2, parseInt(eInst) || 2) : 1,
       dueDate: eRec === 'once' ? eDue : '', dueDay: day,
@@ -771,17 +880,26 @@ function BillSection({ items, scope, month, setMonth, onAdd, onSettle, onUnsettl
   }
   const editForm = (i: any) => (
     <div key={i.id} style={{ background: C.surface, border: `1px solid ${C.primary}`, borderRadius: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {ehSerie(i) && (
+        <div style={{ fontSize: 12.5, lineHeight: 1.45, color: C.inkSoft, background: C.bg, border: `1px solid ${C.line}`, borderRadius: 10, padding: '8px 10px' }}>
+          {editScope === 'uma'
+            ? <>Editando <strong style={{ color: C.ink }}>somente a parcela de {monthLabel(month)}</strong>. As outras ficam como estão.</>
+            : <>Editando <strong style={{ color: C.ink }}>{monthLabel(month)} e as próximas</strong>. As parcelas anteriores, e qualquer uma já paga, não mudam.</>}
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <Field label="Descrição" grow="2 1 160px"><input style={inputStyle} value={eDesc} onChange={(e) => setEDesc(e.target.value)} /></Field>
         <Field label="Valor (R$)"><input style={inputStyle} type="number" min="0" step="0.01" value={eAmount} onChange={(e) => setEAmount(e.target.value)} /></Field>
-        <Field label="Repetição">
-          <select style={inputStyle} value={eRec} onChange={(e) => setERec(e.target.value)}>
-            <option value="once">Única</option>
-            <option value="fixed">Fixa (mensal)</option>
-            <option value="installments">Parcelada</option>
-          </select>
-        </Field>
-        {eRec === 'installments' ? (
+        {editScope !== 'uma' && (
+          <Field label="Repetição">
+            <select style={inputStyle} value={eRec} onChange={(e) => setERec(e.target.value)}>
+              <option value="once">Única</option>
+              <option value="fixed">Fixa (mensal)</option>
+              <option value="installments">Parcelada</option>
+            </select>
+          </Field>
+        )}
+        {editScope === 'uma' ? null : eRec === 'installments' ? (
           <Field label="Parcelas" grow="0 1 100px"><input style={inputStyle} type="number" min="2" step="1" value={eInst} onChange={(e) => setEInst(e.target.value)} /></Field>
         ) : eRec === 'once' ? (
           <Field label="Vencimento"><input style={inputStyle} type="date" value={eDue} onChange={(e) => setEDue(e.target.value)} /></Field>
@@ -871,7 +989,7 @@ function BillSection({ items, scope, month, setMonth, onAdd, onSettle, onUnsettl
               : accounts
             return (
               <div key={i.id} style={{ background: C.surface, border: `1px solid ${C.primary}`, borderRadius: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ fontSize: 13.5, color: C.ink, fontWeight: 600 }}>{pickPrompt} <span style={{ color: C.faint, fontWeight: 400 }}>({brl(i.amount)})</span></div>
+                <div style={{ fontSize: 13.5, color: C.ink, fontWeight: 600 }}>{pickPrompt} <span style={{ color: C.faint, fontWeight: 400 }}>({brl(valorNoMes(i, month))})</span></div>
                 {ordered.length === 0 ? (
                   <div style={{ fontSize: 12.5, color: C.faint }}>Você ainda não tem caixa cadastrado. Cadastre na aba Caixa, ou conclua sem mexer no saldo.</div>
                 ) : (
@@ -894,7 +1012,7 @@ function BillSection({ items, scope, month, setMonth, onAdd, onSettle, onUnsettl
             <div key={i.id} style={rowStyle(accent)}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: 600, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.description}</span>
+                  <span style={{ fontWeight: 600, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{descricaoNoMes(i, month)}</span>
                   {i.recurrence === 'fixed' && <Badge color={C.primary}>Fixa</Badge>}
                   {i.recurrence === 'installments' && <Badge color={C.primary}>{monthDiff(month, i.startMonth) + 1}/{i.installments}</Badge>}
                 </div>
@@ -908,9 +1026,9 @@ function BillSection({ items, scope, month, setMonth, onAdd, onSettle, onUnsettl
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-                <Num value={i.amount} color={accent} />
+                <Num value={valorNoMes(i, month)} color={accent} />
                 <Btn small tone="ghost" onClick={() => setPayingId(i.id)}>{doneLabel}</Btn>
-                <Btn small tone="danger" onClick={() => onRemove(i.id)}>✕</Btn>
+                <Btn small tone="danger" onClick={() => setRemovendo(i)}>✕</Btn>
               </div>
             </div>
           )
@@ -929,7 +1047,7 @@ function BillSection({ items, scope, month, setMonth, onAdd, onSettle, onUnsettl
               return (
                 <div key={i.id} style={rowStyle(C.line, true)}>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ textDecoration: 'line-through', color: C.faint, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.description}</div>
+                    <div style={{ textDecoration: 'line-through', color: C.faint, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{descricaoNoMes(i, month)}</div>
                     <div style={{ fontSize: 11.5, color: C.faint, marginTop: 2 }}>
                       {acc && <span>{acc.name} · </span>}
                       <span onClick={() => startEdit(i)} style={linkStyle}>editar</span>
@@ -938,15 +1056,59 @@ function BillSection({ items, scope, month, setMonth, onAdd, onSettle, onUnsettl
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                    <Num value={i.amount} color={C.faint} size={14} />
+                    <Num value={valorNoMes(i, month)} color={C.faint} size={14} />
                     <Btn small tone="ghost" onClick={() => onUnsettle(i.id, month)}>Reabrir</Btn>
-                    <Btn small tone="danger" onClick={() => onRemove(i.id)}>✕</Btn>
+                    <Btn small tone="danger" onClick={() => setRemovendo(i)}>✕</Btn>
                   </div>
                 </div>
               )
             })}
           </div>
         </div>
+      )}
+
+      {/* ── Confirmações ────────────────────────────────────────────────── */}
+      {removendo && !ehSerie(removendo) && (
+        <ModalSimples
+          titulo="Excluir esta conta?"
+          texto={<>&ldquo;{descricaoNoMes(removendo, month)}&rdquo; · {brl(valorNoMes(removendo, month))}. Isso não pode ser desfeito.</>}
+          rotuloConfirmar="Excluir"
+          onConfirmar={() => { onRemove(removendo.id); setRemovendo(null) }}
+          onCancelar={() => setRemovendo(null)}
+        />
+      )}
+      {removendo && ehSerie(removendo) && (() => {
+        const r = resumoEscopo(removendo, month)
+        return (
+          <ModalEscopo
+            titulo={`Excluir "${descricaoNoMes(removendo, month)}"`}
+            aviso={r.limpa
+              ? <>Nenhuma parcela foi paga ainda — escolhendo &ldquo;todas&rdquo;, a conta some por completo.</>
+              : <>Esta conta tem <strong style={{ color: C.ink }}>{r.pagasAntes + r.pagasDepois} parcela(s) já paga(s)</strong>. Elas <strong style={{ color: C.ink }}>não serão apagadas</strong> em nenhuma das opções: o dinheiro já saiu do caixa e o histórico precisa continuar batendo.</>}
+            rotuloUma={`Excluir só a parcela de ${monthLabel(month)}`}
+            explicaUma="Tira esta parcela do mês aberto. As outras continuam aparecendo normalmente."
+            rotuloTodas="Excluir esta e as próximas"
+            explicaTodas={r.limpa
+              ? 'A conta deixa de existir.'
+              : 'Encerra a conta: as parcelas em aberto somem e as já pagas continuam no histórico.'}
+            onUma={() => { onRemoveParcela(removendo.id, month); setRemovendo(null) }}
+            onTodas={() => { onRemove(removendo.id, month); setRemovendo(null) }}
+            onCancelar={() => setRemovendo(null)}
+          />
+        )
+      })()}
+      {perguntandoEdicao && (
+        <ModalEscopo
+          titulo={`Editar "${descricaoNoMes(perguntandoEdicao, month)}"`}
+          aviso={<>Parcelas <strong style={{ color: C.ink }}>já pagas não mudam de valor</strong>, seja qual for a opção.</>}
+          rotuloUma={`Editar só a parcela de ${monthLabel(month)}`}
+          explicaUma="Vale um ajuste avulso neste mês — um aluguel que veio mais caro uma vez, por exemplo. Os outros meses ficam como estão."
+          rotuloTodas="Editar esta e as próximas"
+          explicaTodas="O novo valor passa a valer deste mês em diante. Os meses anteriores continuam com o valor antigo."
+          onUma={() => abrirFormulario(perguntandoEdicao, 'uma')}
+          onTodas={() => abrirFormulario(perguntandoEdicao, 'serie')}
+          onCancelar={() => setPerguntandoEdicao(null)}
+        />
       )}
     </div>
   )
@@ -963,8 +1125,28 @@ function Payables({ state, update, scope, month, setMonth, onSettle, onUnsettle 
       onSettle={onSettle}
       onUnsettle={onUnsettle}
       onMove={(id: string) => update({ payables: flipScope(state.payables, id) })}
-      onEdit={(id: string, patch: any) => update({ payables: state.payables.map((p: any) => (p.id === id ? { ...p, ...patch } : p)) })}
-      onRemove={(id: string) => update({ payables: state.payables.filter((p: any) => p.id !== id) })} />
+      onEditParcela={(id: string, ym: string, patch: any) =>
+        update({ payables: state.payables.map((p: any) => (p.id === id ? editarParcela(p, ym, patch) : p)) })}
+      onEditSerie={(id: string, ym: string, patch: any) => {
+        const alvo = state.payables.find((p: any) => p.id === id)
+        if (!alvo) return
+        const { original, novo } = editarSerie(alvo, ym, patch, uid())
+        // `original` null = não havia passado a preservar; o próprio registro
+        // foi alterado e não nasce um segundo.
+        update({ payables: state.payables.flatMap((p: any) => (p.id !== id ? [p] : original ? [original, novo] : [novo])) })
+      }}
+      onRemoveParcela={(id: string, ym: string) =>
+        update({ payables: state.payables.map((p: any) => (p.id === id ? excluirParcela(p, ym) : p)) })}
+      onRemove={(id: string, ym?: string) => {
+        const alvo = state.payables.find((p: any) => p.id === id)
+        // Sem mês (conta única) ou sem parcela paga, o registro sai da lista.
+        // Com pagamento no histórico, `excluirSerie` devolve a conta encerrada
+        // em vez de null — e ela FICA, senão o caixa passado deixa de bater.
+        const cortada = alvo && ym ? excluirSerie(alvo, ym) : null
+        update({ payables: cortada
+          ? state.payables.map((p: any) => (p.id === id ? cortada : p))
+          : state.payables.filter((p: any) => p.id !== id) })
+      }} />
   )
 }
 function Receivables({ state, update, scope, month, setMonth, onSettle, onUnsettle }: any) {
@@ -975,8 +1157,28 @@ function Receivables({ state, update, scope, month, setMonth, onSettle, onUnsett
       onSettle={onSettle}
       onUnsettle={onUnsettle}
       onMove={(id: string) => update({ receivables: flipScope(state.receivables, id) })}
-      onEdit={(id: string, patch: any) => update({ receivables: state.receivables.map((r: any) => (r.id === id ? { ...r, ...patch } : r)) })}
-      onRemove={(id: string) => update({ receivables: state.receivables.filter((r: any) => r.id !== id) })} />
+      onEditParcela={(id: string, ym: string, patch: any) =>
+        update({ receivables: state.receivables.map((p: any) => (p.id === id ? editarParcela(p, ym, patch) : p)) })}
+      onEditSerie={(id: string, ym: string, patch: any) => {
+        const alvo = state.receivables.find((p: any) => p.id === id)
+        if (!alvo) return
+        const { original, novo } = editarSerie(alvo, ym, patch, uid())
+        // `original` null = não havia passado a preservar; o próprio registro
+        // foi alterado e não nasce um segundo.
+        update({ receivables: state.receivables.flatMap((p: any) => (p.id !== id ? [p] : original ? [original, novo] : [novo])) })
+      }}
+      onRemoveParcela={(id: string, ym: string) =>
+        update({ receivables: state.receivables.map((p: any) => (p.id === id ? excluirParcela(p, ym) : p)) })}
+      onRemove={(id: string, ym?: string) => {
+        const alvo = state.receivables.find((p: any) => p.id === id)
+        // Sem mês (conta única) ou sem parcela paga, o registro sai da lista.
+        // Com pagamento no histórico, `excluirSerie` devolve a conta encerrada
+        // em vez de null — e ela FICA, senão o caixa passado deixa de bater.
+        const cortada = alvo && ym ? excluirSerie(alvo, ym) : null
+        update({ receivables: cortada
+          ? state.receivables.map((p: any) => (p.id === id ? cortada : p))
+          : state.receivables.filter((p: any) => p.id !== id) })
+      }} />
   )
 }
 
