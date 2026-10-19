@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { salvarCampanha, salvarRegrasGerais, resetarRegrasGerais } from '@/app/dashboard/campanha/actions'
+import { copiarCampanhaParaProximoMes, salvarCampanha, salvarRegrasGerais, resetarRegrasGerais } from '@/app/dashboard/campanha/actions'
+import { mesSeguinte } from '@/lib/campanha'
 import { formatBRL, nomeMes } from '@/lib/utils'
 import { REGRAS_FIXAS } from '@/lib/regras'
 import type { CampanhaComDetalhes } from '@/types/database'
@@ -40,6 +41,9 @@ export default function CampanhaModal({ campanha, mes, ano, regrasGeraisDb }: Pr
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [erro, setErro] = useState<string | null>(null)
+  const [mostrarConfirmCopia, setMostrarConfirmCopia] = useState(false)
+  const [copiando, setCopiando] = useState(false)
+  const [mensagemCopia, setMensagemCopia] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null)
   const [aba, setAba] = useState<'servicos' | 'premios' | 'config' | 'regras'>('servicos')
 
   const [minPontos,      setMinPontos]      = useState(campanha?.min_pontos       ?? 800)
@@ -128,14 +132,113 @@ export default function CampanhaModal({ campanha, mes, ano, regrasGeraisDb }: Pr
     })
   }
 
+  const proximoPeriodo = mesSeguinte(mes, ano)
+
+  async function copiarParaProximoMes() {
+    if (!campanha) return
+    setCopiando(true)
+    setMensagemCopia(null)
+    const res = await copiarCampanhaParaProximoMes(campanha.id)
+    setCopiando(false)
+    if (res?.error) {
+      setMensagemCopia({ tipo: 'erro', texto: res.error })
+      return
+    }
+    setMostrarConfirmCopia(false)
+    setMensagemCopia({
+      tipo: 'sucesso',
+      texto: `✓ Campanha copiada para ${nomeMes(proximoPeriodo.mes)} de ${proximoPeriodo.ano}`,
+    })
+  }
+
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="btn-ghost text-sm py-2 px-4 border border-border flex items-center gap-2"
-      >
-        🏆 {campanha ? 'Editar campanha' : 'Configurar campanha'}
-      </button>
+      <>
+        <button
+          onClick={() => setOpen(true)}
+          className="btn-ghost text-sm py-2 px-4 border border-border flex items-center gap-2"
+        >
+          🏆 {campanha ? 'Editar campanha' : 'Configurar campanha'}
+        </button>
+        {campanha && (
+          <button
+            onClick={() => {
+              setMensagemCopia(null)
+              setMostrarConfirmCopia(true)
+            }}
+            className="btn-ghost text-sm py-2 px-4 border border-border flex items-center gap-2"
+          >
+            📋 Copiar para o próximo mês
+          </button>
+        )}
+        {mensagemCopia && (
+          <p
+            role="status"
+            className={`basis-full text-xs font-sans ${mensagemCopia.tipo === 'sucesso' ? 'text-green-400' : 'text-red-400'}`}
+          >
+            {mensagemCopia.texto}
+          </p>
+        )}
+
+        {mostrarConfirmCopia && campanha && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/80" onClick={() => !copiando && setMostrarConfirmCopia(false)} />
+            <div className="relative card p-6 w-full max-w-md shadow-2xl">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <h3 className="font-serif text-xl text-text">Copiar campanha?</h3>
+                  <p className="text-text-muted text-sm font-sans mt-1 capitalize">
+                    {nomeMes(mes)} {ano} → {nomeMes(proximoPeriodo.mes)} {proximoPeriodo.ano}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMostrarConfirmCopia(false)}
+                  disabled={copiando}
+                  aria-label="Fechar confirmação"
+                  className="text-text-muted hover:text-text text-xl disabled:opacity-40"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="rounded-xl bg-surface-2 border border-border p-4 mb-4">
+                <p className="text-sm text-text font-sans leading-relaxed">
+                  Serão copiados serviços, pontos, premiação, bônus, regras e configurações da campanha.
+                </p>
+                <p className="text-xs text-text-muted font-sans mt-2 leading-relaxed">
+                  O mês atual não muda. Se já houver campanha no próximo mês, nada será sobrescrito.
+                </p>
+              </div>
+
+              {mensagemCopia?.tipo === 'erro' && (
+                <p role="alert" className="text-red-400 text-sm font-sans mb-4">
+                  {mensagemCopia.texto}
+                </p>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMostrarConfirmCopia(false)}
+                  disabled={copiando}
+                  className="btn-ghost flex-1 disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={copiarParaProximoMes}
+                  disabled={copiando}
+                  className="btn-primary flex-1 disabled:opacity-50"
+                >
+                  {copiando ? 'Copiando…' : 'Confirmar cópia'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
     )
   }
 
