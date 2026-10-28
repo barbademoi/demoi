@@ -8,6 +8,7 @@ import AnelMeta from './AnelMeta'
 import { useMontado } from './useContagem'
 import { formatBRL, calcProgresso, TIER_CONFIG } from '@/lib/utils'
 import { linhaComparativa, type EntradaLinha } from '@/lib/comparativoCard'
+import type { Projecao } from '@/lib/projecao'
 import type { PremioBarbeiro } from '@/lib/premios'
 import type { MetaIndividual, ModoPontos, Tier } from '@/types/database'
 
@@ -86,6 +87,7 @@ export default function CardRanking({
   vista,
   isRecep,
   comparativo,
+  projecao,
 }: {
   barbeiro: BarbeiroCard
   posicao: number
@@ -103,6 +105,8 @@ export default function CardRanking({
    * refaz conta nenhuma — só exibe. Opcional: onde não vier, a linha some.
    */
   comparativo?: Omit<EntradaLinha, 'exibeValor'> | null
+  /** Projeção de fechamento deste barbeiro. Só informativa. */
+  projecao?: Projecao | null
 }) {
   const [lancamentosOpen, setLancamentosOpen] = useState(false)
   const montado = useMontado()
@@ -270,6 +274,30 @@ export default function CardRanking({
           )}
           {linha.tipo === 'sem-historico' && (
             <p className="mt-1 font-sans text-xs leading-snug text-text-muted">{linha.texto}</p>
+          )}
+
+          {/* Projeção de fechamento — uma linha, texto pequeno. Acompanha o
+              valor principal: onde o card não mostra R$, ela também não
+              aparece. É informativa e não entra em meta, ranking nem prêmio. */}
+          {mostraValor && projecao && (
+            <p className="mt-1 font-sans text-xs leading-snug text-text-muted">
+              {projecao.temProjecao ? (
+                <>
+                  <span>Projeção: </span>
+                  <span className="font-semibold text-text">{formatBRL(projecao.esperado)}</span>
+                  {projecao.faixa && (
+                    <span> ({formatBRL(projecao.faixa.conservador)} a {formatBRL(projecao.faixa.otimista)})</span>
+                  )}
+                  {projecao.confianca !== 'alta' && (
+                    <span className={projecao.confianca === 'baixa' ? 'text-amber-400' : ''}>
+                      {' '}· confiança {projecao.confianca === 'media' ? 'média' : 'baixa'}
+                    </span>
+                  )}
+                </>
+              ) : (
+                'Projeção: sem histórico ainda'
+              )}
+            </p>
           )}
 
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">

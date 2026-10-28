@@ -9,6 +9,7 @@ import ComunidadeCard from './ComunidadeCard'
 import LancamentosBarbeiroModal from './LancamentosBarbeiroModal'
 import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
 import ComparativoPeriodo from './ComparativoPeriodo'
+import ProjecaoFechamento, { type ProjecaoCasa } from './ProjecaoFechamento'
 import CardRanking from './CardRanking'
 import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
 import TicketMedio from '@/components/autonomo/TicketMedio'
@@ -17,6 +18,7 @@ import { calcularRitmo } from '@/lib/ritmo'
 import { nomeValor } from '@/lib/rotuloValor'
 import type { MetaIndividual, ModoPontos, CampanhaComDetalhes } from '@/types/database'
 import type { ComparativoPeriodo as ComparativoPeriodoDados, EscopoComparativo } from '@/lib/comparativoPeriodo'
+import type { ProjecaoDoCiclo } from '@/lib/projecao/servidor'
 import type { PremiacaoResumo } from '@/lib/premios'
 
 type BarbeiroRow = {
@@ -56,6 +58,7 @@ interface Props {
   historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
   faturamentoMesAnterior: number
   comparativo: ComparativoPeriodoDados
+  projecao: ProjecaoDoCiclo | null
   premiacao: PremiacaoResumo
   meta: MetaSimples | null
   faturamentoExibido: number
@@ -109,6 +112,7 @@ export default function DashboardMain({
   historicoBarbearia,
   faturamentoMesAnterior,
   comparativo,
+  projecao,
   premiacao,
   meta,
   faturamentoExibido,
@@ -206,6 +210,7 @@ export default function DashboardMain({
           historicoBarbearia={historicoBarbearia}
           faturamentoMesAnterior={faturamentoMesAnterior}
           comparativo={comparativo}
+          projecao={projecao}
           premiacao={premiacao}
         />
       ) : barbeiroSel ? (
@@ -279,6 +284,7 @@ interface TodosProps {
   historicoBarbearia: { mes: number; ano: number; comissao: number; atendimentos: number; label: string }[]
   faturamentoMesAnterior: number
   comparativo: ComparativoPeriodoDados
+  projecao: ProjecaoDoCiclo | null
   premiacao: PremiacaoResumo
 }
 
@@ -314,6 +320,7 @@ function TodosView({
   historicoBarbearia,
   faturamentoMesAnterior,
   comparativo,
+  projecao,
   premiacao,
 }: TodosProps) {
   // Comparativo por barbeiro pros cards do ranking. Nada é calculado aqui: o
@@ -328,6 +335,7 @@ function TodosView({
     () => Object.values(comparativo.porBarbeiro).some((e) => e.anterior > 0),
     [comparativo.porBarbeiro],
   )
+  const projDoCard = (id: string) => projecao?.porBarbeiro[id] ?? null
   const cmpDoCard = (id: string) => ({
     escopo: comparativo.porBarbeiro[id] ?? null,
     labelAnterior: comparativo.labelAnterior,
@@ -520,6 +528,17 @@ function TodosView({
           ritmoAtual={ritmoColetivo}
         />
       )}
+
+      {/* Projeção de fechamento da casa. Segue o mesmo toggle do faturamento
+          geral: se o dono escondeu o R$ da casa, a projeção dela também some —
+          senão o número escondido voltaria pela porta dos fundos. */}
+      {projecao && mostrarFaturamentoGeral && projecao.casa.esperado > 0 && (
+        <ProjecaoFechamento
+          projecao={projecao.casa as ProjecaoCasa}
+          cicloLabel={cicloLabel}
+          labelAnterior={comparativo.labelAnterior}
+        />
+      )}
       {modoAtual !== 'pontos' && mostrarFaturamentoGeral && (
         <ComparativoMesAnterior
           comissaoAtual={faturamentoExibido}
@@ -569,6 +588,7 @@ function TodosView({
                 temCampanha={campanhaAtiva}
                 modoAtual={modoAtual}
                 comparativo={cmpDoCard(barbeiro.id)}
+                projecao={projDoCard(barbeiro.id)}
                 vista="comissao"
               />
             ))}
@@ -603,6 +623,7 @@ function TodosView({
                       temCampanha={campanhaAtiva}
                       modoAtual={modoAtual}
                       comparativo={cmpDoCard(barbeiro.id)}
+                      projecao={projDoCard(barbeiro.id)}
                       vista="pontos"
                     />
                   ))}
@@ -629,6 +650,7 @@ function TodosView({
                       temCampanha={campanhaAtiva}
                       modoAtual={modoAtual}
                       comparativo={cmpDoCard(barbeiro.id)}
+                      projecao={projDoCard(barbeiro.id)}
                       vista="pontos"
                     />
                   ))}
@@ -668,6 +690,7 @@ function TodosView({
                       temCampanha={campanhaAtiva}
                       modoAtual={modoAtual}
                       comparativo={cmpDoCard(barbeiro.id)}
+                      projecao={projDoCard(barbeiro.id)}
                       vista="pontos"
                       isRecep
                     />
@@ -695,6 +718,7 @@ function TodosView({
                       temCampanha={campanhaAtiva}
                       modoAtual={modoAtual}
                       comparativo={cmpDoCard(barbeiro.id)}
+                      projecao={projDoCard(barbeiro.id)}
                       vista="pontos"
                       isRecep
                     />

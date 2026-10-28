@@ -22,6 +22,7 @@ import { brindoletaLiberada } from '@/lib/brindoleta/liberacao'
 import { BRINDOLETA_PRICE_LABEL } from '@/lib/brindoleta/config'
 import { decidirPopupBrindoleta } from '@/lib/brindoleta/popup'
 import { carregarBaseDoCiclo, carregarGamificacao } from '@/lib/premios/servidor'
+import { carregarProjecao } from '@/lib/projecao/servidor'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import FecharMesButton from '@/components/dashboard/FecharMesButton'
 import DestaquesMes from '@/components/dashboard/DestaquesMes'
@@ -308,6 +309,18 @@ export default async function DashboardPage({
     garantirCampanha: true,
   })
 
+  // ── Projeção de fechamento ────────────────────────────────────────────
+  // Estatística local, no servidor. Mesma função do link do barbeiro, pra o
+  // número bater nas duas telas. Só informativa: não alimenta premiação,
+  // folha, ranking nem meta.
+  const projecao = await carregarProjecao(supabase, {
+    barbeariaId: barbearia.id, ciclo, diaFechamento, hoje, ehPeriodoAtual,
+    barbeiros: ranking.map((r) => ({
+      id: r.id, comissao: r.comissao, dias_trabalho_mes: r.dias_trabalho_mes,
+    })),
+    diasTrabalhoPadrao: barbearia.dias_trabalho_padrao ?? null,
+  })
+
   const platformStats = await getPlatformStats()
   const isAutonomo = barbearia.modalidade === 'sozinho'
 
@@ -398,6 +411,7 @@ export default async function DashboardPage({
       historicoBarbearia={historicoBarbeariaExibido}
       faturamentoMesAnterior={faturamentoMesAnterior}
       comparativo={comparativo}
+      projecao={projecao}
       mostrarFaturamentoGeral={mostrarFaturamentoGeral}
       modoMeta={barbearia.modo_meta ?? 'comissao'}
       baseMeta={barbearia.base_meta ?? 'comissao'}
