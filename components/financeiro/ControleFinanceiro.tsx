@@ -15,6 +15,8 @@ import {
 } from '@/lib/financeiro/supabaseStore'
 import {
   buscarComissoesBarbermeta,
+  buscarPremiacaoBarbermeta,
+  type PremiacaoDaFolha,
   salvarComissaoBrutaBarbeiro,
   listarAjustesComissao,
   type AjusteComissao,
@@ -26,6 +28,14 @@ import {
 } from '@/lib/financeiro/comprovantes'
 // Régua das parcelas: quem aparece em qual mês, quanto vale ali, e o que cada
 // escopo de exclusão/edição faz. Definição única — a tela não tem cópia.
+import {
+  decidir as decidirPremiacao,
+  divergencia as divergenciaPremiacao,
+  selo as seloPremiacao,
+  linhaAutomatica,
+  premiacaoManual,
+  TIPO_PREMIACAO,
+} from '@/lib/financeiro/premiacaoFolha'
 import {
   addMonths,
   monthDiff,
@@ -1231,6 +1241,68 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
   // Historico de ajustes carregado por colaborador (painel de detalhes).
   const [ajustes, setAjustes] = useState<Record<string, AjusteComissao[]>>({})
 
+  // ── Premiação do ciclo como adicional ──────────────────────────────────
+  // Vem de `buscarPremiacaoBarbermeta`, que reutiliza o MESMO carregamento do
+  // bloco "Premiação do mês" do dashboard. A folha não calcula prêmio: ela
+  // recebe o número pronto e decide o que fazer com a linha.
+  const [premiacao, setPremiacao] = useState<{
+    porBarbeiro: Record<string, PremiacaoDaFolha>
+    cicloLabel: string
+    fechado: boolean
+    temPremiacao: boolean
+  } | null>(null)
+
+  useEffect(() => {
+    let vivo = true
+    setPremiacao(null)
+    buscarPremiacaoBarbermeta(month).then((res) => {
+      if (!vivo || 'error' in res) return
+      const porBarbeiro: Record<string, PremiacaoDaFolha> = {}
+      for (const b of res.barbeiros) porBarbeiro[b.barbeiroId] = b
+      setPremiacao({ porBarbeiro, cicloLabel: res.cicloLabel, fechado: res.fechado, temPremiacao: res.temPremiacao })
+    }).catch(() => { /* sem premiação a folha segue normal */ })
+    return () => { vivo = false }
+  }, [month])
+
+  /** A regra pra este colaborador neste mês. null = não há prêmio pra ele. */
+  const regraDe = (c: any) => {
+    if (!premiacao || !c.barbeiroId) return null
+    const p = premiacao.porBarbeiro[c.barbeiroId]
+    if (!p) return null
+    return { total: p.total, composicao: p.composicao, ciclo: premiacao.cicloLabel }
+  }
+
+  // Aplica a regra em todos os colaboradores de uma vez. Roda quando a
+  // premiação chega e quando o mês muda — e só grava se algo realmente mudou,
+  // pra não disparar save em loop.
+  useEffect(() => {
+    if (!premiacao) return
+    let mexeu = false
+    const novos = state.collaborators.map((c: any) => {
+      if (!c.barbeiroId) return c
+      const bonus = bonusDoMes(c, month)
+      const acao = decidirPremiacao({
+        atual: linhaAutomatica(bonus),
+        removida: !!(c.premiacaoRemovida && c.premiacaoRemovida[month]),
+        paga: isCollabPaid(c, month),
+        fechado: premiacao.fechado,
+        temManual: premiacaoManual(bonus).length > 0,
+        regra: regraDe(c),
+      })
+      if (acao.tipo === 'nada') return c
+      mexeu = true
+      const lista = acao.tipo === 'criar'
+        ? [...bonus, { id: uid(), ...acao.linha }]
+        : bonus.map((b: any) => (b.origem === 'premiacao' ? { ...b, ...acao.patch } : b))
+      return { ...c, bonus: { ...(c.bonus || {}), [month]: lista } }
+    })
+    if (mexeu) update({ collaborators: novos })
+    // `state.collaborators` fora das dependências de propósito: a gravação
+    // muda ele, e incluí-lo faria o efeito se re-disparar em cima da própria
+    // escrita. Premiação e mês são o que define o que deve existir.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [premiacao, month])
+
   const marcarSync = (id: string, estado: 'salvando' | 'ok' | 'erro', msg: string) =>
     setSyncBruto((s) => ({ ...s, [id]: { estado, msg } }))
 
@@ -1413,6 +1485,49 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
     setBonusForm(null)
   }
   const cancelBonus = () => setBonusForm(null)
+  /**
+   * Remove a linha automática de premiação e MARCA o mês como removido.
+   * Sem a marca ela renasceria no próximo carregamento da tela — o clique no
+   * ✕ pareceria não funcionar.
+   */
+  const removerPremiacao = (colabId: string, bonusId: string) => {
+    update({
+      collaborators: state.collaborators.map((c: any) => {
+        if (c.id !== colabId) return c
+        const lista = bonusDoMes(c, month).filter((b: any) => b.id !== bonusId)
+        return {
+          ...c,
+          bonus: { ...(c.bonus || {}), [month]: lista },
+          premiacaoRemovida: { ...(c.premiacaoRemovida || {}), [month]: true },
+        }
+      }),
+    })
+  }
+
+  /** Dono digitou outro valor: a regra vira referência, não ordem. */
+  const editarPremiacao = (colabId: string, bonusId: string, valor: number) => {
+    update({
+      collaborators: state.collaborators.map((c: any) => {
+        if (c.id !== colabId) return c
+        const lista = bonusDoMes(c, month).map((b: any) =>
+          b.id === bonusId ? { ...b, valor, editado: true, previsto: false } : b)
+        return { ...c, bonus: { ...(c.bonus || {}), [month]: lista } }
+      }),
+    })
+  }
+
+  /** Divergência aceita: adota o valor da regra e destrava a comparação. */
+  const adotarRegra = (colabId: string, bonusId: string, valor: number) => {
+    update({
+      collaborators: state.collaborators.map((c: any) => {
+        if (c.id !== colabId) return c
+        const lista = bonusDoMes(c, month).map((b: any) =>
+          b.id === bonusId ? { ...b, valor, valorRegra: valor } : b)
+        return { ...c, bonus: { ...(c.bonus || {}), [month]: lista } }
+      }),
+    })
+  }
+
   const removeBonus = (colabId: string, bonusId: string) => {
     update({
       collaborators: state.collaborators.map((cc: any) => {
@@ -2161,20 +2276,91 @@ function Collaborators({ state, update, scope, folha, month, barbeariaNome, barb
                     {bonusList.length > 0 && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         <div style={{ fontSize: 11, color: C.in, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, padding: '0 4px' }}>Bônus</div>
-                        {bonusList.map((b: any) => (
-                          <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '8px 12px', background: C.surface2, border: `1px solid ${C.line}`, borderRadius: 8 }}>
+                        {bonusList.map((b: any) => {
+                          // A linha da premiação é a mesma caixa, com três
+                          // acréscimos: o selo do estado, a composição do
+                          // prêmio e — quando o valor final deixou de bater
+                          // com a regra — o aviso de divergência.
+                          const auto = b.origem === 'premiacao'
+                          const regra = auto ? regraDe(c) : null
+                          const diverge = auto ? divergenciaPremiacao(b, regra) : null
+                          const marca = auto ? seloPremiacao(b) : null
+                          return (
+                          <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '8px 12px', background: C.surface2, border: `1px solid ${auto ? C.primary : C.line}`, borderRadius: 8 }}>
                             <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: 13.5, fontWeight: 600 }}>
-                                <Badge color={C.in}>{b.tipo}</Badge>
-                                <span style={{ marginLeft: 8 }}>+ {brl(b.valor)}</span>
+                              <div style={{ fontSize: 13.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                <Badge color={auto ? C.primary : C.in}>{b.tipo}</Badge>
+                                <span>+ {brl(b.valor)}</span>
+                                {marca && (
+                                  <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: b.editado ? C.faint : b.travado ? C.in : C.primary }}>
+                                    {marca}
+                                  </span>
+                                )}
                               </div>
-                              {b.obs && <div style={{ fontSize: 11.5, color: C.faint, marginTop: 3 }}>{b.obs}</div>}
+                              {auto && b.ciclo && (
+                                <div style={{ fontSize: 11.5, color: C.faint, marginTop: 3 }}>
+                                  {b.composicao || b.obs} · ciclo {b.ciclo}
+                                </div>
+                              )}
+                              {!auto && b.obs && <div style={{ fontSize: 11.5, color: C.faint, marginTop: 3 }}>{b.obs}</div>}
+                              {auto && b.editado && (
+                                <div style={{ fontSize: 11.5, color: C.faint, marginTop: 2 }}>
+                                  pela regra seria {brl(b.valorRegra ?? 0)}
+                                </div>
+                              )}
+                              {auto && b.previsto && (
+                                <div style={{ fontSize: 11.5, color: C.faint, marginTop: 2 }}>
+                                  ciclo em aberto — o valor ainda pode mudar até o fechamento
+                                </div>
+                              )}
+                              {diverge !== null && (
+                                <div style={{ fontSize: 11.5, color: C.ink, marginTop: 6, background: C.bg, border: `1px solid ${C.line}`, borderRadius: 8, padding: '8px 10px' }}>
+                                  Um lançamento deste ciclo foi editado depois do fechamento:
+                                  a regra agora dá <strong>{brl(diverge)}</strong>, a folha está com{' '}
+                                  <strong>{brl(b.valor)}</strong>. Não mexi sozinho.
+                                  <div style={{ marginTop: 8 }}>
+                                    <Btn small onClick={() => adotarRegra(c.id, b.id, diverge)}>Atualizar pra {brl(diverge)}</Btn>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <Btn small tone="danger" onClick={() => removeBonus(c.id, b.id)}>✕</Btn>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                              {auto && (
+                                <input
+                                  style={{ ...inputStyle, width: 96 }}
+                                  type="number" min="0" step="0.01"
+                                  defaultValue={b.valor}
+                                  onBlur={(e: any) => {
+                                    const v = parseFloat(e.target.value)
+                                    if (Number.isFinite(v) && v !== b.valor) editarPremiacao(c.id, b.id, v)
+                                  }}
+                                  aria-label="Valor da premiação"
+                                />
+                              )}
+                              <Btn small tone="danger" onClick={() => (auto ? removerPremiacao(c.id, b.id) : removeBonus(c.id, b.id))}>✕</Btn>
+                            </div>
                           </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     )}
+
+                    {(() => {
+                      // A linha automática não entra quando já existe prêmio
+                      // lançado à mão — somar os dois pagaria duas vezes. O
+                      // dono precisa saber que isso aconteceu.
+                      const manual = premiacaoManual(bonusList)
+                      const regra = regraDe(c)
+                      if (manual.length === 0 || !regra || regra.total <= 0 || linhaAutomatica(bonusList)) return null
+                      return (
+                        <div style={{ fontSize: 12, lineHeight: 1.5, color: C.inkSoft, background: C.bg, border: `1px dashed ${C.line}`, borderRadius: 8, padding: '9px 11px' }}>
+                          Não lancei a <strong style={{ color: C.ink }}>{TIPO_PREMIACAO}</strong> ({brl(regra.total)}) porque
+                          já existe {manual.length === 1 ? 'um bônus' : `${manual.length} bônus`} de premiação aqui
+                          ({manual.map((m: any) => m.tipo).join(', ')}). Somar os dois pagaria duas vezes —
+                          apague o manual se quiser o automático.
+                        </div>
+                      )
+                    })()}
 
                     {/* Form de novo bonus */}
                     {bonusForm && bonusForm.colabId === c.id ? (

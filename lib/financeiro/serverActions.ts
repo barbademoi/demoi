@@ -9,10 +9,16 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { cicloAtual, cicloDeData } from '@/lib/ciclo'
+import { cicloAtual, cicloDeData, hojeBrasil } from '@/lib/ciclo'
+import { carregarBaseDoCiclo, carregarGamificacao } from '@/lib/premios/servidor'
+import type { MetaIndividual } from '@/types/database'
 import { estaFechado } from '@/lib/mesFechado'
 import { valorBase, type ModoMeta, type BaseMeta } from '@/lib/modoMeta'
 import { mesAnoDoYm, normalizarValor, linhaLancamentoAjuste } from '@/lib/financeiro/comissaoBruta'
+
+/** R$ sem casas quando redondo — é rótulo curto dentro de uma linha da folha. */
+const reais = (v: number) =>
+  v % 1 === 0 ? `R$ ${v.toLocaleString('pt-BR')}` : `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 
 interface BarbeiroComissao {
   /** id do barbeiro no BarberMeta — a chave pra escrever de volta em lancamentos. */
@@ -335,5 +341,124 @@ export async function listarAjustesComissao(
       autor: r.usuario_id ? (nomes.get(r.usuario_id) ?? null) : null,
       criadoEm: r.criado_em,
     })),
+  }
+}
+
+export interface PremiacaoDaFolha {
+  barbeiroId: string
+  nome: string
+  /** "Meta Ouro R$ 250 + Campanha de pontos R$ 100" — já pronta pra exibir. */
+  composicao: string
+  metaPremio: number
+  campanhaPremio: number
+  /** metaPremio + campanhaPremio. É o valor que vira adicional na folha. */
+  total: number
+}
+
+/**
+ * PREMIAÇÃO DO CICLO, pra virar adicional na folha do colaborador.
+ *
+ * Reutiliza `carregarGamificacao` — o MESMO carregamento que monta o bloco
+ * "Premiação do mês" do dashboard, que por sua vez chama `calcularPremiacao`,
+ * a mesma função da tela do barbeiro. Não há conta nova em lugar nenhum: se
+ * os números divergirem do dashboard, é porque o dashboard mudou junto.
+ *
+ * `fechado` diz se o ciclo já foi fechado pelo dono. É o que separa um valor
+ * PREVISTO (ciclo aberto, muda sozinho) de um valor FINAL (ciclo fechado,
+ * trava na folha).
+ */
+export async function buscarPremiacaoBarbermeta(ym?: string): Promise<
+  | {
+    ok: true
+    mesAno: string
+    cicloLabel: string
+    fechado: boolean
+    temPremiacao: boolean
+    barbeiros: PremiacaoDaFolha[]
+  }
+  | { error: string }
+> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: usuario } = await (supabase as any)
+    .from('usuarios')
+    .select('barbearia_id, barbearias(dia_fechamento)')
+    .eq('id', user.id).single() as
+    { data: { barbearia_id: string; barbearias: { dia_fechamento: number | null } | null } | null }
+  if (!usuario) return { error: 'Barbearia não encontrada.' }
+
+  const barbeariaId = usuario.barbearia_id
+  const diaFechamento = usuario.barbearias?.dia_fechamento ?? 1
+
+  // Mesma resolução de ciclo da importação de comissão: a folha de um mês
+  // recebe o ciclo cujo (mes, ano) é aquele mês. Com dia_fechamento = 1 isso é
+  // literalmente 01 a 31; com outro dia, o label mostra o intervalo real em
+  // vez de fingir que é o mês cheio.
+  const hoje = hojeBrasil()
+  const corrente = cicloAtual(diaFechamento, hoje)
+  let mes: number
+  let ano: number
+  let cicloLabel: string
+  if (ym === undefined) {
+    mes = corrente.mesRef
+    ano = corrente.anoRef
+    cicloLabel = corrente.label
+  } else {
+    const alvo = mesAnoDoYm(ym)
+    if (!alvo) return { error: 'Mês inválido.' }
+    mes = alvo.mes
+    ano = alvo.ano
+    cicloLabel = cicloDeData(new Date(ano, mes - 1, diaFechamento, 12, 0, 0), diaFechamento).label
+  }
+  const mesAno = `${ano}-${String(mes).padStart(2, '0')}`
+  const ciclo = cicloDeData(new Date(ano, mes - 1, diaFechamento, 12, 0, 0), diaFechamento)
+  const ehPeriodoAtual = mes === corrente.mesRef && ano === corrente.anoRef
+
+  // Metas do ciclo — entrada da premiação por meta.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: metaRaw } = await (supabase as any)
+    .from('metas').select('id')
+    .eq('barbearia_id', barbeariaId).eq('mes', mes).eq('ano', ano).maybeSingle()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: metasIndRaw } = metaRaw ? await (supabase as any)
+    .from('metas_individuais').select('*').eq('meta_id', metaRaw.id) : { data: null }
+
+  const base = await carregarBaseDoCiclo(supabase, barbeariaId, mes, ano, (metasIndRaw ?? []) as MetaIndividual[])
+  const { premiacao } = await carregarGamificacao(supabase, {
+    barbeariaId, mes, ano, ciclo, ehPeriodoAtual, hoje,
+    barbeiros: base.barbeiros, ranking: base.ranking,
+    // A folha LÊ. Copiar campanha do ciclo anterior é escrita, e é coisa do
+    // dashboard — abrir o Financeiro não pode criar campanha pra ninguém.
+    garantirCampanha: false,
+  })
+
+  const trava = await estaFechado(supabase, barbeariaId, mes, ano)
+
+  const barbeiros: PremiacaoDaFolha[] = premiacao.barbeiros
+    .filter((p) => p.jaGarantido > 0)
+    .map((p) => {
+      const partes: string[] = []
+      if (p.metaPremio > 0) partes.push(`Meta ${p.metaTierLabel} ${reais(p.metaPremio)}`)
+      if (p.campanhaPremio > 0) partes.push(`Campanha de pontos ${reais(p.campanhaPremio)}`)
+      return {
+        barbeiroId: p.barbeiroId,
+        nome: p.nome,
+        composicao: partes.join(' + '),
+        metaPremio: p.metaPremio,
+        campanhaPremio: p.campanhaPremio,
+        total: p.jaGarantido,
+      }
+    })
+
+  return {
+    ok: true,
+    mesAno,
+    cicloLabel,
+    fechado: trava.fechado,
+    temPremiacao: premiacao.temPremiacao,
+    barbeiros,
   }
 }

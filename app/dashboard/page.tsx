@@ -21,7 +21,7 @@ import type { BrindoletaStatus } from '@/lib/brindoleta/config'
 import { brindoletaLiberada } from '@/lib/brindoleta/liberacao'
 import { BRINDOLETA_PRICE_LABEL } from '@/lib/brindoleta/config'
 import { decidirPopupBrindoleta } from '@/lib/brindoleta/popup'
-import { calcularPremiacao } from '@/lib/premios'
+import { carregarBaseDoCiclo, carregarGamificacao } from '@/lib/premios/servidor'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import FecharMesButton from '@/components/dashboard/FecharMesButton'
 import DestaquesMes from '@/components/dashboard/DestaquesMes'
@@ -268,30 +268,11 @@ export default async function DashboardPage({
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: barbeirosRaw } = await (supabase as any)
-    .from('barbeiros')
-    .select('*')
-    .eq('barbearia_id', barbearia.id)
-    .eq('ativo', true)
-    .order('nome')
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: lancamentosRaw } = await (supabase as any)
-    .from('lancamentos')
-    .select('*')
-    .eq('barbearia_id', barbearia.id)
-    .eq('mes', mes)
-    .eq('ano', ano)
-
-  const barbeiros = (barbeirosRaw ?? []) as Barbeiro[]
-  const lancamentosTodos = (lancamentosRaw ?? []) as Lancamento[]
-  // Só lançamentos de barbeiro ATIVO entram na soma/ranking. Barbeiro
-  // inativado (soft-delete) some da lista mas seus lançamentos ficavam
-  // inflando o total da casa ("comissão fantasma"). Filtra pra bater com o
-  // ranking (que já itera só os ativos).
-  const idsAtivos = new Set(barbeiros.map(b => b.id))
-  const lancamentos = lancamentosTodos.filter(l => idsAtivos.has(l.barbeiro_id))
+  // Barbeiros ativos + lançamentos do ciclo + meta de cada um. Mesma função
+  // que a folha do Financeiro usa, pra os dois partirem da mesma base.
+  const { barbeiros, lancamentos, ranking } = await carregarBaseDoCiclo(
+    supabase, barbearia.id, mes, ano, metasIndividuais,
+  )
 
   const totalComissoes = lancamentos.reduce((s: number, l: Lancamento) => s + l.comissao_acumulada, 0)
   const faturamentoReal = (meta?.faturamento_acumulado ?? 0) > 0 ? meta!.faturamento_acumulado : totalComissoes
@@ -306,18 +287,6 @@ export default async function DashboardPage({
   // pro client — UI/cards/anel ficam só com %.
   const faturamentoExibido = mostrarFaturamentoGeral ? faturamentoReal : 0
 
-  const ranking = [...barbeiros]
-    .map(b => {
-      const lanc = lancamentos.find(l => l.barbeiro_id === b.id)
-      return {
-        ...b,
-        comissao: lanc?.comissao_acumulada ?? 0,
-        atendimentosMes: (lanc as Lancamento & { numero_atendimentos?: number } | undefined)?.numero_atendimentos ?? 0,
-        metaInd: metasIndividuais.find(m => m.barbeiro_id === b.id) ?? null,
-      }
-    })
-    .sort((a, b) => b.comissao - a.comissao)
-
   const rankingBarbeiros = ranking.filter(b => b.tipo !== 'recepcionista')
   const rankingRecepcionistas = ranking.filter(b => b.tipo === 'recepcionista')
 
@@ -325,116 +294,19 @@ export default async function DashboardPage({
   // comissão — então ficam de fora da configuração de metas individuais.
   const barbeirosMetas = barbeiros.filter(b => b.tipo !== 'recepcionista')
 
-  // ── Gamificação ──────────────────────────────────────────
-  // Se ainda nao existe campanha/modo_mes pra este ciclo mas o anterior tinha,
-  // COPIA — assim o dono nao vê "voltou pro padrao" na virada de mes. So
-  // dispara pro ciclo atual (nao pra ciclos passados navegados via URL).
-  if (ehPeriodoAtual) {
-    await garantirCampanhaCicloAtual(supabase, barbearia.id, mes, ano)
-  }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: modoRaw } = await (supabase as any)
-    .from('modo_mes').select('modo').eq('barbearia_id', barbearia.id).eq('mes', mes).eq('ano', ano).single()
-  const modoAtual: ModoPontos = (modoRaw?.modo as ModoPontos) ?? 'metas'
-
-  let campanha: CampanhaComDetalhes | null = null
-  const pontosMap: Record<string, number> = {}
-  const pontosHojePorBarbeiro: Record<string, number> = {}
-
-  if (modoAtual !== 'metas') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: campRaw } = await (supabase as any)
-      .from('campanha').select('*').eq('barbearia_id', barbearia.id).eq('mes', mes).eq('ano', ano).single()
-    if (campRaw) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: servicosRaw } = await (supabase as any)
-        .from('campanha_servicos').select('*').eq('campanha_id', campRaw.id)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: premiosRaw } = await (supabase as any)
-        .from('campanha_premios').select('*').eq('campanha_id', campRaw.id).order('posicao')
-
-      // Controles do ciclo: filtra por DATA do ciclo + campanhas da barbearia
-      // (NÃO por campanha_id específico). Lançamentos antigos podem ter
-      // campanha_id apontando pra campanha do mês errado — bug histórico
-      // de pré-PR #85 (lookup usava getMonth() em vez de cicloDeData.mesRef).
-      // Filtrar pelo campanha_id selecionado deixava esses lançamentos de
-      // fora, fazendo o card mostrar total menor que o "Ver lançamentos".
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: todasCampRaw } = await (supabase as any)
-        .from('campanha').select('id').eq('barbearia_id', barbearia.id)
-      const todasCampIds = ((todasCampRaw ?? []) as { id: string }[]).map(c => c.id)
-
-      // Pontos por serviço: cobre TODAS as campanhas da barbearia, porque um
-      // controle pode referenciar servico_id de campanha diferente da do mês.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: todosServRaw } = todasCampIds.length > 0 ? await (supabase as any)
-        .from('campanha_servicos').select('id, pontos').in('campanha_id', todasCampIds) : { data: [] }
-      const pontosPorServico = new Map<string, number>()
-      for (const s of (todosServRaw ?? []) as { id: string; pontos: number }[]) {
-        pontosPorServico.set(s.id, Number(s.pontos) || 0)
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: controlesRaw } = todasCampIds.length > 0 ? await (supabase as any)
-        .from('controle_diario')
-        .select('barbeiro_id, servico_id, quantidade, data')
-        .in('campanha_id', todasCampIds)
-        .gte('data', ciclo.inicioIso)
-        .lte('data', ciclo.fimIso) : { data: [] }
-
-      campanha = {
-        ...campRaw,
-        campanha_servicos: (servicosRaw ?? []) as CampanhaServico[],
-        campanha_premios:  (premiosRaw  ?? []) as CampanhaPremio[],
-      }
-
-      // dataHojeStr = data REAL de hoje (calendário). NÃO usar `mes`/`ano` do
-      // ciclo aqui — em barbearias com dia_fechamento != 1, o mesRef do ciclo
-      // não bate com o mês calendário atual (ex: dia_fechamento=26, hoje=02/06,
-      // mesRef=5, diaAtual=2 → '2026-05-02' = um mês atrás).
-      // Pra ciclos passados/futuros, fica string vazia (não existe "hoje" neles).
-      const dataHojeStr = ehPeriodoAtual ? dataLocalStr(hoje) : ''
-
-      for (const cd of ((controlesRaw ?? []) as Pick<ControleDiario, 'barbeiro_id' | 'servico_id' | 'quantidade' | 'data'>[])) {
-        const pts = pontosPorServico.get(cd.servico_id) ?? 0
-        pontosMap[cd.barbeiro_id] = (pontosMap[cd.barbeiro_id] ?? 0) + cd.quantidade * pts
-        if (dataHojeStr && cd.data === dataHojeStr) {
-          pontosHojePorBarbeiro[cd.barbeiro_id] = (pontosHojePorBarbeiro[cd.barbeiro_id] ?? 0) + cd.quantidade * pts
-        }
-      }
-    }
-  }
-
-  // Desempate determinístico: pontos desc, depois nome (pt-BR) — mesmo critério
-  // da página do barbeiro, pra 1º/2º não trocarem de lugar num empate.
-  const nomePorId = (id: string) => barbeiros.find(b => b.id === id)?.nome ?? ''
-  const rankingPontos = Object.entries(pontosMap)
-    .map(([id, pts]) => ({ id, pts }))
-    .sort((a, b) => b.pts - a.pts || nomePorId(a.id).localeCompare(nomePorId(b.id), 'pt-BR'))
-
-  const rankingPontosBarb  = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo !== 'recepcionista')
-  const rankingPontosRecep = rankingPontos.filter(r => barbeiros.find(b => b.id === r.id)?.tipo === 'recepcionista')
-
-  // ── PREMIAÇÃO DO MÊS (bloco do dono) ───────────────────────────────────
-  // MESMA função da tela do barbeiro (lib/premios) → o "já garantido" total é
-  // exatamente a soma dos individuais que cada barbeiro vê no link dele.
-  const premiacao = calcularPremiacao(
-    ranking.map(b => ({
-      id: b.id, nome: b.nome, tipo: b.tipo,
-      comissao: b.comissao,
-      pontos: pontosMap[b.id] ?? 0,
-      meta: b.metaInd ? {
-        bronze_comm: b.metaInd.bronze_comm, bronze_premio: b.metaInd.bronze_premio,
-        prata_comm: b.metaInd.prata_comm, prata_premio: b.metaInd.prata_premio,
-        ouro_comm: b.metaInd.ouro_comm, ouro_premio: b.metaInd.ouro_premio,
-      } : null,
-    })),
-    campanha && campanha.ativo !== false ? {
-      min_pontos: campanha.min_pontos,
-      min_pontos_recep: campanha.min_pontos_recep,
-      premios: campanha.campanha_premios.map(p => ({ posicao: p.posicao, valor: Number(p.valor) || 0 })),
-    } : null,
-  )
+  // ── Gamificação e premiação ───────────────────────────────────────────
+  // Carregamento compartilhado com a folha do Financeiro: os dois precisam dos
+  // MESMOS números, e dois carregamentos paralelos dariam totais parecidos e
+  // divergentes. Ver lib/premios/servidor.
+  const {
+    modoAtual, campanha, pontosMap, pontosHojePorBarbeiro,
+    rankingPontosBarb, rankingPontosRecep, premiacao,
+  } = await carregarGamificacao(supabase, {
+    barbeariaId: barbearia.id, mes, ano, ciclo, ehPeriodoAtual, hoje,
+    barbeiros, ranking,
+    // Só o dashboard copia a campanha do ciclo anterior quando falta.
+    garantirCampanha: true,
+  })
 
   const platformStats = await getPlatformStats()
   const isAutonomo = barbearia.modalidade === 'sozinho'
