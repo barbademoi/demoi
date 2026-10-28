@@ -48,8 +48,47 @@ export interface CicloHistorico {
   total: number
   /** Comandas por dia do ciclo, índice 0 = primeiro dia. */
   comandasPorDia: number[]
+  /**
+   * ACUMULADO em R$ fotografado em cada dia; null onde não houve foto.
+   * Esta é a fonte PREFERIDA da curva — ela é o dinheiro de verdade, enquanto
+   * as comandas são um proxy (um corte de R$ 30 e um de R$ 120 contam igual).
+   * Passou a existir quando o sistema começou a fotografar sozinho o
+   * acumulado; ciclos anteriores a isso só têm comandas, e o modelo usa o que
+   * houver.
+   */
+  acumuladoPorDia?: (number | null)[]
   /** Dias que o ciclo teve (28–31, conforme dia_fechamento). */
   totalDias: number
+}
+
+/**
+ * CURVA ACUMULADA do ciclo, normalizada em fração de 0 a 1.
+ *
+ * Prefere o R$ fotografado; cai pras comandas quando não há foto. As fotos
+ * são acumulados (não valores do dia), e dia sem foto herda o acumulado
+ * anterior — acumulado não desce.
+ */
+export function curvaDoCiclo(c: CicloHistorico): number[] | null {
+  const n = c.comandasPorDia.length
+  const fotos = c.acumuladoPorDia ?? []
+  const temFoto = fotos.some((v) => v != null && v > 0)
+
+  if (temFoto) {
+    const curva: number[] = []
+    let ultimo = 0
+    for (let i = 0; i < n; i++) {
+      const v = fotos[i]
+      if (v != null && v > ultimo) ultimo = v
+      curva.push(ultimo)
+    }
+    const fim = curva[curva.length - 1] ?? 0
+    return fim > 0 ? curva.map((v) => v / fim) : null
+  }
+
+  let acum = 0
+  const curva = c.comandasPorDia.map((q) => (acum += q))
+  const fim = curva[curva.length - 1] ?? 0
+  return fim > 0 ? curva.map((v) => v / fim) : null
 }
 
 export interface EntradaProjecao {
@@ -61,15 +100,40 @@ export interface EntradaProjecao {
   totalDias: number
   /** Comandas por dia do ciclo CORRENTE, até hoje. */
   comandasPorDiaAtual: number[]
+  /** Fotos do acumulado no ciclo CORRENTE, até hoje. null = sem foto no dia. */
+  acumuladoPorDiaAtual?: (number | null)[]
   /** Ciclos FECHADOS anteriores, do mais antigo ao mais recente. */
   historico: CicloHistorico[]
   /** Dias de trabalho do barbeiro no mês (null = usa o calendário). */
   diasTrabalhoMes: number | null
 }
 
+/**
+ * COMO a projeção foi feita. Substituiu o rótulo de "confiança".
+ *
+ * "Confiança baixa" descrevia o estado NORMAL da maioria das barbearias — as
+ * que não lançam comandas — e soava como um defeito do cliente. Virava
+ * discussão em vez de informação. Isto aqui descreve o MÉTODO, que é um fato
+ * sobre a conta, não um julgamento sobre quem usa.
+ */
+export type Metodo =
+  /** Comparou com os ciclos anteriores desta barbearia. */
+  | 'historico'
+  /** Extrapolou o ritmo do próprio mês. É o piso, e funciona sozinho. */
+  | 'ritmo'
+
 export interface Projecao {
   /** Valor esperado de fechamento (R$). */
   esperado: number
+  metodo: Metodo
+  /** Frase curta do método ("6 ciclos comparados"). */
+  descricaoMetodo: string
+  /**
+   * Aviso acionável, e SÓ quando há lacuna no hábito da própria barbearia:
+   * quem lança todo dia e ficou dias sem lançar. Quem nunca lançou não recebe
+   * aviso nenhum — não é falha dela, é o padrão dela.
+   */
+  alerta: string | null
   /** Faixa conservador → otimista. null quando não há dispersão pra medir. */
   faixa: { conservador: number; otimista: number } | null
   confianca: Confianca
@@ -135,9 +199,13 @@ export function diasComLancamento(comandas: number[]): number {
  */
 export function bemAlimentado(c: CicloHistorico): boolean {
   if (c.totalDias <= 0) return false
-  const total = c.comandasPorDia.reduce((s, q) => s + q, 0)
-  if (total <= 0) return false
-  return diasComLancamento(c.comandasPorDia) / c.totalDias >= 0.6
+  if (!curvaDoCiclo(c)) return false
+  // Dia "alimentado" é dia em que algo foi registrado — comanda lançada OU
+  // foto do acumulado. Com a foto automática, isso passa a valer pra quem
+  // nunca lançou comanda nenhuma.
+  const fotos = c.acumuladoPorDia ?? []
+  const dias = c.comandasPorDia.filter((q, i) => q > 0 || (fotos[i] != null && (fotos[i] as number) > 0)).length
+  return dias / c.totalDias >= 0.6
 }
 
 /**
@@ -145,15 +213,14 @@ export function bemAlimentado(c: CicloHistorico): boolean {
  * comandas. É o coração do modelo.
  */
 export function fracaoNoPonto(c: CicloHistorico, d: number): number | null {
-  const total = c.comandasPorDia.reduce((s, q) => s + q, 0)
-  if (total <= 0) return null
+  const curva = curvaDoCiclo(c)
+  if (!curva || curva.length === 0) return null
   // Ciclos têm tamanhos diferentes (28 a 31 dias). Compara pelo ANDAMENTO,
   // não pelo número do dia: o dia 15 de um ciclo de 30 corresponde ao 15,5 de
   // um de 31. Sem isso, ciclo curto e longo seriam comparados torto.
   const andamento = Math.min(1, Math.max(0, d / c.totalDias))
-  const ate = Math.max(1, Math.round(andamento * c.comandasPorDia.length))
-  const acum = c.comandasPorDia.slice(0, ate).reduce((s, q) => s + q, 0)
-  return acum / total
+  const ate = Math.max(1, Math.min(curva.length, Math.round(andamento * curva.length)))
+  return curva[ate - 1]
 }
 
 /** Variação entre ciclos consecutivos (0,08 = +8%). */
@@ -190,6 +257,7 @@ export function projetar(e: EntradaProjecao): Projecao {
   if (e.atual <= 0 && elegiveis.length === 0) {
     return {
       esperado: 0, faixa: null, confianca: 'baixa',
+      metodo: 'ritmo', descricaoMetodo: 'sem histórico ainda', alerta: null,
       motivos: ['sem histórico ainda'],
       ciclosUsados: 0, diasSemLancamento, temProjecao: false,
     }
@@ -242,7 +310,25 @@ export function projetar(e: EntradaProjecao): Projecao {
     }
   }
 
-  // ── Confiança ──
+  // ── Método e aviso ──
+  // O método é um fato sobre a conta. O aviso só existe quando há lacuna no
+  // hábito DESTA barbearia — nunca por ela simplesmente não lançar comandas.
+  const metodo: Metodo = fracaoTipica !== null ? 'historico' : 'ritmo'
+  const descricaoMetodo = metodo === 'historico'
+    ? `${elegiveis.length} ${elegiveis.length === 1 ? 'ciclo comparado' : 'ciclos comparados'}`
+    : t < 0.15
+      ? 'ritmo do mês — ciclo ainda no começo'
+      : 'ritmo do mês'
+
+  // "Costuma lançar" = nos ciclos que entraram no padrão, a maioria dos dias
+  // tinha registro. Só quem tem esse hábito pode ter uma lacuna nele.
+  const costumaLancar = elegiveis.length > 0
+  const alerta = costumaLancar && diasSemLancamento > 2
+    ? `${diasSemLancamento} dias sem lançamento neste ciclo`
+    : null
+
+  // `confianca` continua existindo porque a faixa e a ordenação dependem dela,
+  // mas deixou de virar rótulo na tela.
   let confianca: Confianca
   if (elegiveis.length >= 4 && fracoes.length >= 3 && t >= 0.25 && diasSemLancamento <= 2) {
     confianca = 'alta'
@@ -251,25 +337,19 @@ export function projetar(e: EntradaProjecao): Projecao {
   } else {
     confianca = 'baixa'
   }
-
-  if (elegiveis.length === 0) motivos.push('sem ciclo fechado com lançamentos pra comparar')
-  else if (elegiveis.length < 2) motivos.push('só 1 ciclo de histórico')
-  else if (elegiveis.length < 4) motivos.push(`${elegiveis.length} ciclos de histórico`)
-
-  if (t < 0.15) motivos.push('ciclo ainda no começo')
-  if (diasSemLancamento === 1) motivos.push('1 dia sem lançamento neste ciclo')
-  else if (diasSemLancamento > 1) motivos.push(`${diasSemLancamento} dias sem lançamento neste ciclo`)
-  if (motivos.length === 0) motivos.push('histórico consistente e ciclo bem lançado')
-
-  // Um dia sem lançar já derruba a confiança: o acumulado está defasado e a
-  // projeção herda a defasagem.
   if (diasSemLancamento > 2 && confianca === 'alta') confianca = 'media'
   if (diasSemLancamento > 4 && confianca === 'media') confianca = 'baixa'
+
+  motivos.push(descricaoMetodo)
+  if (alerta) motivos.push(alerta)
 
   return {
     esperado,
     faixa,
     confianca,
+    metodo,
+    descricaoMetodo,
+    alerta,
     motivos,
     ciclosUsados: elegiveis.length,
     diasSemLancamento,

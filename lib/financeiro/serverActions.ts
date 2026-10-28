@@ -11,6 +11,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { cicloAtual, cicloDeData, hojeBrasil } from '@/lib/ciclo'
 import { carregarBaseDoCiclo, carregarGamificacao } from '@/lib/premios/servidor'
+import { registrarFotoDoDia } from '@/lib/fotoDoDia'
 import type { MetaIndividual } from '@/types/database'
 import { estaFechado } from '@/lib/mesFechado'
 import { valorBase, type ModoMeta, type BaseMeta } from '@/lib/modoMeta'
@@ -192,9 +193,9 @@ export async function salvarComissaoBrutaBarbeiro(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuario } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, barbearias(modo_meta, base_meta)')
+    .select('barbearia_id, barbearias(modo_meta, base_meta, dia_fechamento)')
     .eq('id', user.id).single() as
-    { data: { barbearia_id: string; barbearias: { modo_meta: string | null; base_meta: string | null } | null } | null }
+    { data: { barbearia_id: string; barbearias: { modo_meta: string | null; base_meta: string | null; dia_fechamento: number | null } | null } | null }
   if (!usuario) return { error: 'Barbearia não encontrada.' }
 
   const { barbearia_id } = usuario
@@ -242,6 +243,18 @@ export async function salvarComissaoBrutaBarbeiro(
     .from('lancamentos')
     .upsert(row, { onConflict: 'barbearia_id,barbeiro_id,mes,ano' })
   if (errLanc) return { error: (errLanc as { message: string }).message }
+
+  // Fotografa o acumulado de hoje — mesma memória que o lançamento diário
+  // alimenta. Edição de comissão bruta também move a curva do ciclo.
+  const diaFechFoto = usuario.barbearias?.dia_fechamento ?? 1
+  const cicloFoto = cicloDeData(new Date(ano, mes - 1, diaFechFoto, 12, 0, 0), diaFechFoto)
+  await registrarFotoDoDia(supabase, {
+    barbeariaId: barbearia_id,
+    hoje: hojeBrasil(),
+    cicloInicioIso: cicloFoto.inicioIso,
+    cicloFimIso: cicloFoto.fimIso,
+    fotos: [{ barbeiroId, acumulado: valorNovo }],
+  })
 
   // ── Auditoria ──
   // Gravada DEPOIS do upsert, de propósito: registrar um ajuste que não foi

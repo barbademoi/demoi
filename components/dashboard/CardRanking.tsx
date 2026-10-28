@@ -288,11 +288,8 @@ export default function CardRanking({
                   {projecao.faixa && (
                     <span> ({formatBRL(projecao.faixa.conservador)} a {formatBRL(projecao.faixa.otimista)})</span>
                   )}
-                  {projecao.confianca !== 'alta' && (
-                    <span className={projecao.confianca === 'baixa' ? 'text-amber-400' : ''}>
-                      {' '}· confiança {projecao.confianca === 'media' ? 'média' : 'baixa'}
-                    </span>
-                  )}
+                  {projecao.metodo === 'ritmo' && <span> · estimativa simples</span>}
+                  {projecao.alerta && <span className="text-amber-400"> · {projecao.alerta}</span>}
                 </>
               ) : (
                 'Projeção: sem histórico ainda'

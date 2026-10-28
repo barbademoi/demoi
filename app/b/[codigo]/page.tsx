@@ -177,6 +177,8 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     barbeariaId: barbeiro.barbearia_id, ciclo, diaFechamento, hoje, ehPeriodoAtual,
     barbeiros: [{ id: barbeiro.id, comissao, dias_trabalho_mes: barbeiro.dias_trabalho_mes }],
     diasTrabalhoPadrao: barbearia?.dias_trabalho_padrao ?? null,
+    // O link do barbeiro não mostra o bloco da casa; a flag só rotula lá.
+    baseEhComissao: (barbearia?.base_meta ?? 'comissao') === 'comissao',
   })
   const projecaoBarbeiro = projecaoCiclo?.porBarbeiro[barbeiro.id] ?? null
   const progresso = metaInd ? {
