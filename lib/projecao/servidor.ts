@@ -17,6 +17,7 @@
  */
 import { cicloDeData, type Ciclo } from '@/lib/ciclo'
 import { projetar, type CicloHistorico, type Projecao } from '@/lib/projecao'
+import { calendarioDoPeriodo, type ConfigOperacao } from '@/lib/operacao/calendario'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Supa = any
@@ -95,6 +96,8 @@ export async function carregarProjecao(
     diasTrabalhoPadrao: number | null
     /** Base dos cards. Comissão ⇒ o bloco geral mostra outra grandeza. */
     baseEhComissao: boolean
+    /** Calendário de operação — define o que conta como dia sem registro. */
+    operacao: ConfigOperacao
   },
 ): Promise<ProjecaoDoCiclo | null> {
   const { barbeariaId, ciclo, diaFechamento, hoje, ehPeriodoAtual, barbeiros } = opts
@@ -150,6 +153,11 @@ export async function carregarProjecao(
   const idxHoje = diasAtual.indexOf(hojeIso)
   const diasDecorridos = idxHoje >= 0 ? idxHoje + 1 : diasAtual.length
 
+  // Quais dos dias decorridos a barbearia realmente abriu.
+  const diaAbertoAtual = calendarioDoPeriodo(diasAtual[0], diasAtual[diasAtual.length - 1], opts.operacao)
+    .slice(0, diasDecorridos)
+    .map((d) => d.aberto)
+
   const porBarbeiro: Record<string, ProjecaoBarbeiro> = {}
 
   for (const b of barbeiros) {
@@ -169,6 +177,7 @@ export async function carregarProjecao(
       diasDecorridos,
       totalDias: ciclo.totalDias,
       acumuladoPorDiaAtual: diasAtual.slice(0, diasDecorridos).map((iso) => fotoPor.get(`${b.id}|${iso}`) ?? null),
+      diaAbertoAtual,
       historico: comDados,
       diasTrabalhoMes: b.dias_trabalho_mes ?? opts.diasTrabalhoPadrao ?? null,
     })
@@ -226,6 +235,7 @@ export async function carregarProjecao(
     diasDecorridos,
     totalDias: ciclo.totalDias,
     acumuladoPorDiaAtual: curvaAtualCasa,
+    diaAbertoAtual,
     historico: historicoCasa,
     diasTrabalhoMes: null,
   })

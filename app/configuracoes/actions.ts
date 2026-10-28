@@ -70,6 +70,27 @@ export async function salvarOperacaoConfig(formData: FormData) {
     dia,
     ativo: formData.get(`dia_${dia}`) === 'on',
   }))
+  /**
+   * Exceções do calendário. Chegam como JSON do formulário, então são lidas
+   * com desconfiança: qualquer coisa que não seja uma lista de datas
+   * 'YYYY-MM-DD' vira lista vazia. Gravar lixo aqui faria o calendário do
+   * painel se comportar de forma imprevisível, e o erro só apareceria
+   * semanas depois num aviso errado.
+   */
+  const lerDatas = (campo: string): string[] => {
+    try {
+      const bruto = JSON.parse((formData.get(campo) as string) || '[]')
+      if (!Array.isArray(bruto)) return []
+      return Array.from(new Set(
+        bruto.filter((d): d is string => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)),
+      )).sort()
+    } catch {
+      return []
+    }
+  }
+  const dias_fechados = lerDatas('dias_fechados')
+  const dias_abertos = lerDatas('dias_abertos')
+
   const horario_abertura = formData.get('horario_abertura') as string || '09:00'
   const horario_fechamento = formData.get('horario_fechamento') as string || '20:00'
   const modalidade = formData.get('modalidade') as string
@@ -116,7 +137,8 @@ export async function salvarOperacaoConfig(formData: FormData) {
       mostrar_faturamento_geral,
       dias_trabalho_padrao,
       evolucao_faturamento_minimo,
-      dias_trabalhados, horario_abertura, horario_fechamento, modalidade, tem_assinatura,
+      dias_trabalhados, dias_fechados, dias_abertos,
+      horario_abertura, horario_fechamento, modalidade, tem_assinatura,
       visibilidade_ranking, dia_fechamento,
     })
     .eq('id', barbeariaId)

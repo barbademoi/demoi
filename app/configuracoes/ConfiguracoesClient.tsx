@@ -27,6 +27,8 @@ export interface BarbeariaConfig {
   modo_meta: 'faturamento' | 'comissao' | 'ambos' | null
   base_meta: 'faturamento' | 'comissao' | null
   dias_trabalho_padrao: number | null
+  dias_fechados: string[] | null
+  dias_abertos: string[] | null
   evolucao_faturamento_minimo: number
 }
 
