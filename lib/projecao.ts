@@ -1,44 +1,36 @@
 /**
  * PROJEÇÃO DE FECHAMENTO DO CICLO — estatística local, sem IA e sem rede.
  *
- * ── O PROBLEMA, E POR QUE A SOLUÇÃO ÓBVIA NÃO SERVE ─────────────────────────
- * O caminho natural seria aprender a curva de R$ dia a dia. Não dá: o
- * lançamento diário registra COMANDAS, não dinheiro (ver
- * `app/dashboard/lancamento-diario/actions.ts`, que diz isso em letras
- * maiúsculas). O R$ por dia só existe em barbearia que usa a extensão do
- * Agenda Serviço — hoje, uma. Um modelo que dependesse disso não funcionaria
- * para praticamente ninguém.
+ * ── O QUE O SISTEMA REALMENTE TEM ───────────────────────────────────────────
+ * O dono lança COMISSÃO e FATURAMENTO. É esse o dado em que ele confia e é
+ * esse que a projeção usa. Uma versão anterior aprendia a curva do ciclo pelas
+ * COMANDAS, e isso estava errado por dois motivos: comanda mede volume, não
+ * dinheiro (um corte de R$ 30 e um de R$ 120 contam igual), e quem lança
+ * religiosamente comissão todo dia, sem lançar comandas, era acusado de
+ * "28 dias sem lançamento". Acusação falsa contra quem usa certo.
  *
- * ── A IDEIA ─────────────────────────────────────────────────────────────────
- * Separar FORMA de NÍVEL.
- *   - FORMA: que fração do trabalho do ciclo já foi feita até o dia D. Isso se
- *     aprende das COMANDAS, que todo mundo tem, dia a dia, há ciclos.
- *   - NÍVEL: quanto isso vale em R$. Vem do acumulado do ciclo, que todo mundo
- *     também tem.
- * Projeção = acumulado ÷ fração já realizada.
- *
- * A fração aprendida das comandas é muito melhor que a fração do calendário:
- * ela já embute sábado cheio, segunda fraca, folga do barbeiro e feriado — sem
- * precisar modelar nada disso explicitamente.
- *
- * ── OS TRÊS ESTIMADORES ─────────────────────────────────────────────────────
- *   A (ritmo)     — fração pelo calendário/dias de trabalho. É o que o sistema
- *                   já fazia, e vira o piso: funciona sem histórico nenhum.
- *   B (padrão)    — fração MEDIANA dos ciclos fechados no mesmo ponto. Robusta
- *                   a ciclo atípico por ser mediana, não média.
+ * ── OS DOIS ESTIMADORES QUE EXISTEM HOJE ────────────────────────────────────
+ *   A (ritmo)     — acumulado de hoje ÷ fração do ciclo já decorrida. Funciona
+ *                   do primeiro dia, sem histórico nenhum.
  *   C (tendência) — total do ciclo anterior corrigido pelo crescimento mediano
- *                   entre ciclos. Não depende do acumulado de hoje, então é o
- *                   único que diz algo útil no dia 2.
+ *                   entre ciclos fechados. Não depende do acumulado de hoje,
+ *                   então é o único que diz algo útil no dia 2.
  *
- * O peso de C cai com o andamento do ciclo; A e B sobem. No fim do ciclo a
- * projeção converge para o próprio acumulado, como tem que ser.
+ * ── E O TERCEIRO, QUE COMEÇA A EXISTIR AGORA ────────────────────────────────
+ *   B (padrão)    — fração MEDIANA do ciclo já realizada no mesmo ponto,
+ *                   medida nas FOTOS diárias do acumulado (lib/fotoDoDia).
+ *                   Essas fotos passaram a ser gravadas há pouco; enquanto não
+ *                   houver ciclos fechados com elas, B simplesmente não entra
+ *                   e a tela não finge que entrou.
+ *
+ * O peso de C cai com o andamento do ciclo; A sobe. No fim, a projeção
+ * converge para o próprio acumulado, como tem que ser.
  *
  * ── O QUE ESTA FUNÇÃO NÃO FAZ ───────────────────────────────────────────────
  * Não chama IA, não acessa rede, não lê banco. Recebe números, devolve números.
  * E o resultado é SÓ INFORMATIVO: não alimenta premiação, folha, ranking nem
  * meta — nada aqui é escrito em lugar nenhum.
  */
-
 export type Confianca = 'alta' | 'media' | 'baixa'
 
 export interface CicloHistorico {
@@ -46,15 +38,18 @@ export interface CicloHistorico {
   ano: number
   /** Total do ciclo no campo-base da barbearia (R$). */
   total: number
-  /** Comandas por dia do ciclo, índice 0 = primeiro dia. */
-  comandasPorDia: number[]
   /**
-   * ACUMULADO em R$ fotografado em cada dia; null onde não houve foto.
-   * Esta é a fonte PREFERIDA da curva — ela é o dinheiro de verdade, enquanto
-   * as comandas são um proxy (um corte de R$ 30 e um de R$ 120 contam igual).
-   * Passou a existir quando o sistema começou a fotografar sozinho o
-   * acumulado; ciclos anteriores a isso só têm comandas, e o modelo usa o que
-   * houver.
+   * ACUMULADO em R$ fotografado em cada dia do ciclo; null onde não houve foto.
+   *
+   * É a ÚNICA fonte da curva. As comandas já serviram aqui e foram removidas:
+   * elas medem outra coisa. Uma barbearia que lança comissão e faturamento
+   * todo dia, mas não lança comandas, aparecia como "28 dias sem lançamento" —
+   * acusação falsa contra quem usa o sistema corretamente. E "N ciclos
+   * comparados" dava a entender uma comparação dia a dia que nunca houve.
+   *
+   * Enquanto não houver fotos (elas começam a existir agora), a projeção se
+   * apoia no ritmo do próprio ciclo e na tendência entre ciclos — ambos vindos
+   * do R$, que é o que o dono realmente lança.
    */
   acumuladoPorDia?: (number | null)[]
   /** Dias que o ciclo teve (28–31, conforme dia_fechamento). */
@@ -62,31 +57,22 @@ export interface CicloHistorico {
 }
 
 /**
- * CURVA ACUMULADA do ciclo, normalizada em fração de 0 a 1.
- *
- * Prefere o R$ fotografado; cai pras comandas quando não há foto. As fotos
- * são acumulados (não valores do dia), e dia sem foto herda o acumulado
- * anterior — acumulado não desce.
+ * CURVA ACUMULADA do ciclo, normalizada em fração de 0 a 1, a partir das
+ * fotos diárias. null = este ciclo não tem foto nenhuma, e portanto não tem
+ * forma conhecida.
  */
 export function curvaDoCiclo(c: CicloHistorico): number[] | null {
-  const n = c.comandasPorDia.length
   const fotos = c.acumuladoPorDia ?? []
-  const temFoto = fotos.some((v) => v != null && v > 0)
+  if (!fotos.some((v) => v != null && v > 0)) return null
 
-  if (temFoto) {
-    const curva: number[] = []
-    let ultimo = 0
-    for (let i = 0; i < n; i++) {
-      const v = fotos[i]
-      if (v != null && v > ultimo) ultimo = v
-      curva.push(ultimo)
-    }
-    const fim = curva[curva.length - 1] ?? 0
-    return fim > 0 ? curva.map((v) => v / fim) : null
+  // Dia sem foto herda o acumulado anterior: acumulado não desce.
+  const curva: number[] = []
+  let ultimo = 0
+  for (let i = 0; i < fotos.length; i++) {
+    const v = fotos[i]
+    if (v != null && v > ultimo) ultimo = v
+    curva.push(ultimo)
   }
-
-  let acum = 0
-  const curva = c.comandasPorDia.map((q) => (acum += q))
   const fim = curva[curva.length - 1] ?? 0
   return fim > 0 ? curva.map((v) => v / fim) : null
 }
@@ -98,8 +84,6 @@ export interface EntradaProjecao {
   diasDecorridos: number
   /** Dias que o ciclo corrente terá no total. */
   totalDias: number
-  /** Comandas por dia do ciclo CORRENTE, até hoje. */
-  comandasPorDiaAtual: number[]
   /** Fotos do acumulado no ciclo CORRENTE, até hoje. null = sem foto no dia. */
   acumuladoPorDiaAtual?: (number | null)[]
   /** Ciclos FECHADOS anteriores, do mais antigo ao mais recente. */
@@ -117,9 +101,11 @@ export interface EntradaProjecao {
  * sobre a conta, não um julgamento sobre quem usa.
  */
 export type Metodo =
-  /** Comparou com os ciclos anteriores desta barbearia. */
+  /** Comparou o andamento DIA A DIA com os ciclos anteriores (precisa de fotos). */
   | 'historico'
-  /** Extrapolou o ritmo do próprio mês. É o piso, e funciona sozinho. */
+  /** Ritmo do mês + tendência entre os ciclos fechados. */
+  | 'tendencia'
+  /** Só o ritmo do próprio mês. É o piso, e funciona sozinho desde o dia 1. */
   | 'ritmo'
 
 export interface Projecao {
@@ -187,31 +173,20 @@ export function semOutliers(ciclos: CicloHistorico[]): CicloHistorico[] {
   return filtrados.length >= 2 ? filtrados : ciclos
 }
 
-/** Dias com pelo menos uma comanda lançada. */
-export function diasComLancamento(comandas: number[]): number {
-  return comandas.filter((q) => q > 0).length
-}
-
 /**
- * Ciclo BEM ALIMENTADO: tem comandas na maior parte dos dias que deveriam ter
- * movimento. A régua é 60% dos dias do ciclo — folga de 1 dia por semana cabe
- * dentro disso, mas um ciclo lançado só na primeira semana não passa.
+ * Ciclo BEM ALIMENTADO: tem foto do acumulado na maior parte dos dias. A régua
+ * é 60% — folga de 1 dia por semana cabe dentro disso, mas um ciclo
+ * fotografado só na primeira semana não passa.
  */
 export function bemAlimentado(c: CicloHistorico): boolean {
   if (c.totalDias <= 0) return false
   if (!curvaDoCiclo(c)) return false
-  // Dia "alimentado" é dia em que algo foi registrado — comanda lançada OU
-  // foto do acumulado. Com a foto automática, isso passa a valer pra quem
-  // nunca lançou comanda nenhuma.
   const fotos = c.acumuladoPorDia ?? []
-  const dias = c.comandasPorDia.filter((q, i) => q > 0 || (fotos[i] != null && (fotos[i] as number) > 0)).length
+  const dias = fotos.filter((v) => v != null && (v as number) > 0).length
   return dias / c.totalDias >= 0.6
 }
 
-/**
- * Fração do trabalho do ciclo já feita até o dia `d` (1-based), medida em
- * comandas. É o coração do modelo.
- */
+/** Fração do ciclo já realizada até o dia `d` (1-based), medida em R$. */
 export function fracaoNoPonto(c: CicloHistorico, d: number): number | null {
   const curva = curvaDoCiclo(c)
   if (!curva || curva.length === 0) return null
@@ -246,15 +221,25 @@ export function projetar(e: EntradaProjecao): Projecao {
   const motivos: string[] = []
   const t = fracaoCalendario(e)
 
-  const diasSemLancamento = Math.max(
-    0,
-    Math.min(e.diasDecorridos, e.comandasPorDiaAtual.length) - diasComLancamento(e.comandasPorDiaAtual),
-  )
+  // Dias sem registro, contados nas FOTOS — e só quando há alguma foto neste
+  // ciclo. Sem foto nenhuma, a resposta honesta é "não sei", não "28 dias sem
+  // lançamento": o sistema ainda não guardava essa informação.
+  const fotosAtual = e.acumuladoPorDiaAtual ?? []
+  const temAlgumaFoto = fotosAtual.some((v) => v != null && v > 0)
+  const diasSemLancamento = temAlgumaFoto
+    ? Math.max(0, Math.min(e.diasDecorridos, fotosAtual.length) - fotosAtual.filter((v) => v != null && v > 0).length)
+    : 0
 
   // Sem acumulado e sem histórico não há o que projetar. Dizer "R$ 0" seria
   // afirmar que ele vai fechar zerado — e é diferente de não saber.
+  // DUAS elegibilidades, porque os estimadores pedem coisas diferentes.
+  // Exigir curva diária pros dois era um erro: a TENDÊNCIA precisa só do
+  // total de cada ciclo — que todo mundo tem — e estava sendo barrada junto
+  // com o padrão diário, que ninguém ainda tem. O efeito era o modelo
+  // empatar com a regra de três em vez de usar o histórico disponível.
+  const elegiveisTotal = semOutliers(e.historico.filter((c) => c.total > 0))
   const elegiveis = semOutliers(e.historico.filter(bemAlimentado))
-  if (e.atual <= 0 && elegiveis.length === 0) {
+  if (e.atual <= 0 && elegiveisTotal.length === 0) {
     return {
       esperado: 0, faixa: null, confianca: 'baixa',
       metodo: 'ritmo', descricaoMetodo: 'sem histórico ainda', alerta: null,
@@ -277,8 +262,8 @@ export function projetar(e: EntradaProjecao): Projecao {
   const projB = fracaoTipica ? e.atual / fracaoTipica : null
 
   // ── C) TENDÊNCIA: último ciclo corrigido pelo crescimento mediano ──
-  const cres = crescimentos(elegiveis)
-  const ultimo = elegiveis.length > 0 ? elegiveis[elegiveis.length - 1].total : 0
+  const cres = crescimentos(elegiveisTotal)
+  const ultimo = elegiveisTotal.length > 0 ? elegiveisTotal[elegiveisTotal.length - 1].total : 0
   const projC = ultimo > 0
     ? ultimo * (1 + (cres.length >= 2 ? mediana(cres) : 0))
     : null
@@ -313,18 +298,25 @@ export function projetar(e: EntradaProjecao): Projecao {
   // ── Método e aviso ──
   // O método é um fato sobre a conta. O aviso só existe quando há lacuna no
   // hábito DESTA barbearia — nunca por ela simplesmente não lançar comandas.
-  const metodo: Metodo = fracaoTipica !== null ? 'historico' : 'ritmo'
-  const descricaoMetodo = metodo === 'historico'
-    ? `${elegiveis.length} ${elegiveis.length === 1 ? 'ciclo comparado' : 'ciclos comparados'}`
-    : t < 0.15
-      ? 'ritmo do mês — ciclo ainda no começo'
-      : 'ritmo do mês'
+  // O rótulo tem que ser literalmente verdadeiro. "N ciclos comparados" só
+  // vale quando houve comparação DIA A DIA; com fotos ainda inexistentes, o
+  // que há é tendência entre totais — e é isso que a tela vai dizer.
+  const ciclosComTotal = elegiveisTotal.length
+  const metodo: Metodo = fracaoTipica !== null
+    ? 'historico'
+    : projC !== null && ciclosComTotal >= 2 ? 'tendencia' : 'ritmo'
 
-  // "Costuma lançar" = nos ciclos que entraram no padrão, a maioria dos dias
-  // tinha registro. Só quem tem esse hábito pode ter uma lacuna nele.
-  const costumaLancar = elegiveis.length > 0
-  const alerta = costumaLancar && diasSemLancamento > 2
-    ? `${diasSemLancamento} dias sem lançamento neste ciclo`
+  const plural = (n: number) => `${n} ${n === 1 ? 'ciclo' : 'ciclos'}`
+  const descricaoMetodo =
+    metodo === 'historico' ? `andamento comparado com ${plural(elegiveis.length)}`
+      : metodo === 'tendencia' ? `ritmo do mês + tendência de ${plural(ciclosComTotal)}`
+        : t < 0.15 ? 'ritmo do mês — ciclo ainda no começo'
+          : 'ritmo do mês'
+
+  // Alerta só quando há foto neste ciclo E uma lacuna nela. Sem foto, o
+  // sistema não sabe se houve movimento — e calar é melhor que acusar.
+  const alerta = temAlgumaFoto && diasSemLancamento > 2
+    ? `${diasSemLancamento} dias sem registro neste ciclo`
     : null
 
   // `confianca` continua existindo porque a faixa e a ordenação dependem dela,
@@ -351,7 +343,7 @@ export function projetar(e: EntradaProjecao): Projecao {
     descricaoMetodo,
     alerta,
     motivos,
-    ciclosUsados: elegiveis.length,
+    ciclosUsados: Math.max(elegiveis.length, elegiveisTotal.length),
     diasSemLancamento,
     temProjecao: true,
   }
