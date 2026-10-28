@@ -101,6 +101,52 @@ async function diagnosticarAgendaServico() {
   }
 
   p('')
+
+  // ── 5. AS ABAS ──
+  // A contagem de atendimentos não está na aba "Total detalhado" — ela fica
+  // dentro de "Serviços" e "Assinaturas". A pergunta que decide se a extensão
+  // consegue ler sem clicar em nada: as outras abas JÁ vêm preenchidas no
+  // HTML (só escondidas por CSS) ou só carregam no clique?
+  //
+  // Se vierem preenchidas, aparecem linhas aqui embaixo e o extrator pode ler
+  // as quatro de uma vez. Se vierem vazias, é carregamento sob demanda e o
+  // caminho é outro.
+  const panes = Array.from(document.querySelectorAll('.tab-pane'))
+  p(`abas (.tab-pane) na página: ${panes.length}`)
+  panes.forEach((pane, i) => {
+    const ativa = pane.classList.contains('active') || pane.classList.contains('show')
+    const tabelas = Array.from(pane.querySelectorAll('table'))
+    const visivel = pane.offsetParent !== null
+    p(`  [${i}] class="${corta(pane.className, 60)}" ativa:${ativa} visível:${visivel} tabelas:${tabelas.length}`)
+
+    // Título da aba: o rótulo que o link de cima usa.
+    const titulo = pane.querySelector('.titleInfoTableTotal, h4, h5')
+    if (titulo) p(`      título interno: "${corta(titulo.textContent, 70)}"`)
+
+    // O que importa: a aba escondida tem CONTEÚDO?
+    const t = tabelas[0]
+    if (!t) {
+      p('      (sem tabela — ou carrega no clique, ou não tem dados)')
+      return
+    }
+    const trs = Array.from(t.querySelectorAll('tr'))
+    p(`      linhas: ${trs.length}`)
+    trs.slice(0, 4).forEach((tr, j) => {
+      const cels = Array.from(tr.querySelectorAll('th, td')).map((c) => corta(c.textContent, 16))
+      p(`        linha${j}: ${JSON.stringify(cels.slice(0, 13))}`)
+    })
+  })
+
+  // Os links que trocam de aba — o nome deles é o rótulo de cada aba.
+  const gatilhos = Array.from(document.querySelectorAll('[data-toggle="tab"], [data-bs-toggle="tab"], a[href^="#"]'))
+    .filter((a) => (a.textContent || '').trim().length > 0 && (a.textContent || '').trim().length < 30)
+  p('')
+  p(`links de aba encontrados: ${gatilhos.length}`)
+  gatilhos.slice(0, 10).forEach((g, i) => {
+    p(`  [${i}] "${corta(g.textContent, 24)}" → ${corta(g.getAttribute('href') || g.getAttribute('data-target') || '?', 30)}`)
+  })
+
+  p('')
   p('=== FIM ===')
   return L.join('\n')
 }
