@@ -35,7 +35,7 @@ import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetal
 type UsuarioComBarbearia = {
   barbearia_id: string
   senha_temporaria: boolean
-  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null; dia_fechamento: number | null; mostrar_ticket_medio: boolean | null; mostrar_faturamento_geral: boolean | null; regras_gerais: string[] | null; dias_trabalho_padrao: number | null; modo_meta: 'faturamento' | 'comissao' | 'ambos' | null; base_meta: 'faturamento' | 'comissao' | null }
+  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null; dia_fechamento: number | null; mostrar_ticket_medio: boolean | null; mostrar_faturamento_geral: boolean | null; regras_gerais: string[] | null; dias_trabalho_padrao: number | null; dias_trabalhados: { dia: string; ativo: boolean }[] | null; dias_fechados: string[] | null; dias_abertos: string[] | null; modo_meta: 'faturamento' | 'comissao' | 'ambos' | null; base_meta: 'faturamento' | 'comissao' | null }
 }
 
 type MetaSimples = {
@@ -62,7 +62,7 @@ export default async function DashboardPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais, dias_trabalho_padrao, modo_meta, base_meta)')
+    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais, dias_trabalho_padrao, modo_meta, base_meta, dias_trabalhados, dias_fechados, dias_abertos)')
     .eq('id', user.id)
     .single()
 
@@ -320,6 +320,11 @@ export default async function DashboardPage({
     })),
     diasTrabalhoPadrao: barbearia.dias_trabalho_padrao ?? null,
     // Modo 'ambos' resolve pelo base_meta; os dois outros falam por si.
+    operacao: {
+      diasTrabalhados: barbearia.dias_trabalhados ?? null,
+      fechadosManuais: barbearia.dias_fechados ?? [],
+      abertosManuais: barbearia.dias_abertos ?? [],
+    },
     baseEhComissao: (barbearia.modo_meta ?? 'comissao') === 'ambos'
       ? (barbearia.base_meta ?? 'comissao') === 'comissao'
       : (barbearia.modo_meta ?? 'comissao') === 'comissao',

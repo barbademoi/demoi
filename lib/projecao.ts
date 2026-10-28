@@ -86,6 +86,15 @@ export interface EntradaProjecao {
   totalDias: number
   /** Fotos do acumulado no ciclo CORRENTE, até hoje. null = sem foto no dia. */
   acumuladoPorDiaAtual?: (number | null)[]
+  /**
+   * A barbearia ABRE em cada dia do ciclo corrente, até hoje. Vem do
+   * calendário de operação (dia da semana + feriado + exceções do dono).
+   *
+   * Sem isto o aviso contava domingo e feriado como falta de lançamento —
+   * cobrava faturamento de dia fechado. Ausente ⇒ todo dia conta como aberto,
+   * que é o comportamento anterior.
+   */
+  diaAbertoAtual?: boolean[]
   /** Ciclos FECHADOS anteriores, do mais antigo ao mais recente. */
   historico: CicloHistorico[]
   /** Dias de trabalho do barbeiro no mês (null = usa o calendário). */
@@ -225,9 +234,15 @@ export function projetar(e: EntradaProjecao): Projecao {
   // ciclo. Sem foto nenhuma, a resposta honesta é "não sei", não "28 dias sem
   // lançamento": o sistema ainda não guardava essa informação.
   const fotosAtual = e.acumuladoPorDiaAtual ?? []
+  const abertos = e.diaAbertoAtual ?? []
   const temAlgumaFoto = fotosAtual.some((v) => v != null && v > 0)
+  // Conta só os dias em que a barbearia ABRIU e mesmo assim nada foi
+  // registrado. Domingo e feriado não são lacuna — são folga.
   const diasSemLancamento = temAlgumaFoto
-    ? Math.max(0, Math.min(e.diasDecorridos, fotosAtual.length) - fotosAtual.filter((v) => v != null && v > 0).length)
+    ? fotosAtual
+      .slice(0, e.diasDecorridos)
+      .filter((v, i) => (abertos.length === 0 || abertos[i] !== false) && !(v != null && v > 0))
+      .length
     : 0
 
   // Sem acumulado e sem histórico não há o que projetar. Dizer "R$ 0" seria

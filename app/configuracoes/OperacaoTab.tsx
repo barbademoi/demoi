@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { salvarOperacaoConfig } from './actions'
+import CalendarioOperacao from '@/components/configuracoes/CalendarioOperacao'
 
 const DIAS_CONFIG = [
   { key: 'segunda', label: 'Seg' },
@@ -26,6 +27,8 @@ interface BarbeariaData {
   modo_meta: 'faturamento' | 'comissao' | 'ambos' | null
   base_meta: 'faturamento' | 'comissao' | null
   dias_trabalho_padrao: number | null
+  dias_fechados: string[] | null
+  dias_abertos: string[] | null
   evolucao_faturamento_minimo: number
 }
 
@@ -54,6 +57,9 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
   const [diasAtivos, setDiasAtivos] = useState<Set<string>>(
     new Set(diasSalvos ? diasSalvos.filter(d => d.ativo).map(d => d.dia) : ['terca', 'quarta', 'quinta', 'sexta', 'sabado'])
   )
+  // Exceções do mês: datas que o dono fechou ou reabriu à mão.
+  const [fechados, setFechados] = useState<string[]>(barbearia.dias_fechados ?? [])
+  const [abertosManuais, setAbertosManuais] = useState<string[]>(barbearia.dias_abertos ?? [])
   const [modalidade, setModalidade] = useState(barbearia.modalidade ?? 'equipe')
   const [temAssinatura, setTemAssinatura] = useState(barbearia.tem_assinatura ?? false)
   const [visibilidade, setVisibilidade] = useState<VisibilidadeRanking>(
@@ -108,6 +114,15 @@ export default function OperacaoTab({ barbearia }: { barbearia: BarbeariaData })
           ))}
         </div>
       </div>
+
+      <CalendarioOperacao
+        diasTrabalhados={DIAS_CONFIG.map(({ key }) => ({ dia: key, ativo: diasAtivos.has(key) }))}
+        fechados={fechados}
+        abertos={abertosManuais}
+        onChange={(f, a) => { setFechados(f); setAbertosManuais(a) }}
+      />
+      <input type="hidden" name="dias_fechados" value={JSON.stringify(fechados)} />
+      <input type="hidden" name="dias_abertos" value={JSON.stringify(abertosManuais)} />
 
       <div className="grid grid-cols-2 gap-4">
         <div>
