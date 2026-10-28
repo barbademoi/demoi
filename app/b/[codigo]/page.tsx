@@ -9,6 +9,7 @@ import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import { gerarInsightsBarbeiro } from '@/lib/insights'
 import { obterMensagemDiaria } from '@/lib/ia-mensagem'
 import { resolverDiasTrabalho } from '@/lib/ritmo'
+import { carregarProjecao } from '@/lib/projecao/servidor'
 import { buscarHistoricoMeses } from '@/lib/historicoMeses'
 import BrandLogo from '@/components/BrandLogo'
 import BarbeiroClient from './BarbeiroClient'
@@ -168,6 +169,16 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
   const ranking = rankingBruto.filter(l => idsAtivos.has(l.barbeiro_id))
 
   const comissao = lancamento?.comissao_acumulada ?? 0
+
+  // Projeção de fechamento — MESMA função do dashboard do dono, pro número
+  // bater nas duas telas. Estatística local, sem IA e sem rede. Precisa vir
+  // DEPOIS do acumulado: é ele a base da projeção.
+  const projecaoCiclo = await carregarProjecao(supabase, {
+    barbeariaId: barbeiro.barbearia_id, ciclo, diaFechamento, hoje, ehPeriodoAtual,
+    barbeiros: [{ id: barbeiro.id, comissao, dias_trabalho_mes: barbeiro.dias_trabalho_mes }],
+    diasTrabalhoPadrao: barbearia?.dias_trabalho_padrao ?? null,
+  })
+  const projecaoBarbeiro = projecaoCiclo?.porBarbeiro[barbeiro.id] ?? null
   const progresso = metaInd ? {
     bronze: calcProgresso(comissao, metaInd.bronze_comm),
     prata:  calcProgresso(comissao, metaInd.prata_comm),
@@ -550,6 +561,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
           premioColetivoPrata={meta?.premio_coletivo_prata ?? null}
           insights={insights}
           mensagemIA={mensagemIA}
+          projecao={projecaoBarbeiro}
           tiersJaCelebrados={tiersJaCelebrados}
           campanha={campanha}
           controlesDiario={controlesDiario}

@@ -74,6 +74,8 @@ interface Props {
   premioColetivoPrata: string | null
   insights: { emoji: string; texto: string; destaque?: boolean }[]
   mensagemIA: string | null
+  /** Projeção de fechamento — mesma função do dashboard do dono. */
+  projecao: (import('@/lib/projecao').Projecao) | null
   tiersJaCelebrados: string[]
   // pontos
   campanha: CampanhaComDetalhes | null
@@ -143,7 +145,7 @@ export default function BarbeiroClient({
   faturamentoColetivo, progressoColetivo, progressoColetivoBronze, progressoColetivoPrata,
   metaColetiva, metaColetivaBronze, metaColetivaPrata,
   premioColetivo, premioColetivoBronze, premioColetivoPrata,
-  insights, mensagemIA, tiersJaCelebrados, campanha, controlesDiario,
+  insights, mensagemIA, projecao, tiersJaCelebrados, campanha, controlesDiario,
   pontosTotal, rankingPontos, barbeirosAtivos, pontosMap, controleHoje, historico,
   relatorioPontos, premio,
   visibilidadeRanking, isAutonomo, comissaoMesAnterior, historicoMeses,
@@ -605,12 +607,23 @@ export default function BarbeiroClient({
                   </div>
                   {/* Projeção de fechamento — extrapola o ritmo atual sobre a base
                       de dias. Usa dias de trabalho quando configurado. */}
-                  <div className="flex items-center justify-between pt-1 border-t border-on-cream/10">
-                    <p className="text-on-cream-muted text-xs font-sans">
-                      Projeção de fechamento
-                      {usaDiasTrabalho ? ` (${ritmo.baseTotal} dias de trabalho)` : ''}
+                  <div className="pt-1 border-t border-on-cream/10">
+                    <div className="flex items-center justify-between">
+                      <p className="text-on-cream-muted text-xs font-sans">Projeção de fechamento</p>
+                      <p className="font-serif text-lg text-on-cream">
+                        {projecao && projecao.temProjecao ? formatBRL(projecao.esperado) : formatBRL(ritmo.projetado)}
+                      </p>
+                    </div>
+                    {projecao?.faixa && (
+                      <p className="text-on-cream-muted text-[11px] font-sans mt-0.5">
+                        entre {formatBRL(projecao.faixa.conservador)} e {formatBRL(projecao.faixa.otimista)}
+                      </p>
+                    )}
+                    <p className="text-on-cream-muted text-[11px] font-sans mt-0.5">
+                      {projecao && projecao.temProjecao
+                        ? `${projecao.motivos[0]} · não é garantia`
+                        : 'baseada no seu ritmo — não é garantia'}
                     </p>
-                    <p className="font-serif text-lg text-on-cream">{formatBRL(ritmo.projetado)}</p>
                   </div>
                   <div className={`text-xs font-sans px-3 py-2 rounded-xl ${
                     ritmoOk
