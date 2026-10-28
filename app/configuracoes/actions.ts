@@ -129,19 +129,42 @@ export async function salvarOperacaoConfig(formData: FormData) {
 
   console.log('[salvarOperacaoConfig]', { barbeariaId, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral })
 
+  const camposBase = {
+    mostrar_ticket_medio,
+    mostrar_faturamento_geral,
+    dias_trabalho_padrao,
+    evolucao_faturamento_minimo,
+    dias_trabalhados,
+    horario_abertura, horario_fechamento, modalidade, tem_assinatura,
+    visibilidade_ranking, dia_fechamento,
+  }
+
+  /**
+   * O calendário é gravado JUNTO, mas não pode derrubar o resto.
+   *
+   * As colunas vêm da migration 060, aplicada à mão em produção. Entre o
+   * deploy e o `alter table` existe uma janela em que elas não existem — e
+   * um update que as mencione falha INTEIRO, levando junto horário,
+   * modalidade e visibilidade do ranking. O dono não conseguiria salvar nada.
+   *
+   * Então tenta com o calendário e, se a coluna não existir, repete sem ele:
+   * o resto da configuração é salvo e só a parte nova fica pra depois.
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  let { error } = await (supabase as any)
     .from('barbearias')
-    .update({
-      mostrar_ticket_medio,
-      mostrar_faturamento_geral,
-      dias_trabalho_padrao,
-      evolucao_faturamento_minimo,
-      dias_trabalhados, dias_fechados, dias_abertos,
-      horario_abertura, horario_fechamento, modalidade, tem_assinatura,
-      visibilidade_ranking, dia_fechamento,
-    })
+    .update({ ...camposBase, dias_fechados, dias_abertos })
     .eq('id', barbeariaId)
+
+  if (error) {
+    console.error('[salvarOperacaoConfig] calendário não gravou, tentando sem:', error)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const retry = await (supabase as any)
+      .from('barbearias')
+      .update(camposBase)
+      .eq('id', barbeariaId)
+    error = retry.error
+  }
 
   if (error) {
     console.error('[salvarOperacaoConfig] erro:', error)
