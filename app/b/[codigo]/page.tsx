@@ -11,6 +11,7 @@ import { obterMensagemDiaria } from '@/lib/ia-mensagem'
 import { resolverDiasTrabalho } from '@/lib/ritmo'
 import { carregarProjecao } from '@/lib/projecao/servidor'
 import { calendarioDoPeriodo } from '@/lib/operacao/calendario'
+import { lerExcecoesCalendario } from '@/lib/operacao/excecoes'
 import { buscarHistoricoMeses } from '@/lib/historicoMeses'
 import BrandLogo from '@/components/BrandLogo'
 import BarbeiroClient from './BarbeiroClient'
@@ -47,7 +48,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: barbeariaRaw } = await (supabase as any)
-    .from('barbearias').select('nome, cor_principal, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais, dias_trabalho_padrao, comportamento_ativo, modo_meta, base_meta, dias_trabalhados, dias_fechados, dias_abertos')
+    .from('barbearias').select('nome, cor_principal, visibilidade_ranking, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais, dias_trabalho_padrao, comportamento_ativo, modo_meta, base_meta, dias_trabalhados')
     .eq('id', barbeiro.barbearia_id).single()
   const barbearia = barbeariaRaw as {
     nome: string
@@ -60,8 +61,6 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     regras_gerais: string[] | null
     dias_trabalho_padrao: number | null
     dias_trabalhados: { dia: string; ativo: boolean }[] | null
-    dias_fechados: string[] | null
-    dias_abertos: string[] | null
     comportamento_ativo: boolean | null
     modo_meta: 'faturamento' | 'comissao' | 'ambos' | null
     base_meta: 'faturamento' | 'comissao' | null
@@ -172,6 +171,8 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
   const idsAtivos = new Set(barbeirosAtivos.map(b => b.id))
   const ranking = rankingBruto.filter(l => idsAtivos.has(l.barbeiro_id))
 
+  const excecoesCalendario = await lerExcecoesCalendario(supabase, barbeiro.barbearia_id)
+
   const comissao = lancamento?.comissao_acumulada ?? 0
 
   // Projeção de fechamento — MESMA função do dashboard do dono, pro número
@@ -183,8 +184,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     diasTrabalhoPadrao: barbearia?.dias_trabalho_padrao ?? null,
     operacao: {
       diasTrabalhados: barbearia?.dias_trabalhados ?? null,
-      fechadosManuais: barbearia?.dias_fechados ?? [],
-      abertosManuais: barbearia?.dias_abertos ?? [],
+      ...excecoesCalendario,
     },
     // O link do barbeiro não mostra o bloco da casa; a flag só rotula lá.
     baseEhComissao: (barbearia?.base_meta ?? 'comissao') === 'comissao',
@@ -470,8 +470,7 @@ export default async function BarbeiroPage({ params, searchParams }: Props) {
     const ehAberto = new Set(
       calendarioDoPeriodo(ciclo.inicioIso, ciclo.fimIso, {
         diasTrabalhados: barbearia?.dias_trabalhados ?? null,
-        fechadosManuais: barbearia?.dias_fechados ?? [],
-        abertosManuais: barbearia?.dias_abertos ?? [],
+        ...excecoesCalendario,
       }).filter(d => d.aberto).map(d => d.data),
     )
     const cursor = new Date(ciclo.inicio); cursor.setHours(12, 0, 0, 0)

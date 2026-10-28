@@ -23,6 +23,7 @@ import { BRINDOLETA_PRICE_LABEL } from '@/lib/brindoleta/config'
 import { decidirPopupBrindoleta } from '@/lib/brindoleta/popup'
 import { carregarBaseDoCiclo, carregarGamificacao } from '@/lib/premios/servidor'
 import { carregarProjecao } from '@/lib/projecao/servidor'
+import { lerExcecoesCalendario } from '@/lib/operacao/excecoes'
 import MonthNavigator from '@/components/dashboard/MonthNavigator'
 import FecharMesButton from '@/components/dashboard/FecharMesButton'
 import DestaquesMes from '@/components/dashboard/DestaquesMes'
@@ -35,7 +36,7 @@ import type { Barbeiro, MetaIndividual, Lancamento, ModoPontos, CampanhaComDetal
 type UsuarioComBarbearia = {
   barbearia_id: string
   senha_temporaria: boolean
-  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null; dia_fechamento: number | null; mostrar_ticket_medio: boolean | null; mostrar_faturamento_geral: boolean | null; regras_gerais: string[] | null; dias_trabalho_padrao: number | null; dias_trabalhados: { dia: string; ativo: boolean }[] | null; dias_fechados: string[] | null; dias_abertos: string[] | null; modo_meta: 'faturamento' | 'comissao' | 'ambos' | null; base_meta: 'faturamento' | 'comissao' | null }
+  barbearias: { id: string; nome: string; logo_url: string | null; onboarding_completo: boolean; modalidade: string | null; dia_fechamento: number | null; mostrar_ticket_medio: boolean | null; mostrar_faturamento_geral: boolean | null; regras_gerais: string[] | null; dias_trabalho_padrao: number | null; dias_trabalhados: { dia: string; ativo: boolean }[] | null; modo_meta: 'faturamento' | 'comissao' | 'ambos' | null; base_meta: 'faturamento' | 'comissao' | null }
 }
 
 type MetaSimples = {
@@ -62,7 +63,7 @@ export default async function DashboardPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usuarioRaw } = await (supabase as any)
     .from('usuarios')
-    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais, dias_trabalho_padrao, modo_meta, base_meta, dias_trabalhados, dias_fechados, dias_abertos)')
+    .select('barbearia_id, senha_temporaria, barbearias(id, nome, logo_url, onboarding_completo, modalidade, dia_fechamento, mostrar_ticket_medio, mostrar_faturamento_geral, regras_gerais, dias_trabalho_padrao, modo_meta, base_meta, dias_trabalhados)')
     .eq('id', user.id)
     .single()
 
@@ -309,6 +310,10 @@ export default async function DashboardPage({
     garantirCampanha: true,
   })
 
+  // Exceções do calendário em consulta separada: ler isto junto do resto
+  // derrubaria a página inteira enquanto a migration 060 não rodasse.
+  const excecoesCalendario = await lerExcecoesCalendario(supabase, barbearia.id)
+
   // ── Projeção de fechamento ────────────────────────────────────────────
   // Estatística local, no servidor. Mesma função do link do barbeiro, pra o
   // número bater nas duas telas. Só informativa: não alimenta premiação,
@@ -322,8 +327,7 @@ export default async function DashboardPage({
     // Modo 'ambos' resolve pelo base_meta; os dois outros falam por si.
     operacao: {
       diasTrabalhados: barbearia.dias_trabalhados ?? null,
-      fechadosManuais: barbearia.dias_fechados ?? [],
-      abertosManuais: barbearia.dias_abertos ?? [],
+      ...excecoesCalendario,
     },
     baseEhComissao: (barbearia.modo_meta ?? 'comissao') === 'ambos'
       ? (barbearia.base_meta ?? 'comissao') === 'comissao'
