@@ -14,18 +14,27 @@ import type { Projecao } from '@/lib/projecao'
  * uma decisão de dinheiro em cima de uma conta que pode errar 5%.
  */
 
-const TOM = {
-  alta: { cor: 'text-green-400', fundo: 'border-green-500/30 bg-green-500/5', rotulo: 'confiança alta' },
-  media: { cor: 'text-latao', fundo: 'border-latao/30 bg-latao/5', rotulo: 'confiança média' },
-  baixa: { cor: 'text-amber-400', fundo: 'border-amber-500/30 bg-amber-500/5', rotulo: 'confiança baixa' },
+/**
+ * O selo descreve o MÉTODO, não a qualidade dos dados do cliente.
+ *
+ * Antes ele dizia "confiança baixa" — que é o estado normal de quem não lança
+ * comandas, ou seja, da maioria. Rotular o padrão como deficiência gera
+ * discussão em vez de informação. "Estimativa simples" é igualmente honesto e
+ * não acusa ninguém; quem quiser melhorar lê o convite abaixo do número.
+ */
+const METODO = {
+  historico: { cor: 'text-green-400', fundo: 'border-green-500/30 bg-green-500/5', rotulo: 'pelo histórico' },
+  ritmo: { cor: 'text-text', fundo: 'border-border bg-surface-2/40', rotulo: 'estimativa simples' },
 } as const
 
 export interface ProjecaoCasa {
   esperado: number
   faixa: { conservador: number; otimista: number } | null
-  confianca: Projecao['confianca']
-  motivos: string[]
+  metodo: Projecao['metodo']
+  descricaoMetodo: string
+  alerta: string | null
   totalCicloAnterior: number
+  baseDiferenteDosCards: boolean
 }
 
 export default function ProjecaoFechamento({
@@ -37,7 +46,7 @@ export default function ProjecaoFechamento({
   cicloLabel: string
   labelAnterior: string
 }) {
-  const tom = TOM[projecao.confianca]
+  const tom = METODO[projecao.metodo]
   const anterior = projecao.totalCicloAnterior
   const diferenca = anterior > 0 ? projecao.esperado - anterior : null
 
@@ -45,7 +54,7 @@ export default function ProjecaoFechamento({
     <div className="card space-y-4 p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="font-sans text-xs uppercase tracking-wide text-text-muted">
-          Projeção de fechamento — {cicloLabel}
+          Projeção de faturamento — {cicloLabel}
         </p>
         <span className={`rounded-full border px-2.5 py-0.5 font-sans text-[11px] font-semibold ${tom.fundo} ${tom.cor}`}>
           {tom.rotulo}
@@ -60,11 +69,14 @@ export default function ProjecaoFechamento({
             <span className="font-semibold text-text">{formatBRL(projecao.faixa.otimista)}</span>
           </p>
         )}
-        {/* O motivo da confiança vale mais que o rótulo: "média" não diz o que
-            fazer, "3 dias sem lançamento" diz. */}
         <p className="mt-2 font-sans text-xs leading-snug text-text-muted">
-          {projecao.motivos.join(' · ')}
+          {projecao.descricaoMetodo}
         </p>
+        {/* Aviso só quando há LACUNA no hábito desta barbearia. Quem nunca
+            lançou comanda não recebe aviso nenhum — não é falha dela. */}
+        {projecao.alerta && (
+          <p className="mt-1 font-sans text-xs leading-snug text-amber-400">⚠ {projecao.alerta}</p>
+        )}
       </div>
 
       {diferenca !== null && (
@@ -81,8 +93,18 @@ export default function ProjecaoFechamento({
         </p>
       )}
 
+      {/* Com base em comissão, o geral e os cards são grandezas diferentes.
+          Dizer isso evita a conta que não fecha. */}
+      {projecao.baseDiferenteDosCards && (
+        <p className="font-sans text-[11px] leading-snug text-text-muted">
+          Este é o <strong className="text-text">faturamento</strong> da barbearia. Os cards mostram a
+          comissão de cada barbeiro — são valores diferentes e não somam entre si.
+        </p>
+      )}
+
       <p className="font-sans text-[11px] leading-snug text-text-muted">
         Projeção baseada nos lançamentos diários e no histórico. Não é garantia.
+        {projecao.metodo === 'ritmo' && ' Lançando o dia a dia, ela fica mais precisa a cada ciclo.'}
       </p>
     </div>
   )

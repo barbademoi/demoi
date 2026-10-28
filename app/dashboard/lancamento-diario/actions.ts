@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { estaFechado } from '@/lib/mesFechado'
-import { cicloDeData } from '@/lib/ciclo'
+import { cicloDeData, hojeBrasil } from '@/lib/ciclo'
+import { registrarFotoDoDia } from '@/lib/fotoDoDia'
 
 interface ComandaItem {
   barbeiro_id: string
@@ -235,9 +236,9 @@ export async function definirAcumuladoMes(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: cfgRaw } = await (supabase as any)
     .from('barbearias')
-    .select('modo_meta, base_meta')
+    .select('modo_meta, base_meta, dia_fechamento')
     .eq('id', barbearia_id)
-    .single() as { data: { modo_meta: string | null; base_meta: string | null } | null }
+    .single() as { data: { modo_meta: string | null; base_meta: string | null; dia_fechamento: number | null } | null }
 
   const modoMeta = (cfgRaw?.modo_meta ?? 'comissao') as 'faturamento' | 'comissao' | 'ambos'
   const baseRaw = (cfgRaw?.base_meta ?? 'comissao') as 'faturamento' | 'comissao'
@@ -328,6 +329,23 @@ export async function definirAcumuladoMes(
       .upsert(rowsLanc, { onConflict: 'barbearia_id,barbeiro_id,mes,ano' })
     if (errLanc) return { error: (errLanc as { message: string }).message }
   }
+
+  // (mes, ano) é o INÍCIO do ciclo, então o dia_fechamento no próprio mes/ano
+  // cai dentro dele — é dali que sai a janela da foto.
+  const diaFechFoto = cfgRaw?.dia_fechamento ?? 1
+  const cicloFoto = cicloDeData(new Date(ano, mes - 1, diaFechFoto, 12, 0, 0), diaFechFoto)
+  // Fotografa o acumulado de hoje. É o que permite, nos próximos ciclos,
+  // saber COMO o mês subiu — hoje esse formato é jogado fora a cada
+  // sobrescrita de `lancamentos`.
+  await registrarFotoDoDia(supabase, {
+    barbeariaId: barbearia_id,
+    hoje: hojeBrasil(),
+    cicloInicioIso: cicloFoto.inicioIso,
+    cicloFimIso: cicloFoto.fimIso,
+    fotos: rowsLanc
+      .filter((r) => typeof r.comissao_acumulada === 'number')
+      .map((r) => ({ barbeiroId: r.barbeiro_id as string, acumulado: r.comissao_acumulada as number })),
+  })
 
   // 2. Faturamento + atendimentos da casa (metas) — só atualiza se a meta ja existe.
   //    Mesmo guard: se incoming = 0 mas ja tem valor gravado, preserva.

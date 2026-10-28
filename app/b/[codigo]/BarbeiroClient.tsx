@@ -621,7 +621,7 @@ export default function BarbeiroClient({
                     )}
                     <p className="text-on-cream-muted text-[11px] font-sans mt-0.5">
                       {projecao && projecao.temProjecao
-                        ? `${projecao.motivos[0]} · não é garantia`
+                        ? `${projecao.descricaoMetodo} · não é garantia`
                         : 'baseada no seu ritmo — não é garantia'}
                     </p>
                   </div>

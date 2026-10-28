@@ -319,6 +319,10 @@ export default async function DashboardPage({
       id: r.id, comissao: r.comissao, dias_trabalho_mes: r.dias_trabalho_mes,
     })),
     diasTrabalhoPadrao: barbearia.dias_trabalho_padrao ?? null,
+    // Modo 'ambos' resolve pelo base_meta; os dois outros falam por si.
+    baseEhComissao: (barbearia.modo_meta ?? 'comissao') === 'ambos'
+      ? (barbearia.base_meta ?? 'comissao') === 'comissao'
+      : (barbearia.modo_meta ?? 'comissao') === 'comissao',
   })
 
   const platformStats = await getPlatformStats()

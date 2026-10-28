@@ -32,16 +32,22 @@ export interface ProjecaoDoCiclo {
   /** Projeção de cada barbeiro ativo, pelo id. */
   porBarbeiro: Record<string, ProjecaoBarbeiro>
   /**
-   * Projeção da casa. É a SOMA das individuais, de propósito: o número do
-   * bloco geral tem que ser o mesmo que o dono obtém somando os cards.
+   * Projeção da casa, em FATURAMENTO.
+   *
+   * Não é a soma dos cards, e isso é deliberado. Os cards mostram o campo-base
+   * que o dono escolheu (faturamento, comissão ou os dois); o bloco geral
+   * mostra o FATURAMENTO da barbearia. Quando a base é comissão, somar os
+   * cards daria a projeção da comissão da equipe — outra grandeza, e não a
+   * que o dono quer ver no geral. Com base em faturamento, os dois coincidem.
+   *
+   * A fonte é a mesma do painel: `metas.faturamento_acumulado` quando existe,
+   * senão a soma dos acumulados dos barbeiros.
    */
-  casa: {
-    esperado: number
-    faixa: { conservador: number; otimista: number } | null
-    confianca: Projecao['confianca']
-    motivos: string[]
-    /** Total do ciclo anterior, pra comparação. 0 = não há anterior. */
+  casa: Projecao & {
+    /** Total de faturamento do ciclo anterior. 0 = não há anterior. */
     totalCicloAnterior: number
+    /** true = a base dos cards é comissão, então geral ≠ soma dos cards. */
+    baseDiferenteDosCards: boolean
   }
 }
 
@@ -87,6 +93,8 @@ export async function carregarProjecao(
     /** Barbeiros ativos com o acumulado do ciclo e os dias de trabalho. */
     barbeiros: { id: string; comissao: number; dias_trabalho_mes?: number | null }[]
     diasTrabalhoPadrao: number | null
+    /** Base dos cards. Comissão ⇒ o bloco geral mostra outra grandeza. */
+    baseEhComissao: boolean
   },
 ): Promise<ProjecaoDoCiclo | null> {
   const { barbeariaId, ciclo, diaFechamento, hoje, ehPeriodoAtual, barbeiros } = opts
@@ -114,15 +122,20 @@ export async function carregarProjecao(
   // ── Comandas dia a dia de todo o período ──
   const { data: diariosRaw } = await supabase
     .from('lancamentos_diarios')
-    .select('barbeiro_id, data, numero_atendimentos')
+    .select('barbeiro_id, data, numero_atendimentos, valor')
     .eq('barbearia_id', barbeariaId)
     .in('barbeiro_id', ids)
     .gte('data', anteriores[0].inicioIso)
     .lte('data', ciclo.fimIso)
 
-  const comandaPor = new Map<string, number>() // `${barbeiroId}|${dataIso}` → qtd
-  for (const r of (diariosRaw ?? []) as { barbeiro_id: string; data: string; numero_atendimentos: number }[]) {
-    comandaPor.set(`${r.barbeiro_id}|${String(r.data).slice(0, 10)}`, Number(r.numero_atendimentos) || 0)
+  const comandaPor = new Map<string, number>()        // `${barbeiroId}|${dataIso}` → qtd
+  const fotoPor = new Map<string, number>()           // `${barbeiroId}|${dataIso}` → R$ acumulado
+  type LinhaDiaria = { barbeiro_id: string; data: string; numero_atendimentos: number; valor: number | string | null }
+  for (const r of (diariosRaw ?? []) as LinhaDiaria[]) {
+    const chave = `${r.barbeiro_id}|${String(r.data).slice(0, 10)}`
+    comandaPor.set(chave, Number(r.numero_atendimentos) || 0)
+    const v = Number(r.valor) || 0
+    if (v > 0) fotoPor.set(chave, v)
   }
 
   const diasPorCiclo = new Map<Ciclo, string[]>()
@@ -147,6 +160,7 @@ export async function carregarProjecao(
       ano: c.anoRef,
       total: totalPor.get(`${b.id}|${c.mesRef}-${c.anoRef}`) ?? 0,
       comandasPorDia: diasPorCiclo.get(c)!.map((iso) => comandaPor.get(`${b.id}|${iso}`) ?? 0),
+      acumuladoPorDia: diasPorCiclo.get(c)!.map((iso) => fotoPor.get(`${b.id}|${iso}`) ?? null),
       totalDias: c.totalDias,
     }))
     // Ciclo sem R$ nenhum não é histórico — é ausência. Deixá-lo entrar
@@ -158,6 +172,7 @@ export async function carregarProjecao(
       diasDecorridos,
       totalDias: ciclo.totalDias,
       comandasPorDiaAtual: diasAtual.slice(0, diasDecorridos).map((iso) => comandaPor.get(`${b.id}|${iso}`) ?? 0),
+      acumuladoPorDiaAtual: diasAtual.slice(0, diasDecorridos).map((iso) => fotoPor.get(`${b.id}|${iso}`) ?? null),
       historico: comDados,
       diasTrabalhoMes: b.dias_trabalho_mes ?? opts.diasTrabalhoPadrao ?? null,
     })
@@ -165,37 +180,73 @@ export async function carregarProjecao(
     porBarbeiro[b.id] = { ...projecao, barbeiroId: b.id }
   }
 
-  // ── A casa é a SOMA das individuais ──
-  const lista = Object.values(porBarbeiro).filter((p) => p.temProjecao)
-  const esperado = lista.reduce((s, p) => s + p.esperado, 0)
-  // A faixa da casa soma as pontas de quem tem faixa e usa o esperado de quem
-  // não tem — assim a faixa nunca fica mais estreita que a soma dos esperados.
-  const conservador = lista.reduce((s, p) => s + (p.faixa ? p.faixa.conservador : p.esperado), 0)
-  const otimista = lista.reduce((s, p) => s + (p.faixa ? p.faixa.otimista : p.esperado), 0)
+  // ── A casa projeta FATURAMENTO, com a própria curva ──
+  // Mesma função, outro escopo: a forma vem da soma das curvas diárias de
+  // todos os barbeiros; o nível vem do faturamento da casa, com a MESMA
+  // precedência do painel (metas.faturamento_acumulado quando existe, senão a
+  // soma dos acumulados). Projetar isso somando os cards só funcionaria se a
+  // base deles fosse faturamento — quando é comissão, seriam outras contas.
+  const { data: metasRaw } = await supabase
+    .from('metas')
+    .select('mes, ano, faturamento_acumulado')
+    .eq('barbearia_id', barbeariaId)
+    .in('ano', Array.from(new Set(todos.map((c) => c.anoRef))))
 
-  // A confiança da casa é a PIOR das individuais: o elo mais fraco é que
-  // manda quando os números são somados.
-  const ordem = { baixa: 0, media: 1, alta: 2 } as const
-  const confianca = lista.length === 0
-    ? 'baixa' as const
-    : lista.reduce((pior, p) => (ordem[p.confianca] < ordem[pior] ? p.confianca : pior), 'alta' as Projecao['confianca'])
+  const fatCasaPor = new Map<string, number>()
+  for (const r of (metasRaw ?? []) as { mes: number; ano: number; faturamento_acumulado: number | string | null }[]) {
+    const v = Number(r.faturamento_acumulado) || 0
+    if (v > 0) fatCasaPor.set(`${r.mes}-${r.ano}`, v)
+  }
 
-  const motivos = Array.from(new Set(lista.flatMap((p) => p.motivos))).slice(0, 3)
+  /** Faturamento da casa num ciclo, com a precedência do painel. */
+  const faturamentoDoCiclo = (mesRef: number, anoRef: number): number => {
+    const declarado = fatCasaPor.get(`${mesRef}-${anoRef}`)
+    if (declarado && declarado > 0) return declarado
+    return ids.reduce((s, id) => s + (totalPor.get(`${id}|${mesRef}-${anoRef}`) ?? 0), 0)
+  }
+
+  /** Curva da casa num ciclo: soma do que cada barbeiro registrou no dia. */
+  const curvaDaCasa = (dias: string[]) => ({
+    comandas: dias.map((iso) => ids.reduce((s, id) => s + (comandaPor.get(`${id}|${iso}`) ?? 0), 0)),
+    fotos: dias.map((iso) => {
+      const soma = ids.reduce((s, id) => s + (fotoPor.get(`${id}|${iso}`) ?? 0), 0)
+      return soma > 0 ? soma : null
+    }),
+  })
+
+  const historicoCasa = anteriores.map((c) => {
+    const dias = diasPorCiclo.get(c)!
+    const { comandas, fotos } = curvaDaCasa(dias)
+    return {
+      mes: c.mesRef, ano: c.anoRef,
+      total: faturamentoDoCiclo(c.mesRef, c.anoRef),
+      comandasPorDia: comandas,
+      acumuladoPorDia: fotos,
+      totalDias: c.totalDias,
+    }
+  }).filter((h) => h.total > 0)
+
+  const diasAteHoje = diasAtual.slice(0, diasDecorridos)
+  const curvaAtualCasa = curvaDaCasa(diasAteHoje)
+
+  const projCasa = projetar({
+    atual: faturamentoDoCiclo(ciclo.mesRef, ciclo.anoRef),
+    diasDecorridos,
+    totalDias: ciclo.totalDias,
+    comandasPorDiaAtual: curvaAtualCasa.comandas,
+    acumuladoPorDiaAtual: curvaAtualCasa.fotos,
+    historico: historicoCasa,
+    diasTrabalhoMes: null,
+  })
 
   const anterior = anteriores[anteriores.length - 1]
-  const totalCicloAnterior = ids.reduce(
-    (s, id) => s + (totalPor.get(`${id}|${anterior.mesRef}-${anterior.anoRef}`) ?? 0),
-    0,
-  )
 
   return {
     porBarbeiro,
     casa: {
-      esperado,
-      faixa: lista.some((p) => p.faixa) ? { conservador, otimista } : null,
-      confianca,
-      motivos: motivos.length > 0 ? motivos : ['sem histórico ainda'],
-      totalCicloAnterior,
+      ...projCasa,
+      totalCicloAnterior: faturamentoDoCiclo(anterior.mesRef, anterior.anoRef),
+      baseDiferenteDosCards: opts.baseEhComissao,
     },
   }
 }
