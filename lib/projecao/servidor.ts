@@ -122,18 +122,16 @@ export async function carregarProjecao(
   // ── Comandas dia a dia de todo o período ──
   const { data: diariosRaw } = await supabase
     .from('lancamentos_diarios')
-    .select('barbeiro_id, data, numero_atendimentos, valor')
+    .select('barbeiro_id, data, valor')
     .eq('barbearia_id', barbeariaId)
     .in('barbeiro_id', ids)
     .gte('data', anteriores[0].inicioIso)
     .lte('data', ciclo.fimIso)
 
-  const comandaPor = new Map<string, number>()        // `${barbeiroId}|${dataIso}` → qtd
   const fotoPor = new Map<string, number>()           // `${barbeiroId}|${dataIso}` → R$ acumulado
-  type LinhaDiaria = { barbeiro_id: string; data: string; numero_atendimentos: number; valor: number | string | null }
+  type LinhaDiaria = { barbeiro_id: string; data: string; valor: number | string | null }
   for (const r of (diariosRaw ?? []) as LinhaDiaria[]) {
     const chave = `${r.barbeiro_id}|${String(r.data).slice(0, 10)}`
-    comandaPor.set(chave, Number(r.numero_atendimentos) || 0)
     const v = Number(r.valor) || 0
     if (v > 0) fotoPor.set(chave, v)
   }
@@ -159,7 +157,6 @@ export async function carregarProjecao(
       mes: c.mesRef,
       ano: c.anoRef,
       total: totalPor.get(`${b.id}|${c.mesRef}-${c.anoRef}`) ?? 0,
-      comandasPorDia: diasPorCiclo.get(c)!.map((iso) => comandaPor.get(`${b.id}|${iso}`) ?? 0),
       acumuladoPorDia: diasPorCiclo.get(c)!.map((iso) => fotoPor.get(`${b.id}|${iso}`) ?? null),
       totalDias: c.totalDias,
     }))
@@ -171,7 +168,6 @@ export async function carregarProjecao(
       atual: b.comissao,
       diasDecorridos,
       totalDias: ciclo.totalDias,
-      comandasPorDiaAtual: diasAtual.slice(0, diasDecorridos).map((iso) => comandaPor.get(`${b.id}|${iso}`) ?? 0),
       acumuladoPorDiaAtual: diasAtual.slice(0, diasDecorridos).map((iso) => fotoPor.get(`${b.id}|${iso}`) ?? null),
       historico: comDados,
       diasTrabalhoMes: b.dias_trabalho_mes ?? opts.diasTrabalhoPadrao ?? null,
@@ -206,22 +202,18 @@ export async function carregarProjecao(
   }
 
   /** Curva da casa num ciclo: soma do que cada barbeiro registrou no dia. */
-  const curvaDaCasa = (dias: string[]) => ({
-    comandas: dias.map((iso) => ids.reduce((s, id) => s + (comandaPor.get(`${id}|${iso}`) ?? 0), 0)),
-    fotos: dias.map((iso) => {
+  const curvaDaCasa = (dias: string[]) =>
+    dias.map((iso) => {
       const soma = ids.reduce((s, id) => s + (fotoPor.get(`${id}|${iso}`) ?? 0), 0)
       return soma > 0 ? soma : null
-    }),
-  })
+    })
 
   const historicoCasa = anteriores.map((c) => {
     const dias = diasPorCiclo.get(c)!
-    const { comandas, fotos } = curvaDaCasa(dias)
     return {
       mes: c.mesRef, ano: c.anoRef,
       total: faturamentoDoCiclo(c.mesRef, c.anoRef),
-      comandasPorDia: comandas,
-      acumuladoPorDia: fotos,
+      acumuladoPorDia: curvaDaCasa(dias),
       totalDias: c.totalDias,
     }
   }).filter((h) => h.total > 0)
@@ -233,8 +225,7 @@ export async function carregarProjecao(
     atual: faturamentoDoCiclo(ciclo.mesRef, ciclo.anoRef),
     diasDecorridos,
     totalDias: ciclo.totalDias,
-    comandasPorDiaAtual: curvaAtualCasa.comandas,
-    acumuladoPorDiaAtual: curvaAtualCasa.fotos,
+    acumuladoPorDiaAtual: curvaAtualCasa,
     historico: historicoCasa,
     diasTrabalhoMes: null,
   })

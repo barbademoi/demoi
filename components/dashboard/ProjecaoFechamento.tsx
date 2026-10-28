@@ -24,6 +24,7 @@ import type { Projecao } from '@/lib/projecao'
  */
 const METODO = {
   historico: { cor: 'text-green-400', fundo: 'border-green-500/30 bg-green-500/5', rotulo: 'pelo histórico' },
+  tendencia: { cor: 'text-latao', fundo: 'border-latao/30 bg-latao/5', rotulo: 'ritmo e tendência' },
   ritmo: { cor: 'text-text', fundo: 'border-border bg-surface-2/40', rotulo: 'estimativa simples' },
 } as const
 

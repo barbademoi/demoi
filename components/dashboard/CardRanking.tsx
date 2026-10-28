@@ -288,7 +288,9 @@ export default function CardRanking({
                   {projecao.faixa && (
                     <span> ({formatBRL(projecao.faixa.conservador)} a {formatBRL(projecao.faixa.otimista)})</span>
                   )}
-                  {projecao.metodo === 'ritmo' && <span> · estimativa simples</span>}
+                  {projecao.metodo !== 'historico' && (
+                    <span> · {projecao.metodo === 'tendencia' ? 'ritmo e tendência' : 'estimativa simples'}</span>
+                  )}
                   {projecao.alerta && <span className="text-amber-400"> · {projecao.alerta}</span>}
                 </>
               ) : (
