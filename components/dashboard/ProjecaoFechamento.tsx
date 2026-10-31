@@ -30,6 +30,9 @@ const METODO = {
 
 export interface ProjecaoCasa {
   esperado: number
+  /** true = não resta dia de trabalho; o número é o fechamento, não palpite. */
+  cicloFechado: boolean
+  diasRestantes: number
   faixa: { conservador: number; otimista: number } | null
   metodo: Projecao['metodo']
   descricaoMetodo: string
@@ -55,10 +58,12 @@ export default function ProjecaoFechamento({
     <div className="card space-y-4 p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="font-sans text-xs uppercase tracking-wide text-text-muted">
-          Projeção de faturamento — {cicloLabel}
+          {projecao.cicloFechado ? 'Faturamento do ciclo' : 'Projeção de faturamento'} — {cicloLabel}
         </p>
+        {/* Sem dia de trabalho restante não existe projeção: o valor é o
+            fechamento. Manter a palavra "projeção" ali seria enganoso. */}
         <span className={`rounded-full border px-2.5 py-0.5 font-sans text-[11px] font-semibold ${tom.fundo} ${tom.cor}`}>
-          {tom.rotulo}
+          {projecao.cicloFechado ? 'ciclo fechado' : tom.rotulo}
         </span>
       </div>
 
@@ -104,8 +109,17 @@ export default function ProjecaoFechamento({
       )}
 
       <p className="font-sans text-[11px] leading-snug text-text-muted">
-        Projeção baseada nos lançamentos diários e no histórico. Não é garantia.
-        {projecao.metodo === 'ritmo' && ' Lançando o dia a dia, ela fica mais precisa a cada ciclo.'}
+        {projecao.cicloFechado ? (
+          'Não há mais dia de trabalho neste ciclo — este é o valor final.'
+        ) : (
+          <>
+            Projeção baseada nos lançamentos diários e no histórico. Não é garantia.
+            {projecao.diasRestantes === 1
+              ? ' Falta 1 dia de trabalho, hoje incluído.'
+              : ` Faltam ${projecao.diasRestantes} dias de trabalho, hoje incluído.`}
+            {projecao.metodo === 'ritmo' && ' Lançando o dia a dia, ela fica mais precisa a cada ciclo.'}
+          </>
+        )}
       </p>
     </div>
   )

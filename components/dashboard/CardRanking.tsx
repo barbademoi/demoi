@@ -283,12 +283,12 @@ export default function CardRanking({
             <p className="mt-1 font-sans text-xs leading-snug text-text-muted">
               {projecao.temProjecao ? (
                 <>
-                  <span>Projeção: </span>
+                  <span>{projecao.cicloFechado ? 'Fechou: ' : 'Projeção: '}</span>
                   <span className="font-semibold text-text">{formatBRL(projecao.esperado)}</span>
                   {projecao.faixa && (
                     <span> ({formatBRL(projecao.faixa.conservador)} a {formatBRL(projecao.faixa.otimista)})</span>
                   )}
-                  {projecao.metodo !== 'historico' && (
+                  {!projecao.cicloFechado && projecao.metodo !== 'historico' && (
                     <span> · {projecao.metodo === 'tendencia' ? 'ritmo e tendência' : 'estimativa simples'}</span>
                   )}
                   {projecao.alerta && <span className="text-amber-400"> · {projecao.alerta}</span>}

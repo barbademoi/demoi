@@ -26,6 +26,13 @@
  * Em qualquer dos dois casos o último ponto da curva bate com o número da
  * frase: gráfico e texto nunca discordam na mesma tela.
  *
+ * ── O PONTO DO CICLO ANTERIOR ───────────────────────────────────────────────
+ * Sai do ANDAMENTO do ciclo atual (dias já fechados ÷ tamanho do ciclo), nunca
+ * do número do dia do mês. No dia 31 de outubro contra um setembro de 30 dias,
+ * a conta antiga dava 100% e o card mostrava setembro inteiro como "o mesmo
+ * ponto" — o mesmo número que "set fechou em". A régua está em
+ * `fatorMesmoPeriodo`, e o gráfico usa o mesmo ponto que a frase.
+ *
  * Só leitura. Fuso America/Sao_Paulo (quem chama passa `hoje` de hojeBrasil()).
  */
 import { cicloDeData, type Ciclo } from './ciclo'
@@ -188,19 +195,34 @@ export async function montarComparativoPeriodo(
   antes.setDate(antes.getDate() - 1)
   const cicloAnterior = cicloDeData(antes, diaFechamento)
 
+  // A CURVA do ciclo atual vai até HOJE — inclusive. É o acumulado de agora, e
+  // o último ponto dela tem que bater com o número da frase.
+  const decorridosInclusive = diasDecorridosInclusive(ciclo.inicio, e.hoje)
+  const diasDecorridos = e.ehPeriodoAtual
+    ? Math.min(ciclo.totalDias, Math.max(1, decorridosInclusive))
+    : ciclo.totalDias
+
   // Ciclo fechado: o dono navegou pra trás, então compara mês cheio × mês
   // cheio — ali "mesmo período" é o ciclo inteiro, e fatiar seria errado.
-  const diasDecorridos = e.ehPeriodoAtual
-    ? Math.min(ciclo.totalDias, Math.max(1, diasDecorridosInclusive(ciclo.inicio, e.hoje)))
-    : ciclo.totalDias
+  //
+  // O PONTO DE COMPARAÇÃO do ciclo anterior, porém, sai do ANDAMENTO: dias já
+  // fechados do ciclo atual sobre o tamanho dele. Era aqui o defeito — com o
+  // denominador no ciclo anterior e hoje contando como decorrido, o dia 31 de
+  // outubro contra um setembro de 30 dias dava 100%, e "no mesmo ponto de set"
+  // virava setembro inteiro: o mesmo número que "set fechou em".
   const fator = e.ehPeriodoAtual
-    ? fatorMesmoPeriodo(diasDecorridos, cicloAnterior.totalDias)
+    ? fatorMesmoPeriodo({ decorridosInclusive, totalDoCiclo: ciclo.totalDias })
     : 1
 
   const diasAtual = diasDoCiclo(ciclo).slice(0, diasDecorridos)
   const diasAnterior = diasDoCiclo(cicloAnterior)
-  // Mesmo ponto do ciclo anterior: o dia equivalente, com teto no tamanho dele.
-  const pontoAnterior = Math.min(diasDecorridos, cicloAnterior.totalDias)
+  // Mesmo ponto do ciclo anterior: a mesma FRAÇÃO de andamento, não o mesmo
+  // número de dia. Ciclos têm 28 a 31 dias, e é a fração que os torna
+  // comparáveis. O gráfico e a frase usam este mesmo ponto.
+  const pontoAnterior = Math.max(
+    1,
+    Math.min(cicloAnterior.totalDias, Math.round(fator * cicloAnterior.totalDias)),
+  )
 
   const [fotosAtual, fotosAnterior] = await Promise.all([
     buscarFotos(supabase, e.barbeariaId, e.barbeiroIds, ciclo),
@@ -260,7 +282,11 @@ export async function montarComparativoPeriodo(
     totalDiasCiclo: ciclo.totalDias,
     labelAtual: rotuloCurto(ciclo, diaFechamento),
     labelAnterior: rotuloCurto(cicloAnterior, diaFechamento),
-    parcial: e.ehPeriodoAtual && diasDecorridos < ciclo.totalDias,
+    // PARCIAL = a fatia do ciclo anterior ainda não é o mês todo. No último dia
+    // do ciclo ela não é: hoje não fechou. Medir isso por `diasDecorridos`
+    // fazia o rótulo virar "vs. set" (ciclo cheio) no dia 31, enquanto o número
+    // ao lado continuava sendo uma fatia — o card se contradizia.
+    parcial: e.ehPeriodoAtual && fator < 1,
     coletivo: montarEscopo(
       e.totalAtual,
       e.totalAnteriorCheio,

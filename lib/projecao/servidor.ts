@@ -16,7 +16,7 @@
  * Só leitura. Fuso America/Sao_Paulo (o ciclo vem de `lib/ciclo`).
  */
 import { cicloDeData, type Ciclo } from '@/lib/ciclo'
-import { projetar, type CicloHistorico, type Projecao } from '@/lib/projecao'
+import { projetar, type CicloHistorico, type DiaDoCiclo, type Projecao } from '@/lib/projecao'
 import { calendarioDoPeriodo, type ConfigOperacao } from '@/lib/operacao/calendario'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -142,7 +142,6 @@ export async function carregarProjecao(
   const diasPorCiclo = new Map<Ciclo, string[]>()
   for (const c of todos) diasPorCiclo.set(c, diasDoCiclo(c))
 
-  // Dias do ciclo atual já decorridos, contando hoje.
   const diasAtual = diasPorCiclo.get(ciclo)!
   const hojeIso = (() => {
     const y = hoje.getFullYear()
@@ -150,23 +149,43 @@ export async function carregarProjecao(
     const d = String(hoje.getDate()).padStart(2, '0')
     return `${y}-${m}-${d}`
   })()
-  const idxHoje = diasAtual.indexOf(hojeIso)
-  const diasDecorridos = idxHoje >= 0 ? idxHoje + 1 : diasAtual.length
+  // Índice de HOJE. O modelo trata hoje como dia que AINDA VAI acontecer —
+  // era contá-lo como decorrido que fazia a projeção do último dia do ciclo
+  // dar exatamente o acumulado.
+  const indiceHoje = diasAtual.indexOf(hojeIso)
 
-  // Quais dos dias decorridos a barbearia realmente abriu.
-  const diaAbertoAtual = calendarioDoPeriodo(diasAtual[0], diasAtual[diasAtual.length - 1], opts.operacao)
-    .slice(0, diasDecorridos)
-    .map((d) => d.aberto)
+  // Calendário de operação de cada ciclo: é ele que define dia de trabalho,
+  // e é em dias de trabalho que a posição no ciclo passa a ser medida.
+  const abertosPorCiclo = new Map<Ciclo, boolean[]>()
+  for (const c of todos) {
+    const d = diasPorCiclo.get(c)!
+    abertosPorCiclo.set(c, calendarioDoPeriodo(d[0], d[d.length - 1], opts.operacao).map((x) => x.aberto))
+  }
+
+  /** Dia da semana de uma data ISO. Meio-dia evita escorregar por fuso. */
+  const dowDe = (iso: string) => new Date(`${iso}T12:00:00`).getDay()
+
+  /** Monta os dias de um ciclo pro modelo, com a curva de quem for pedido. */
+  const montarDias = (c: Ciclo, valorDoDia: (iso: string) => number | null): DiaDoCiclo[] => {
+    const isos = diasPorCiclo.get(c)!
+    const abertos = abertosPorCiclo.get(c)!
+    return isos.map((iso, i) => ({
+      aberto: abertos[i] ?? true,
+      dow: dowDe(iso),
+      acumulado: valorDoDia(iso),
+    }))
+  }
 
   const porBarbeiro: Record<string, ProjecaoBarbeiro> = {}
 
   for (const b of barbeiros) {
+    const fotoDe = (id: string) => (iso: string) => fotoPor.get(`${id}|${iso}`) ?? null
+
     const historico: CicloHistorico[] = anteriores.map((c) => ({
       mes: c.mesRef,
       ano: c.anoRef,
       total: totalPor.get(`${b.id}|${c.mesRef}-${c.anoRef}`) ?? 0,
-      acumuladoPorDia: diasPorCiclo.get(c)!.map((iso) => fotoPor.get(`${b.id}|${iso}`) ?? null),
-      totalDias: c.totalDias,
+      dias: montarDias(c, fotoDe(b.id)),
     }))
     // Ciclo sem R$ nenhum não é histórico — é ausência. Deixá-lo entrar
     // arrastaria a fração típica e o crescimento pra baixo.
@@ -174,12 +193,9 @@ export async function carregarProjecao(
 
     const projecao = projetar({
       atual: b.comissao,
-      diasDecorridos,
-      totalDias: ciclo.totalDias,
-      acumuladoPorDiaAtual: diasAtual.slice(0, diasDecorridos).map((iso) => fotoPor.get(`${b.id}|${iso}`) ?? null),
-      diaAbertoAtual,
+      dias: montarDias(ciclo, fotoDe(b.id)),
+      indiceHoje,
       historico: comDados,
-      diasTrabalhoMes: b.dias_trabalho_mes ?? opts.diasTrabalhoPadrao ?? null,
     })
 
     porBarbeiro[b.id] = { ...projecao, barbeiroId: b.id }
@@ -210,34 +226,23 @@ export async function carregarProjecao(
     return ids.reduce((s, id) => s + (totalPor.get(`${id}|${mesRef}-${anoRef}`) ?? 0), 0)
   }
 
-  /** Curva da casa num ciclo: soma do que cada barbeiro registrou no dia. */
-  const curvaDaCasa = (dias: string[]) =>
-    dias.map((iso) => {
-      const soma = ids.reduce((s, id) => s + (fotoPor.get(`${id}|${iso}`) ?? 0), 0)
-      return soma > 0 ? soma : null
-    })
+  /** Curva da casa: soma do que cada barbeiro registrou naquele dia. */
+  const fotoDaCasa = (iso: string): number | null => {
+    const soma = ids.reduce((s, id) => s + (fotoPor.get(`${id}|${iso}`) ?? 0), 0)
+    return soma > 0 ? soma : null
+  }
 
-  const historicoCasa = anteriores.map((c) => {
-    const dias = diasPorCiclo.get(c)!
-    return {
-      mes: c.mesRef, ano: c.anoRef,
-      total: faturamentoDoCiclo(c.mesRef, c.anoRef),
-      acumuladoPorDia: curvaDaCasa(dias),
-      totalDias: c.totalDias,
-    }
-  }).filter((h) => h.total > 0)
-
-  const diasAteHoje = diasAtual.slice(0, diasDecorridos)
-  const curvaAtualCasa = curvaDaCasa(diasAteHoje)
+  const historicoCasa = anteriores.map((c) => ({
+    mes: c.mesRef, ano: c.anoRef,
+    total: faturamentoDoCiclo(c.mesRef, c.anoRef),
+    dias: montarDias(c, fotoDaCasa),
+  })).filter((h) => h.total > 0)
 
   const projCasa = projetar({
     atual: faturamentoDoCiclo(ciclo.mesRef, ciclo.anoRef),
-    diasDecorridos,
-    totalDias: ciclo.totalDias,
-    acumuladoPorDiaAtual: curvaAtualCasa,
-    diaAbertoAtual,
+    dias: montarDias(ciclo, fotoDaCasa),
+    indiceHoje,
     historico: historicoCasa,
-    diasTrabalhoMes: null,
   })
 
   const anterior = anteriores[anteriores.length - 1]
