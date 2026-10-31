@@ -118,7 +118,13 @@ export async function calcularDestaquesMes(
 
   // ── Evolução: crescimento % vs MESMO PERÍODO do ciclo anterior (prorrateado
   //    à mesma proporção de dias decorridos — nunca o mês inteiro). ──
-  const fator = fatorMesmoPeriodo(diasDecorridos, cicloAnterior.totalDias)
+  // A régua é a de `lib/mesmoPeriodo`: andamento do ciclo ATUAL, com hoje
+  // ainda sem contar. `diasDecorridos` aqui inclui hoje porque também é
+  // rótulo; o fator cuida disso por dentro.
+  const fator = fatorMesmoPeriodo({
+    decorridosInclusive: diasDecorridos,
+    totalDoCiclo: ciclo.totalDias,
+  })
   const evolCandidatos = Array.from(nomeById.entries())
     .map(([id, nome]) => {
       const atual = atualMap.get(id) ?? 0

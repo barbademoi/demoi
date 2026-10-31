@@ -102,7 +102,13 @@ export async function gerarRaioXReuniao(
   const cicloAnterior = cicloDeData(antes, diaFechamento)
   const totalDiasCiclo = ciclo.totalDias
   const diasDecorridos = Math.min(totalDiasCiclo, Math.max(1, diasDecorridosInclusive(ciclo.inicio, hoje)))
-  const fator = fatorMesmoPeriodo(diasDecorridos, cicloAnterior.totalDias)
+  // Mesma régua do dashboard (`lib/mesmoPeriodo`): andamento do ciclo ATUAL,
+  // hoje ainda não conta. `diasDecorridos` continua inclusivo porque é também
+  // o "estamos no dia X de Y" da tela.
+  const fator = fatorMesmoPeriodo({
+    decorridosInclusive: diasDecorridos,
+    totalDoCiclo: totalDiasCiclo,
+  })
   const { diasUteisCorridos, diasUteisRestantes } = calcDiasUteisCiclo(ciclo.inicio, ciclo.fim, hoje)
 
   // ── Resumo do FATURAMENTO GERAL da casa (últimos 6 meses) ──
