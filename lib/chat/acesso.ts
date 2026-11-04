@@ -1,12 +1,16 @@
 /**
- * QUEM ENTRA NO CHAT — assinante com assinatura ativa, e mais ninguém.
+ * QUEM ENTRA NO CHAT — quem tem Plus, e mais ninguém.
  *
  * A pergunta é respondida pela MESMA função SQL que as policies usam
- * (`assinatura_ativa()`, migration 049). Não existe régua paralela em
- * TypeScript: se a tela e o RLS discordassem, o assinante veria o menu e
- * tomaria erro ao abrir — ou pior, o contrário.
+ * (`plus_ativo()`, migration 061). Não existe régua paralela em TypeScript: se
+ * a tela e o RLS discordassem, a pessoa veria o menu e tomaria erro ao abrir —
+ * ou pior, o contrário.
  *
- * Vitalício e não-assinante dão false aqui, e a assinatura que cai leva o
+ * `plus_ativo()` é assinatura ativa OU Plus concedido à mão pelo admin. Antes
+ * daqui ia `assinatura_ativa()` direto, e era por isso que uma conta de
+ * cortesia (sempre vitalícia) nunca via o chat, nem com a liberação manual.
+ *
+ * Quem não tem nenhuma das duas portas dá false, e a assinatura que cai leva o
  * acesso junto sem nenhum job: a função é reavaliada a cada consulta.
  */
 
@@ -16,13 +20,18 @@ type ClienteComRpc = {
 }
 
 export async function ehAssinanteAtivo(client: ClienteComRpc): Promise<boolean> {
-  const { data, error } = await client.rpc('assinatura_ativa')
-  // Falha fechada: sem confirmar a assinatura, não abre o chat.
-  if (error) {
-    console.error('[chat] assinatura_ativa:', error)
-    return false
-  }
-  return data === true
+  const { data, error } = await client.rpc('plus_ativo')
+  if (!error) return data === true
+
+  // PLANO B enquanto a migration 061 não rodar: `plus_ativo` não existe no
+  // banco ainda, e deixar o erro passar esconderia o chat de quem PAGA. Cai
+  // na pergunta antiga, que é um subconjunto da nova.
+  const antiga = await client.rpc('assinatura_ativa')
+  if (!antiga.error) return antiga.data === true
+
+  // Falha fechada: sem conseguir confirmar o acesso, não abre o chat.
+  console.error('[chat] plus_ativo e assinatura_ativa falharam:', error)
+  return false
 }
 
 /** Contexto da barbearia pra preencher os marcadores do comunicado. */

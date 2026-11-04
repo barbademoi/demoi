@@ -26,6 +26,7 @@
 // "cancelada".
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { devePreservar } from "./manual.ts";
 
 const HOTTOK = Deno.env.get("HOTMART_HOTTOK") ?? "";
 
@@ -107,25 +108,45 @@ Deno.serve(async (req) => {
   const updated_at = new Date().toISOString();
   const errors: string[] = [];
 
+  // LIBERACAO MANUAL NAO E REVOGADA POR EVENTO DE VENDA.
+  // A regra esta em ./manual.ts, com o porque e os testes.
+  const protegerManual = async (tabela: string): Promise<boolean> => {
+    if (!active) {
+      const { data, error } = await admin
+        .from(tabela).select("source").eq("email", email).maybeSingle();
+      if (error) console.error(`select ${tabela} antes de revogar:`, error);
+      return devePreservar(active, data?.source, !!error);
+    }
+    return devePreservar(active, null, false);
+  };
+
   if (grantsFinanceiro) {
-    const { error } = await admin.from("financeiro_grants").upsert(
-      { email, active, source, updated_at },
-      { onConflict: "email" },
-    );
-    if (error) {
-      console.error("upsert financeiro_grants error:", error);
-      errors.push(`financeiro: ${error.message}`);
+    if (await protegerManual("financeiro_grants")) {
+      console.log("financeiro_grants: liberacao manual preservada em", event, email);
+    } else {
+      const { error } = await admin.from("financeiro_grants").upsert(
+        { email, active, source, updated_at },
+        { onConflict: "email" },
+      );
+      if (error) {
+        console.error("upsert financeiro_grants error:", error);
+        errors.push(`financeiro: ${error.message}`);
+      }
     }
   }
 
   if (grantsFeedback) {
-    const { error } = await admin.from("feedback_grants").upsert(
-      { email, active, source, updated_at },
-      { onConflict: "email" },
-    );
-    if (error) {
-      console.error("upsert feedback_grants error:", error);
-      errors.push(`feedback: ${error.message}`);
+    if (await protegerManual("feedback_grants")) {
+      console.log("feedback_grants: liberacao manual preservada em", event, email);
+    } else {
+      const { error } = await admin.from("feedback_grants").upsert(
+        { email, active, source, updated_at },
+        { onConflict: "email" },
+      );
+      if (error) {
+        console.error("upsert feedback_grants error:", error);
+        errors.push(`feedback: ${error.message}`);
+      }
     }
   }
 
