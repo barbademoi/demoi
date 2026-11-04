@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { emailEhAdminCortesia } from '@/lib/admin/cortesia'
-import { listarCortesias } from './actions'
+import { listarCortesias, listarPlusManual } from './actions'
 import AdminCortesiasClient from './AdminCortesiasClient'
 
 export const metadata = {
-  title: 'Admin — Conceder acesso',
+  title: 'Admin — Acesso e módulos',
 }
 
 export default async function AdminCortesiasPage() {
@@ -16,6 +16,9 @@ export default async function AdminCortesiasPage() {
   // re-checam por conta própria).
   if (!emailEhAdminCortesia(user.email)) redirect('/dashboard')
 
-  const { cortesias } = await listarCortesias()
-  return <AdminCortesiasClient cortesiasIniciais={cortesias} />
+  const [{ cortesias }, { contas: plus }] = await Promise.all([
+    listarCortesias(),
+    listarPlusManual(),
+  ])
+  return <AdminCortesiasClient cortesiasIniciais={cortesias} plusIniciais={plus} />
 }
