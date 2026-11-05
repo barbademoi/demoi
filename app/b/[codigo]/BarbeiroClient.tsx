@@ -14,6 +14,7 @@ import BarbeiroNavDrawer, { type NavItem } from './NavBarbeiro'
 import { pegarRegrasGerais } from '@/lib/regras'
 import LancarDiaForm from './LancarDiaForm'
 import CelebracaoOverlay from '@/components/barbeiro/CelebracaoOverlay'
+import AvisoLancamentoDiario from '@/components/dashboard/AvisoLancamentoDiario'
 import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
 import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
 import TicketMedio from '@/components/autonomo/TicketMedio'
@@ -316,8 +317,26 @@ export default function BarbeiroClient({
   const diasBaseRestantes = Math.round(ritmo.baseRestantes)
   const mostrarContagem = mostraMetas && metaInd !== null && ritmo.baseRestantes > 0 && diasNoMes > 0
 
+  const celebrando = deveComemorar && !!tierAtual
+
   return (
     <>
+      {/* AVISO DIÁRIO DE LANÇAMENTO.
+          Versão completa pro barbeiro que LANÇA (campanha em "barbeiro lança");
+          versão curta pra quem não lança, que não pode ser cobrado de um
+          lançamento que o sistema não deixa ele fazer.
+
+          Fica fora da tela enquanto a celebração de meta está no ar: ganhar o
+          prêmio é o momento dele, e cobrir isso com um lembrete seria roubar a
+          única comemoração que o sistema tem. Quando a celebração fecha, o
+          componente monta e o aviso aparece em seguida. */}
+      {!celebrando && (
+        <AvisoLancamentoDiario
+          userId={barbeiro.id}
+          variante={barbeiroPodeLancar ? 'completa' : 'curta'}
+        />
+      )}
+
       {/* Celebração fullscreen */}
       {deveComemorar && tierAtual && (
         <CelebracaoOverlay
