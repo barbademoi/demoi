@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useFilaDePopups } from '@/lib/popups/fila'
 import type { BrindoletaStatus } from '@/lib/brindoleta/config'
 
 const STORAGE_KEY = 'barbermeta:brindoleta-lancamento-v2'
@@ -38,19 +39,33 @@ function waitDaysFor(impressions: number) {
   return 3
 }
 
+/**
+ * Tem algo a mostrar nesta carga? Resposta dada ANTES de abrir, porque é ela
+ * que decide se este popup entra na fila (ver lib/popups/fila).
+ */
+function querAparecer(pathname: string | null, status: BrindoletaStatus | null | undefined): boolean {
+  if (pathname !== '/dashboard' || status === undefined || !promotionAllowed(status)) return false
+  const state = readState()
+  if (!state) return true
+  const lastShown = Date.parse(state.lastShownAt)
+  const elapsed = Number.isFinite(lastShown) ? Date.now() - lastShown : Number.POSITIVE_INFINITY
+  return elapsed >= waitDaysFor(state.impressions) * DAY_MS
+}
+
 export default function BrindoletaLaunchModal({ status }: { status?: BrindoletaStatus | null }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const [quer, setQuer] = useState(false)
+
+  // A decisão depende de `localStorage`, que não existe no servidor — por isso
+  // sai num efeito, e não no primeiro render.
+  useEffect(() => { setQuer(querAparecer(pathname, status)) }, [pathname, status])
+
+  const { minhaVez, abrir, fechar } = useFilaDePopups('brindoleta-lancamento', quer)
 
   useEffect(() => {
-    if (pathname !== '/dashboard' || status === undefined || !promotionAllowed(status)) return
-
+    if (!minhaVez || open) return
     const state = readState()
-    const now = Date.now()
-    const lastShown = state ? Date.parse(state.lastShownAt) : Number.NaN
-    const elapsed = Number.isFinite(lastShown) ? now - lastShown : Number.POSITIVE_INFINITY
-    const waitDays = state ? waitDaysFor(state.impressions) : 0
-    if (state && elapsed < waitDays * DAY_MS) return
 
     const timer = window.setTimeout(() => {
       const restartingCycle = !!state && state.impressions >= 3
@@ -64,13 +79,17 @@ export default function BrindoletaLaunchModal({ status }: { status?: BrindoletaS
         // Se o navegador bloquear storage, a campanha continua funcional nesta visita.
       }
       setOpen(true)
+      abrir()
     }, 1100)
 
     return () => window.clearTimeout(timer)
-  }, [pathname, status])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minhaVez, open])
 
   function dismiss() {
     setOpen(false)
+    // Libera a vez do próximo popup da fila.
+    fechar()
   }
 
   if (!open) return null

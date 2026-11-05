@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { adiarLembreteMeta } from '@/app/dashboard/metas/actions'
+import { useFilaDePopups } from '@/lib/popups/fila'
 import type { LembreteMeta } from '@/lib/metas/lembreteServer'
 
 interface Props {
@@ -24,27 +25,41 @@ export default function LembreteMetaModal({ lembrete }: Props) {
   const [erro, setErro] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
+  // Este componente só é montado quando o servidor já decidiu que o lembrete
+  // deve aparecer — então ele sempre QUER a vez. Entre os popups automáticos
+  // ele é o mais importante: a meta do ciclo tem prazo.
+  const { minhaVez, abrir, fechar } = useFilaDePopups('lembrete-meta', true)
+
   // Espera um instante antes de aparecer. Um modal que nasce junto com a
   // página cobre o dashboard antes de o dono ter visto qualquer número, e o
   // reflexo é fechar sem ler.
   useEffect(() => {
-    const t = setTimeout(() => setAberto(true), 900)
+    if (!minhaVez || aberto) return
+    const t = setTimeout(() => { setAberto(true); abrir() }, 900)
     return () => clearTimeout(t)
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minhaVez, aberto])
+
+  // Fechar passa pela fila: é o que libera a vez do próximo popup.
+  function encerrar() {
+    setAberto(false)
+    fechar()
+  }
 
   // Esc fecha, como em qualquer diálogo. Fechar pelo Esc é "depois", não
   // "adiar": o lembrete volta no próximo carregamento.
   useEffect(() => {
     if (!aberto) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setAberto(false) }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') encerrar() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto])
 
   if (!aberto) return null
 
   function cadastrarAgora() {
-    setAberto(false)
+    encerrar()
     // O formulário de metas vive numa seção da própria página. Em vez de
     // duplicar o formulário aqui, o botão leva até ele e manda abrir — assim
     // existe um só lugar onde a meta é cadastrada.
@@ -60,7 +75,7 @@ export default function LembreteMetaModal({ lembrete }: Props) {
       // carregamento. Melhor dizer isso do que fechar prometendo silêncio e
       // reaparecer sem explicação.
       if (res?.error) { setErro(res.error); return }
-      setAberto(false)
+      encerrar()
     })
   }
 
@@ -70,7 +85,7 @@ export default function LembreteMetaModal({ lembrete }: Props) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="lembrete-meta-titulo"
-      onClick={(e) => { if (e.target === e.currentTarget) setAberto(false) }}
+      onClick={(e) => { if (e.target === e.currentTarget) encerrar() }}
     >
       <div className="card w-full max-w-md space-y-4 p-6">
         <div className="flex items-start gap-3">

@@ -7,6 +7,7 @@ import {
   recusarPopupBrindoleta,
   registrarExibicaoPopup,
 } from '@/app/dashboard/brindoleta/popup-actions'
+import { useFilaDePopups } from '@/lib/popups/fila'
 
 /**
  * POPUP DE OFERTA DA BRINDOLETA.
@@ -42,21 +43,35 @@ export default function BrindoletaOfertaPopup({
   const [saindo, setSaindo] = useState(false)
   const fecharRef = useRef<HTMLButtonElement | null>(null)
 
+  // Quer a vez só se ainda não apareceu nesta sessão. A decisão sai no
+  // primeiro render porque a fila precisa saber de todos os candidatos ANTES
+  // de qualquer um abrir — se cada popup só entrasse na fila ao abrir, o de
+  // timer mais curto ganharia sempre, independentemente de importância.
+  const [quer] = useState(() => {
+    if (typeof window === 'undefined') return false
+    try {
+      return !window.sessionStorage.getItem(CHAVE_SESSAO)
+    } catch {
+      return true
+    }
+  })
+  const { minhaVez, abrir, fechar: liberarFila } = useFilaDePopups('brindoleta-oferta', quer)
+
   useEffect(() => {
-    // Já apareceu nesta sessão: não insiste a cada navegação.
-    if (typeof window !== 'undefined' && window.sessionStorage.getItem(CHAVE_SESSAO)) return
+    if (!minhaVez || aberto) return
 
     // Pequeno atraso pra não competir com o carregamento do painel — o popup
     // não pode ser a primeira coisa a disputar a tela.
     const t = window.setTimeout(() => {
-      window.sessionStorage.setItem(CHAVE_SESSAO, '1')
+      try { window.sessionStorage.setItem(CHAVE_SESSAO, '1') } catch { /* sem storage, segue */ }
       setAberto(true)
+      abrir()
       onVisibilidade?.(true)
       registrarExibicaoPopup().catch(() => {})
     }, 700)
     return () => window.clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [minhaVez, aberto])
 
   // Foco no botão de fechar: quem usa teclado precisa alcançar a saída primeiro.
   useEffect(() => {
@@ -83,6 +98,8 @@ export default function BrindoletaOfertaPopup({
     setSaindo(true)
     window.setTimeout(() => {
       setAberto(false)
+      setSaindo(false)
+      liberarFila()
       onVisibilidade?.(false)
     }, 160)
   }

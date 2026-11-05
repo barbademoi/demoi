@@ -8,6 +8,7 @@ import { buscarHistoricoMesesPorBarbeiros, buscarHistoricoBarbearia, type Histor
 import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
 import LembreteMetaModal from '@/components/dashboard/LembreteMetaModal'
+import AvisoLancamentoDiario from '@/components/dashboard/AvisoLancamentoDiario'
 import { montarLembreteMeta } from '@/lib/metas/lembreteServer'
 import LogoUpload from '@/components/dashboard/LogoUpload'
 import ModoMesSelector from '@/components/dashboard/ModoMesSelector'
@@ -508,6 +509,11 @@ export default async function DashboardPage({
       resumoReuniaoSlot={<ResumoReuniaoModal mes={mes} ano={ano} diaFechamento={diaFechamento} />}
     />
     {lembreteMeta && <LembreteMetaModal lembrete={lembreteMeta} />}
+    {/* Aviso diário de lançamento. O dono é sempre quem lança a comissão e o
+        faturamento do dia, então aqui é sempre a versão completa. Ele entra na
+        fila de popups com a prioridade mais baixa: se o lembrete de meta ou um
+        popup da Brindoleta estiver na tela, espera a vez. */}
+    <AvisoLancamentoDiario userId={user.id} />
     </>
   )
 }
