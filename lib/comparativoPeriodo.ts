@@ -26,6 +26,19 @@
  * Em qualquer dos dois casos o último ponto da curva bate com o número da
  * frase: gráfico e texto nunca discordam na mesma tela.
  *
+ * ── A CURVA MEDIDA PRECISA ALCANÇAR O PONTO DA COMPARAÇÃO ───────────────────
+ * Conferir só as PONTAS não bastava. A foto diária é recente, então existem
+ * ciclos que só ganharam foto no fim do mês: a última bate com o total oficial,
+ * a curva é aceita como medida, e o valor no ponto equivalente é zero — porque
+ * antes da primeira foto o preenchimento pra frente devolve zero. O bloco então
+ * dizia "ainda não há outubro pra comparar" na mesma tela em que a projeção
+ * mostrava "outubro fechou em R$ 107.650" (caso Gajo, 09/11/2026).
+ *
+ * Agora a curva do ciclo anterior só é usada se houver FOTO no ponto da
+ * comparação ou antes dele. Sem isso, os dois lados voltam para a reta — que é
+ * a mesma regra de qualidade do parágrafo acima, aplicada ao ponto e não só às
+ * pontas.
+ *
  * ── O PONTO DO CICLO ANTERIOR ───────────────────────────────────────────────
  * Sai do ANDAMENTO do ciclo atual (dias já fechados ÷ tamanho do ciclo), nunca
  * do número do dia do mês. No dia 31 de outubro contra um setembro de 30 dias,
@@ -52,6 +65,13 @@ export interface EscopoComparativo {
   serieAnterior: number[]
   /** true = curvas vieram de lançamento diário; false = reta de ritmo médio. */
   medido: boolean
+  /**
+   * Total CHEIO do ciclo anterior — o mesmo número que a projeção mostra em
+   * "out fechou em R$ X". Existe pra a tela poder distinguir dois vazios que
+   * pareciam o mesmo: "não há ciclo anterior" (barbearia nova) e "o ciclo
+   * anterior existe, mas a comparação deu zero".
+   */
+  totalAnterior: number
 }
 
 export interface ComparativoPeriodo {
@@ -100,21 +120,31 @@ function retaAte(total: number, dias: number): number[] {
 function reconstruirAcumulado(
   fotos: Map<string, Map<string, number>>,  // barbeiroId → (data ISO → acumulado)
   diasIso: string[],
-): { coletivo: number[]; porBarbeiro: Record<string, number[]> } {
+): Reconstrucao {
   const coletivo: number[] = []
   const porBarbeiro: Record<string, number[]> = {}
   const ultimo = new Map<string, number>()
 
+  // ÍNDICE DO PRIMEIRO DIA COM FOTO. O preenchimento pra frente apaga a
+  // diferença entre "faturou zero neste dia" e "ninguém lançou ainda", e essa
+  // diferença decide se a curva pode ou não ser usada — ver `montarEscopo`.
+  let primeiroColetivo = -1
+  const primeiroPorBarbeiro: Record<string, number> = {}
+
   // Array.from em vez de iterar o Map direto: o target de compilação do
   // projeto é anterior a es2015 pra iteradores.
   const entradas = Array.from(fotos.entries())
-  for (const [b] of entradas) porBarbeiro[b] = []
+  for (const [b] of entradas) { porBarbeiro[b] = []; primeiroPorBarbeiro[b] = -1 }
 
   for (const iso of diasIso) {
     let soma = 0
     for (const [barbeiroId, porData] of entradas) {
       const v = porData.get(iso)
-      if (v != null) ultimo.set(barbeiroId, v)
+      if (v != null) {
+        ultimo.set(barbeiroId, v)
+        if (primeiroPorBarbeiro[barbeiroId] < 0) primeiroPorBarbeiro[barbeiroId] = coletivo.length
+        if (primeiroColetivo < 0) primeiroColetivo = coletivo.length
+      }
       const acum = ultimo.get(barbeiroId) ?? 0
       porBarbeiro[barbeiroId].push(acum)
       soma += acum
@@ -122,7 +152,16 @@ function reconstruirAcumulado(
     coletivo.push(soma)
   }
 
-  return { coletivo, porBarbeiro }
+  return { coletivo, porBarbeiro, primeiroColetivo, primeiroPorBarbeiro }
+}
+
+interface Reconstrucao {
+  coletivo: number[]
+  porBarbeiro: Record<string, number[]>
+  /** Índice do primeiro dia com foto no coletivo. -1 = nenhum. */
+  primeiroColetivo: number
+  /** O mesmo, por barbeiro. */
+  primeiroPorBarbeiro: Record<string, number>
 }
 
 /** A curva medida só vale se o fim dela bate com o acumulado oficial. */
@@ -237,6 +276,7 @@ export async function montarComparativoPeriodo(
     totalAnteriorCheio: number,
     curvaAtual: number[] | undefined,
     curvaAnterior: number[] | undefined,
+    primeiroDiaAnterior: number,
   ): EscopoComparativo {
     const anteriorProporcional = totalAnteriorCheio * fator
 
@@ -245,8 +285,26 @@ export async function montarComparativoPeriodo(
     // qualidades diferentes e o gráfico mentiria na diferença.
     const fimAtual = curvaAtual?.[curvaAtual.length - 1] ?? 0
     const fimAnterior = curvaAnterior?.[curvaAnterior.length - 1] ?? 0
+
+    // E A CURVA ANTERIOR PRECISA ALCANÇAR O PONTO DA COMPARAÇÃO.
+    //
+    // Era aqui o defeito. A foto diária é recente, então há ciclos que só
+    // ganharam foto no fim do mês. Nesses, a ÚLTIMA foto bate com o total
+    // oficial — a curva é aceita como medida —, mas o valor no ponto
+    // equivalente é zero, porque antes da primeira foto o preenchimento pra
+    // frente devolve zero. O comparativo então lia 0 e dizia "ainda não há
+    // outubro pra comparar", na mesma tela em que a projeção mostrava
+    // "outubro fechou em R$ 107.650".
+    //
+    // Note que a régua é ter FOTO no ponto, não ter valor acima de zero nele:
+    // uma barbearia que lançou e faturou zero nos primeiros dias tem um zero
+    // verdadeiro, e esse merece ser comparado como zero.
+    const alcancaOPonto = primeiroDiaAnterior >= 0 && primeiroDiaAnterior <= pontoAnterior - 1
+
     const medido =
-      confere(fimAtual, totalAtual) && confere(fimAnterior, totalAnteriorCheio)
+      alcancaOPonto &&
+      confere(fimAtual, totalAtual) &&
+      confere(fimAnterior, totalAnteriorCheio)
 
     if (medido && curvaAtual && curvaAnterior) {
       return {
@@ -255,6 +313,7 @@ export async function montarComparativoPeriodo(
         serieAtual: curvaAtual,
         serieAnterior: curvaAnterior.slice(0, pontoAnterior),
         medido: true,
+        totalAnterior: totalAnteriorCheio,
       }
     }
 
@@ -264,6 +323,7 @@ export async function montarComparativoPeriodo(
       serieAtual: retaAte(totalAtual, diasDecorridos),
       serieAnterior: retaAte(totalAnteriorCheio, cicloAnterior.totalDias).slice(0, pontoAnterior),
       medido: false,
+      totalAnterior: totalAnteriorCheio,
     }
   }
 
@@ -274,6 +334,7 @@ export async function montarComparativoPeriodo(
       e.anteriorCheioPorBarbeiro[id] ?? 0,
       reconAtual.porBarbeiro[id],
       reconAnterior.porBarbeiro[id],
+      reconAnterior.primeiroPorBarbeiro[id] ?? -1,
     )
   }
 
@@ -292,6 +353,7 @@ export async function montarComparativoPeriodo(
       e.totalAnteriorCheio,
       reconAtual.coletivo,
       reconAnterior.coletivo,
+      reconAnterior.primeiroColetivo,
     ),
     porBarbeiro,
   }

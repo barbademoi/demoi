@@ -143,9 +143,14 @@ function Grafico({
 
       {!escopo.medido && (
         // Uma reta apresentada como medição seria mentira. A tela diz o que é.
+        //
+        // E diz o que falta: basta UM dos dois lados estar sem o dia a dia pra
+        // os dois virarem reta — comparar uma curva medida contra uma reta
+        // mentiria na diferença. É o caso de quem começou a lançar no meio do
+        // mês passado: o total dele existe, só não dá pra achar o ponto nele.
         <p className="text-center font-sans text-[11px] leading-snug text-text-muted">
           Linhas em ritmo médio {diasDecorridos === 1 ? 'do dia' : `dos ${diasDecorridos} dias`} —
-          o traçado dia a dia aparece quando o faturamento entra por lançamento diário.
+          o traçado dia a dia aparece quando os dois meses têm lançamento diário desde o começo.
         </p>
       )}
     </div>
@@ -170,8 +175,16 @@ export default function ComparativoPeriodo({
   unidadeDia: string
   ritmoAtual: number
 }) {
-  // Barbearia nova (ou barbeiro que entrou agora): não há contra o que comparar.
-  if (escopo.anterior <= 0) {
+  // BARBEARIA NOVA: não existe ciclo anterior, e aí não há mesmo o que comparar.
+  //
+  // A pergunta é sobre o TOTAL do ciclo anterior, não sobre o valor no ponto.
+  // Perguntar pelo ponto confundia dois casos muito diferentes: a barbearia que
+  // não tem mês passado, e a que tem mês passado fechado mas cujo ponto deu
+  // zero. No segundo, este texto desmentia a projeção logo abaixo, que mostrava
+  // "out fechou em R$ 107.650" (caso Gajo). Um ponto zerado com mês anterior
+  // fechado é uma comparação legítima — "você está R$ X à frente" — e ela passa
+  // direto por aqui.
+  if (escopo.totalAnterior <= 0) {
     return (
       <div className="card space-y-1 p-5">
         <p className="font-sans text-xs uppercase tracking-wide text-text-muted">

@@ -64,10 +64,16 @@ export function linhaComparativa(e: EntradaLinha): LinhaComparativa {
   if (!e.exibeValor) return { tipo: 'oculta' }
   if (!e.haCicloAnterior) return { tipo: 'oculta' }
 
-  const anterior = e.escopo?.anterior ?? 0
-  if (anterior <= 0) {
+  // "SEM HISTÓRICO" é sobre o CICLO ANTERIOR do barbeiro, não sobre o valor
+  // dele no ponto. Perguntar pelo ponto confundia duas coisas: o barbeiro que
+  // entrou depois (não tem mês passado) e o que tem mês passado fechado mas
+  // estava em zero naquele dia — esse tem comparação, e das boas.
+  const totalAnterior = e.escopo?.totalAnterior ?? 0
+  if (totalAnterior <= 0) {
     return { tipo: 'sem-historico', texto: 'sem histórico ainda' }
   }
+
+  const anterior = e.escopo?.anterior ?? 0
 
   const diferenca = (e.escopo?.atual ?? 0) - anterior
   const sentido = Math.abs(diferenca) < EMPATE
