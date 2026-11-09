@@ -394,7 +394,9 @@ export default async function DashboardPage({
     ? comparativoReal
     : {
         ...comparativoReal,
-        coletivo: { atual: 0, anterior: 0, serieAtual: [], serieAnterior: [], medido: false },
+        // `totalAnterior: 0` também: com o faturamento geral oculto, nenhum R$
+        // da casa sai do servidor — nem pelo texto do bloco vazio.
+        coletivo: { atual: 0, anterior: 0, totalAnterior: 0, serieAtual: [], serieAnterior: [], medido: false },
       }
 
   // LEMBRETE DE CADASTRAR A META DO CICLO VIGENTE.
