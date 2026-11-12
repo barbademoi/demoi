@@ -101,6 +101,14 @@ export function ordenarPorPrazo<T extends Horarios & { ordem?: number; titulo: s
   })
 }
 
+/** Marcada depois do horário de fechamento da empresa (no mesmo dia ou depois). */
+export function foraDoHorario(t: { status: string; feita_em: string | null }, data: string, horarioFechamento: string): boolean {
+  if (t.status === 'pendente' || !t.feita_em) return false
+  const f = agoraSP(new Date(t.feita_em))
+  if (f.data > data) return true
+  return f.data === data && f.minutosDoDia >= minutosDeHorario(horarioFechamento)
+}
+
 export const horaSPDe = (iso: string) =>
   new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO, hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
 

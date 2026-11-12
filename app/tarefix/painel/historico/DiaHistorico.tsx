@@ -5,7 +5,7 @@ import type { TarefaPainel } from '@/lib/tarefix/painelHoje'
 import { FUSO } from '@/lib/tarefix/datas'
 import { Erro, Modal, useAcao, useAviso } from '@/components/tarefix/ui'
 import { reprovarTarefa, restaurarTarefa } from '../acoesHoje'
-import { duracao, estaAtrasada, janela, minutosDeAtraso } from '@/lib/tarefix/prazo'
+import { duracao, estaAtrasada, foraDoHorario, janela, minutosDeAtraso } from '@/lib/tarefix/prazo'
 import { rotuloAutoavaliacao } from '@/lib/tarefix/continuas'
 
 const horaSP = (iso: string) => new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO, hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
@@ -14,7 +14,7 @@ const STATUS_EXTRA = { pendente: 'Aguardando', aprovada: 'Aprovada', recusada: '
 
 type Extra = { id: string; descricao: string; status: keyof typeof STATUS_EXTRA; foto_url: string | null }
 
-export function DiaHistorico({ tarefas, extras, mesFechado, data }: { tarefas: TarefaPainel[]; extras: Extra[]; mesFechado: boolean; data: string }) {
+export function DiaHistorico({ tarefas, extras, mesFechado, data, horarioFechamento }: { tarefas: TarefaPainel[]; extras: Extra[]; mesFechado: boolean; data: string; horarioFechamento: string }) {
   const [aberta, setAberta] = useState<TarefaPainel | null>(null)
   const [motivo, setMotivo] = useState('')
   const acao = useAcao()
@@ -49,6 +49,7 @@ export function DiaHistorico({ tarefas, extras, mesFechado, data }: { tarefas: T
                   {t.peso > 1 && ` · vale ${t.peso}×`}
                   {rotuloAutoavaliacao(t.autoavaliacao) && ` · se avaliou: ${rotuloAutoavaliacao(t.autoavaliacao)}`}
                   {t.feita_em && t.status !== 'pendente' && ` · ${horaSP(t.feita_em)}`}
+                  {foraDoHorario(t, data, horarioFechamento) && ' (fora do horário)'}
                   {t.status === 'reprovada' && t.motivo_reprovacao && ` · ${t.motivo_reprovacao}`}
                   {janela(t) && ` · ${janela(t)}`}
                   {minutosDeAtraso(t) > 0 && ` (${minutosDeAtraso(t)} min depois)`}

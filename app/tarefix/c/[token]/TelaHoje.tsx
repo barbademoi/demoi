@@ -10,7 +10,7 @@ import { Termometro } from '@/components/tarefix/Termometro'
 import { escolherMomento, preencher, sortearMensagem, variaveisDa, type Momento } from '@/lib/tarefix/mensagens'
 import { desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra, salvarObservacao } from './acoes'
 import { MeuMes } from './MeuMes'
-import { duracao, eAgora, estaAtrasada, janela, minutosDeAtraso, prazoEfetivo } from '@/lib/tarefix/prazo'
+import { duracao, eAgora, estaAtrasada, foraDoHorario, janela, minutosDeAtraso, prazoEfetivo } from '@/lib/tarefix/prazo'
 import { AUTOAVALIACAO, liberacaoContinuas, rotuloAutoavaliacao } from '@/lib/tarefix/continuas'
 import { BotaoTema } from '@/components/tarefix/Tema'
 import { DicaInstalar } from '@/components/tarefix/DicaInstalar'
@@ -211,9 +211,35 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
     await aplicar(marcarTarefa(token, t.id, undefined, nota), anterior).finally(() => setOcupada(null))
   }
 
-  async function tocar(t: TarefaTela) {
-    if (fechado || ocupada) return
+  /* ------------------- depois do horário de fechamento ------------------- */
+  // Ainda dá para marcar hoje, mas na primeira vez do dia pedimos confirmação.
+  const chaveFora = `tfx-fora-${token.slice(0, 10)}-${estado.hoje}`
+  const [alertaFora, setAlertaFora] = useState<TarefaTela | null>(null)
+  function jaAvisouFora() {
+    try {
+      return sessionStorage.getItem(chaveFora) === '1'
+    } catch {
+      return false
+    }
+  }
+  function confirmarFora() {
+    try {
+      sessionStorage.setItem(chaveFora, '1')
+    } catch {
+      /* ok */
+    }
+    const t = alertaFora
+    setAlertaFora(null)
+    if (t) tocar(t, true)
+  }
+
+  async function tocar(t: TarefaTela, confirmouFora = false) {
+    if (ocupada) return
     setErro(null)
+    if (fechado && t.status !== 'feita' && !confirmouFora && !jaAvisouFora()) {
+      setAlertaFora(t)
+      return
+    }
     if (t.continua && t.status !== 'feita') {
       if (!continuasLiberadas) return setErro(`"${t.titulo}" vale o dia todo: a confirmação libera às ${horaLiberacao}.`)
       setAvaliando({ tarefa: t, nota: 4 })
@@ -333,7 +359,7 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm">
         <span className="font-bold first-letter:uppercase">{dataPorExtenso(estado.hoje)}</span>
         <span className={`rounded-full px-3 py-1 font-bold ${fechado ? 'bg-tf-texto text-tf-fundo' : 'bg-tf-marca-clara text-tf-marca-texto'}`}>
-          {fechado ? `Dia fechado às ${empresa.fecha}` : `Fecha às ${empresa.fecha}`}
+          {fechado ? `Fechou às ${empresa.fecha}` : `Fecha às ${empresa.fecha}`}
         </span>
       </div>
 
@@ -379,7 +405,7 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
         <Termometro rotulo="No mês" percentual={estado.mes?.percentual ?? null} detalhe={estado.extrasAprovadasMes ? `+${estado.extrasAprovadasMes} extra${estado.extrasAprovadasMes > 1 ? 's' : ''} aprovada${estado.extrasAprovadasMes > 1 ? 's' : ''}` : undefined} />
         {(() => {
           const previsto = estado.tarefas.filter((t) => t.status !== 'feita').reduce((n, t) => n + (t.tempo_estimado_min ?? 0), 0)
-          return !fechado && previsto > 0 ? (
+          return previsto > 0 ? (
             <p className="text-sm text-tf-suave">
               Tempo previsto das pendentes: <b className="text-tf-texto">{duracao(previsto)}</b>
             </p>
@@ -398,6 +424,17 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
         <p className="mt-4 rounded-2xl bg-tf-marca-clara px-4 py-3 font-bold text-tf-marca-texto">
           Faltam {minutosRestantes} min para fechar e {pendentes} tarefa{pendentes > 1 ? 's' : ''} pendente{pendentes > 1 ? 's' : ''}.
         </p>
+      )}
+
+      {fechado && !estado.folga && estado.tarefas.length > 0 && (
+        <div role="alert" className="mt-4 rounded-2xl bg-tf-texto px-4 py-4 text-tf-fundo">
+          <p className="font-extrabold">Passou do horário de fechamento ({empresa.fecha})</p>
+          <p className="mt-1 text-sm opacity-90">
+            {pendentes > 0
+              ? `Você ainda pode marcar as tarefas de hoje até a meia-noite, mas elas ficam registradas como fora do horário. O combinado é dar o check todos os dias até as ${empresa.fecha}.`
+              : `Tudo marcado. Lembre: o check vale até as ${empresa.fecha}, todos os dias.`}
+          </p>
+        </div>
       )}
 
       <div className="mt-4">
@@ -425,12 +462,12 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
                     <button
                       type="button"
                       onClick={() => tocar(t)}
-                      disabled={fechado || Boolean(ocupada)}
+                      disabled={Boolean(ocupada)}
                       aria-pressed={feita}
                       aria-label={`${feita ? 'Desmarcar' : 'Confirmar'} ${t.titulo}`}
                       className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-[3px] transition active:scale-90 ${
                         feita ? 'border-white bg-white text-tf-marca' : continuasLiberadas ? 'border-white bg-white/10' : 'border-white/40 bg-white/5'
-                      } ${fechado ? 'opacity-60' : ''}`}
+                      }`}
                     >
                       {ocupada === t.id ? (
                         <span className="h-6 w-6 animate-spin rounded-full border-[3px] border-current border-t-transparent" />
@@ -452,14 +489,14 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
                         {t.peso > 1 && <span className="rounded-full bg-white px-2 py-0.5 text-xs font-extrabold text-tf-marca">vale {t.peso}×</span>}
                         {t.status === 'reprovada' && t.motivo_reprovacao && <span className="font-bold">Voltou: “{t.motivo_reprovacao}”</span>}
                         {feita
-                          ? `confirmada${t.feita_em ? ` às ${horaSP(t.feita_em)}` : ''}${rotuloAutoavaliacao(t.autoavaliacao) ? ` · você: ${rotuloAutoavaliacao(t.autoavaliacao)}` : ''}`
+                          ? `confirmada${t.feita_em ? ` às ${horaSP(t.feita_em)}` : ''}${foraDoHorario(t, estado.hoje, empresa.fechaHorario) ? ' · fora do horário' : ''}${rotuloAutoavaliacao(t.autoavaliacao) ? ` · você: ${rotuloAutoavaliacao(t.autoavaliacao)}` : ''}`
                           : continuasLiberadas
                             ? 'Toque para confirmar e dizer como foi'
                             : `confirma a partir das ${horaLiberacao}`}
                       </p>
                       {t.observacao && <p className="mt-1 text-sm italic text-white/90">Obs.: {t.observacao}</p>}
                     </div>
-                    {!fechado && (
+                    {(
                       <button
                         type="button"
                         onClick={() => abrirObservacao(t)}
@@ -494,12 +531,12 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
                   <button
                     type="button"
                     onClick={() => tocar(t)}
-                    disabled={fechado || Boolean(ocupada)}
+                    disabled={Boolean(ocupada)}
                     aria-pressed={feita}
                     aria-label={`${feita ? 'Desmarcar' : 'Marcar'} ${t.titulo}`}
                     className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-[3px] transition active:scale-90 ${
                       feita ? 'border-tf-marca bg-tf-marca text-white' : 'border-tf-borda bg-tf-fundo text-tf-marca-texto'
-                    } ${fechado ? 'opacity-60' : ''}`}
+                    }`}
                   >
                     {carregando ? (
                       <span className="h-6 w-6 animate-spin rounded-full border-[3px] border-current border-t-transparent" />
@@ -532,13 +569,14 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
                       {feita && t.feita_em && (
                         <span>
                           feita às {horaSP(t.feita_em)}
+                          {foraDoHorario(t, estado.hoje, empresa.fechaHorario) && ' · fora do horário'}
                           {minutosDeAtraso(t) > 0 && ` · ${minutosDeAtraso(t)} min depois do prazo`}
                         </span>
                       )}
                     </p>
                     {t.observacao && <p className="mt-1 text-sm italic text-tf-texto">Obs.: {t.observacao}</p>}
                   </div>
-                  {!fechado && (
+                  {(
                     <button
                       type="button"
                       onClick={() => abrirObservacao(t)}
@@ -686,6 +724,26 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
             </div>
             <button type="button" className="tf-botao w-full" onClick={confirmarContinua}>
               {avaliando.tarefa.exige_foto ? 'Confirmar e tirar foto' : 'Confirmar'}
+            </button>
+          </div>
+        )}
+      </Modal>
+
+      <Modal aberto={alertaFora !== null} aoFechar={() => setAlertaFora(null)} titulo="Fora do horário">
+        {alertaFora && (
+          <div className="space-y-4">
+            <p className="rounded-2xl bg-tf-texto px-4 py-3 font-bold text-tf-fundo">
+              O horário de fechamento ({empresa.fecha}) já passou.
+            </p>
+            <p>
+              Dá para marcar <b>{alertaFora.titulo}</b> agora, mas ela fica registrada como <b>fora do horário</b> e quem cuida da equipe vai ver.
+            </p>
+            <p className="font-bold">Lembre: o check tem que ser dado todos os dias até as {empresa.fecha}.</p>
+            <button type="button" className="tf-botao w-full" onClick={confirmarFora}>
+              Entendi, marcar mesmo assim
+            </button>
+            <button type="button" className="tf-botao2 w-full" onClick={() => setAlertaFora(null)}>
+              Cancelar
             </button>
           </div>
         )}

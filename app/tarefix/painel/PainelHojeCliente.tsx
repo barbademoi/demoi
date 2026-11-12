@@ -6,7 +6,7 @@ import { dataCurta, FUSO } from '@/lib/tarefix/datas'
 import { Avatar, Erro, Modal, useAcao, useAviso } from '@/components/tarefix/ui'
 import { Termometro } from '@/components/tarefix/Termometro'
 import { decidirExtra, reprovarTarefa, restaurarTarefa } from './acoesHoje'
-import { duracao, eAgora, estaAtrasada, janela, minutosDeAtraso, prazoEfetivo } from '@/lib/tarefix/prazo'
+import { duracao, eAgora, estaAtrasada, foraDoHorario, janela, minutosDeAtraso, prazoEfetivo } from '@/lib/tarefix/prazo'
 import { rotuloAutoavaliacao } from '@/lib/tarefix/continuas'
 
 const horaSP = (iso: string) =>
@@ -180,6 +180,9 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
                       </span>
                       <span className="shrink-0 text-sm text-tf-suave">
                         {t.exige_foto && !t.foto_url && t.status === 'pendente' ? 'foto' : t.feita_em && t.status !== 'pendente' ? horaSP(t.feita_em) : ''}
+                        {foraDoHorario(t, painel.hoje, painel.horarioFechamento) && (
+                          <span className="mt-0.5 block rounded-full bg-tf-texto px-2 py-0.5 text-center text-[10px] font-bold text-tf-fundo">fora do horário</span>
+                        )}
                       </span>
                     </>
                   )
@@ -212,6 +215,7 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
             <p className="text-tf-suave">
               {aberta.colaborador}
               {aberta.tarefa.feita_em && ` · feita às ${horaSP(aberta.tarefa.feita_em)}`}
+              {foraDoHorario(aberta.tarefa, painel.hoje, painel.horarioFechamento) && ' (fora do horário)'}
               {aberta.tarefa.continua && rotuloAutoavaliacao(aberta.tarefa.autoavaliacao) && ` · se avaliou: ${rotuloAutoavaliacao(aberta.tarefa.autoavaliacao)}`}
               {aberta.tarefa.peso > 1 && ` · vale ${aberta.tarefa.peso}×`}
             </p>

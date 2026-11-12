@@ -43,6 +43,12 @@ do BarberMeta:
 - **Termômetro metálico**: cores mais fortes (#E11D2E → #F59E0B → #16A34A), brilho metálico na parte
   alcançada (com reflexo animado que respeita "reduzir movimento"), trilho de metal e marcador em
   forma de botão metálico; o calendário do mês usa o mesmo acabamento.
+- **Depois do horário de fechamento**: o colaborador ainda pode marcar, desmarcar e comentar as tarefas
+  de HOJE até a meia-noite (dias anteriores seguem travados). Conta no percentual, mas aparece como
+  **fora do horário** (derivado de `feita_em` × horário de fechamento) no celular, no painel e no
+  histórico. Ele vê um aviso fixo e, na primeira marcação fora do horário do dia, um alerta lembrando
+  que o check é todos os dias até o fechamento. O resumo do fechamento continua sendo o retrato do
+  momento em que o painel foi aberto depois do horário.
 
 ## Instalar (pelo navegador)
 

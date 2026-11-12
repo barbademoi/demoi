@@ -37,6 +37,7 @@ export type ExtraPainel = {
 export type PainelHoje = {
   hoje: string
   fechado: boolean
+  horarioFechamento: string
   cards: CardColaborador[]
   extrasPendentes: ExtraPainel[]
 }
@@ -85,6 +86,7 @@ export async function carregarPainelHoje(empresa: Empresa): Promise<PainelHoje> 
   return {
     hoje,
     fechado: diaFechado(hoje, empresa.horario_fechamento),
+    horarioFechamento: empresa.horario_fechamento,
     cards: lista.map((c) => {
       const ts = porColab[c.id] ?? []
       return {
