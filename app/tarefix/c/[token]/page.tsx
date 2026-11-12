@@ -8,10 +8,15 @@ import { TelaHoje } from './TelaHoje'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  title: 'Minhas tarefas',
-  robots: { index: false, follow: false },
-  referrer: 'no-referrer', // o token não vaza em links externos
+export function generateMetadata({ params }: { params: { token: string } }): Metadata {
+  return {
+    title: 'Minhas tarefas',
+    robots: { index: false, follow: false },
+    referrer: 'no-referrer', // o token não vaza em links externos
+    // "Adicionar à tela inicial" abre direto neste link
+    manifest: `/tarefix/c/${params.token}/manifest.webmanifest`,
+    appleWebApp: { capable: true, title: 'Tarefix', statusBarStyle: 'default' },
+  }
 }
 
 export default async function PaginaColaborador({ params }: { params: { token: string } }) {

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
 import { ScriptTema } from '@/components/tarefix/ScriptTema'
 import './tarefix.css'
@@ -24,6 +24,16 @@ export const metadata: Metadata = {
   title: { default: 'Tarefix', template: '%s · Tarefix' },
   description: 'Checklist diário de tarefas da equipe.',
   robots: { index: false, follow: false },
+  manifest: '/tarefix/manifest.webmanifest',
+  icons: { icon: [{ url: '/tarefix/icon.svg', type: 'image/svg+xml' }], apple: '/tarefix/apple-touch-icon.png' },
+  appleWebApp: { capable: true, title: 'Tarefix', statusBarStyle: 'default' },
+}
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#F4F3F8' },
+    { media: '(prefers-color-scheme: dark)', color: '#14121F' },
+  ],
 }
 
 export default function TarefixLayout({ children }: { children: React.ReactNode }) {
