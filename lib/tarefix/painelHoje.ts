@@ -11,7 +11,7 @@ import { ordenarPorPrazo } from '@/lib/tarefix/prazo'
 
 const BUCKET = 'tarefix-provas'
 
-export type TarefaPainel = Pick<TarefaDia, 'id' | 'titulo' | 'descricao' | 'exige_foto' | 'status' | 'feita_em' | 'motivo_reprovacao' | 'horario_inicio' | 'horario_limite' | 'tempo_estimado_min'> & {
+export type TarefaPainel = Pick<TarefaDia, 'id' | 'titulo' | 'descricao' | 'exige_foto' | 'status' | 'feita_em' | 'motivo_reprovacao' | 'horario_inicio' | 'horario_limite' | 'tempo_estimado_min' | 'continua' | 'peso' | 'autoavaliacao'> & {
   foto_url: string | null
 }
 
@@ -106,6 +106,9 @@ export async function carregarPainelHoje(empresa: Empresa): Promise<PainelHoje> 
           horario_inicio: t.horario_inicio ? t.horario_inicio.slice(0, 5) : null,
       horario_limite: t.horario_limite ? t.horario_limite.slice(0, 5) : null,
           tempo_estimado_min: t.tempo_estimado_min ?? null,
+      continua: t.continua ?? false,
+      peso: t.peso ?? 1,
+      autoavaliacao: t.autoavaliacao ?? null,
         })),
       }
     }),
@@ -142,8 +145,8 @@ export async function garantirResumoDiario(empresa: Empresa) {
   if (lista.length === 0) return
   // Garante as tarefas do dia (se ninguém abriu, geramos agora com as regras de dia fechado).
   await Promise.all(lista.map((c) => gerarTarefasDoDia(c, empresa, dia, db)))
-  const { data: tarefas } = await db.from('tarefas_dia').select('colaborador_id, status').eq('empresa_id', empresa.id).eq('data', dia)
-  const porColab: Record<string, { status: TarefaDia['status'] }[]> = {}
+  const { data: tarefas } = await db.from('tarefas_dia').select('colaborador_id, status, peso').eq('empresa_id', empresa.id).eq('data', dia)
+  const porColab: Record<string, { status: TarefaDia['status']; peso?: number | null }[]> = {}
   for (const t of tarefas ?? []) (porColab[t.colaborador_id] ??= []).push(t)
 
   const partes = lista

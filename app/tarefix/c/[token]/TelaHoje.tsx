@@ -11,13 +11,14 @@ import { escolherMomento, preencher, sortearMensagem, variaveisDa, type Momento 
 import { desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra } from './acoes'
 import { MeuMes } from './MeuMes'
 import { duracao, eAgora, estaAtrasada, janela, minutosDeAtraso, prazoEfetivo } from '@/lib/tarefix/prazo'
+import { AUTOAVALIACAO, liberacaoContinuas, rotuloAutoavaliacao } from '@/lib/tarefix/continuas'
 import { BotaoTema } from '@/components/tarefix/Tema'
 import { DicaInstalar } from '@/components/tarefix/DicaInstalar'
 
 type Props = {
   token: string
   colaborador: { nome: string; foto_url: string | null; funcao: string | null }
-  empresa: { nome: string; logo_url: string | null; fecha: string }
+  empresa: { nome: string; logo_url: string | null; fecha: string; fechaHorario: string }
   inicial: EstadoHoje
 }
 
@@ -66,15 +67,14 @@ async function soltarConfete() {
 /** Recalcula o termômetro do dia na hora do toque (o servidor confirma em seguida). */
 function comTarefa(e: EstadoHoje, id: string, mudanca: Partial<TarefaTela>): EstadoHoje {
   const tarefas = e.tarefas.map((x) => (x.id === id ? { ...x, ...mudanca } : x))
-  const feitas = tarefas.filter((t) => t.status === 'feita').length
-  const total = tarefas.length
-  const antes = e.tarefas.find((x) => x.id === id)?.status === 'feita' ? 1 : 0
-  const depois = tarefas.find((x) => x.id === id)?.status === 'feita' ? 1 : 0
+  const feitas = tarefas.filter((t) => t.status === 'feita')
+  const pesoTotal = tarefas.reduce((n, t) => n + (t.peso || 1), 0)
+  const pesoFeito = feitas.reduce((n, t) => n + (t.peso || 1), 0)
   return {
     ...e,
     tarefas,
-    dia: total ? { feitas, total, percentual: Math.round((feitas / total) * 100) } : null,
-    mes: e.mes ? { ...e.mes, feitas: e.mes.feitas + depois - antes, percentual: Math.round(((e.mes.feitas + depois - antes) / e.mes.total) * 100) } : e.mes,
+    // o termômetro do mês o servidor confirma em seguida
+    dia: tarefas.length ? { feitas: feitas.length, total: tarefas.length, percentual: Math.round((pesoFeito / pesoTotal) * 100) } : null,
   }
 }
 
@@ -181,14 +181,41 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
     }
   }
 
+  /* ------------------------ tarefas do dia todo ------------------------ */
+  const continuasLiberadas = minutosRestantes <= estado.liberarContinuasMin
+  const horaLiberacao = liberacaoContinuas(empresa.fechaHorario, estado.liberarContinuasMin)
+  const [avaliando, setAvaliando] = useState<{ tarefa: TarefaTela; nota: number } | null>(null)
+  const notaDaFoto = useRef<number | undefined>(undefined)
+
+  async function confirmarContinua() {
+    if (!avaliando) return
+    const { tarefa: t, nota } = avaliando
+    setAvaliando(null)
+    if (t.exige_foto) {
+      tarefaDaFoto.current = t.id
+      notaDaFoto.current = nota
+      camera.current?.click()
+      return
+    }
+    setOcupada(t.id)
+    const anterior = estado
+    setEstado((e) => comTarefa(e, t.id, { status: 'feita', feita_em: new Date().toISOString(), autoavaliacao: nota }))
+    await aplicar(marcarTarefa(token, t.id, undefined, nota), anterior).finally(() => setOcupada(null))
+  }
+
   async function tocar(t: TarefaTela) {
     if (fechado || ocupada) return
     setErro(null)
+    if (t.continua && t.status !== 'feita') {
+      if (!continuasLiberadas) return setErro(`"${t.titulo}" vale o dia todo: a confirmação libera às ${horaLiberacao}.`)
+      setAvaliando({ tarefa: t, nota: 4 })
+      return
+    }
     if (t.status === 'feita') {
       if (t.foto_url && !confirm('Desmarcar esta tarefa? A foto enviada será apagada.')) return
       setOcupada(t.id)
       const anterior = estado
-      setEstado((e) => comTarefa(e, t.id, { status: 'pendente', foto_url: null, feita_em: null }))
+      setEstado((e) => comTarefa(e, t.id, { status: 'pendente', foto_url: null, feita_em: null, autoavaliacao: null }))
       await aplicar(desmarcarTarefa(token, t.id), anterior).finally(() => setOcupada(null))
       return
     }
@@ -211,7 +238,9 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
     setErro(null)
     try {
       const caminho = await enviarFoto(token, arquivo)
-      const r = await marcarTarefa(token, id, caminho)
+      const nota = notaDaFoto.current
+      notaDaFoto.current = undefined
+      const r = await marcarTarefa(token, id, caminho, nota)
       if (r.estado) setEstado(r.estado)
       if (!r.ok) setErro(r.erro)
       else if (r.estado?.dia?.percentual !== 100) mostrarTransitoria('foto_enviada')
@@ -341,10 +370,71 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
         <Erro texto={erro} />
       </div>
 
+      {/* Tarefas do dia todo: fixas no topo, com cor e peso próprios */}
+      {estado.tarefas.some((t) => t.continua) && (
+        <section className="mt-4 overflow-hidden rounded-2xl bg-tf-marca text-white">
+          <div className="px-4 pb-2 pt-4">
+            <h2 className="text-lg font-extrabold">Durante o dia todo</h2>
+            <p className="text-sm text-white/85">
+              {estado.tom === 'zoeira'
+                ? 'Essas não têm check rápido: valem o dia inteiro e pesam mais. Capricha do primeiro ao último cliente.'
+                : 'Estas tarefas valem durante todo o dia e têm peso maior no seu resultado.'}
+            </p>
+          </div>
+          <ul className="divide-y divide-white/15">
+            {estado.tarefas
+              .filter((t) => t.continua)
+              .map((t) => {
+                const feita = t.status === 'feita'
+                return (
+                  <li key={t.id} className="flex items-center gap-4 px-4 py-4">
+                    <button
+                      type="button"
+                      onClick={() => tocar(t)}
+                      disabled={fechado || Boolean(ocupada)}
+                      aria-pressed={feita}
+                      aria-label={`${feita ? 'Desmarcar' : 'Confirmar'} ${t.titulo}`}
+                      className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-[3px] transition active:scale-90 ${
+                        feita ? 'border-white bg-white text-tf-marca' : continuasLiberadas ? 'border-white bg-white/10' : 'border-white/40 bg-white/5'
+                      } ${fechado ? 'opacity-60' : ''}`}
+                    >
+                      {ocupada === t.id ? (
+                        <span className="h-6 w-6 animate-spin rounded-full border-[3px] border-current border-t-transparent" />
+                      ) : feita ? (
+                        <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M5 12.5l4.5 4.5L19 7.5" />
+                        </svg>
+                      ) : !continuasLiberadas ? (
+                        <svg viewBox="0 0 24 24" className="h-6 w-6 opacity-70" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <rect x="5" y="11" width="14" height="10" rx="2" />
+                          <path d="M8 11V7a4 4 0 018 0v4" />
+                        </svg>
+                      ) : null}
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-lg font-extrabold leading-snug ${feita ? 'line-through decoration-2 opacity-80' : ''}`}>{t.titulo}</p>
+                      {t.descricao && <p className="mt-0.5 text-sm text-white/80">{t.descricao}</p>}
+                      <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/85">
+                        {t.peso > 1 && <span className="rounded-full bg-white px-2 py-0.5 text-xs font-extrabold text-tf-marca">vale {t.peso}×</span>}
+                        {t.status === 'reprovada' && t.motivo_reprovacao && <span className="font-bold">Voltou: “{t.motivo_reprovacao}”</span>}
+                        {feita
+                          ? `confirmada${t.feita_em ? ` às ${horaSP(t.feita_em)}` : ''}${rotuloAutoavaliacao(t.autoavaliacao) ? ` · você: ${rotuloAutoavaliacao(t.autoavaliacao)}` : ''}`
+                          : continuasLiberadas
+                            ? 'Toque para confirmar e dizer como foi'
+                            : `confirma a partir das ${horaLiberacao}`}
+                      </p>
+                    </div>
+                  </li>
+                )
+              })}
+          </ul>
+        </section>
+      )}
+
       {/* Lista de tarefas */}
-      {estado.tarefas.length > 0 && (
+      {estado.tarefas.some((t) => !t.continua) && (
         <ul className="mt-4 space-y-3">
-          {estado.tarefas.map((t) => {
+          {estado.tarefas.filter((t) => !t.continua).map((t) => {
             const feita = t.status === 'feita'
             const reprovada = t.status === 'reprovada'
             const carregando = ocupada === t.id
@@ -511,6 +601,38 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
             {extraEnviando ? 'Enviando…' : 'Registrar'}
           </button>
         </form>
+      </Modal>
+
+      <Modal aberto={avaliando !== null} aoFechar={() => setAvaliando(null)} titulo={avaliando?.tarefa.titulo ?? ''}>
+        {avaliando && (
+          <div className="space-y-5">
+            <p className="text-tf-suave">Como foi o seu dia nesta tarefa? Só você e quem cuida da equipe veem. Não muda o seu percentual.</p>
+            <div>
+              <p className="mb-3 text-center text-2xl font-extrabold text-tf-marca-texto">{rotuloAutoavaliacao(avaliando.nota)}</p>
+              <input
+                type="range"
+                min={1}
+                max={5}
+                step={1}
+                value={avaliando.nota}
+                onChange={(e) => setAvaliando({ ...avaliando, nota: Number(e.target.value) })}
+                className="h-10 w-full cursor-pointer accent-[#5B3DF5]"
+                aria-label="Autoavaliação"
+                aria-valuetext={rotuloAutoavaliacao(avaliando.nota) ?? undefined}
+              />
+              <div className="mt-1 flex justify-between text-xs font-bold text-tf-suave">
+                {AUTOAVALIACAO.map((a) => (
+                  <span key={a.valor} className={a.valor === avaliando.nota ? 'text-tf-marca-texto' : ''}>
+                    {a.rotulo}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <button type="button" className="tf-botao w-full" onClick={confirmarContinua}>
+              {avaliando.tarefa.exige_foto ? 'Confirmar e tirar foto' : 'Confirmar'}
+            </button>
+          </div>
+        )}
       </Modal>
 
       <Modal aberto={fotoAberta !== null} aoFechar={() => setFotoAberta(null)} titulo="Foto enviada">

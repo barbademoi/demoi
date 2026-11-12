@@ -43,7 +43,7 @@ export default async function PaginaColaborador({ params }: { params: { token: s
     <TelaHoje
       token={params.token}
       colaborador={{ nome: colaborador.nome, foto_url: colaborador.foto_url, funcao }}
-      empresa={{ nome: empresa.nome, logo_url: empresa.logo_url, fecha: horarioCurto(empresa.horario_fechamento) }}
+      empresa={{ nome: empresa.nome, logo_url: empresa.logo_url, fecha: horarioCurto(empresa.horario_fechamento), fechaHorario: empresa.horario_fechamento }}
       inicial={estado}
     />
   )

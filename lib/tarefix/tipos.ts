@@ -8,6 +8,7 @@ export type Empresa = {
   logo_url: string | null
   horario_fechamento: string // 'HH:MM:SS'
   tom_mensagens: TomMensagens
+  liberar_continuas_min: number // minutos antes do fechamento em que libera o check das tarefas do dia todo
   criado_em: string
 }
 
@@ -47,6 +48,8 @@ export type TarefaModelo = {
   ativo: boolean
   ordem: number
   horario_inicio: string | null // 'HH:MM:SS' — "começar às"
+  continua: boolean // vale o dia todo (fica fixa no topo)
+  peso: number // 1..3
   horario_limite: string | null // 'HH:MM:SS' — "fazer até"
   tempo_estimado_min: number | null
   criado_em: string
@@ -63,6 +66,8 @@ export type TarefaAvulsa = {
   horario_inicio: string | null
   horario_limite: string | null
   tempo_estimado_min: number | null
+  continua: boolean
+  peso: number
   criado_em: string
 }
 
@@ -84,6 +89,9 @@ export type TarefaDia = {
   horario_inicio: string | null
   horario_limite: string | null
   tempo_estimado_min: number | null
+  continua: boolean
+  peso: number
+  autoavaliacao: number | null // 1..5, só nas do dia todo
   status: StatusTarefa
   feita_em: string | null
   foto_path: string | null

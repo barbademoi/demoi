@@ -6,6 +6,7 @@ import { FUSO } from '@/lib/tarefix/datas'
 import { Erro, Modal, useAcao, useAviso } from '@/components/tarefix/ui'
 import { reprovarTarefa, restaurarTarefa } from '../acoesHoje'
 import { duracao, estaAtrasada, janela, minutosDeAtraso } from '@/lib/tarefix/prazo'
+import { rotuloAutoavaliacao } from '@/lib/tarefix/continuas'
 
 const horaSP = (iso: string) => new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO, hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
 const STATUS = { feita: 'Feita', pendente: 'Não feita', reprovada: 'Reprovada' } as const
@@ -23,7 +24,7 @@ export function DiaHistorico({ tarefas, extras, mesFechado, data }: { tarefas: T
   return (
     <div className="space-y-5">
       <ul className="tf-cartao divide-y divide-tf-borda">
-        {tarefas.map((t) => (
+        {[...tarefas.filter((t) => t.continua), ...tarefas.filter((t) => !t.continua)].map((t) => (
           <li key={t.id}>
             <button
               type="button"
@@ -43,7 +44,10 @@ export function DiaHistorico({ tarefas, extras, mesFechado, data }: { tarefas: T
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-bold">{t.titulo}</span>
                 <span className="block truncate text-sm text-tf-suave">
+                  {t.continua && 'O dia todo · '}
                   {STATUS[t.status]}
+                  {t.peso > 1 && ` · vale ${t.peso}×`}
+                  {rotuloAutoavaliacao(t.autoavaliacao) && ` · se avaliou: ${rotuloAutoavaliacao(t.autoavaliacao)}`}
                   {t.feita_em && t.status !== 'pendente' && ` · ${horaSP(t.feita_em)}`}
                   {t.status === 'reprovada' && t.motivo_reprovacao && ` · ${t.motivo_reprovacao}`}
                   {janela(t) && ` · ${janela(t)}`}
