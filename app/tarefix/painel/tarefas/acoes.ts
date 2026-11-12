@@ -2,6 +2,16 @@
 
 import { revalidatePath } from 'next/cache'
 import { donoOuErro, falha, type Resultado } from '@/lib/tarefix/dono'
+import { lerHorario, lerMinutos } from '@/lib/tarefix/prazo'
+
+/** Lê "fazer até" e "tempo estimado" do formulário (ou devolve a mensagem de erro). */
+function lerPrazo(d: { horario_limite: string; tempo_estimado_min: string }) {
+  const horario_limite = lerHorario(d.horario_limite)
+  if (horario_limite === undefined) return 'Horário inválido. Use HH:MM.'
+  const tempo_estimado_min = lerMinutos(d.tempo_estimado_min)
+  if (tempo_estimado_min === undefined) return 'Tempo estimado: de 1 a 600 minutos.'
+  return { horario_limite, tempo_estimado_min }
+}
 
 function revalidar() {
   revalidatePath('/tarefix/painel', 'layout')
@@ -15,6 +25,8 @@ export type DadosModelo = {
   dias_semana: number[]
   exige_foto: boolean
   ativo: boolean
+  horario_limite: string // 'HH:MM' ou ''
+  tempo_estimado_min: string // minutos ou ''
 }
 
 export async function salvarModelo(d: DadosModelo): Promise<Resultado> {
@@ -24,7 +36,9 @@ export async function salvarModelo(d: DadosModelo): Promise<Resultado> {
   if (!titulo) return { ok: false, erro: 'Dê um título para a tarefa.' }
   const dias = Array.from(new Set(d.dias_semana.filter((x) => Number.isInteger(x) && x >= 0 && x <= 6))).sort()
   if (dias.length === 0) return { ok: false, erro: 'Escolha pelo menos um dia da semana.' }
-  const linha = { titulo, descricao: d.descricao.trim() || null, dias_semana: dias, exige_foto: d.exige_foto, ativo: d.ativo }
+  const prazo = lerPrazo(d)
+  if (typeof prazo === 'string') return { ok: false, erro: prazo }
+  const linha = { titulo, descricao: d.descricao.trim() || null, dias_semana: dias, exige_foto: d.exige_foto, ativo: d.ativo, ...prazo }
 
   if (d.id) {
     const { error } = await s.db.from('tarefas_modelo').update(linha).eq('id', d.id)
@@ -79,6 +93,8 @@ export type DadosAvulsa = {
   descricao: string
   data: string
   exige_foto: boolean
+  horario_limite: string
+  tempo_estimado_min: string
 }
 
 export async function salvarAvulsa(d: DadosAvulsa): Promise<Resultado> {
@@ -87,7 +103,9 @@ export async function salvarAvulsa(d: DadosAvulsa): Promise<Resultado> {
   const titulo = d.titulo.trim()
   if (!titulo) return { ok: false, erro: 'Dê um título para a tarefa.' }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d.data)) return { ok: false, erro: 'Escolha a data.' }
-  const linha = { titulo, descricao: d.descricao.trim() || null, data: d.data, exige_foto: d.exige_foto }
+  const prazo = lerPrazo(d)
+  if (typeof prazo === 'string') return { ok: false, erro: prazo }
+  const linha = { titulo, descricao: d.descricao.trim() || null, data: d.data, exige_foto: d.exige_foto, ...prazo }
   const { error } = d.id
     ? await s.db.from('tarefas_avulsas').update(linha).eq('id', d.id)
     : await s.db.from('tarefas_avulsas').insert({ ...linha, empresa_id: s.empresa.id, colaborador_id: d.colaborador_id })

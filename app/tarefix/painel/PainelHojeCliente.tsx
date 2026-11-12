@@ -6,6 +6,7 @@ import { dataCurta, FUSO } from '@/lib/tarefix/datas'
 import { Avatar, Erro, Modal, useAcao, useAviso } from '@/components/tarefix/ui'
 import { Termometro } from '@/components/tarefix/Termometro'
 import { decidirExtra, reprovarTarefa, restaurarTarefa } from './acoesHoje'
+import { duracao, estaAtrasada, minutosDeAtraso } from '@/lib/tarefix/prazo'
 
 const horaSP = (iso: string) =>
   new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO, hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
@@ -105,14 +106,18 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
       {painel.cards.map((c) => {
         const fotos = c.tarefas.filter((t) => t.foto_url)
         const pendentes = c.tarefas.filter((t) => t.status === 'pendente').length
+        const atrasadas = c.tarefas.filter((t) => estaAtrasada(t, painel.hoje)).length
+        const previsto = c.tarefas.reduce((n, t) => n + (t.tempo_estimado_min ?? 0), 0)
         return (
           <section key={c.id} id={`c-${c.id}`} className={`tf-cartao scroll-mt-4 p-5 ${destaque === c.id ? 'border-tf-marca' : ''}`}>
             <div className="flex items-center gap-3">
               <Avatar nome={c.nome} url={c.foto_url} tamanho={48} />
               <div className="min-w-0 flex-1">
                 <h2 className="truncate text-lg font-extrabold">{c.nome}</h2>
-                <p className="truncate text-sm text-tf-suave">
+                <p className="text-sm text-tf-suave">
                   {c.folga ? 'Folga hoje' : c.tarefas.length === 0 ? 'Sem tarefas hoje' : pendentes ? `${pendentes} pendente${pendentes > 1 ? 's' : ''}` : 'Tudo feito'}
+                  {atrasadas > 0 && ` · ${atrasadas} atrasada${atrasadas > 1 ? 's' : ''}`}
+                  {previsto > 0 && ` · ${duracao(previsto)} previstos`}
                   {c.funcao && ` · ${c.funcao}`}
                 </p>
               </div>
@@ -146,6 +151,16 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
                       <span className="min-w-0 flex-1">
                         <span className={`block truncate font-bold ${t.status === 'pendente' ? '' : 'text-tf-suave'}`}>{t.titulo}</span>
                         {t.status === 'reprovada' && t.motivo_reprovacao && <span className="block truncate text-sm text-tf-suave">Voltou: {t.motivo_reprovacao}</span>}
+                        {estaAtrasada(t, painel.hoje) ? (
+                          <span className="mt-0.5 inline-block rounded-full bg-tf-texto px-2 py-0.5 text-[11px] font-bold text-tf-fundo">atrasada · até {t.horario_limite}</span>
+                        ) : t.status === 'feita' && minutosDeAtraso(t) > 0 ? (
+                          <span className="block text-sm text-tf-suave">{minutosDeAtraso(t)} min depois do prazo ({t.horario_limite})</span>
+                        ) : (
+                          (t.horario_limite || t.tempo_estimado_min) &&
+                          t.status === 'pendente' && (
+                            <span className="block text-sm text-tf-suave">{[t.horario_limite && `até ${t.horario_limite}`, duracao(t.tempo_estimado_min)].filter(Boolean).join(' · ')}</span>
+                          )
+                        )}
                       </span>
                       <span className="shrink-0 text-sm text-tf-suave">
                         {t.exige_foto && !t.foto_url && t.status === 'pendente' ? 'foto' : t.feita_em && t.status !== 'pendente' ? horaSP(t.feita_em) : ''}

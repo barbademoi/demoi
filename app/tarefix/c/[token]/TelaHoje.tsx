@@ -10,6 +10,7 @@ import { Termometro } from '@/components/tarefix/Termometro'
 import { escolherMomento, preencher, sortearMensagem, variaveisDa, type Momento } from '@/lib/tarefix/mensagens'
 import { desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra } from './acoes'
 import { MeuMes } from './MeuMes'
+import { duracao, estaAtrasada, minutosDeAtraso } from '@/lib/tarefix/prazo'
 import { BotaoTema } from '@/components/tarefix/Tema'
 import { DicaInstalar } from '@/components/tarefix/DicaInstalar'
 
@@ -313,6 +314,14 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
       <section className="tf-cartao mt-5 space-y-5 p-5">
         <Termometro rotulo="Hoje" percentual={estado.dia?.percentual ?? null} detalhe={estado.dia ? `${estado.dia.feitas} de ${estado.dia.total}` : undefined} grande />
         <Termometro rotulo="No mês" percentual={estado.mes?.percentual ?? null} detalhe={estado.extrasAprovadasMes ? `+${estado.extrasAprovadasMes} extra${estado.extrasAprovadasMes > 1 ? 's' : ''} aprovada${estado.extrasAprovadasMes > 1 ? 's' : ''}` : undefined} />
+        {(() => {
+          const previsto = estado.tarefas.filter((t) => t.status !== 'feita').reduce((n, t) => n + (t.tempo_estimado_min ?? 0), 0)
+          return !fechado && previsto > 0 ? (
+            <p className="text-sm text-tf-suave">
+              Tempo previsto das pendentes: <b className="text-tf-texto">{duracao(previsto)}</b>
+            </p>
+          ) : null
+        })()}
         {estado.bonus && (estado.bonus.proximo || estado.bonus.atingido) && (
           <p className="rounded-xl bg-tf-marca-clara px-4 py-3 text-sm font-bold text-tf-marca-texto">
             {estado.bonus.proximo && estado.bonus.falta !== null
@@ -370,13 +379,24 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
                   <div className="min-w-0 flex-1">
                     <p className={`text-lg font-bold leading-snug ${feita ? 'text-tf-suave line-through decoration-2' : ''}`}>{t.titulo}</p>
                     {t.descricao && <p className="mt-0.5 text-sm text-tf-suave">{t.descricao}</p>}
-                    <p className="mt-1 flex items-center gap-1.5 text-sm text-tf-suave">
-                      {t.exige_foto && !feita && (
-                        <>
-                          <IconeCamera className="h-4 w-4" /> precisa de foto
-                        </>
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tf-suave">
+                      {estaAtrasada(t, estado.hoje) ? (
+                        <span className="rounded-full bg-tf-texto px-2 py-0.5 text-xs font-bold text-tf-fundo">atrasada · era até {t.horario_limite}</span>
+                      ) : (
+                        t.horario_limite && !feita && <span className="rounded-full bg-tf-marca-clara px-2 py-0.5 text-xs font-bold text-tf-marca-texto">até {t.horario_limite}</span>
                       )}
-                      {feita && t.feita_em && `feita às ${horaSP(t.feita_em)}`}
+                      {t.exige_foto && !feita && (
+                        <span className="inline-flex items-center gap-1">
+                          <IconeCamera className="h-4 w-4" /> precisa de foto
+                        </span>
+                      )}
+                      {!feita && duracao(t.tempo_estimado_min) && <span>{duracao(t.tempo_estimado_min)}</span>}
+                      {feita && t.feita_em && (
+                        <span>
+                          feita às {horaSP(t.feita_em)}
+                          {minutosDeAtraso(t) > 0 && ` · ${minutosDeAtraso(t)} min depois do prazo`}
+                        </span>
+                      )}
                     </p>
                   </div>
                   {t.foto_url && (
