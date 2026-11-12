@@ -5,40 +5,31 @@ Supabase próprio), separado do BarberMeta. Linguagem neutra: serve qualquer neg
 
 ## Etapas
 
-- [x] **1. Supabase** — tabelas, RLS, buckets, seed
+- [x] **1. Supabase** — tabelas, RLS, buckets e instalação guiada em `/instalar`
 - [ ] 2. Login do dono + CRUD de funções, colaboradores, tarefas e folgas
 - [ ] 3. Acesso do colaborador (token + PIN) e tela Hoje
 - [ ] 4. Painel do dono: Hoje, reprovação, extras, avisos
 - [ ] 5. Mês, histórico, bônus, fechamento, mensagens, comemoração
 - [ ] 6. Tema claro/escuro, PWA e ícones
 
-## Configurar o Supabase (uma vez)
+## Instalar (tudo pelo navegador, sem terminal)
 
-1. Crie um projeto **novo** em supabase.com (região São Paulo).
-2. SQL Editor → rode, nesta ordem:
-   - `supabase/migrations/001_estrutura.sql`
-   - `supabase/migrations/002_rls.sql`
-   - `supabase/migrations/003_storage.sql`
-3. Authentication → Users → **Add user** → crie seu usuário (e-mail + senha, *Auto Confirm*).
-4. Abra `supabase/seed.sql`, troque e-mail e nome no topo e rode no SQL Editor.
-5. Authentication → Providers → Email: desative "Allow new users to sign up"
-   (na V1 só o dono cadastrado entra).
+1. **Supabase** → crie um projeto novo (região São Paulo).
+2. **Vercel** → Add New → Project → importe o repositório → **Root Directory = `tarefix`**.
+   Em Environment Variables, cole as 3 chaves (Supabase → Project Settings → API):
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Deploy.
+3. Abra `https://SEU-APP.vercel.app/instalar` e siga a tela:
+   - **Copiar SQL** → cola no SQL Editor do Supabase (o link já abre o seu projeto) → Run;
+   - cria sua conta de dono e a empresa (o formulário só funciona enquanto não existe dono).
+4. `/status` mostra o diagnóstico completo.
 
-## Rodar local
+`TAREFIX_SESSION_SECRET` é opcional: sem ela, o segredo do cookie do PIN é derivado da service role.
+
+### Rodar local (opcional, para desenvolvimento)
 
 ```bash
-cd tarefix
-cp .env.example .env.local   # preencha com as chaves do projeto (Settings → API)
-npm install
-npm run dev                  # http://localhost:3100
+cd tarefix && cp .env.example .env.local && npm install && npm run dev   # http://localhost:3100
 ```
-
-Abra `http://localhost:3100/status`: todas as linhas devem estar com ✓.
-
-## Deploy (Vercel)
-
-Novo projeto na Vercel apontando para este repositório com **Root Directory = `tarefix`**,
-e as mesmas 4 variáveis do `.env.example`.
 
 ## Decisões do banco
 

@@ -10,7 +10,7 @@ type Checagem = { nome: string; ok: boolean; detalhe?: string }
 // Não mostra nenhum dado sensível — só ✓/✗ e contagens.
 async function checar(): Promise<Checagem[]> {
   const out: Checagem[] = []
-  const envs = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'TAREFIX_SESSION_SECRET']
+  const envs = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY']
   for (const e of envs) out.push({ nome: `Variável ${e}`, ok: Boolean(process.env[e]) })
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return out
 
@@ -28,7 +28,7 @@ async function checar(): Promise<Checagem[]> {
   out.push({
     nome: 'Seed: empresa',
     ok: Boolean(empresa),
-    detalhe: empresa ? `${empresa.nome} · fecha às ${horarioCurto(empresa.horario_fechamento)}` : 'rode supabase/seed.sql',
+    detalhe: empresa ? `${empresa.nome} · fecha às ${horarioCurto(empresa.horario_fechamento)}` : 'abra /instalar',
   })
   const { count: donos } = await db.from('donos').select('*', { count: 'exact', head: true })
   out.push({ nome: 'Seed: dono', ok: (donos ?? 0) > 0, detalhe: `${donos ?? 0} dono(s)` })
