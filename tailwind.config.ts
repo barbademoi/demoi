@@ -14,6 +14,23 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // ── Tarefix (app/tarefix) ─────────────────────────────────────────
+        // Valores em app/tarefix/tarefix.css (claro/escuro). Prefixo tf- para
+        // não colidir com o BarberMeta. vermelho/amarelo/verde são RESERVADOS
+        // ao termômetro (nunca em botão nem na marca).
+        tf: {
+          fundo: 'rgb(var(--tf-fundo) / <alpha-value>)',
+          card: 'rgb(var(--tf-card) / <alpha-value>)',
+          texto: 'rgb(var(--tf-texto) / <alpha-value>)',
+          suave: 'rgb(var(--tf-suave) / <alpha-value>)',
+          borda: 'rgb(var(--tf-borda) / <alpha-value>)',
+          marca: '#5B3DF5',
+          'marca-forte': '#4A2DE0',
+          'marca-clara': 'rgb(var(--tf-marca-clara) / <alpha-value>)',
+          vermelho: '#E5484D',
+          amarelo: '#F5A524',
+          verde: '#2DB960',
+        },
         // ── Paleta da landing ─────────────────────────────────────────────
         // Contraste SELETIVO: o grosso da página é carvão + latão. O verde só
         // onde se pede ação, o vermelho só em detalhe. Tokens (e não hex solto)

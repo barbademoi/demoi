@@ -44,6 +44,10 @@ export async function middleware(request: NextRequest) {
     // /dashboard/brindoleta nem /admin/brindoleta — esses têm outro prefixo e
     // seguem protegidos.
     const isBrindoletaPublica = pathname.startsWith('/brindoleta/')
+    // Tarefix: app separado dentro do mesmo site. Cuida do próprio acesso
+    // (dono com login próprio; colaborador por link + PIN), então o
+    // middleware do BarberMeta não redireciona nada sob /tarefix.
+    const isTarefixRoute     = pathname === '/tarefix' || pathname.startsWith('/tarefix/')
     const isApiRoute         = pathname.startsWith('/api/')
     const isAuthCallback     = pathname.startsWith('/auth/')
     const isPasswordRoute    = pathname === '/esqueci-senha' || pathname === '/redefinir-senha'
@@ -55,7 +59,7 @@ export async function middleware(request: NextRequest) {
     const isAguardandoRoute  = pathname === '/aguardando'
     const isPublicRoute      = isAuthRoute || isBarbeiroRoute || isFeedbackRoute || isBrindoletaPublica ||
                                isApiRoute || isAuthCallback || isPasswordRoute || isLandingRoute || isOfertaRoute ||
-                               isBoasVindasRoute || isComprarRoute || isAguardandoRoute
+                               isBoasVindasRoute || isComprarRoute || isAguardandoRoute || isTarefixRoute
 
     if (!user && !isPublicRoute) {
       return NextResponse.redirect(new URL('/login', request.url))
@@ -80,6 +84,8 @@ export async function middleware(request: NextRequest) {
                           pathname.startsWith('/b/') ||
                           pathname.startsWith('/c/') ||
                           pathname.startsWith('/brindoleta/') ||
+                          pathname === '/tarefix' ||
+                          pathname.startsWith('/tarefix/') ||
                           pathname.startsWith('/api/') ||
                           pathname.startsWith('/auth/') ||
                           pathname === '/esqueci-senha' ||

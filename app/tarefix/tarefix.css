@@ -1,0 +1,72 @@
+/*
+ * Tarefix — estilos isolados. Tudo vive dentro de .tarefix (wrapper do
+ * app/tarefix/layout.tsx) e usa prefixo tf-, para não encostar no BarberMeta.
+ */
+
+/* Tema claro (padrão) */
+.tarefix {
+  --tf-fundo: 244 243 248;   /* #F4F3F8 */
+  --tf-card: 255 255 255;    /* #FFFFFF */
+  --tf-texto: 23 21 43;      /* #17152B */
+  --tf-suave: 107 104 128;
+  --tf-borda: 228 226 238;
+  --tf-marca-clara: 236 233 254;
+  color-scheme: light;
+}
+
+/* Escuro: segue o sistema, a menos que a pessoa tenha escolhido claro */
+@media (prefers-color-scheme: dark) {
+  html:not([data-tf-tema='light']) .tarefix {
+    --tf-fundo: 20 18 31;    /* #14121F */
+    --tf-card: 30 27 46;     /* #1E1B2E */
+    --tf-texto: 244 243 255; /* #F4F3FF */
+    --tf-suave: 160 156 186;
+    --tf-borda: 46 42 66;
+    --tf-marca-clara: 40 33 82;
+    color-scheme: dark;
+  }
+}
+html[data-tf-tema='dark'] .tarefix {
+  --tf-fundo: 20 18 31;
+  --tf-card: 30 27 46;
+  --tf-texto: 244 243 255;
+  --tf-suave: 160 156 186;
+  --tf-borda: 46 42 66;
+  --tf-marca-clara: 40 33 82;
+  color-scheme: dark;
+}
+
+.tarefix {
+  min-height: 100dvh;
+  background: rgb(var(--tf-fundo));
+  color: rgb(var(--tf-texto));
+  font-family: var(--tf-fonte), system-ui, sans-serif;
+  font-weight: 500;
+  -webkit-tap-highlight-color: transparent;
+}
+.tarefix ::selection {
+  background: rgb(91 61 245 / 0.25);
+  color: inherit;
+}
+
+/* Fundo da página inteira (o layout raiz do BarberMeta pinta html/body de escuro) */
+html:has(.tarefix),
+body:has(.tarefix) {
+  background: rgb(var(--tf-fundo, 244 243 248));
+}
+
+.tf-cartao {
+  @apply rounded-2xl border border-tf-borda bg-tf-card;
+}
+.tf-botao {
+  @apply inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-tf-marca px-5 font-bold text-white transition hover:bg-tf-marca-forte active:scale-[0.98] disabled:opacity-50;
+}
+.tf-botao2 {
+  @apply inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-tf-borda bg-tf-card px-5 font-bold text-tf-texto transition hover:bg-tf-marca-clara active:scale-[0.98] disabled:opacity-50;
+}
+.tf-campo {
+  @apply min-h-[48px] w-full rounded-xl border border-tf-borda bg-tf-card px-4 text-base text-tf-texto outline-none placeholder:text-tf-suave focus:border-tf-marca;
+}
+.tf-rotulo {
+  @apply mb-1 block text-sm font-bold text-tf-suave;
+}

@@ -10,6 +10,8 @@ function RouteTracker() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
+    // Tarefix é outro produto (uso interno da equipe): não entra no Pixel.
+    if (pathname === '/tarefix' || pathname?.startsWith('/tarefix/')) return
     trackPageView()
   }, [pathname, searchParams])
 
