@@ -197,3 +197,51 @@ export async function registrarExtra(token: string, descricao: string, fotoCamin
   })
   return { ok: true, estado: await montarEstado(ctx, false) }
 }
+
+/* ====================================================================== */
+/* Observação do colaborador na tarefa                                     */
+/* ====================================================================== */
+
+const MAX_OBSERVACAO = 200
+
+/** Grava (ou apaga, se vazio) a observação de uma tarefa de hoje, até o dia fechar. Avisa o dono. */
+export async function salvarObservacao(token: string, tarefaId: string, texto: string): Promise<Resposta> {
+  const ctx = await contexto(token)
+  if ('ok' in ctx) return ctx
+  const db = createTarefixAdmin()
+  const hoje = hojeSP()
+  const { data: t } = await db.from('tarefas_dia').select('id, data, titulo, observacao').eq('id', tarefaId).eq('colaborador_id', ctx.colaborador.id).maybeSingle()
+  if (!t) return { ok: false, erro: 'Tarefa não encontrada.' }
+  if (t.data !== hoje || diaFechado(hoje, ctx.empresa.horario_fechamento)) {
+    return { ok: false, erro: 'O dia já fechou: não dá mais para mudar a observação.', estado: await montarEstado(ctx, false) }
+  }
+  const limpo = String(texto ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_OBSERVACAO)
+  const novo = limpo || null
+  if (novo === (t.observacao ?? null)) return { ok: true, estado: await montarEstado(ctx, false) }
+
+  const { error } = await db
+    .from('tarefas_dia')
+    .update({ observacao: novo, observacao_em: novo ? new Date().toISOString() : null })
+    .eq('id', t.id)
+  if (error) return { ok: false, erro: error.message }
+
+  const chave = `obs:${t.id}`
+  if (novo) {
+    // um aviso por tarefa: editar a observação atualiza o texto e volta a ficar "não lido"
+    await db.from('avisos').upsert(
+      {
+        empresa_id: ctx.empresa.id,
+        tipo: 'observacao',
+        texto: `${ctx.colaborador.nome.split(' ')[0]} comentou em ${t.titulo}: ${novo}`,
+        link: `/tarefix/painel?c=${ctx.colaborador.id}`,
+        chave,
+        lido: false,
+        criado_em: new Date().toISOString(),
+      },
+      { onConflict: 'empresa_id,chave' }
+    )
+  } else {
+    await db.from('avisos').delete().eq('empresa_id', ctx.empresa.id).eq('chave', chave)
+  }
+  return { ok: true, estado: await montarEstado(ctx, false) }
+}

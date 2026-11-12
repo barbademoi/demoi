@@ -162,6 +162,7 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
                           </span>
                         )}
                         {!t.continua && t.peso > 1 && <span className="block text-sm text-tf-suave">vale {t.peso}×</span>}
+                        {t.observacao && <span className="mt-0.5 block whitespace-normal text-sm italic text-tf-texto">Obs.: {t.observacao}</span>}
                         {t.status === 'reprovada' && t.motivo_reprovacao && <span className="block truncate text-sm text-tf-suave">Voltou: {t.motivo_reprovacao}</span>}
                         {estaAtrasada(t, painel.hoje) ? (
                           <span className="mt-0.5 inline-block rounded-full bg-tf-texto px-2 py-0.5 text-[11px] font-bold text-tf-fundo">atrasada · era até {prazoEfetivo(t)}</span>
@@ -214,6 +215,11 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
               {aberta.tarefa.continua && rotuloAutoavaliacao(aberta.tarefa.autoavaliacao) && ` · se avaliou: ${rotuloAutoavaliacao(aberta.tarefa.autoavaliacao)}`}
               {aberta.tarefa.peso > 1 && ` · vale ${aberta.tarefa.peso}×`}
             </p>
+            {aberta.tarefa.observacao && (
+              <p className="rounded-xl bg-tf-marca-clara px-4 py-3 text-sm">
+                <b>Observação de {aberta.colaborador}:</b> {aberta.tarefa.observacao}
+              </p>
+            )}
             {aberta.tarefa.status === 'reprovada' && (
               <p className="rounded-xl bg-tf-texto px-4 py-3 text-sm font-bold text-tf-fundo">Reprovada: {aberta.tarefa.motivo_reprovacao}</p>
             )}

@@ -2,7 +2,7 @@
 
 import type { EstadoHoje } from '@/lib/tarefix/estadoHoje'
 import { datasDoMes, diaDaSemana, mesPorExtenso, NOMES_DIAS_CURTOS } from '@/lib/tarefix/datas'
-import { Termometro, corDoPercentual } from '@/components/tarefix/Termometro'
+import { Termometro, fundoMetalico } from '@/components/tarefix/Termometro'
 
 export function MeuMes({ estado }: { estado: EstadoHoje }) {
   const datas = datasDoMes(estado.anoMes)
@@ -43,7 +43,7 @@ export function MeuMes({ estado }: { estado: EstadoHoje }) {
                 className={`flex aspect-square flex-col items-center justify-center rounded-xl text-sm font-bold ${
                   temDado ? 'text-white' : folga ? 'border border-dashed border-tf-borda text-tf-suave' : 'bg-tf-fundo text-tf-suave'
                 } ${futuro ? 'opacity-50' : ''} ${d === estado.hoje ? 'ring-2 ring-tf-marca ring-offset-1 ring-offset-tf-card' : ''}`}
-                style={temDado ? { background: corDoPercentual(p) } : undefined}
+                style={temDado ? { background: fundoMetalico(p), textShadow: '0 1px 1px rgba(0,0,0,.35)' } : undefined}
                 title={temDado ? `${p}%` : folga ? 'folga' : undefined}
               >
                 {Number(d.slice(8))}

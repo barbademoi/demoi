@@ -28,9 +28,9 @@ const config: Config = {
           'marca-forte': '#4A2DE0',
           'marca-clara': 'rgb(var(--tf-marca-clara) / <alpha-value>)',
           'marca-texto': 'rgb(var(--tf-marca-texto) / <alpha-value>)',
-          vermelho: '#E5484D',
-          amarelo: '#F5A524',
-          verde: '#2DB960',
+          vermelho: '#E11D2E',
+          amarelo: '#F59E0B',
+          verde: '#16A34A',
         },
         // ── Paleta da landing ─────────────────────────────────────────────
         // Contraste SELETIVO: o grosso da página é carvão + latão. O verde só
