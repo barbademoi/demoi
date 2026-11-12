@@ -60,7 +60,7 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
   )
   if (datasValidas.length === 0) return
 
-  const linhas: Omit<TarefaDia, 'id' | 'status' | 'feita_em' | 'foto_path' | 'motivo_reprovacao' | 'reprovada_em'>[] = []
+  const linhas: Omit<TarefaDia, 'id' | 'status' | 'feita_em' | 'foto_path' | 'motivo_reprovacao' | 'reprovada_em' | 'autoavaliacao'>[] = []
   for (const data of datasValidas) {
     const dow = diaDaSemana(data)
     const aberto = !diaFechado(data, empresa.horario_fechamento)
@@ -72,6 +72,7 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
         empresa_id: colab.empresa_id, colaborador_id: colab.id, data, origem: 'modelo', origem_id: m.id,
         titulo: m.titulo, descricao: m.descricao, exige_foto: m.exige_foto, ordem: m.ordem,
         horario_inicio: m.horario_inicio ?? null, horario_limite: m.horario_limite ?? null, tempo_estimado_min: m.tempo_estimado_min ?? null,
+        continua: m.continua ?? false, peso: m.peso ?? 1,
       })
     }
     ;((avulsas ?? []) as TarefaAvulsa[])
@@ -81,6 +82,7 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
           empresa_id: colab.empresa_id, colaborador_id: colab.id, data, origem: 'avulsa', origem_id: a.id,
           titulo: a.titulo, descricao: a.descricao, exige_foto: a.exige_foto, ordem: ORDEM_AVULSAS + i,
           horario_inicio: a.horario_inicio ?? null, horario_limite: a.horario_limite ?? null, tempo_estimado_min: a.tempo_estimado_min ?? null,
+          continua: a.continua ?? false, peso: a.peso ?? 1,
         })
       })
   }
@@ -97,7 +99,7 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
     const esperadas = new Map(linhas.filter((l) => l.data === hoje).map((l) => [`${l.origem}:${l.origem_id}`, l]))
     const { data: pendentes } = await db
       .from('tarefas_dia')
-      .select('id, origem, origem_id, titulo, descricao, exige_foto, ordem, horario_inicio, horario_limite, tempo_estimado_min')
+      .select('id, origem, origem_id, titulo, descricao, exige_foto, ordem, horario_inicio, horario_limite, tempo_estimado_min, continua, peso')
       .eq('colaborador_id', colab.id)
       .eq('data', hoje)
       .eq('status', 'pendente')
@@ -109,11 +111,11 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
       } else if (
         e.titulo !== p.titulo || e.descricao !== p.descricao || e.exige_foto !== p.exige_foto || e.ordem !== p.ordem ||
         mesmoHorario(e.horario_limite) !== mesmoHorario(p.horario_limite) || mesmoHorario(e.horario_inicio) !== mesmoHorario(p.horario_inicio) ||
-        (e.tempo_estimado_min ?? null) !== (p.tempo_estimado_min ?? null)
+        (e.tempo_estimado_min ?? null) !== (p.tempo_estimado_min ?? null) || e.continua !== (p.continua ?? false) || e.peso !== (p.peso ?? 1)
       ) {
         await db
           .from('tarefas_dia')
-          .update({ titulo: e.titulo, descricao: e.descricao, exige_foto: e.exige_foto, ordem: e.ordem, horario_inicio: e.horario_inicio, horario_limite: e.horario_limite, tempo_estimado_min: e.tempo_estimado_min })
+          .update({ titulo: e.titulo, descricao: e.descricao, exige_foto: e.exige_foto, ordem: e.ordem, horario_inicio: e.horario_inicio, horario_limite: e.horario_limite, tempo_estimado_min: e.tempo_estimado_min, continua: e.continua, peso: e.peso })
           .eq('id', p.id)
       }
     }
@@ -136,12 +138,20 @@ export function gerarTarefasDoDia(colab: ColabMin, empresa: EmpresaMin, data: st
 
 export type Placar = { feitas: number; total: number; percentual: number }
 
-/** feitas ÷ total (reprovadas e pendentes contam como não feitas). Sem tarefas → null. */
-export function placar(tarefas: Pick<TarefaDia, 'status'>[]): Placar | null {
+/**
+ * Percentual = soma dos pesos das feitas ÷ soma de todos os pesos (reprovadas
+ * e pendentes contam como não feitas; tarefa sem peso vale 1).
+ * feitas/total continuam sendo a CONTAGEM de tarefas, para os textos "3 de 5".
+ * Sem tarefas → null.
+ */
+export function placar(tarefas: { status: TarefaDia['status']; peso?: number | null }[]): Placar | null {
   const total = tarefas.length
   if (total === 0) return null
   const feitas = tarefas.filter((t) => t.status === 'feita').length
-  return { feitas, total, percentual: Math.round((feitas / total) * 100) }
+  const p = (t: { peso?: number | null }) => (t.peso && t.peso > 0 ? t.peso : 1)
+  const pesoTotal = tarefas.reduce((n, t) => n + p(t), 0)
+  const pesoFeito = tarefas.filter((t) => t.status === 'feita').reduce((n, t) => n + p(t), 0)
+  return { feitas, total, percentual: Math.round((pesoFeito / pesoTotal) * 100) }
 }
 
 export async function lerDia(colaboradorId: string, data: string, db: Db = createTarefixAdmin()): Promise<TarefaDia[]> {
@@ -168,10 +178,10 @@ export async function lerMes(colaboradorId: string, anoMes: string, db: Db = cre
   const ini = datas[0]
   const fim = datas[datas.length - 1]
   const [{ data: linhas }, { count: extras }] = await Promise.all([
-    db.from('tarefas_dia').select('data, status').eq('colaborador_id', colaboradorId).gte('data', ini).lte('data', fim),
+    db.from('tarefas_dia').select('data, status, peso').eq('colaborador_id', colaboradorId).gte('data', ini).lte('data', fim),
     db.from('extras').select('*', { count: 'exact', head: true }).eq('colaborador_id', colaboradorId).eq('status', 'aprovada').gte('data', `${anoMes}-01`).lte('data', `${anoMes}-31`),
   ])
-  const porData: Record<string, { status: TarefaDia['status'] }[]> = {}
+  const porData: Record<string, { status: TarefaDia['status']; peso?: number | null }[]> = {}
   for (const l of linhas ?? []) (porData[l.data] ??= []).push(l)
   const porDia: Record<string, Placar | null> = {}
   for (const [d, ts] of Object.entries(porData)) porDia[d] = placar(ts)

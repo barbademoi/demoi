@@ -4,7 +4,8 @@ import { randomUUID } from 'crypto'
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { carregarAcesso, gravarSessao } from '@/lib/tarefix/sessaoColaborador'
 import { conferirPin, pinValido } from '@/lib/tarefix/pin'
-import { dataCurta, diaFechado, hojeSP } from '@/lib/tarefix/datas'
+import { dataCurta, diaFechado, hojeSP, minutosParaFechamento } from '@/lib/tarefix/datas'
+import { liberacaoContinuas } from '@/lib/tarefix/continuas'
 import { montarEstado, type Ctx, type EstadoHoje } from '@/lib/tarefix/estadoHoje'
 
 const BUCKET = 'tarefix-provas'
@@ -85,7 +86,7 @@ export async function prepararUpload(token: string): Promise<{ ok: true; caminho
 /* Marcar / desmarcar                                                      */
 /* ====================================================================== */
 
-export async function marcarTarefa(token: string, tarefaId: string, fotoCaminho?: string): Promise<Resposta> {
+export async function marcarTarefa(token: string, tarefaId: string, fotoCaminho?: string, autoavaliacao?: number): Promise<Resposta> {
   const ctx = await contexto(token)
   if ('ok' in ctx) return ctx
   const { colaborador, empresa } = ctx
@@ -97,6 +98,17 @@ export async function marcarTarefa(token: string, tarefaId: string, fotoCaminho?
   if (t.data !== hoje) return { ok: false, erro: 'Só dá para marcar as tarefas de hoje.' }
   if (diaFechado(hoje, empresa.horario_fechamento)) return { ok: false, erro: 'O dia já fechou.', estado: await montarEstado(ctx, false) }
   if (t.status === 'feita') return { ok: true, estado: await montarEstado(ctx, false) }
+
+  // Tarefa do dia todo: só confirma perto do fechamento, dizendo como foi.
+  let nota: number | null = null
+  if (t.continua) {
+    const lib = liberacaoContinuas(empresa.horario_fechamento, empresa.liberar_continuas_min ?? 60)
+    if (minutosParaFechamento(empresa.horario_fechamento) > (empresa.liberar_continuas_min ?? 60)) {
+      return { ok: false, erro: `Esta vale o dia todo: a confirmação libera às ${lib}.` }
+    }
+    nota = Math.round(Number(autoavaliacao))
+    if (!Number.isInteger(nota) || nota < 1 || nota > 5) return { ok: false, erro: 'Diga como foi o dia nesta tarefa (arraste a setinha).' }
+  }
 
   if (t.exige_foto) {
     if (!fotoCaminho) return { ok: false, erro: 'Esta tarefa precisa de foto.' }
@@ -110,6 +122,7 @@ export async function marcarTarefa(token: string, tarefaId: string, fotoCaminho?
       feita_em: new Date().toISOString(), // horário do SERVIDOR
       foto_path: t.exige_foto ? fotoCaminho : null,
       motivo_reprovacao: null, // refeita depois de reprovada
+      autoavaliacao: nota,
     })
     .eq('id', t.id)
     .in('status', ['pendente', 'reprovada'])
@@ -147,7 +160,7 @@ export async function desmarcarTarefa(token: string, tarefaId: string): Promise<
 
   const { error } = await db
     .from('tarefas_dia')
-    .update({ status: 'pendente', feita_em: null, foto_path: null })
+    .update({ status: 'pendente', feita_em: null, foto_path: null, autoavaliacao: null })
     .eq('id', t.id)
     .eq('status', 'feita')
   if (error) return { ok: false, erro: error.message }

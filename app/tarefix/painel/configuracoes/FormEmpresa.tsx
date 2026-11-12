@@ -12,6 +12,7 @@ export function FormEmpresa({ empresa }: { empresa: Empresa }) {
   const [logo, setLogo] = useState(empresa.logo_url)
   const [horario, setHorario] = useState(empresa.horario_fechamento.slice(0, 5))
   const [tom, setTom] = useState(empresa.tom_mensagens)
+  const [liberar, setLiberar] = useState(String(empresa.liberar_continuas_min ?? 60))
   const [enviando, setEnviando] = useState(false)
   const arquivo = useRef<HTMLInputElement>(null)
   const { pendente, erro, setErro, rodar } = useAcao()
@@ -39,7 +40,7 @@ export function FormEmpresa({ empresa }: { empresa: Empresa }) {
       className="space-y-5"
       onSubmit={(e) => {
         e.preventDefault()
-        rodar(() => salvarEmpresa({ nome, logo_url: logo, horario_fechamento: horario, tom_mensagens: tom }), () => aviso.mostrar('Ajustes salvos'))
+        rodar(() => salvarEmpresa({ nome, logo_url: logo, horario_fechamento: horario, tom_mensagens: tom, liberar_continuas_min: Number(liberar || 0) }), () => aviso.mostrar('Ajustes salvos'))
       }}
     >
       <div>
@@ -80,6 +81,23 @@ export function FormEmpresa({ empresa }: { empresa: Empresa }) {
         <label className="tf-rotulo" htmlFor="e-horario">Horário de fechamento do dia</label>
         <input id="e-horario" type="time" className="tf-campo max-w-[180px]" value={horario} onChange={(e) => setHorario(e.target.value)} />
         <p className="mt-1 text-sm text-tf-suave">Depois desse horário o dia trava e o que ficou pendente conta como não feito. (Horário de Brasília)</p>
+      </div>
+
+      <div>
+        <label className="tf-rotulo" htmlFor="e-liberar">Tarefas do dia todo: liberar a confirmação</label>
+        <div className="flex items-center gap-2">
+          <div className="relative w-32">
+            <input
+              id="e-liberar"
+              className="tf-campo !pr-14 text-right"
+              inputMode="numeric"
+              value={liberar}
+              onChange={(e) => setLiberar(e.target.value.replace(/\D/g, '').slice(0, 3))}
+            />
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-tf-suave">min</span>
+          </div>
+          <span className="text-tf-suave">antes do fechamento</span>
+        </div>
       </div>
 
       <div>

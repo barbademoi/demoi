@@ -79,6 +79,9 @@ export default async function Historico({ searchParams }: { searchParams: { c?: 
               horario_inicio: t.horario_inicio ? t.horario_inicio.slice(0, 5) : null,
       horario_limite: t.horario_limite ? t.horario_limite.slice(0, 5) : null,
               tempo_estimado_min: t.tempo_estimado_min ?? null,
+      continua: t.continua ?? false,
+      peso: t.peso ?? 1,
+      autoavaliacao: t.autoavaliacao ?? null,
             }))}
             extras={(extras ?? []).map((x) => ({ id: x.id, descricao: x.descricao, status: x.status, foto_url: x.foto_path ? urls[x.foto_path] ?? null : null }))}
           />

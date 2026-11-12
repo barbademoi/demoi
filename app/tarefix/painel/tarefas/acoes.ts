@@ -5,7 +5,11 @@ import { donoOuErro, falha, type Resultado } from '@/lib/tarefix/dono'
 import { lerHorario, lerMinutos } from '@/lib/tarefix/prazo'
 
 /** Lê "fazer até" e "tempo estimado" do formulário (ou devolve a mensagem de erro). */
-function lerPrazo(d: { horario_inicio: string; horario_limite: string; tempo_estimado_min: string }) {
+function lerPrazo(d: { horario_inicio: string; horario_limite: string; tempo_estimado_min: string; continua: boolean; peso: number }) {
+  const peso = Math.round(Number(d.peso))
+  if (![1, 2, 3].includes(peso)) return 'Peso precisa ser 1, 2 ou 3.'
+  // Do dia todo: não tem horário nem tempo (vale o dia inteiro).
+  if (d.continua) return { continua: true, peso, horario_inicio: null, horario_limite: null, tempo_estimado_min: null }
   const horario_inicio = lerHorario(d.horario_inicio)
   if (horario_inicio === undefined) return 'Hora de começar inválida. Use HH:MM.'
   const horario_limite = lerHorario(d.horario_limite)
@@ -13,7 +17,7 @@ function lerPrazo(d: { horario_inicio: string; horario_limite: string; tempo_est
   const tempo_estimado_min = lerMinutos(d.tempo_estimado_min)
   if (tempo_estimado_min === undefined) return 'Tempo estimado: de 1 a 600 minutos.'
   if (horario_inicio && horario_limite && horario_limite <= horario_inicio) return '"Fazer até" precisa ser depois da hora de começar.'
-  return { horario_inicio, horario_limite, tempo_estimado_min }
+  return { continua: false, peso, horario_inicio, horario_limite, tempo_estimado_min }
 }
 
 function revalidar() {
@@ -28,6 +32,8 @@ export type DadosModelo = {
   dias_semana: number[]
   exige_foto: boolean
   ativo: boolean
+  continua: boolean // vale o dia todo
+  peso: number // 1..3
   horario_inicio: string // 'HH:MM' ou ''
   horario_limite: string // 'HH:MM' ou ''
   tempo_estimado_min: string // minutos ou ''
@@ -97,6 +103,8 @@ export type DadosAvulsa = {
   descricao: string
   data: string
   exige_foto: boolean
+  continua: boolean
+  peso: number
   horario_inicio: string
   horario_limite: string
   tempo_estimado_min: string

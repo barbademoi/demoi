@@ -44,9 +44,10 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
       m
         ? {
             id: m.id, colaborador_id: colaborador.id, titulo: m.titulo, descricao: m.descricao ?? '', dias_semana: m.dias_semana, exige_foto: m.exige_foto, ativo: m.ativo,
+            continua: m.continua ?? false, peso: m.peso ?? 1,
             horario_inicio: horarioHHMM(m.horario_inicio) ?? '', horario_limite: horarioHHMM(m.horario_limite) ?? '', tempo_estimado_min: m.tempo_estimado_min ? String(m.tempo_estimado_min) : '',
           }
-        : { colaborador_id: colaborador.id, titulo: '', descricao: '', dias_semana: [1, 2, 3, 4, 5, 6], exige_foto: false, ativo: true, horario_inicio: '', horario_limite: '', tempo_estimado_min: '' }
+        : { colaborador_id: colaborador.id, titulo: '', descricao: '', dias_semana: [1, 2, 3, 4, 5, 6], exige_foto: false, ativo: true, continua: false, peso: 1, horario_inicio: '', horario_limite: '', tempo_estimado_min: '' }
     )
   }
 
@@ -133,9 +134,10 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
       a
         ? {
             id: a.id, colaborador_id: colaborador.id, titulo: a.titulo, descricao: a.descricao ?? '', data: a.data, exige_foto: a.exige_foto,
+            continua: a.continua ?? false, peso: a.peso ?? 1,
             horario_inicio: horarioHHMM(a.horario_inicio) ?? '', horario_limite: horarioHHMM(a.horario_limite) ?? '', tempo_estimado_min: a.tempo_estimado_min ? String(a.tempo_estimado_min) : '',
           }
-        : { colaborador_id: colaborador.id, titulo: '', descricao: '', data: hoje, exige_foto: false, horario_inicio: '', horario_limite: '', tempo_estimado_min: '' }
+        : { colaborador_id: colaborador.id, titulo: '', descricao: '', data: hoje, exige_foto: false, continua: false, peso: 1, horario_inicio: '', horario_limite: '', tempo_estimado_min: '' }
     )
   }
 
@@ -183,7 +185,7 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
                       {m.exige_foto && <span className="text-tf-marca-texto"><IconeCamera /></span>}
                     </span>
                     <span className="text-sm text-tf-suave">
-                      {[resumoDias(m.dias_semana), janela(m), duracao(m.tempo_estimado_min)].filter(Boolean).join(' · ')}
+                      {[resumoDias(m.dias_semana), m.continua ? 'o dia todo' : janela(m), !m.continua && duracao(m.tempo_estimado_min), m.peso > 1 && `vale ${m.peso}×`].filter(Boolean).join(' · ')}
                       {!m.ativo && ' · pausada'}
                     </span>
                   </button>
@@ -223,8 +225,10 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
                       {a.titulo}
                       {a.exige_foto && <span className="text-tf-marca-texto"><IconeCamera /></span>}
                     </span>
-                    {(janela(a) || a.tempo_estimado_min) && (
-                      <span className="block text-sm text-tf-suave">{[janela(a), duracao(a.tempo_estimado_min)].filter(Boolean).join(' · ')}</span>
+                    {(a.continua || janela(a) || a.tempo_estimado_min || a.peso > 1) && (
+                      <span className="block text-sm text-tf-suave">
+                        {[a.continua ? 'o dia todo' : janela(a), !a.continua && duracao(a.tempo_estimado_min), a.peso > 1 && `vale ${a.peso}×`].filter(Boolean).join(' · ')}
+                      </span>
                     )}
                   </span>
                 </button>
@@ -259,6 +263,32 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
               <span className="tf-rotulo">Dias da semana</span>
               <ChipsDias valor={modelo.dias_semana} aoMudar={(v) => setModelo({ ...modelo, dias_semana: v })} />
             </div>
+            <Interruptor
+              rotulo="Vale o dia todo"
+              descricao="Atendimento, comandas, verificar algo… Fica fixa no topo; o colaborador confirma perto do fechamento e diz como foi."
+              ligado={modelo.continua}
+              aoMudar={(x) => setModelo({ ...modelo, continua: x, peso: x && modelo.peso === 1 ? 2 : modelo.peso })}
+            />
+            <div>
+              <span className="tf-rotulo">Peso no percentual</span>
+              <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Peso">
+                {[1, 2, 3].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    role="radio"
+                    aria-checked={modelo.peso === n}
+                    onClick={() => setModelo({ ...modelo, peso: n })}
+                    className={`min-h-[48px] rounded-xl border font-extrabold transition ${modelo.peso === n ? 'border-tf-marca bg-tf-marca text-white' : 'border-tf-borda text-tf-suave'}`}
+                  >
+                    {n}×
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-sm text-tf-suave">Vale como {modelo.peso} {modelo.peso > 1 ? 'tarefas comuns' : 'tarefa comum'} no percentual do dia.</p>
+            </div>
+            {!modelo.continua && (
+              <>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="tf-rotulo" htmlFor="modelo-inicio">Começar às</label>
@@ -291,6 +321,8 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
                 })()}
               </p>
             </div>
+              </>
+            )}
             <Interruptor rotulo="Exige foto" descricao="Só conclui com uma foto tirada na hora." ligado={modelo.exige_foto} aoMudar={(v) => setModelo({ ...modelo, exige_foto: v })} />
             {modelo.id && <Interruptor rotulo="Ativa" descricao="Pausar tira a tarefa dos próximos dias." ligado={modelo.ativo} aoMudar={(v) => setModelo({ ...modelo, ativo: v })} />}
             {modelo.id && <p className="text-sm text-tf-suave">Mudanças valem a partir de agora; dias que já passaram não mudam.</p>}
@@ -344,6 +376,32 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
               <input id="a-data" type="date" className="tf-campo" min={avulsa.id ? undefined : hoje} value={avulsa.data} onChange={(e) => setAvulsa({ ...avulsa, data: e.target.value })} />
               {avulsa.data && <p className="mt-1 text-sm text-tf-suave first-letter:uppercase">{dataPorExtenso(avulsa.data)}</p>}
             </div>
+            <Interruptor
+              rotulo="Vale o dia todo"
+              descricao="Atendimento, comandas, verificar algo… Fica fixa no topo; o colaborador confirma perto do fechamento e diz como foi."
+              ligado={avulsa.continua}
+              aoMudar={(x) => setAvulsa({ ...avulsa, continua: x, peso: x && avulsa.peso === 1 ? 2 : avulsa.peso })}
+            />
+            <div>
+              <span className="tf-rotulo">Peso no percentual</span>
+              <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Peso">
+                {[1, 2, 3].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    role="radio"
+                    aria-checked={avulsa.peso === n}
+                    onClick={() => setAvulsa({ ...avulsa, peso: n })}
+                    className={`min-h-[48px] rounded-xl border font-extrabold transition ${avulsa.peso === n ? 'border-tf-marca bg-tf-marca text-white' : 'border-tf-borda text-tf-suave'}`}
+                  >
+                    {n}×
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-sm text-tf-suave">Vale como {avulsa.peso} {avulsa.peso > 1 ? 'tarefas comuns' : 'tarefa comum'} no percentual do dia.</p>
+            </div>
+            {!avulsa.continua && (
+              <>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="tf-rotulo" htmlFor="avulsa-inicio">Começar às</label>
@@ -376,6 +434,8 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
                 })()}
               </p>
             </div>
+              </>
+            )}
             <Interruptor rotulo="Exige foto" ligado={avulsa.exige_foto} aoMudar={(v) => setAvulsa({ ...avulsa, exige_foto: v })} />
             <Erro texto={acaoAvulsa.erro} />
             <button type="submit" className="tf-botao w-full" disabled={acaoAvulsa.pendente}>

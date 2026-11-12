@@ -32,6 +32,11 @@ do BarberMeta:
 - **Hora de começar** (`005_horario_inicio.sql`): com o tempo estimado monta o fluxo do dia (09:00–09:15).
   Sem "fazer até", o fim previsto vira o prazo do atraso. A lista segue a ordem dos horários e destaca a
   tarefa da vez com **agora**.
+- **Tarefas do dia todo, peso e autoavaliação** (`006_tarefas_dia_todo.sql`, `lib/tarefix/continuas.ts`):
+  tarefa marcada como "vale o dia todo" (atendimento, comandas, verificar algo) fica fixa no topo, em
+  roxo, sem horário; o check só libera X min antes do fechamento (Ajustes, padrão 60) e, ao confirmar,
+  o colaborador arrasta uma setinha de autoavaliação (Difícil → Excelente, não entra no %). Toda tarefa
+  pode ter **peso 1, 2 ou 3** no percentual (soma dos pesos feitos ÷ soma dos pesos).
 
 ## Instalar (pelo navegador)
 

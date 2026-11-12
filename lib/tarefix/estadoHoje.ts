@@ -23,6 +23,9 @@ export type TarefaTela = {
   motivo_reprovacao: string | null
   foto_url: string | null
   horario_inicio: string | null // 'HH:MM'
+  continua: boolean
+  peso: number
+  autoavaliacao: number | null
   horario_limite: string | null // 'HH:MM'
   tempo_estimado_min: number | null
 }
@@ -47,6 +50,7 @@ export type EstadoHoje = {
   sequencia: number // dias seguidos em 100% antes de hoje
   evolucao: number | null // pontos acima do mês passado (só se > 0)
   tom: TomMensagens
+  liberarContinuasMin: number // check das tarefas do dia todo libera X min antes do fechamento
 }
 
 export type Ctx = { colaborador: Colaborador; empresa: Empresa }
@@ -110,6 +114,9 @@ export async function montarEstado({ colaborador, empresa }: Ctx, gerar: boolean
       horario_inicio: t.horario_inicio ? t.horario_inicio.slice(0, 5) : null,
       horario_limite: t.horario_limite ? t.horario_limite.slice(0, 5) : null,
       tempo_estimado_min: t.tempo_estimado_min ?? null,
+      continua: t.continua ?? false,
+      peso: t.peso ?? 1,
+      autoavaliacao: t.autoavaliacao ?? null,
     })),
     dia: placar(linhas),
     mes: resumoMes.placar,
@@ -122,6 +129,7 @@ export async function montarEstado({ colaborador, empresa }: Ctx, gerar: boolean
     sequencia,
     evolucao,
     tom: empresa.tom_mensagens,
+    liberarContinuasMin: empresa.liberar_continuas_min ?? 60,
   }
 }
 

@@ -8,6 +8,7 @@ export async function salvarEmpresa(d: {
   logo_url: string | null
   horario_fechamento: string
   tom_mensagens: 'zoeira' | 'neutro'
+  liberar_continuas_min: number
 }): Promise<Resultado> {
   const s = await donoOuErro()
   if ('ok' in s) return s
@@ -15,9 +16,11 @@ export async function salvarEmpresa(d: {
   if (!nome) return { ok: false, erro: 'Informe o nome da empresa.' }
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(d.horario_fechamento.slice(0, 5))) return { ok: false, erro: 'Horário inválido.' }
   if (d.tom_mensagens !== 'zoeira' && d.tom_mensagens !== 'neutro') return { ok: false, erro: 'Tom inválido.' }
+  const liberar = Math.round(Number(d.liberar_continuas_min))
+  if (!Number.isFinite(liberar) || liberar < 0 || liberar > 720) return { ok: false, erro: 'Liberação das tarefas do dia todo: de 0 a 720 minutos.' }
   const { error } = await s.db
     .from('empresas')
-    .update({ nome, logo_url: d.logo_url, horario_fechamento: d.horario_fechamento.slice(0, 5), tom_mensagens: d.tom_mensagens })
+    .update({ nome, logo_url: d.logo_url, horario_fechamento: d.horario_fechamento.slice(0, 5), tom_mensagens: d.tom_mensagens, liberar_continuas_min: liberar })
     .eq('id', s.empresa.id)
   if (error) return falha(error)
   revalidatePath('/tarefix/painel', 'layout')

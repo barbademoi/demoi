@@ -7,6 +7,7 @@ import { Avatar, Erro, Modal, useAcao, useAviso } from '@/components/tarefix/ui'
 import { Termometro } from '@/components/tarefix/Termometro'
 import { decidirExtra, reprovarTarefa, restaurarTarefa } from './acoesHoje'
 import { duracao, eAgora, estaAtrasada, janela, minutosDeAtraso, prazoEfetivo } from '@/lib/tarefix/prazo'
+import { rotuloAutoavaliacao } from '@/lib/tarefix/continuas'
 
 const horaSP = (iso: string) =>
   new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO, hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
@@ -55,12 +56,16 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
 
   const totalFeitas = painel.cards.reduce((n, c) => n + (c.placar?.feitas ?? 0), 0)
   const totalTarefas = painel.cards.reduce((n, c) => n + (c.placar?.total ?? 0), 0)
+  // percentual da equipe com o peso de cada tarefa (como no placar de cada um)
+  const todas = painel.cards.flatMap((c) => c.tarefas)
+  const pesoTotal = todas.reduce((n, t) => n + (t.peso || 1), 0)
+  const pesoFeito = todas.filter((t) => t.status === 'feita').reduce((n, t) => n + (t.peso || 1), 0)
 
   return (
     <div className="space-y-5">
       {totalTarefas > 0 && (
         <section className="tf-cartao p-5">
-          <Termometro rotulo="Equipe hoje" percentual={Math.round((totalFeitas / totalTarefas) * 100)} detalhe={`${totalFeitas} de ${totalTarefas} tarefas`} />
+          <Termometro rotulo="Equipe hoje" percentual={pesoTotal ? Math.round((pesoFeito / pesoTotal) * 100) : null} detalhe={`${totalFeitas} de ${totalTarefas} tarefas`} />
         </section>
       )}
 
@@ -143,13 +148,20 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
 
             {c.tarefas.length > 0 && (
               <ul className="mt-4 divide-y divide-tf-borda border-t border-tf-borda">
-                {c.tarefas.map((t) => {
+                {[...c.tarefas.filter((t) => t.continua), ...c.tarefas.filter((t) => !t.continua)].map((t) => {
                   const clicavel = t.status !== 'pendente'
                   const conteudo = (
                     <>
                       <Status t={t} />
                       <span className="min-w-0 flex-1">
                         <span className={`block truncate font-bold ${t.status === 'pendente' ? '' : 'text-tf-suave'}`}>{t.titulo}</span>
+                        {t.continua && (
+                          <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm">
+                            <span className="rounded-full bg-tf-marca px-2 py-0.5 text-[11px] font-bold text-white">o dia todo{t.peso > 1 ? ` · ${t.peso}×` : ''}</span>
+                            {t.status === 'feita' && rotuloAutoavaliacao(t.autoavaliacao) && <span className="text-tf-suave">se avaliou: <b className="text-tf-texto">{rotuloAutoavaliacao(t.autoavaliacao)}</b></span>}
+                          </span>
+                        )}
+                        {!t.continua && t.peso > 1 && <span className="block text-sm text-tf-suave">vale {t.peso}×</span>}
                         {t.status === 'reprovada' && t.motivo_reprovacao && <span className="block truncate text-sm text-tf-suave">Voltou: {t.motivo_reprovacao}</span>}
                         {estaAtrasada(t, painel.hoje) ? (
                           <span className="mt-0.5 inline-block rounded-full bg-tf-texto px-2 py-0.5 text-[11px] font-bold text-tf-fundo">atrasada · era até {prazoEfetivo(t)}</span>
@@ -199,6 +211,8 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
             <p className="text-tf-suave">
               {aberta.colaborador}
               {aberta.tarefa.feita_em && ` · feita às ${horaSP(aberta.tarefa.feita_em)}`}
+              {aberta.tarefa.continua && rotuloAutoavaliacao(aberta.tarefa.autoavaliacao) && ` · se avaliou: ${rotuloAutoavaliacao(aberta.tarefa.autoavaliacao)}`}
+              {aberta.tarefa.peso > 1 && ` · vale ${aberta.tarefa.peso}×`}
             </p>
             {aberta.tarefa.status === 'reprovada' && (
               <p className="rounded-xl bg-tf-texto px-4 py-3 text-sm font-bold text-tf-fundo">Reprovada: {aberta.tarefa.motivo_reprovacao}</p>
