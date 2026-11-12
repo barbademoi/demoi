@@ -1,7 +1,8 @@
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
-import { anoMesDe, diaFechado, hojeSP, minutosParaFechamento } from '@/lib/tarefix/datas'
+import { anoMesDe, diaFechado, hojeSP, mesAnterior, minutosParaFechamento, somarDias } from '@/lib/tarefix/datas'
 import { gerarELerMes, gerarTarefasDoDia, lerDia, lerMes, placar, type Placar } from '@/lib/tarefix/tarefasDia'
-import type { Colaborador, Empresa } from '@/lib/tarefix/tipos'
+import { niveisOrdenados, situacaoBonus, type SituacaoBonus } from '@/lib/tarefix/bonus'
+import type { Colaborador, Empresa, TomMensagens } from '@/lib/tarefix/tipos'
 
 // NÃO é 'use server': recebe o colaborador já validado e não pode virar
 // uma ação pública (senão qualquer um leria as tarefas de qualquer um).
@@ -35,6 +36,14 @@ export type EstadoHoje = {
   mes: Placar | null
   extrasHoje: ExtraTela[]
   extrasAprovadasMes: number
+  /* ---- Meu mês, bônus e mensagens ---- */
+  anoMes: string
+  mesDias: Record<string, number | null> // % de cada dia com tarefas
+  folgasMes: string[]
+  bonus: SituacaoBonus | null // null = desligado ou escondido do colaborador
+  sequencia: number // dias seguidos em 100% antes de hoje
+  evolucao: number | null // pontos acima do mês passado (só se > 0)
+  tom: TomMensagens
 }
 
 export type Ctx = { colaborador: Colaborador; empresa: Empresa }
@@ -48,11 +57,30 @@ export async function montarEstado({ colaborador, empresa }: Ctx, gerar: boolean
   const resumoMes = gerar ? await gerarELerMes(colaborador, empresa, anoMes, db) : await lerMes(colaborador.id, anoMes, db)
   if (!gerar) await gerarTarefasDoDia(colaborador, empresa, hoje, db)
 
-  const [linhas, { data: folga }, { data: extras }] = await Promise.all([
+  const inicioSequencia = somarDias(hoje, -60)
+  const [linhas, { data: folgasMes }, { data: extras }, { data: bonusCfg }, { data: recentes }, anterior] = await Promise.all([
     lerDia(colaborador.id, hoje, db),
-    db.from('folgas').select('id').eq('colaborador_id', colaborador.id).eq('data', hoje).maybeSingle(),
+    db.from('folgas').select('data').eq('colaborador_id', colaborador.id).gte('data', `${anoMes}-01`).lte('data', `${anoMes}-31`),
     db.from('extras').select('id, descricao, status').eq('colaborador_id', colaborador.id).eq('data', hoje).order('criado_em'),
+    db.from('bonus_config').select('*').eq('empresa_id', empresa.id).maybeSingle(),
+    db.from('tarefas_dia').select('data, status').eq('colaborador_id', colaborador.id).gte('data', inicioSequencia).lt('data', hoje),
+    mesPassado(colaborador.id, anoMes, db),
   ])
+  const folga = (folgasMes ?? []).some((f) => f.data === hoje)
+
+  // Sequência: dias com tarefas, de ontem para trás, todos 100% (folga/sem tarefa não quebra)
+  const porDia: Record<string, { status: string }[]> = {}
+  for (const r of recentes ?? []) (porDia[r.data] ??= []).push(r)
+  let sequencia = 0
+  for (const d of Object.keys(porDia).sort().reverse()) {
+    if (porDia[d].every((t) => t.status === 'feita')) sequencia++
+    else break
+  }
+
+  const niveis = niveisOrdenados(bonusCfg?.niveis)
+  const bonusVisivel = Boolean(bonusCfg?.ativo && bonusCfg?.mostrar_para_colaborador && niveis.length)
+  const pctMes = resumoMes.placar?.percentual ?? null
+  const evolucao = anterior !== null && pctMes !== null && pctMes > anterior ? pctMes - anterior : null
 
   // Miniaturas das fotos (links temporários do bucket privado)
   const caminhos = linhas.map((t) => t.foto_path).filter((p): p is string => Boolean(p))
@@ -66,7 +94,7 @@ export async function montarEstado({ colaborador, empresa }: Ctx, gerar: boolean
     hoje,
     fechado: diaFechado(hoje, empresa.horario_fechamento),
     minutosParaFechar: minutosParaFechamento(empresa.horario_fechamento),
-    folga: Boolean(folga),
+    folga,
     tarefas: linhas.map((t) => ({
       id: t.id,
       titulo: t.titulo,
@@ -81,6 +109,22 @@ export async function montarEstado({ colaborador, empresa }: Ctx, gerar: boolean
     mes: resumoMes.placar,
     extrasHoje: (extras ?? []) as ExtraTela[],
     extrasAprovadasMes: resumoMes.extrasAprovadas,
+    anoMes,
+    mesDias: Object.fromEntries(Object.entries(resumoMes.porDia).map(([d, p]) => [d, p?.percentual ?? null])),
+    folgasMes: (folgasMes ?? []).map((f) => f.data),
+    bonus: bonusVisivel ? situacaoBonus(niveis, pctMes) : null,
+    sequencia,
+    evolucao,
+    tom: empresa.tom_mensagens,
   }
+}
+
+/** % final do mês passado: do fechamento, se houver; senão o que estiver registrado. */
+async function mesPassado(colaboradorId: string, anoMes: string, db: ReturnType<typeof createTarefixAdmin>): Promise<number | null> {
+  const ant = mesAnterior(anoMes)
+  const { data: fechado } = await db.from('meses_fechados').select('percentual_final').eq('colaborador_id', colaboradorId).eq('ano_mes', ant).maybeSingle()
+  if (fechado) return Math.round(Number(fechado.percentual_final))
+  const r = await lerMes(colaboradorId, ant, db)
+  return r.placar?.percentual ?? null
 }
 

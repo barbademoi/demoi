@@ -7,7 +7,9 @@ import { dataPorExtenso, FUSO } from '@/lib/tarefix/datas'
 import type { EstadoHoje, TarefaTela } from '@/lib/tarefix/estadoHoje'
 import { Avatar, Erro, Modal } from '@/components/tarefix/ui'
 import { Termometro } from '@/components/tarefix/Termometro'
+import { escolherMomento, preencher, sortearMensagem, variaveisDa, type Momento } from '@/lib/tarefix/mensagens'
 import { desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra } from './acoes'
+import { MeuMes } from './MeuMes'
 
 type Props = {
   token: string
@@ -33,6 +35,46 @@ function IconeCamera({ className = 'h-5 w-5' }: { className?: string }) {
   )
 }
 
+/** Mensagens já mostradas hoje neste aparelho (para não repetir no mesmo dia). */
+function lerUsadas(chave: string): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(chave) ?? '[]')
+  } catch {
+    return []
+  }
+}
+function guardarUsada(chave: string, modelo: string) {
+  try {
+    const lista = lerUsadas(chave)
+    if (!lista.includes(modelo)) localStorage.setItem(chave, JSON.stringify([...lista, modelo].slice(-80)))
+  } catch {
+    /* sem localStorage: tudo bem, só pode repetir */
+  }
+}
+
+async function soltarConfete() {
+  if (typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  const confetti = (await import('canvas-confetti')).default
+  const cores = ['#5B3DF5', '#8B74FF', '#F5A524', '#2DB960', '#FFFFFF']
+  confetti({ particleCount: 120, spread: 80, origin: { y: 0.65 }, colors: cores, disableForReducedMotion: true })
+  setTimeout(() => confetti({ particleCount: 80, spread: 110, origin: { y: 0.6 }, colors: cores, disableForReducedMotion: true }), 250)
+}
+
+/** Recalcula o termômetro do dia na hora do toque (o servidor confirma em seguida). */
+function comTarefa(e: EstadoHoje, id: string, mudanca: Partial<TarefaTela>): EstadoHoje {
+  const tarefas = e.tarefas.map((x) => (x.id === id ? { ...x, ...mudanca } : x))
+  const feitas = tarefas.filter((t) => t.status === 'feita').length
+  const total = tarefas.length
+  const antes = e.tarefas.find((x) => x.id === id)?.status === 'feita' ? 1 : 0
+  const depois = tarefas.find((x) => x.id === id)?.status === 'feita' ? 1 : 0
+  return {
+    ...e,
+    tarefas,
+    dia: total ? { feitas, total, percentual: Math.round((feitas / total) * 100) } : null,
+    mes: e.mes ? { ...e.mes, feitas: e.mes.feitas + depois - antes, percentual: Math.round(((e.mes.feitas + depois - antes) / e.mes.total) * 100) } : e.mes,
+  }
+}
+
 /** Envia a foto direto ao Storage (bucket privado) por uma URL assinada pelo servidor. */
 async function enviarFoto(token: string, arquivo: File): Promise<string> {
   const blob = await comprimirImagem(arquivo, 1280, 0.7)
@@ -56,6 +98,65 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
   const primeiroNome = colaborador.nome.split(' ')[0]
   const fechado = estado.fechado
   const pendentes = estado.tarefas.filter((t) => t.status !== 'feita').length
+  const [aba, setAba] = useState<'hoje' | 'mes'>('hoje')
+
+  /* ----------------------- relógio (minutos p/ fechar) ----------------------- */
+  const recebidoEm = useRef(Date.now())
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    recebidoEm.current = Date.now()
+  }, [estado])
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 30_000)
+    return () => clearInterval(id)
+  }, [])
+  const minutosRestantes = estado.minutosParaFechar - Math.floor((Date.now() - recebidoEm.current) / 60_000)
+
+  /* ------------------------------- mensagens ------------------------------- */
+  const chaveUsadas = `tfx-msg-${token.slice(0, 10)}-${estado.hoje}`
+  const reprovadas = estado.tarefas.filter((t) => t.status === 'reprovada').map((t) => ({ motivo: t.motivo_reprovacao ?? '' }))
+  const situacao = {
+    total: estado.tarefas.length,
+    feitas: estado.dia?.feitas ?? 0,
+    reprovadas,
+    fechado,
+    minutosParaFechar: minutosRestantes,
+    sequencia: estado.sequencia,
+    evolucao: estado.evolucao,
+    faltaBonus: estado.bonus?.falta ?? null,
+  }
+  const momento = estado.folga ? null : escolherMomento(situacao)
+  const [mensagem, setMensagem] = useState<{ momento: Momento; modelo: string } | null>(null)
+  const [transitoria, setTransitoria] = useState<{ momento: Momento; modelo: string } | null>(null)
+
+  // sorteia quando o momento muda (no cliente, para poder evitar repetidas do dia)
+  useEffect(() => {
+    if (!momento) return setMensagem(null)
+    setMensagem((atual) => {
+      if (atual?.momento === momento) return atual
+      const modelo = sortearMensagem(momento, estado.tom, lerUsadas(chaveUsadas))
+      guardarUsada(chaveUsadas, modelo)
+      return { momento, modelo }
+    })
+  }, [momento, estado.tom, chaveUsadas])
+
+  function mostrarTransitoria(m: Momento) {
+    const modelo = sortearMensagem(m, estado.tom, lerUsadas(chaveUsadas))
+    guardarUsada(chaveUsadas, modelo)
+    setTransitoria({ momento: m, modelo })
+    setTimeout(() => setTransitoria((t) => (t?.modelo === modelo ? null : t)), 6000)
+  }
+
+  const exibida = transitoria ?? mensagem
+  const textoMensagem = exibida ? preencher(exibida.modelo, variaveisDa(situacao, primeiroNome)) : null
+
+  /* ------------------------------- comemoração ------------------------------- */
+  const pctAnterior = useRef<number | null>(inicial.dia?.percentual ?? null)
+  useEffect(() => {
+    const agora = estado.dia?.percentual ?? null
+    if (agora === 100 && pctAnterior.current !== null && pctAnterior.current < 100) soltarConfete()
+    pctAnterior.current = agora
+  }, [estado.dia?.percentual])
 
   // Trava a tela sozinha quando dá o horário (o servidor também recusa).
   useEffect(() => {
@@ -84,7 +185,7 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
       if (t.foto_url && !confirm('Desmarcar esta tarefa? A foto enviada será apagada.')) return
       setOcupada(t.id)
       const anterior = estado
-      setEstado((e) => ({ ...e, tarefas: e.tarefas.map((x) => (x.id === t.id ? { ...x, status: 'pendente', foto_url: null, feita_em: null } : x)) }))
+      setEstado((e) => comTarefa(e, t.id, { status: 'pendente', foto_url: null, feita_em: null }))
       await aplicar(desmarcarTarefa(token, t.id), anterior).finally(() => setOcupada(null))
       return
     }
@@ -95,7 +196,7 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
     }
     setOcupada(t.id)
     const anterior = estado
-    setEstado((e) => ({ ...e, tarefas: e.tarefas.map((x) => (x.id === t.id ? { ...x, status: 'feita', feita_em: new Date().toISOString() } : x)) }))
+    setEstado((e) => comTarefa(e, t.id, { status: 'feita', feita_em: new Date().toISOString() }))
     await aplicar(marcarTarefa(token, t.id), anterior).finally(() => setOcupada(null))
   }
 
@@ -107,7 +208,10 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
     setErro(null)
     try {
       const caminho = await enviarFoto(token, arquivo)
-      await aplicar(marcarTarefa(token, id, caminho))
+      const r = await marcarTarefa(token, id, caminho)
+      if (r.estado) setEstado(r.estado)
+      if (!r.ok) setErro(r.erro)
+      else if (r.estado?.dia?.percentual !== 100) mostrarTransitoria('foto_enviada')
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não consegui enviar a foto.')
     } finally {
@@ -134,6 +238,7 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
       setExtraAberta(false)
       setExtraTexto('')
       setExtraFoto(null)
+      mostrarTransitoria('extra')
     } catch (e) {
       setExtraErro(e instanceof Error ? e.message : 'Não consegui registrar.')
     } finally {
@@ -163,28 +268,58 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
         </span>
       </div>
 
-      {/* Mensagem do topo (o banco de mensagens com sorteio chega na etapa 5) */}
-      <p className="mt-5 text-2xl font-extrabold leading-tight tracking-tight">
+      {/* Abas */}
+      <div className="mt-5 grid grid-cols-2 gap-1 rounded-2xl bg-tf-card p-1" role="tablist">
+        {(
+          [
+            ['hoje', 'Hoje'],
+            ['mes', 'Meu mês'],
+          ] as const
+        ).map(([v, r]) => (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={aba === v}
+            onClick={() => setAba(v)}
+            className={`min-h-[44px] rounded-xl font-bold transition ${aba === v ? 'bg-tf-marca text-white' : 'text-tf-suave'}`}
+          >
+            {r}
+          </button>
+        ))}
+      </div>
+
+      {aba === 'mes' ? (
+        <div className="mt-5">
+          <MeuMes estado={estado} />
+        </div>
+      ) : (
+      <>
+      {/* Mensagem do topo (banco com sorteio em lib/tarefix/mensagens.ts) */}
+      <p className="mt-5 min-h-[2.5em] text-2xl font-extrabold leading-tight tracking-tight" aria-live="polite">
         {estado.folga
           ? `Hoje é folga, ${primeiroNome}. Bom descanso!`
           : estado.tarefas.length === 0
             ? `${saudacao()}, ${primeiroNome}! Nenhuma tarefa para hoje.`
-            : fechado
-              ? `Dia encerrado: ${estado.dia?.feitas ?? 0} de ${estado.dia?.total ?? 0} feitas.`
-              : pendentes === 0
-                ? `Dia 100%, ${primeiroNome}!`
-                : `${saudacao()}, ${primeiroNome}! ${estado.tarefas.length} tarefa${estado.tarefas.length > 1 ? 's' : ''} hoje.`}
+            : textoMensagem ?? `${saudacao()}, ${primeiroNome}!`}
       </p>
 
       {/* Termômetros */}
       <section className="tf-cartao mt-5 space-y-5 p-5">
         <Termometro rotulo="Hoje" percentual={estado.dia?.percentual ?? null} detalhe={estado.dia ? `${estado.dia.feitas} de ${estado.dia.total}` : undefined} grande />
         <Termometro rotulo="No mês" percentual={estado.mes?.percentual ?? null} detalhe={estado.extrasAprovadasMes ? `+${estado.extrasAprovadasMes} extra${estado.extrasAprovadasMes > 1 ? 's' : ''} aprovada${estado.extrasAprovadasMes > 1 ? 's' : ''}` : undefined} />
+        {estado.bonus && (estado.bonus.proximo || estado.bonus.atingido) && (
+          <p className="rounded-xl bg-tf-marca-clara px-4 py-3 text-sm font-bold text-tf-marca-texto">
+            {estado.bonus.proximo && estado.bonus.falta !== null
+              ? `Faltam ${estado.bonus.falta}% no mês para ${estado.bonus.atingido ? 'o próximo bônus' : 'o bônus'}: ${estado.bonus.proximo.premio}.`
+              : `Bônus de ${estado.bonus.atingido!.premio} garantido até agora.`}
+          </p>
+        )}
       </section>
 
-      {!fechado && pendentes > 0 && estado.minutosParaFechar > 0 && estado.minutosParaFechar <= 60 && (
+      {!fechado && pendentes > 0 && minutosRestantes > 0 && minutosRestantes <= 60 && momento !== 'perto_fechamento' && (
         <p className="mt-4 rounded-2xl bg-tf-marca-clara px-4 py-3 font-bold text-tf-marca-texto">
-          Faltam {estado.minutosParaFechar} min para fechar e {pendentes} tarefa{pendentes > 1 ? 's' : ''} pendente{pendentes > 1 ? 's' : ''}.
+          Faltam {minutosRestantes} min para fechar e {pendentes} tarefa{pendentes > 1 ? 's' : ''} pendente{pendentes > 1 ? 's' : ''}.
         </p>
       )}
 
@@ -282,6 +417,9 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
             </ul>
           )}
         </section>
+      )}
+
+      </>
       )}
 
       {/* Câmera (abre direto no celular) */}

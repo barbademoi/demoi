@@ -4,8 +4,15 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Logo } from './Logo'
 
-const ITENS = [
-  { href: '/tarefix/painel', rotulo: 'Hoje', icone: 'M4 12l8-8 8 8M6 10v10h12V10' },
+const I_HOJE = { href: '/tarefix/painel', rotulo: 'Hoje', icone: 'M4 12l8-8 8 8M6 10v10h12V10' }
+const I_MES = { href: '/tarefix/painel/mes', rotulo: 'Mês', icone: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z' }
+const I_HIST = { href: '/tarefix/painel/historico', rotulo: 'Histórico', icone: 'M3 12a9 9 0 109-9 9.7 9.7 0 00-6.7 2.8L3 8M3 3v5h5M12 7v5l4 2' }
+const I_MAIS = { href: '/tarefix/painel/mais', rotulo: 'Mais', icone: 'M5 12h.01M12 12h.01M19 12h.01' }
+
+export const ITENS = [
+  I_HOJE,
+  I_MES,
+  I_HIST,
   { href: '/tarefix/painel/colaboradores', rotulo: 'Equipe', icone: 'M16 20v-1a4 4 0 00-4-4H8a4 4 0 00-4 4v1M10 11a4 4 0 100-8 4 4 0 000 8zM20 20v-1a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8' },
   { href: '/tarefix/painel/tarefas', rotulo: 'Tarefas', icone: 'M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2' },
   { href: '/tarefix/painel/funcoes', rotulo: 'Funções', icone: 'M20 7H4a1 1 0 00-1 1v10a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1zM16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2' },
@@ -20,7 +27,12 @@ function Icone({ d }: { d: string }) {
   )
 }
 
+// Celular: 5 botões; Histórico, Funções, Avisos e Ajustes ficam em "Mais".
+const ITENS_CELULAR = [I_HOJE, I_MES, ITENS[3], ITENS[4], I_MAIS]
+const DENTRO_DE_MAIS = ['/tarefix/painel/mais', '/tarefix/painel/historico', '/tarefix/painel/funcoes', '/tarefix/painel/configuracoes', '/tarefix/painel/avisos']
+
 function ativo(pathname: string, href: string) {
+  if (href === I_MAIS.href) return DENTRO_DE_MAIS.some((p) => pathname.startsWith(p))
   return href === '/tarefix/painel' ? pathname === href : pathname.startsWith(href)
 }
 
@@ -76,7 +88,7 @@ export function Nav({ nomeEmpresa, naoLidos }: { nomeEmpresa: string; naoLidos: 
       </aside>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-tf-borda bg-tf-card pb-[env(safe-area-inset-bottom)] lg:hidden">
-        {ITENS.map((i) => (
+        {ITENS_CELULAR.map((i) => (
           <Link
             key={i.href}
             href={i.href}
