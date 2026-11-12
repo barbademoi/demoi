@@ -16,7 +16,7 @@ do BarberMeta:
 ## Etapas
 
 - [x] **1. Supabase** — tabelas, RLS, buckets e instalação guiada em `/tarefix/instalar`
-- [ ] 2. Login do dono + CRUD de funções, colaboradores, tarefas e folgas
+- [x] **2. Painel do dono** — login (`/tarefix/entrar`), funções, equipe (foto, link, PIN, WhatsApp, folgas, ativar/desativar), tarefas recorrentes (arrastar para ordenar) e avulsas, ajustes da empresa
 - [ ] 3. Acesso do colaborador (token + PIN) e tela Hoje
 - [ ] 4. Painel do dono: Hoje, reprovação, extras, avisos
 - [ ] 5. Mês, histórico, bônus, fechamento, mensagens, comemoração

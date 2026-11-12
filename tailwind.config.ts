@@ -27,6 +27,7 @@ const config: Config = {
           marca: '#5B3DF5',
           'marca-forte': '#4A2DE0',
           'marca-clara': 'rgb(var(--tf-marca-clara) / <alpha-value>)',
+          'marca-texto': 'rgb(var(--tf-marca-texto) / <alpha-value>)',
           vermelho: '#E5484D',
           amarelo: '#F5A524',
           verde: '#2DB960',

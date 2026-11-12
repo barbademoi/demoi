@@ -19,7 +19,11 @@ function RouteTracker() {
 }
 
 export default function MetaPixel() {
+  const pathname = usePathname()
   if (!META_PIXEL_ID) return null
+  // Tarefix é outro produto (uso interno da equipe): nada de Pixel lá,
+  // nem a imagem de fallback do <noscript>.
+  if (pathname === '/tarefix' || pathname?.startsWith('/tarefix/')) return null
 
   return (
     <>
