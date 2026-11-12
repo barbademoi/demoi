@@ -11,6 +11,8 @@ export type Tom = 'zoeira' | 'neutro'
 export type Momento =
   | 'abertura'
   | 'primeira_feita'
+  | 'andamento'
+  | 'reta_final'
   | 'metade'
   | 'falta_uma'
   | 'dia_100'
@@ -60,6 +62,38 @@ export const MENSAGENS: Record<Momento, Record<Tom, string[]>> = {
       'Primeira tarefa feita. Continue assim.',
       'Ótimo começo, {nome}.',
       'Uma a menos na lista.',
+    ],
+  },
+  andamento: {
+    zoeira: [
+      'Tá rendendo. Faltam {faltam} e a lista já sentiu o golpe.',
+      'Ritmo bom. Mais {faltam} e a gente conversa sobre confete.',
+      'A lista tá encolhendo. Faltam {faltam}, segue o baile.',
+      'Embalou, hein? Ainda tem {faltam} na fila.',
+      'Pegou no tranco. Faltam {faltam}, não deixa o motor esfriar.',
+    ],
+    neutro: [
+      'Bom ritmo! Faltam {faltam} tarefas.',
+      'Você está avançando bem. Restam {faltam}.',
+      'Continue assim: faltam {faltam} tarefas.',
+      'Progresso constante, {nome}. Faltam {faltam}.',
+      'Boa sequência! Ainda há {faltam} tarefas.',
+    ],
+  },
+  reta_final: {
+    zoeira: [
+      'Reta final: só {faltam}. Dá pra ver a linha de chegada daqui.',
+      'Faltam {faltam}. A lista já tá pedindo arrego.',
+      'Só {faltam} entre você e o dia 100%. Bora fechar a conta.',
+      'Passou da metade faz tempo. Faltam {faltam}, acelera que é descida.',
+      '{faltam} tarefas. É pouco. Muito pouco. Vai lá.',
+    ],
+    neutro: [
+      'Reta final: faltam {faltam} tarefas.',
+      'Quase lá, {nome}! Restam {faltam}.',
+      'Falta pouco: {faltam} tarefas para completar o dia.',
+      'Mais {faltam} e o dia fica 100%.',
+      'Você já passou da metade. Faltam {faltam}.',
     ],
   },
   metade: {
@@ -289,7 +323,7 @@ export function escolherMomento(s: Situacao): Momento | null {
     return 'abertura'
   }
   if (s.faltaBonus !== null && s.faltaBonus > 0 && s.faltaBonus <= 5) return 'bonus_perto'
-  return s.feitas >= s.total / 2 ? 'metade' : 'primeira_feita'
+  return s.feitas >= s.total / 2 ? 'reta_final' : 'andamento'
 }
 
 export function variaveisDa(s: Situacao, nome: string): Variaveis {
