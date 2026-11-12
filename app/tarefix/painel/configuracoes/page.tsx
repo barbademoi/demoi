@@ -3,6 +3,7 @@ import { Titulo } from '@/components/tarefix/ui'
 import { BotaoSair } from '@/components/tarefix/BotaoSair'
 import { FormEmpresa } from './FormEmpresa'
 import { FormBonus } from './FormBonus'
+import { SeletorTema } from '@/components/tarefix/Tema'
 import { niveisOrdenados } from '@/lib/tarefix/bonus'
 
 export const metadata = { title: 'Ajustes' }
@@ -20,6 +21,11 @@ export default async function Configuracoes() {
       <section className="tf-cartao p-5">
         <h2 className="mb-4 text-lg font-extrabold">Bônus</h2>
         <FormBonus ativo={bonus?.ativo ?? false} mostrar={bonus?.mostrar_para_colaborador ?? true} niveis={niveisOrdenados(bonus?.niveis)} />
+      </section>
+      <section className="tf-cartao space-y-3 p-5">
+        <h2 className="text-lg font-extrabold">Aparência</h2>
+        <p className="text-sm text-tf-suave">Vale para este aparelho. &quot;Sistema&quot; segue o modo claro/escuro do celular ou computador.</p>
+        <SeletorTema />
       </section>
       <section className="tf-cartao space-y-3 p-5">
         <h2 className="text-lg font-extrabold">Conta</h2>

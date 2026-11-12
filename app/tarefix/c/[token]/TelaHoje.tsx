@@ -10,6 +10,8 @@ import { Termometro } from '@/components/tarefix/Termometro'
 import { escolherMomento, preencher, sortearMensagem, variaveisDa, type Momento } from '@/lib/tarefix/mensagens'
 import { desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra } from './acoes'
 import { MeuMes } from './MeuMes'
+import { BotaoTema } from '@/components/tarefix/Tema'
+import { DicaInstalar } from '@/components/tarefix/DicaInstalar'
 
 type Props = {
   token: string
@@ -259,7 +261,10 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={empresa.logo_url} alt="" className="h-10 w-10 rounded-xl object-cover" />
         )}
+        <BotaoTema />
       </header>
+
+      <DicaInstalar />
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm">
         <span className="font-bold first-letter:uppercase">{dataPorExtenso(estado.hoje)}</span>
