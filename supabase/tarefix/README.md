@@ -18,7 +18,7 @@ do BarberMeta:
 - [x] **1. Supabase** — tabelas, RLS, buckets e instalação guiada em `/tarefix/instalar`
 - [x] **2. Painel do dono** — login (`/tarefix/entrar`), funções, equipe (foto, link, PIN, WhatsApp, folgas, ativar/desativar), tarefas recorrentes (arrastar para ordenar) e avulsas, ajustes da empresa
 - [x] **3. Colaborador** — `/tarefix/c/[token]` + PIN (cookie assinado de 30 dias, bloqueio de 5 min após 5 erros), tela Hoje com check, foto pela câmera (upload direto ao bucket privado por URL assinada), termômetros do dia e do mês, tarefas reprovadas com motivo e registro de extras
-- [ ] 4. Painel do dono: Hoje, reprovação, extras, avisos
+- [x] **4. Painel Hoje do dono** — termômetro da equipe, card por colaborador (termômetro, fotos, tarefas), reprovar com motivo e desfazer, aprovar/recusar extras, sininho de avisos e resumo diário do fechamento gerado sem cron (na primeira abertura depois do horário)
 - [ ] 5. Mês, histórico, bônus, fechamento, mensagens, comemoração
 - [ ] 6. Tema claro/escuro, PWA e ícones
 
