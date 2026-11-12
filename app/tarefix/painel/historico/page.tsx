@@ -66,6 +66,7 @@ export default async function Historico({ searchParams }: { searchParams: { c?: 
           </section>
           <DiaHistorico
             data={data}
+            horarioFechamento={empresa.horario_fechamento}
             mesFechado={Boolean(fechado)}
             tarefas={tarefas.map((t) => ({
               id: t.id,

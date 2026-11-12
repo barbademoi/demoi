@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto'
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { carregarAcesso, gravarSessao } from '@/lib/tarefix/sessaoColaborador'
 import { conferirPin, pinValido } from '@/lib/tarefix/pin'
-import { dataCurta, diaFechado, hojeSP, minutosParaFechamento } from '@/lib/tarefix/datas'
+import { dataCurta, hojeSP, minutosParaFechamento } from '@/lib/tarefix/datas'
 import { liberacaoContinuas } from '@/lib/tarefix/continuas'
 import { montarEstado, type Ctx, type EstadoHoje } from '@/lib/tarefix/estadoHoje'
 
@@ -96,7 +96,8 @@ export async function marcarTarefa(token: string, tarefaId: string, fotoCaminho?
   const { data: t } = await db.from('tarefas_dia').select('*').eq('id', tarefaId).eq('colaborador_id', colaborador.id).maybeSingle()
   if (!t) return { ok: false, erro: 'Tarefa não encontrada.' }
   if (t.data !== hoje) return { ok: false, erro: 'Só dá para marcar as tarefas de hoje.' }
-  if (diaFechado(hoje, empresa.horario_fechamento)) return { ok: false, erro: 'O dia já fechou.', estado: await montarEstado(ctx, false) }
+  // Depois do horário de fechamento ainda dá para marcar HOJE (até a meia-noite):
+  // conta no percentual, mas aparece como "fora do horário" para o dono.
   if (t.status === 'feita') return { ok: true, estado: await montarEstado(ctx, false) }
 
   // Tarefa do dia todo: só confirma perto do fechamento, dizendo como foi.
@@ -153,9 +154,7 @@ export async function desmarcarTarefa(token: string, tarefaId: string): Promise<
 
   const { data: t } = await db.from('tarefas_dia').select('*').eq('id', tarefaId).eq('colaborador_id', ctx.colaborador.id).maybeSingle()
   if (!t) return { ok: false, erro: 'Tarefa não encontrada.' }
-  if (t.data !== hoje || diaFechado(hoje, ctx.empresa.horario_fechamento)) {
-    return { ok: false, erro: 'O dia já fechou.', estado: await montarEstado(ctx, false) }
-  }
+  if (t.data !== hoje) return { ok: false, erro: 'Só dá para mexer nas tarefas de hoje.', estado: await montarEstado(ctx, false) }
   if (t.status !== 'feita') return { ok: true, estado: await montarEstado(ctx, false) }
 
   const { error } = await db
@@ -212,9 +211,7 @@ export async function salvarObservacao(token: string, tarefaId: string, texto: s
   const hoje = hojeSP()
   const { data: t } = await db.from('tarefas_dia').select('id, data, titulo, observacao').eq('id', tarefaId).eq('colaborador_id', ctx.colaborador.id).maybeSingle()
   if (!t) return { ok: false, erro: 'Tarefa não encontrada.' }
-  if (t.data !== hoje || diaFechado(hoje, ctx.empresa.horario_fechamento)) {
-    return { ok: false, erro: 'O dia já fechou: não dá mais para mudar a observação.', estado: await montarEstado(ctx, false) }
-  }
+  if (t.data !== hoje) return { ok: false, erro: 'Só dá para mudar a observação das tarefas de hoje.', estado: await montarEstado(ctx, false) }
   const limpo = String(texto ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_OBSERVACAO)
   const novo = limpo || null
   if (novo === (t.observacao ?? null)) return { ok: true, estado: await montarEstado(ctx, false) }
