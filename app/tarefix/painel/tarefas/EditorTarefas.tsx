@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { TarefaAvulsa, TarefaModelo } from '@/lib/tarefix/tipos'
 import { dataCurta, dataPorExtenso } from '@/lib/tarefix/datas'
-import { duracao, horarioHHMM } from '@/lib/tarefix/prazo'
+import { duracao, fimPrevisto, horarioHHMM, janela } from '@/lib/tarefix/prazo'
 import { ChipsDias, Erro, Interruptor, Modal, resumoDias, useAcao, useAviso } from '@/components/tarefix/ui'
 import { excluirAvulsa, excluirModelo, reordenarModelos, salvarAvulsa, salvarModelo, type DadosAvulsa, type DadosModelo } from './acoes'
 
@@ -44,9 +44,9 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
       m
         ? {
             id: m.id, colaborador_id: colaborador.id, titulo: m.titulo, descricao: m.descricao ?? '', dias_semana: m.dias_semana, exige_foto: m.exige_foto, ativo: m.ativo,
-            horario_limite: horarioHHMM(m.horario_limite) ?? '', tempo_estimado_min: m.tempo_estimado_min ? String(m.tempo_estimado_min) : '',
+            horario_inicio: horarioHHMM(m.horario_inicio) ?? '', horario_limite: horarioHHMM(m.horario_limite) ?? '', tempo_estimado_min: m.tempo_estimado_min ? String(m.tempo_estimado_min) : '',
           }
-        : { colaborador_id: colaborador.id, titulo: '', descricao: '', dias_semana: [1, 2, 3, 4, 5, 6], exige_foto: false, ativo: true, horario_limite: '', tempo_estimado_min: '' }
+        : { colaborador_id: colaborador.id, titulo: '', descricao: '', dias_semana: [1, 2, 3, 4, 5, 6], exige_foto: false, ativo: true, horario_inicio: '', horario_limite: '', tempo_estimado_min: '' }
     )
   }
 
@@ -133,9 +133,9 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
       a
         ? {
             id: a.id, colaborador_id: colaborador.id, titulo: a.titulo, descricao: a.descricao ?? '', data: a.data, exige_foto: a.exige_foto,
-            horario_limite: horarioHHMM(a.horario_limite) ?? '', tempo_estimado_min: a.tempo_estimado_min ? String(a.tempo_estimado_min) : '',
+            horario_inicio: horarioHHMM(a.horario_inicio) ?? '', horario_limite: horarioHHMM(a.horario_limite) ?? '', tempo_estimado_min: a.tempo_estimado_min ? String(a.tempo_estimado_min) : '',
           }
-        : { colaborador_id: colaborador.id, titulo: '', descricao: '', data: hoje, exige_foto: false, horario_limite: '', tempo_estimado_min: '' }
+        : { colaborador_id: colaborador.id, titulo: '', descricao: '', data: hoje, exige_foto: false, horario_inicio: '', horario_limite: '', tempo_estimado_min: '' }
     )
   }
 
@@ -183,7 +183,7 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
                       {m.exige_foto && <span className="text-tf-marca-texto"><IconeCamera /></span>}
                     </span>
                     <span className="text-sm text-tf-suave">
-                      {[resumoDias(m.dias_semana), m.horario_limite && `até ${horarioHHMM(m.horario_limite)}`, duracao(m.tempo_estimado_min)].filter(Boolean).join(' · ')}
+                      {[resumoDias(m.dias_semana), janela(m), duracao(m.tempo_estimado_min)].filter(Boolean).join(' · ')}
                       {!m.ativo && ' · pausada'}
                     </span>
                   </button>
@@ -223,10 +223,8 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
                       {a.titulo}
                       {a.exige_foto && <span className="text-tf-marca-texto"><IconeCamera /></span>}
                     </span>
-                    {(a.horario_limite || a.tempo_estimado_min) && (
-                      <span className="block text-sm text-tf-suave">
-                        {[a.horario_limite && `até ${horarioHHMM(a.horario_limite)}`, duracao(a.tempo_estimado_min)].filter(Boolean).join(' · ')}
-                      </span>
+                    {(janela(a) || a.tempo_estimado_min) && (
+                      <span className="block text-sm text-tf-suave">{[janela(a), duracao(a.tempo_estimado_min)].filter(Boolean).join(' · ')}</span>
                     )}
                   </span>
                 </button>
@@ -263,8 +261,8 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="tf-rotulo" htmlFor="modelo-prazo">Fazer até (opcional)</label>
-                <input id="modelo-prazo" type="time" className="tf-campo" value={modelo.horario_limite} onChange={(e) => setModelo({ ...modelo, horario_limite: e.target.value })} />
+                <label className="tf-rotulo" htmlFor="modelo-inicio">Começar às</label>
+                <input id="modelo-inicio" type="time" className="tf-campo" value={modelo.horario_inicio} onChange={(e) => setModelo({ ...modelo, horario_inicio: e.target.value })} />
               </div>
               <div>
                 <label className="tf-rotulo" htmlFor="modelo-tempo">Tempo estimado</label>
@@ -281,7 +279,18 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
                 </div>
               </div>
             </div>
-            <p className="-mt-2 text-sm text-tf-suave">Passou do horário e não fez: aparece como atrasada (não muda o %).</p>
+            <div>
+              <label className="tf-rotulo" htmlFor="modelo-prazo">Fazer até (opcional)</label>
+              <input id="modelo-prazo" type="time" className="tf-campo max-w-[180px]" value={modelo.horario_limite} onChange={(e) => setModelo({ ...modelo, horario_limite: e.target.value })} />
+              <p className="mt-1 text-sm text-tf-suave">
+                {(() => {
+                  const fim = fimPrevisto({ horario_inicio: modelo.horario_inicio || null, horario_limite: null, tempo_estimado_min: Number(modelo.tempo_estimado_min) || null })
+                  if (modelo.horario_limite) return `Depois das ${modelo.horario_limite} sem fazer, aparece como atrasada.`
+                  if (fim) return `Fim previsto ${fim}. Sem "fazer até", passou disso aparece como atrasada.`
+                  return 'Atraso só aparece com horário. Não muda o %.'
+                })()}
+              </p>
+            </div>
             <Interruptor rotulo="Exige foto" descricao="Só conclui com uma foto tirada na hora." ligado={modelo.exige_foto} aoMudar={(v) => setModelo({ ...modelo, exige_foto: v })} />
             {modelo.id && <Interruptor rotulo="Ativa" descricao="Pausar tira a tarefa dos próximos dias." ligado={modelo.ativo} aoMudar={(v) => setModelo({ ...modelo, ativo: v })} />}
             {modelo.id && <p className="text-sm text-tf-suave">Mudanças valem a partir de agora; dias que já passaram não mudam.</p>}
@@ -337,8 +346,8 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="tf-rotulo" htmlFor="avulsa-prazo">Fazer até (opcional)</label>
-                <input id="avulsa-prazo" type="time" className="tf-campo" value={avulsa.horario_limite} onChange={(e) => setAvulsa({ ...avulsa, horario_limite: e.target.value })} />
+                <label className="tf-rotulo" htmlFor="avulsa-inicio">Começar às</label>
+                <input id="avulsa-inicio" type="time" className="tf-campo" value={avulsa.horario_inicio} onChange={(e) => setAvulsa({ ...avulsa, horario_inicio: e.target.value })} />
               </div>
               <div>
                 <label className="tf-rotulo" htmlFor="avulsa-tempo">Tempo estimado</label>
@@ -355,7 +364,18 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
                 </div>
               </div>
             </div>
-            <p className="-mt-2 text-sm text-tf-suave">Passou do horário e não fez: aparece como atrasada (não muda o %).</p>
+            <div>
+              <label className="tf-rotulo" htmlFor="avulsa-prazo">Fazer até (opcional)</label>
+              <input id="avulsa-prazo" type="time" className="tf-campo max-w-[180px]" value={avulsa.horario_limite} onChange={(e) => setAvulsa({ ...avulsa, horario_limite: e.target.value })} />
+              <p className="mt-1 text-sm text-tf-suave">
+                {(() => {
+                  const fim = fimPrevisto({ horario_inicio: avulsa.horario_inicio || null, horario_limite: null, tempo_estimado_min: Number(avulsa.tempo_estimado_min) || null })
+                  if (avulsa.horario_limite) return `Depois das ${avulsa.horario_limite} sem fazer, aparece como atrasada.`
+                  if (fim) return `Fim previsto ${fim}. Sem "fazer até", passou disso aparece como atrasada.`
+                  return 'Atraso só aparece com horário. Não muda o %.'
+                })()}
+              </p>
+            </div>
             <Interruptor rotulo="Exige foto" ligado={avulsa.exige_foto} aoMudar={(v) => setAvulsa({ ...avulsa, exige_foto: v })} />
             <Erro texto={acaoAvulsa.erro} />
             <button type="submit" className="tf-botao w-full" disabled={acaoAvulsa.pendente}>

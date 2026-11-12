@@ -71,7 +71,7 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
       linhas.push({
         empresa_id: colab.empresa_id, colaborador_id: colab.id, data, origem: 'modelo', origem_id: m.id,
         titulo: m.titulo, descricao: m.descricao, exige_foto: m.exige_foto, ordem: m.ordem,
-        horario_limite: m.horario_limite ?? null, tempo_estimado_min: m.tempo_estimado_min ?? null,
+        horario_inicio: m.horario_inicio ?? null, horario_limite: m.horario_limite ?? null, tempo_estimado_min: m.tempo_estimado_min ?? null,
       })
     }
     ;((avulsas ?? []) as TarefaAvulsa[])
@@ -80,7 +80,7 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
         linhas.push({
           empresa_id: colab.empresa_id, colaborador_id: colab.id, data, origem: 'avulsa', origem_id: a.id,
           titulo: a.titulo, descricao: a.descricao, exige_foto: a.exige_foto, ordem: ORDEM_AVULSAS + i,
-          horario_limite: a.horario_limite ?? null, tempo_estimado_min: a.tempo_estimado_min ?? null,
+          horario_inicio: a.horario_inicio ?? null, horario_limite: a.horario_limite ?? null, tempo_estimado_min: a.tempo_estimado_min ?? null,
         })
       })
   }
@@ -97,7 +97,7 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
     const esperadas = new Map(linhas.filter((l) => l.data === hoje).map((l) => [`${l.origem}:${l.origem_id}`, l]))
     const { data: pendentes } = await db
       .from('tarefas_dia')
-      .select('id, origem, origem_id, titulo, descricao, exige_foto, ordem, horario_limite, tempo_estimado_min')
+      .select('id, origem, origem_id, titulo, descricao, exige_foto, ordem, horario_inicio, horario_limite, tempo_estimado_min')
       .eq('colaborador_id', colab.id)
       .eq('data', hoje)
       .eq('status', 'pendente')
@@ -108,11 +108,12 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
         remover.push(p.id)
       } else if (
         e.titulo !== p.titulo || e.descricao !== p.descricao || e.exige_foto !== p.exige_foto || e.ordem !== p.ordem ||
-        mesmoHorario(e.horario_limite) !== mesmoHorario(p.horario_limite) || (e.tempo_estimado_min ?? null) !== (p.tempo_estimado_min ?? null)
+        mesmoHorario(e.horario_limite) !== mesmoHorario(p.horario_limite) || mesmoHorario(e.horario_inicio) !== mesmoHorario(p.horario_inicio) ||
+        (e.tempo_estimado_min ?? null) !== (p.tempo_estimado_min ?? null)
       ) {
         await db
           .from('tarefas_dia')
-          .update({ titulo: e.titulo, descricao: e.descricao, exige_foto: e.exige_foto, ordem: e.ordem, horario_limite: e.horario_limite, tempo_estimado_min: e.tempo_estimado_min })
+          .update({ titulo: e.titulo, descricao: e.descricao, exige_foto: e.exige_foto, ordem: e.ordem, horario_inicio: e.horario_inicio, horario_limite: e.horario_limite, tempo_estimado_min: e.tempo_estimado_min })
           .eq('id', p.id)
       }
     }

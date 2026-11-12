@@ -1,13 +1,29 @@
 import { agoraSP, FUSO, minutosDeHorario } from '@/lib/tarefix/datas'
 
 /**
- * Prazo ("fazer até HH:MM") e tempo estimado das tarefas.
- * O atraso é só informativo: não muda o percentual do dia.
+ * Fluxo do dia: hora de começar, tempo estimado e prazo das tarefas.
+ *
+ *  - horario_inicio      "começar às HH:MM"
+ *  - tempo_estimado_min  quanto costuma levar
+ *  - horario_limite      "fazer até HH:MM" (opcional)
+ *
+ * Prazo efetivo = "fazer até" se houver; senão início + tempo estimado.
+ * Passou do prazo efetivo sem fazer → atrasada. Atraso é só informativo:
+ * não muda o percentual do dia.
  */
+
+type Horarios = { horario_inicio?: string | null; horario_limite: string | null; tempo_estimado_min?: number | null }
+type ComStatus = Horarios & { status: 'pendente' | 'feita' | 'reprovada'; feita_em: string | null }
 
 /** '09:00:00' → '09:00' */
 export function horarioHHMM(h: string | null | undefined): string | null {
   return h ? h.slice(0, 5) : null
+}
+
+/** minutos do dia → 'HH:MM' (limitado ao mesmo dia) */
+function hhmm(min: number): string {
+  const m = Math.max(0, Math.min(23 * 60 + 59, min))
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 }
 
 /** 15 → '~15 min' · 80 → '~1h20' · 60 → '~1h' */
@@ -19,34 +35,68 @@ export function duracao(min: number | null | undefined): string | null {
   return m ? `~${h}h${String(m).padStart(2, '0')}` : `~${h}h`
 }
 
-/** Minutos do dia (SP) em que a tarefa foi marcada. */
-function minutosFeita(feitaEm: string): number {
-  return agoraSP(new Date(feitaEm)).minutosDoDia
+/** Fim previsto = início + tempo estimado (ou null). */
+export function fimPrevisto(t: Horarios): string | null {
+  if (!t.horario_inicio || !t.tempo_estimado_min) return null
+  return hhmm(minutosDeHorario(t.horario_inicio) + t.tempo_estimado_min)
 }
 
-type ComPrazo = { horario_limite: string | null; status: 'pendente' | 'feita' | 'reprovada'; feita_em: string | null }
+/** Prazo usado para marcar atraso: "fazer até" ou, sem ele, o fim previsto. */
+export function prazoEfetivo(t: Horarios): string | null {
+  return horarioHHMM(t.horario_limite) ?? fimPrevisto(t)
+}
 
-/** Ainda não feita e o prazo já passou (só faz sentido no próprio dia ou em dias passados). */
-export function estaAtrasada(t: ComPrazo, data: string, ref: Date = new Date()): boolean {
-  if (!t.horario_limite || t.status === 'feita') return false
+/** Texto curto do horário: '09:00–09:15', 'às 09:00', 'até 10:00', '09:00 · até 10:30'. */
+export function janela(t: Horarios): string | null {
+  const ini = horarioHHMM(t.horario_inicio)
+  const lim = horarioHHMM(t.horario_limite)
+  const fim = fimPrevisto(t)
+  if (ini && lim) return `${ini} · até ${lim}`
+  if (ini && fim) return `${ini}–${fim}`
+  if (ini) return `às ${ini}`
+  if (lim) return `até ${lim}`
+  return null
+}
+
+/** Ainda não feita e o prazo efetivo já passou (no próprio dia ou em dias passados). */
+export function estaAtrasada(t: ComStatus, data: string, ref: Date = new Date()): boolean {
+  const prazo = prazoEfetivo(t)
+  if (!prazo || t.status === 'feita') return false
   const agora = agoraSP(ref)
   if (data < agora.data) return true
   if (data > agora.data) return false
-  return agora.minutosDoDia > minutosDeHorario(t.horario_limite)
+  return agora.minutosDoDia > minutosDeHorario(prazo)
 }
 
-/** Feita depois do prazo: minutos de atraso (ou 0). */
-export function minutosDeAtraso(t: ComPrazo): number {
-  if (!t.horario_limite || !t.feita_em || t.status === 'pendente') return 0
-  return Math.max(0, minutosFeita(t.feita_em) - minutosDeHorario(t.horario_limite))
+/** É a vez desta tarefa: pendente, hoje, já passou da hora de começar e ainda não do prazo. */
+export function eAgora(t: ComStatus, data: string, ref: Date = new Date()): boolean {
+  if (!t.horario_inicio || t.status === 'feita') return false
+  const agora = agoraSP(ref)
+  if (data !== agora.data) return false
+  if (agora.minutosDoDia < minutosDeHorario(t.horario_inicio)) return false
+  const prazo = prazoEfetivo(t)
+  return !prazo || agora.minutosDoDia <= minutosDeHorario(prazo)
 }
 
-/** Ordem de exibição: com prazo primeiro (mais cedo antes), depois a ordem definida pelo dono. */
-export function ordenarPorPrazo<T extends { horario_limite: string | null; ordem?: number; titulo: string }>(lista: T[]): T[] {
+/** Feita depois do prazo efetivo: minutos de atraso (ou 0). */
+export function minutosDeAtraso(t: ComStatus): number {
+  const prazo = prazoEfetivo(t)
+  if (!prazo || !t.feita_em || t.status === 'pendente') return 0
+  return Math.max(0, agoraSP(new Date(t.feita_em)).minutosDoDia - minutosDeHorario(prazo))
+}
+
+/**
+ * Ordem do fluxo: pelo horário de referência (início; sem início, o prazo),
+ * mais cedo antes; sem horário vai depois, na ordem que o dono arrastou.
+ */
+export function ordenarPorPrazo<T extends Horarios & { ordem?: number; titulo: string }>(lista: T[]): T[] {
+  const ref = (t: T) => horarioHHMM(t.horario_inicio) ?? horarioHHMM(t.horario_limite)
   return [...lista].sort((a, b) => {
-    if (a.horario_limite && b.horario_limite && a.horario_limite !== b.horario_limite) return a.horario_limite < b.horario_limite ? -1 : 1
-    if (a.horario_limite && !b.horario_limite) return -1
-    if (!a.horario_limite && b.horario_limite) return 1
+    const ra = ref(a)
+    const rb = ref(b)
+    if (ra && rb && ra !== rb) return ra < rb ? -1 : 1
+    if (ra && !rb) return -1
+    if (!ra && rb) return 1
     return (a.ordem ?? 0) - (b.ordem ?? 0) || a.titulo.localeCompare(b.titulo)
   })
 }

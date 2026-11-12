@@ -29,6 +29,9 @@ do BarberMeta:
   A lista do dia fica ordenada pelo prazo; pendente depois do prazo aparece como **atrasada** (não muda o
   %); feita depois do prazo registra quantos minutos atrasou. O colaborador vê o tempo previsto das
   pendentes; o painel mostra atrasadas e o total previsto por pessoa.
+- **Hora de começar** (`005_horario_inicio.sql`): com o tempo estimado monta o fluxo do dia (09:00–09:15).
+  Sem "fazer até", o fim previsto vira o prazo do atraso. A lista segue a ordem dos horários e destaca a
+  tarefa da vez com **agora**.
 
 ## Instalar (pelo navegador)
 
