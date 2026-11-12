@@ -1,11 +1,10 @@
-import { Logo } from '@/components/tarefix/Logo'
+import { redirect } from 'next/navigation'
+import { sessaoDono } from '@/lib/tarefix/dono'
 
-export default function TarefixInicio() {
-  return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-6 px-4 text-center">
-      <Logo className="text-6xl" />
-      <p className="text-lg text-tf-suave">Checklist diário da equipe.</p>
-      <a className="tf-botao" href="/tarefix/instalar">Instalação</a>
-    </main>
-  )
+export const dynamic = 'force-dynamic'
+
+// /tarefix → painel (dono logado) ou login. Colaboradores entram pelo próprio link: /tarefix/c/[token].
+export default async function TarefixInicio() {
+  const s = await sessaoDono()
+  redirect(s === 'sem-login' ? '/tarefix/entrar' : s === 'sem-acesso' ? '/tarefix/sem-acesso' : '/tarefix/painel')
 }

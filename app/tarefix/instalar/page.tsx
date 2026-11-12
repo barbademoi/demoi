@@ -25,7 +25,7 @@ function Passo({
       <div className="flex items-center gap-3">
         <span
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${
-            feito ? 'bg-tf-marca text-white' : 'bg-tf-marca-clara text-tf-marca'
+            feito ? 'bg-tf-marca text-white' : 'bg-tf-marca-clara text-tf-marca-texto'
           }`}
         >
           {feito ? '✓' : n}
@@ -40,7 +40,7 @@ function Passo({
 function LinkExterno({ href, children }: { href: string | null; children: React.ReactNode }) {
   if (!href) return <b>{children}</b>
   return (
-    <a href={href} target="_blank" rel="noreferrer" className="font-bold text-tf-marca underline">
+    <a href={href} target="_blank" rel="noreferrer" className="font-bold text-tf-marca-texto underline">
       {children}
     </a>
   )
@@ -110,8 +110,9 @@ export default async function Instalar() {
       </Passo>
 
       <Passo n={5} titulo="Pronto!" feito={passo === 5} ativo={passo === 5}>
-        <p>Tudo instalado. Confira o diagnóstico completo:</p>
-        <Link href="/tarefix/status" className="tf-botao w-full">Ver diagnóstico</Link>
+        <p>Tudo instalado.</p>
+        <Link href="/tarefix/painel" className="tf-botao w-full">Ir para o painel</Link>
+        <Link href="/tarefix/status" className="tf-botao2 w-full">Ver diagnóstico</Link>
       </Passo>
     </main>
   )

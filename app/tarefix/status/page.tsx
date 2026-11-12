@@ -75,7 +75,7 @@ export default async function Status() {
               <div className="font-bold">{c.nome}</div>
               {c.detalhe && <div className="text-sm text-tf-suave">{c.detalhe}</div>}
             </div>
-            <span className={`text-xl font-extrabold ${c.ok ? 'text-tf-marca' : 'text-tf-suave'}`}>{c.ok ? '✓' : '✗'}</span>
+            <span className={`text-xl font-extrabold ${c.ok ? 'text-tf-marca-texto' : 'text-tf-suave'}`}>{c.ok ? '✓' : '✗'}</span>
           </div>
         ))}
       </div>
