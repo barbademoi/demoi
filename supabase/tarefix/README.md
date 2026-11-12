@@ -17,7 +17,7 @@ do BarberMeta:
 
 - [x] **1. Supabase** — tabelas, RLS, buckets e instalação guiada em `/tarefix/instalar`
 - [x] **2. Painel do dono** — login (`/tarefix/entrar`), funções, equipe (foto, link, PIN, WhatsApp, folgas, ativar/desativar), tarefas recorrentes (arrastar para ordenar) e avulsas, ajustes da empresa
-- [ ] 3. Acesso do colaborador (token + PIN) e tela Hoje
+- [x] **3. Colaborador** — `/tarefix/c/[token]` + PIN (cookie assinado de 30 dias, bloqueio de 5 min após 5 erros), tela Hoje com check, foto pela câmera (upload direto ao bucket privado por URL assinada), termômetros do dia e do mês, tarefas reprovadas com motivo e registro de extras
 - [ ] 4. Painel do dono: Hoje, reprovação, extras, avisos
 - [ ] 5. Mês, histórico, bônus, fechamento, mensagens, comemoração
 - [ ] 6. Tema claro/escuro, PWA e ícones
@@ -47,4 +47,7 @@ Depois do deploy, abra `https://www.barbermeta.com.br/tarefix/instalar` e siga a
 - Campos além do briefing: `colaboradores.pin_tentativas`/`pin_bloqueado_ate`, `avisos.chave`
   (não duplicar o resumo diário) e `avisos.link`.
 - Datas do dia sempre em `America/Sao_Paulo` (`lib/tarefix/datas.ts` e `tarefix.hoje_sp()`).
+- Geração das tarefas (`lib/tarefix/tarefasDia.ts`): sem cron, roda ao abrir o dia/mês. Dia fechado que
+  já tem tarefas não muda mais; dia passado nunca aberto é gerado uma vez só com os modelos que já
+  existiam naquele dia; hoje (antes do fechamento) sincroniza as pendentes com os modelos atuais.
 - Segredo do cookie do PIN: `TAREFIX_SESSION_SECRET` se existir; senão derivado da service role.
