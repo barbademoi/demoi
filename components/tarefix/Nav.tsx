@@ -24,15 +24,40 @@ function ativo(pathname: string, href: string) {
   return href === '/tarefix/painel' ? pathname === href : pathname.startsWith(href)
 }
 
+/** Sininho com contador de avisos não lidos. */
+export function Sininho({ naoLidos }: { naoLidos: number }) {
+  const pathname = usePathname() ?? ''
+  const ativo = pathname.startsWith('/tarefix/painel/avisos')
+  return (
+    <Link
+      href="/tarefix/painel/avisos"
+      aria-label={naoLidos ? `Avisos: ${naoLidos} não lido${naoLidos > 1 ? 's' : ''}` : 'Avisos'}
+      className={`relative flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-tf-marca-clara ${ativo ? 'bg-tf-marca-clara text-tf-marca-texto' : 'text-tf-texto'}`}
+    >
+      <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0" />
+      </svg>
+      {naoLidos > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-tf-marca px-1 text-[11px] font-extrabold text-white">
+          {naoLidos > 99 ? '99+' : naoLidos}
+        </span>
+      )}
+    </Link>
+  )
+}
+
 /** Barra inferior no celular; coluna lateral no desktop. */
-export function Nav({ nomeEmpresa }: { nomeEmpresa: string }) {
+export function Nav({ nomeEmpresa, naoLidos }: { nomeEmpresa: string; naoLidos: number }) {
   const pathname = usePathname() ?? ''
   return (
     <>
       <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-tf-borda bg-tf-card px-4 py-6 lg:flex">
-        <Link href="/tarefix/painel" className="px-3">
-          <Logo className="text-3xl" />
-        </Link>
+        <div className="flex items-center justify-between pl-3">
+          <Link href="/tarefix/painel">
+            <Logo className="text-3xl" />
+          </Link>
+          <Sininho naoLidos={naoLidos} />
+        </div>
         <p className="mt-2 truncate px-3 text-sm text-tf-suave">{nomeEmpresa}</p>
         <nav className="mt-8 flex flex-col gap-1">
           {ITENS.map((i) => (
