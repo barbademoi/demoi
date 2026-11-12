@@ -10,6 +10,7 @@ const ICONES: Record<Aviso['tipo'], string> = {
   fechamento_dia: 'M12 8v4l3 2M12 21a9 9 0 100-18 9 9 0 000 18z',
   foto_enviada: 'M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2zM12 17a4 4 0 100-8 4 4 0 000 8z',
   extra_nova: 'M12 5v14M5 12h14',
+  observacao: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
   geral: 'M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0',
 }
 

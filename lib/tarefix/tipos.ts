@@ -92,6 +92,8 @@ export type TarefaDia = {
   continua: boolean
   peso: number
   autoavaliacao: number | null // 1..5, só nas do dia todo
+  observacao: string | null // escrita pelo colaborador (até 200)
+  observacao_em: string | null
   status: StatusTarefa
   feita_em: string | null
   foto_path: string | null
@@ -123,7 +125,7 @@ export type BonusConfig = {
 export type Aviso = {
   id: string
   empresa_id: string
-  tipo: 'fechamento_dia' | 'extra_nova' | 'foto_enviada' | 'geral'
+  tipo: 'fechamento_dia' | 'extra_nova' | 'foto_enviada' | 'observacao' | 'geral'
   texto: string
   link: string | null
   chave: string | null

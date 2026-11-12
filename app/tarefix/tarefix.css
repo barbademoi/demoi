@@ -73,3 +73,32 @@ body:has(.tarefix) {
 .tf-rotulo {
   @apply mb-1 block text-sm font-bold text-tf-suave;
 }
+
+/* ---------- Termômetro metálico ---------- */
+.tf-termo-trilho {
+  background: linear-gradient(180deg, #d9d8e2 0%, #f2f1f7 45%, #c9c7d4 100%);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.25), inset 0 -1px 1px rgb(255 255 255 / 0.6);
+}
+html[data-tf-tema='dark'] .tarefix .tf-termo-trilho {
+  background: linear-gradient(180deg, #2b2840 0%, #3a3655 45%, #221f33 100%);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.6), inset 0 -1px 1px rgb(255 255 255 / 0.08);
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-tf-tema='light']) .tarefix .tf-termo-trilho {
+    background: linear-gradient(180deg, #2b2840 0%, #3a3655 45%, #221f33 100%);
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.6), inset 0 -1px 1px rgb(255 255 255 / 0.08);
+  }
+}
+/* brilho que passa devagar sobre a parte alcançada */
+.tf-termo-reflexo {
+  background: linear-gradient(105deg, transparent 0%, transparent 38%, rgb(255 255 255 / 0.55) 48%, transparent 58%, transparent 100%);
+  background-size: 250% 100%;
+  animation: tf-reflexo 3.2s ease-in-out infinite;
+}
+@keyframes tf-reflexo {
+  0% { background-position: 130% 0; }
+  60%, 100% { background-position: -30% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tf-termo-reflexo { animation: none; opacity: 0; }
+}

@@ -60,7 +60,7 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
   )
   if (datasValidas.length === 0) return
 
-  const linhas: Omit<TarefaDia, 'id' | 'status' | 'feita_em' | 'foto_path' | 'motivo_reprovacao' | 'reprovada_em' | 'autoavaliacao'>[] = []
+  const linhas: Omit<TarefaDia, 'id' | 'status' | 'feita_em' | 'foto_path' | 'motivo_reprovacao' | 'reprovada_em' | 'autoavaliacao' | 'observacao' | 'observacao_em'>[] = []
   for (const data of datasValidas) {
     const dow = diaDaSemana(data)
     const aberto = !diaFechado(data, empresa.horario_fechamento)

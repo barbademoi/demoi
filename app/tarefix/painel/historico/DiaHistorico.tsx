@@ -55,6 +55,7 @@ export function DiaHistorico({ tarefas, extras, mesFechado, data }: { tarefas: T
                   {estaAtrasada(t, data) && ' (não feita no prazo)'}
                   {duracao(t.tempo_estimado_min) && ` · ${duracao(t.tempo_estimado_min)}`}
                 </span>
+                {t.observacao && <span className="block text-sm italic text-tf-texto">Obs.: {t.observacao}</span>}
               </span>
             </button>
           </li>
@@ -93,6 +94,11 @@ export function DiaHistorico({ tarefas, extras, mesFechado, data }: { tarefas: T
               {STATUS[atual.status]}
               {atual.feita_em && atual.status !== 'pendente' && ` às ${horaSP(atual.feita_em)}`}
             </p>
+            {atual.observacao && (
+              <p className="rounded-xl bg-tf-marca-clara px-4 py-3 text-sm">
+                <b>Observação do colaborador:</b> {atual.observacao}
+              </p>
+            )}
             {atual.status === 'reprovada' && <p className="rounded-xl bg-tf-texto px-4 py-3 text-sm font-bold text-tf-fundo">Motivo: {atual.motivo_reprovacao}</p>}
             {mesFechado && atual.status !== 'pendente' && <p className="text-sm text-tf-suave">Mês fechado: não dá mais para alterar.</p>}
 

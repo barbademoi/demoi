@@ -37,6 +37,12 @@ do BarberMeta:
   roxo, sem horário; o check só libera X min antes do fechamento (Ajustes, padrão 60) e, ao confirmar,
   o colaborador arrasta uma setinha de autoavaliação (Difícil → Excelente, não entra no %). Toda tarefa
   pode ter **peso 1, 2 ou 3** no percentual (soma dos pesos feitos ÷ soma dos pesos).
+- **Observações do colaborador** (`007_observacoes.sql`): balão em cada tarefa (feita ou não, inclusive
+  as do dia todo) para um texto de até 200 caracteres, editável até o dia fechar. Gera aviso no sininho
+  (um por tarefa; editar atualiza e volta a não lido; apagar remove). Aparece no painel e no histórico.
+- **Termômetro metálico**: cores mais fortes (#E11D2E → #F59E0B → #16A34A), brilho metálico na parte
+  alcançada (com reflexo animado que respeita "reduzir movimento"), trilho de metal e marcador em
+  forma de botão metálico; o calendário do mês usa o mesmo acabamento.
 
 ## Instalar (pelo navegador)
 

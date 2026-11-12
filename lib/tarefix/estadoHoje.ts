@@ -26,6 +26,7 @@ export type TarefaTela = {
   continua: boolean
   peso: number
   autoavaliacao: number | null
+  observacao: string | null
   horario_limite: string | null // 'HH:MM'
   tempo_estimado_min: number | null
 }
@@ -117,6 +118,7 @@ export async function montarEstado({ colaborador, empresa }: Ctx, gerar: boolean
       continua: t.continua ?? false,
       peso: t.peso ?? 1,
       autoavaliacao: t.autoavaliacao ?? null,
+      observacao: t.observacao ?? null,
     })),
     dia: placar(linhas),
     mes: resumoMes.placar,

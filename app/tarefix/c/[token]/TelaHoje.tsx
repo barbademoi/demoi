@@ -8,7 +8,7 @@ import type { EstadoHoje, TarefaTela } from '@/lib/tarefix/estadoHoje'
 import { Avatar, Erro, Modal } from '@/components/tarefix/ui'
 import { Termometro } from '@/components/tarefix/Termometro'
 import { escolherMomento, preencher, sortearMensagem, variaveisDa, type Momento } from '@/lib/tarefix/mensagens'
-import { desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra } from './acoes'
+import { desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra, salvarObservacao } from './acoes'
 import { MeuMes } from './MeuMes'
 import { duracao, eAgora, estaAtrasada, janela, minutosDeAtraso, prazoEfetivo } from '@/lib/tarefix/prazo'
 import { AUTOAVALIACAO, liberacaoContinuas, rotuloAutoavaliacao } from '@/lib/tarefix/continuas'
@@ -39,6 +39,14 @@ function IconeCamera({ className = 'h-5 w-5' }: { className?: string }) {
   )
 }
 
+function IconeBalao({ className = 'h-5 w-5', cheio = false }: { className?: string; cheio?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill={cheio ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+    </svg>
+  )
+}
+
 /** Mensagens já mostradas hoje neste aparelho (para não repetir no mesmo dia). */
 function lerUsadas(chave: string): string[] {
   try {
@@ -59,7 +67,7 @@ function guardarUsada(chave: string, modelo: string) {
 async function soltarConfete() {
   if (typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
   const confetti = (await import('canvas-confetti')).default
-  const cores = ['#5B3DF5', '#8B74FF', '#F5A524', '#2DB960', '#FFFFFF']
+  const cores = ['#5B3DF5', '#8B74FF', '#F59E0B', '#16A34A', '#FFFFFF']
   confetti({ particleCount: 120, spread: 80, origin: { y: 0.65 }, colors: cores, disableForReducedMotion: true })
   setTimeout(() => confetti({ particleCount: 80, spread: 110, origin: { y: 0.6 }, colors: cores, disableForReducedMotion: true }), 250)
 }
@@ -251,6 +259,32 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
     }
   }
 
+  /* ---------------------------- observações ---------------------------- */
+  const [observando, setObservando] = useState<{ tarefa: TarefaTela; texto: string } | null>(null)
+  const [obsSalvando, setObsSalvando] = useState(false)
+  const [obsErro, setObsErro] = useState<string | null>(null)
+
+  async function gravarObservacao(texto: string) {
+    if (!observando) return
+    setObsErro(null)
+    setObsSalvando(true)
+    try {
+      const r = await salvarObservacao(token, observando.tarefa.id, texto)
+      if (r.estado) setEstado(r.estado)
+      if (!r.ok) return setObsErro(r.erro)
+      setObservando(null)
+    } catch {
+      setObsErro('Sem conexão. Confira a internet e tente de novo.')
+    } finally {
+      setObsSalvando(false)
+    }
+  }
+
+  function abrirObservacao(t: TarefaTela) {
+    setObsErro(null)
+    setObservando({ tarefa: t, texto: t.observacao ?? '' })
+  }
+
   /* ------------------------------ extras ------------------------------ */
   const [extraAberta, setExtraAberta] = useState(false)
   const [extraTexto, setExtraTexto] = useState('')
@@ -423,7 +457,18 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
                             ? 'Toque para confirmar e dizer como foi'
                             : `confirma a partir das ${horaLiberacao}`}
                       </p>
+                      {t.observacao && <p className="mt-1 text-sm italic text-white/90">Obs.: {t.observacao}</p>}
                     </div>
+                    {!fechado && (
+                      <button
+                        type="button"
+                        onClick={() => abrirObservacao(t)}
+                        aria-label={`${t.observacao ? 'Editar observação' : 'Escrever observação'}: ${t.titulo}`}
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/90 hover:bg-white/10"
+                      >
+                        <IconeBalao cheio={Boolean(t.observacao)} />
+                      </button>
+                    )}
                   </li>
                 )
               })}
@@ -491,7 +536,18 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
                         </span>
                       )}
                     </p>
+                    {t.observacao && <p className="mt-1 text-sm italic text-tf-texto">Obs.: {t.observacao}</p>}
                   </div>
+                  {!fechado && (
+                    <button
+                      type="button"
+                      onClick={() => abrirObservacao(t)}
+                      aria-label={`${t.observacao ? 'Editar observação' : 'Escrever observação'}: ${t.titulo}`}
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-tf-marca-clara ${t.observacao ? 'text-tf-marca-texto' : 'text-tf-suave'}`}
+                    >
+                      <IconeBalao cheio={Boolean(t.observacao)} />
+                    </button>
+                  )}
                   {t.foto_url && (
                     <button type="button" onClick={() => setFotoAberta(t.foto_url)} className="shrink-0" aria-label="Ver foto">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -632,6 +688,39 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
               {avaliando.tarefa.exige_foto ? 'Confirmar e tirar foto' : 'Confirmar'}
             </button>
           </div>
+        )}
+      </Modal>
+
+      <Modal aberto={observando !== null} aoFechar={() => !obsSalvando && setObservando(null)} titulo="Observação">
+        {observando && (
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault()
+              gravarObservacao(observando.texto)
+            }}
+          >
+            <p className="font-bold">{observando.tarefa.titulo}</p>
+            <textarea
+              className="tf-campo min-h-[110px] py-3"
+              maxLength={200}
+              autoFocus
+              value={observando.texto}
+              onChange={(e) => setObservando({ ...observando, texto: e.target.value })}
+              placeholder="Ex.: Faltou produto de limpeza / A torneira do lavabo está pingando"
+              aria-label="Observação"
+            />
+            <p className="-mt-2 text-right text-xs text-tf-suave">{observando.texto.length}/200 · quem cuida da equipe recebe um aviso</p>
+            <Erro texto={obsErro} />
+            <button type="submit" className="tf-botao w-full" disabled={obsSalvando}>
+              {obsSalvando ? 'Salvando…' : 'Salvar observação'}
+            </button>
+            {observando.tarefa.observacao && (
+              <button type="button" className="tf-botao2 w-full" disabled={obsSalvando} onClick={() => gravarObservacao('')}>
+                Apagar observação
+              </button>
+            )}
+          </form>
         )}
       </Modal>
 

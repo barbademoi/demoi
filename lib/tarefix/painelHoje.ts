@@ -11,7 +11,7 @@ import { ordenarPorPrazo } from '@/lib/tarefix/prazo'
 
 const BUCKET = 'tarefix-provas'
 
-export type TarefaPainel = Pick<TarefaDia, 'id' | 'titulo' | 'descricao' | 'exige_foto' | 'status' | 'feita_em' | 'motivo_reprovacao' | 'horario_inicio' | 'horario_limite' | 'tempo_estimado_min' | 'continua' | 'peso' | 'autoavaliacao'> & {
+export type TarefaPainel = Pick<TarefaDia, 'id' | 'titulo' | 'descricao' | 'exige_foto' | 'status' | 'feita_em' | 'motivo_reprovacao' | 'horario_inicio' | 'horario_limite' | 'tempo_estimado_min' | 'continua' | 'peso' | 'autoavaliacao' | 'observacao'> & {
   foto_url: string | null
 }
 
@@ -109,6 +109,7 @@ export async function carregarPainelHoje(empresa: Empresa): Promise<PainelHoje> 
       continua: t.continua ?? false,
       peso: t.peso ?? 1,
       autoavaliacao: t.autoavaliacao ?? null,
+      observacao: t.observacao ?? null,
         })),
       }
     }),
