@@ -22,6 +22,14 @@ do BarberMeta:
 - [x] **5. Mês e mensagens** — colaborador: aba Meu mês (calendário colorido pelo % do dia, extras, níveis de bônus), mensagens sorteadas por momento e tom sem repetir no dia (`lib/tarefix/mensagens.ts`), confete no dia 100%; dono: Mês (termômetros, quem está em cada nível de bônus, Fechar mês só para meses encerrados), Histórico (colaborador + data, com reprovação enquanto o mês estiver aberto), bônus em Ajustes
 - [x] **6. Tema e PWA** — chave Sistema/Claro/Escuro (Ajustes do dono e cabeçalho do colaborador, salva no aparelho, sem piscar), manifesto por colaborador (o ícone na tela inicial abre direto no link dele) e do painel, ícones 192/512/maskable/Apple em `public/tarefix`, dica de instalação no celular, fonte hospedada em `app/tarefix/fontes`
 
+## Melhorias depois da V1
+
+- **Prazo e tempo estimado** (`004_horario_tempo.sql`, `lib/tarefix/prazo.ts`): cada tarefa (recorrente
+  ou avulsa) pode ter "fazer até HH:MM" e "tempo estimado" em minutos, copiados para o dia como o título.
+  A lista do dia fica ordenada pelo prazo; pendente depois do prazo aparece como **atrasada** (não muda o
+  %); feita depois do prazo registra quantos minutos atrasou. O colaborador vê o tempo previsto das
+  pendentes; o painel mostra atrasadas e o total previsto por pessoa.
+
 ## Instalar (pelo navegador)
 
 Depois do deploy, abra `https://www.barbermeta.com.br/tarefix/instalar` e siga a tela:

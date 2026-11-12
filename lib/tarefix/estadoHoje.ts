@@ -22,6 +22,8 @@ export type TarefaTela = {
   feita_em: string | null
   motivo_reprovacao: string | null
   foto_url: string | null
+  horario_limite: string | null // 'HH:MM'
+  tempo_estimado_min: number | null
 }
 
 export type ExtraTela = { id: string; descricao: string; status: 'pendente' | 'aprovada' | 'recusada' }
@@ -104,6 +106,8 @@ export async function montarEstado({ colaborador, empresa }: Ctx, gerar: boolean
       feita_em: t.feita_em,
       motivo_reprovacao: t.motivo_reprovacao,
       foto_url: t.foto_path ? urls[t.foto_path] ?? null : null,
+      horario_limite: t.horario_limite ? t.horario_limite.slice(0, 5) : null,
+      tempo_estimado_min: t.tempo_estimado_min ?? null,
     })),
     dia: placar(linhas),
     mes: resumoMes.placar,

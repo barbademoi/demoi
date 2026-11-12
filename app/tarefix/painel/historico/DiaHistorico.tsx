@@ -5,6 +5,7 @@ import type { TarefaPainel } from '@/lib/tarefix/painelHoje'
 import { FUSO } from '@/lib/tarefix/datas'
 import { Erro, Modal, useAcao, useAviso } from '@/components/tarefix/ui'
 import { reprovarTarefa, restaurarTarefa } from '../acoesHoje'
+import { duracao, estaAtrasada, minutosDeAtraso } from '@/lib/tarefix/prazo'
 
 const horaSP = (iso: string) => new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO, hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
 const STATUS = { feita: 'Feita', pendente: 'Não feita', reprovada: 'Reprovada' } as const
@@ -12,7 +13,7 @@ const STATUS_EXTRA = { pendente: 'Aguardando', aprovada: 'Aprovada', recusada: '
 
 type Extra = { id: string; descricao: string; status: keyof typeof STATUS_EXTRA; foto_url: string | null }
 
-export function DiaHistorico({ tarefas, extras, mesFechado }: { tarefas: TarefaPainel[]; extras: Extra[]; mesFechado: boolean }) {
+export function DiaHistorico({ tarefas, extras, mesFechado, data }: { tarefas: TarefaPainel[]; extras: Extra[]; mesFechado: boolean; data: string }) {
   const [aberta, setAberta] = useState<TarefaPainel | null>(null)
   const [motivo, setMotivo] = useState('')
   const acao = useAcao()
@@ -45,6 +46,10 @@ export function DiaHistorico({ tarefas, extras, mesFechado }: { tarefas: TarefaP
                   {STATUS[t.status]}
                   {t.feita_em && t.status !== 'pendente' && ` · ${horaSP(t.feita_em)}`}
                   {t.status === 'reprovada' && t.motivo_reprovacao && ` · ${t.motivo_reprovacao}`}
+                  {t.horario_limite && ` · prazo ${t.horario_limite}`}
+                  {minutosDeAtraso(t) > 0 && ` (${minutosDeAtraso(t)} min depois)`}
+                  {estaAtrasada(t, data) && ' (não feita no prazo)'}
+                  {duracao(t.tempo_estimado_min) && ` · ${duracao(t.tempo_estimado_min)}`}
                 </span>
               </span>
             </button>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { TarefaAvulsa, TarefaModelo } from '@/lib/tarefix/tipos'
 import { dataCurta, dataPorExtenso } from '@/lib/tarefix/datas'
+import { duracao, horarioHHMM } from '@/lib/tarefix/prazo'
 import { ChipsDias, Erro, Interruptor, Modal, resumoDias, useAcao, useAviso } from '@/components/tarefix/ui'
 import { excluirAvulsa, excluirModelo, reordenarModelos, salvarAvulsa, salvarModelo, type DadosAvulsa, type DadosModelo } from './acoes'
 
@@ -41,8 +42,11 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
     acaoModelo.setErro(null)
     setModelo(
       m
-        ? { id: m.id, colaborador_id: colaborador.id, titulo: m.titulo, descricao: m.descricao ?? '', dias_semana: m.dias_semana, exige_foto: m.exige_foto, ativo: m.ativo }
-        : { colaborador_id: colaborador.id, titulo: '', descricao: '', dias_semana: [1, 2, 3, 4, 5, 6], exige_foto: false, ativo: true }
+        ? {
+            id: m.id, colaborador_id: colaborador.id, titulo: m.titulo, descricao: m.descricao ?? '', dias_semana: m.dias_semana, exige_foto: m.exige_foto, ativo: m.ativo,
+            horario_limite: horarioHHMM(m.horario_limite) ?? '', tempo_estimado_min: m.tempo_estimado_min ? String(m.tempo_estimado_min) : '',
+          }
+        : { colaborador_id: colaborador.id, titulo: '', descricao: '', dias_semana: [1, 2, 3, 4, 5, 6], exige_foto: false, ativo: true, horario_limite: '', tempo_estimado_min: '' }
     )
   }
 
@@ -127,8 +131,11 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
     acaoAvulsa.setErro(null)
     setAvulsa(
       a
-        ? { id: a.id, colaborador_id: colaborador.id, titulo: a.titulo, descricao: a.descricao ?? '', data: a.data, exige_foto: a.exige_foto }
-        : { colaborador_id: colaborador.id, titulo: '', descricao: '', data: hoje, exige_foto: false }
+        ? {
+            id: a.id, colaborador_id: colaborador.id, titulo: a.titulo, descricao: a.descricao ?? '', data: a.data, exige_foto: a.exige_foto,
+            horario_limite: horarioHHMM(a.horario_limite) ?? '', tempo_estimado_min: a.tempo_estimado_min ? String(a.tempo_estimado_min) : '',
+          }
+        : { colaborador_id: colaborador.id, titulo: '', descricao: '', data: hoje, exige_foto: false, horario_limite: '', tempo_estimado_min: '' }
     )
   }
 
@@ -176,7 +183,7 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
                       {m.exige_foto && <span className="text-tf-marca-texto"><IconeCamera /></span>}
                     </span>
                     <span className="text-sm text-tf-suave">
-                      {resumoDias(m.dias_semana)}
+                      {[resumoDias(m.dias_semana), m.horario_limite && `até ${horarioHHMM(m.horario_limite)}`, duracao(m.tempo_estimado_min)].filter(Boolean).join(' · ')}
                       {!m.ativo && ' · pausada'}
                     </span>
                   </button>
@@ -211,9 +218,16 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
                   <span className="w-14 shrink-0 rounded-lg bg-tf-marca-clara py-1 text-center text-sm font-extrabold text-tf-marca-texto">
                     {a.data === hoje ? 'Hoje' : dataCurta(a.data)}
                   </span>
-                  <span className="flex flex-1 items-center gap-2 font-bold">
-                    {a.titulo}
-                    {a.exige_foto && <span className="text-tf-marca-texto"><IconeCamera /></span>}
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2 font-bold">
+                      {a.titulo}
+                      {a.exige_foto && <span className="text-tf-marca-texto"><IconeCamera /></span>}
+                    </span>
+                    {(a.horario_limite || a.tempo_estimado_min) && (
+                      <span className="block text-sm text-tf-suave">
+                        {[a.horario_limite && `até ${horarioHHMM(a.horario_limite)}`, duracao(a.tempo_estimado_min)].filter(Boolean).join(' · ')}
+                      </span>
+                    )}
                   </span>
                 </button>
               </li>
@@ -247,6 +261,27 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
               <span className="tf-rotulo">Dias da semana</span>
               <ChipsDias valor={modelo.dias_semana} aoMudar={(v) => setModelo({ ...modelo, dias_semana: v })} />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="tf-rotulo" htmlFor="modelo-prazo">Fazer até (opcional)</label>
+                <input id="modelo-prazo" type="time" className="tf-campo" value={modelo.horario_limite} onChange={(e) => setModelo({ ...modelo, horario_limite: e.target.value })} />
+              </div>
+              <div>
+                <label className="tf-rotulo" htmlFor="modelo-tempo">Tempo estimado</label>
+                <div className="relative">
+                  <input
+                    id="modelo-tempo"
+                    className="tf-campo !pr-14"
+                    inputMode="numeric"
+                    placeholder="—"
+                    value={modelo.tempo_estimado_min}
+                    onChange={(e) => setModelo({ ...modelo, tempo_estimado_min: e.target.value.replace(/\D/g, '').slice(0, 3) })}
+                  />
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-tf-suave">min</span>
+                </div>
+              </div>
+            </div>
+            <p className="-mt-2 text-sm text-tf-suave">Passou do horário e não fez: aparece como atrasada (não muda o %).</p>
             <Interruptor rotulo="Exige foto" descricao="Só conclui com uma foto tirada na hora." ligado={modelo.exige_foto} aoMudar={(v) => setModelo({ ...modelo, exige_foto: v })} />
             {modelo.id && <Interruptor rotulo="Ativa" descricao="Pausar tira a tarefa dos próximos dias." ligado={modelo.ativo} aoMudar={(v) => setModelo({ ...modelo, ativo: v })} />}
             {modelo.id && <p className="text-sm text-tf-suave">Mudanças valem a partir de agora; dias que já passaram não mudam.</p>}
@@ -300,6 +335,27 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
               <input id="a-data" type="date" className="tf-campo" min={avulsa.id ? undefined : hoje} value={avulsa.data} onChange={(e) => setAvulsa({ ...avulsa, data: e.target.value })} />
               {avulsa.data && <p className="mt-1 text-sm text-tf-suave first-letter:uppercase">{dataPorExtenso(avulsa.data)}</p>}
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="tf-rotulo" htmlFor="avulsa-prazo">Fazer até (opcional)</label>
+                <input id="avulsa-prazo" type="time" className="tf-campo" value={avulsa.horario_limite} onChange={(e) => setAvulsa({ ...avulsa, horario_limite: e.target.value })} />
+              </div>
+              <div>
+                <label className="tf-rotulo" htmlFor="avulsa-tempo">Tempo estimado</label>
+                <div className="relative">
+                  <input
+                    id="avulsa-tempo"
+                    className="tf-campo !pr-14"
+                    inputMode="numeric"
+                    placeholder="—"
+                    value={avulsa.tempo_estimado_min}
+                    onChange={(e) => setAvulsa({ ...avulsa, tempo_estimado_min: e.target.value.replace(/\D/g, '').slice(0, 3) })}
+                  />
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-tf-suave">min</span>
+                </div>
+              </div>
+            </div>
+            <p className="-mt-2 text-sm text-tf-suave">Passou do horário e não fez: aparece como atrasada (não muda o %).</p>
             <Interruptor rotulo="Exige foto" ligado={avulsa.exige_foto} aoMudar={(v) => setAvulsa({ ...avulsa, exige_foto: v })} />
             <Erro texto={acaoAvulsa.erro} />
             <button type="submit" className="tf-botao w-full" disabled={acaoAvulsa.pendente}>

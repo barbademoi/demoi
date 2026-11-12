@@ -2,6 +2,7 @@ import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { dataCurta, diaFechado, hojeSP, somarDias } from '@/lib/tarefix/datas'
 import { gerarTarefasDoDia, placar, type Placar } from '@/lib/tarefix/tarefasDia'
 import type { Empresa, TarefaDia } from '@/lib/tarefix/tipos'
+import { ordenarPorPrazo } from '@/lib/tarefix/prazo'
 
 /**
  * Dados do painel "Hoje" do dono. NÃO é server action: só deve ser chamado
@@ -10,7 +11,7 @@ import type { Empresa, TarefaDia } from '@/lib/tarefix/tipos'
 
 const BUCKET = 'tarefix-provas'
 
-export type TarefaPainel = Pick<TarefaDia, 'id' | 'titulo' | 'descricao' | 'exige_foto' | 'status' | 'feita_em' | 'motivo_reprovacao'> & {
+export type TarefaPainel = Pick<TarefaDia, 'id' | 'titulo' | 'descricao' | 'exige_foto' | 'status' | 'feita_em' | 'motivo_reprovacao' | 'horario_limite' | 'tempo_estimado_min'> & {
   foto_url: string | null
 }
 
@@ -66,7 +67,7 @@ export async function carregarPainelHoje(empresa: Empresa): Promise<PainelHoje> 
   const ids = lista.map((c) => c.id)
   const [{ data: tarefas }, { data: folgas }, { data: extras }] = await Promise.all([
     ids.length
-      ? db.from('tarefas_dia').select('*').eq('empresa_id', empresa.id).eq('data', hoje).in('colaborador_id', ids).order('ordem').order('titulo')
+      ? db.from('tarefas_dia').select('*').eq('empresa_id', empresa.id).eq('data', hoje).in('colaborador_id', ids)
       : Promise.resolve({ data: [] as TarefaDia[] }),
     db.from('folgas').select('colaborador_id').eq('empresa_id', empresa.id).eq('data', hoje),
     db.from('extras').select('id, colaborador_id, data, descricao, foto_path').eq('empresa_id', empresa.id).eq('status', 'pendente').order('criado_em'),
@@ -78,7 +79,7 @@ export async function carregarPainelHoje(empresa: Empresa): Promise<PainelHoje> 
   ])
   const emFolga = new Set((folgas ?? []).map((f) => f.colaborador_id))
   const porColab: Record<string, TarefaDia[]> = {}
-  for (const t of (tarefas ?? []) as TarefaDia[]) (porColab[t.colaborador_id] ??= []).push(t)
+  for (const t of ordenarPorPrazo((tarefas ?? []) as TarefaDia[])) (porColab[t.colaborador_id] ??= []).push(t)
   const nomeColab = Object.fromEntries(lista.map((c) => [c.id, c.nome]))
 
   return {
@@ -102,6 +103,8 @@ export async function carregarPainelHoje(empresa: Empresa): Promise<PainelHoje> 
           feita_em: t.feita_em,
           motivo_reprovacao: t.motivo_reprovacao,
           foto_url: t.foto_path ? urls[t.foto_path] ?? null : null,
+          horario_limite: t.horario_limite ? t.horario_limite.slice(0, 5) : null,
+          tempo_estimado_min: t.tempo_estimado_min ?? null,
         })),
       }
     }),

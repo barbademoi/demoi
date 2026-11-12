@@ -3,9 +3,10 @@ import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import sql1 from '@/supabase/tarefix/001_estrutura.sql'
 import sql2 from '@/supabase/tarefix/002_rls.sql'
 import sql3 from '@/supabase/tarefix/003_storage.sql'
+import sql4 from '@/supabase/tarefix/004_horario_tempo.sql'
 
 /** SQL completo de instalação, numa transação só (se der erro, nada fica pela metade). */
-export const SQL_INSTALACAO = ['begin;', sql1, sql2, sql3, 'commit;'].join('\n\n')
+export const SQL_INSTALACAO = ['begin;', sql1, sql2, sql3, sql4, 'commit;'].join('\n\n')
 
 export const VARIAVEIS = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'] as const
 
