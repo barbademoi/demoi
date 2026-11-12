@@ -5,7 +5,7 @@ import type { TarefaPainel } from '@/lib/tarefix/painelHoje'
 import { FUSO } from '@/lib/tarefix/datas'
 import { Erro, Modal, useAcao, useAviso } from '@/components/tarefix/ui'
 import { reprovarTarefa, restaurarTarefa } from '../acoesHoje'
-import { duracao, estaAtrasada, minutosDeAtraso } from '@/lib/tarefix/prazo'
+import { duracao, estaAtrasada, janela, minutosDeAtraso } from '@/lib/tarefix/prazo'
 
 const horaSP = (iso: string) => new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO, hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
 const STATUS = { feita: 'Feita', pendente: 'Não feita', reprovada: 'Reprovada' } as const
@@ -46,7 +46,7 @@ export function DiaHistorico({ tarefas, extras, mesFechado, data }: { tarefas: T
                   {STATUS[t.status]}
                   {t.feita_em && t.status !== 'pendente' && ` · ${horaSP(t.feita_em)}`}
                   {t.status === 'reprovada' && t.motivo_reprovacao && ` · ${t.motivo_reprovacao}`}
-                  {t.horario_limite && ` · prazo ${t.horario_limite}`}
+                  {janela(t) && ` · ${janela(t)}`}
                   {minutosDeAtraso(t) > 0 && ` (${minutosDeAtraso(t)} min depois)`}
                   {estaAtrasada(t, data) && ' (não feita no prazo)'}
                   {duracao(t.tempo_estimado_min) && ` · ${duracao(t.tempo_estimado_min)}`}

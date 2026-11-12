@@ -46,6 +46,7 @@ export type TarefaModelo = {
   exige_foto: boolean
   ativo: boolean
   ordem: number
+  horario_inicio: string | null // 'HH:MM:SS' — "começar às"
   horario_limite: string | null // 'HH:MM:SS' — "fazer até"
   tempo_estimado_min: number | null
   criado_em: string
@@ -59,6 +60,7 @@ export type TarefaAvulsa = {
   descricao: string | null
   data: string
   exige_foto: boolean
+  horario_inicio: string | null
   horario_limite: string | null
   tempo_estimado_min: number | null
   criado_em: string
@@ -79,6 +81,7 @@ export type TarefaDia = {
   descricao: string | null
   exige_foto: boolean
   ordem: number
+  horario_inicio: string | null
   horario_limite: string | null
   tempo_estimado_min: number | null
   status: StatusTarefa

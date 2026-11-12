@@ -10,7 +10,7 @@ import { Termometro } from '@/components/tarefix/Termometro'
 import { escolherMomento, preencher, sortearMensagem, variaveisDa, type Momento } from '@/lib/tarefix/mensagens'
 import { desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra } from './acoes'
 import { MeuMes } from './MeuMes'
-import { duracao, estaAtrasada, minutosDeAtraso } from '@/lib/tarefix/prazo'
+import { duracao, eAgora, estaAtrasada, janela, minutosDeAtraso, prazoEfetivo } from '@/lib/tarefix/prazo'
 import { BotaoTema } from '@/components/tarefix/Tema'
 import { DicaInstalar } from '@/components/tarefix/DicaInstalar'
 
@@ -349,7 +349,7 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
             const reprovada = t.status === 'reprovada'
             const carregando = ocupada === t.id
             return (
-              <li key={t.id} className={`tf-cartao overflow-hidden ${reprovada ? 'border-tf-texto' : ''}`}>
+              <li key={t.id} className={`tf-cartao overflow-hidden ${reprovada ? '!border-tf-texto' : eAgora(t, estado.hoje) && !fechado ? '!border-2 !border-tf-marca' : ''}`}>
                 {reprovada && t.motivo_reprovacao && (
                   <div className="bg-tf-texto px-4 py-3 text-sm font-bold text-tf-fundo">
                     Uma tarefa voltou: “{t.motivo_reprovacao}”. Bora acertar.
@@ -380,10 +380,13 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
                     <p className={`text-lg font-bold leading-snug ${feita ? 'text-tf-suave line-through decoration-2' : ''}`}>{t.titulo}</p>
                     {t.descricao && <p className="mt-0.5 text-sm text-tf-suave">{t.descricao}</p>}
                     <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tf-suave">
+                      {!feita && janela(t) && (
+                        <span className="rounded-full bg-tf-marca-clara px-2 py-0.5 text-xs font-bold text-tf-marca-texto">{janela(t)}</span>
+                      )}
                       {estaAtrasada(t, estado.hoje) ? (
-                        <span className="rounded-full bg-tf-texto px-2 py-0.5 text-xs font-bold text-tf-fundo">atrasada · era até {t.horario_limite}</span>
+                        <span className="rounded-full bg-tf-texto px-2 py-0.5 text-xs font-bold text-tf-fundo">atrasada · era até {prazoEfetivo(t)}</span>
                       ) : (
-                        t.horario_limite && !feita && <span className="rounded-full bg-tf-marca-clara px-2 py-0.5 text-xs font-bold text-tf-marca-texto">até {t.horario_limite}</span>
+                        eAgora(t, estado.hoje) && <span className="rounded-full bg-tf-marca px-2 py-0.5 text-xs font-bold text-white">agora</span>
                       )}
                       {t.exige_foto && !feita && (
                         <span className="inline-flex items-center gap-1">

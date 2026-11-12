@@ -42,7 +42,7 @@ export default async function Colaborador({ params, searchParams }: { params: { 
       </div>
 
       {searchParams.novo && (
-        <p className="tf-cartao border-tf-marca p-4 text-sm">
+        <p className="tf-cartao !border-tf-marca p-4 text-sm">
           <b>Cadastrado!</b> Agora mande o link para {c.nome.split(' ')[0]} e passe o PIN pessoalmente. Depois, monte as tarefas.
         </p>
       )}

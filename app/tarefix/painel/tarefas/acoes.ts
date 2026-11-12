@@ -5,12 +5,15 @@ import { donoOuErro, falha, type Resultado } from '@/lib/tarefix/dono'
 import { lerHorario, lerMinutos } from '@/lib/tarefix/prazo'
 
 /** Lê "fazer até" e "tempo estimado" do formulário (ou devolve a mensagem de erro). */
-function lerPrazo(d: { horario_limite: string; tempo_estimado_min: string }) {
+function lerPrazo(d: { horario_inicio: string; horario_limite: string; tempo_estimado_min: string }) {
+  const horario_inicio = lerHorario(d.horario_inicio)
+  if (horario_inicio === undefined) return 'Hora de começar inválida. Use HH:MM.'
   const horario_limite = lerHorario(d.horario_limite)
-  if (horario_limite === undefined) return 'Horário inválido. Use HH:MM.'
+  if (horario_limite === undefined) return 'Horário "fazer até" inválido. Use HH:MM.'
   const tempo_estimado_min = lerMinutos(d.tempo_estimado_min)
   if (tempo_estimado_min === undefined) return 'Tempo estimado: de 1 a 600 minutos.'
-  return { horario_limite, tempo_estimado_min }
+  if (horario_inicio && horario_limite && horario_limite <= horario_inicio) return '"Fazer até" precisa ser depois da hora de começar.'
+  return { horario_inicio, horario_limite, tempo_estimado_min }
 }
 
 function revalidar() {
@@ -25,6 +28,7 @@ export type DadosModelo = {
   dias_semana: number[]
   exige_foto: boolean
   ativo: boolean
+  horario_inicio: string // 'HH:MM' ou ''
   horario_limite: string // 'HH:MM' ou ''
   tempo_estimado_min: string // minutos ou ''
 }
@@ -93,6 +97,7 @@ export type DadosAvulsa = {
   descricao: string
   data: string
   exige_foto: boolean
+  horario_inicio: string
   horario_limite: string
   tempo_estimado_min: string
 }

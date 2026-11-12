@@ -21,7 +21,7 @@ function Passo({
   children?: React.ReactNode
 }) {
   return (
-    <section className={`tf-cartao p-5 ${ativo ? 'border-tf-marca' : ''} ${!feito && !ativo ? 'opacity-50' : ''}`}>
+    <section className={`tf-cartao p-5 ${ativo ? '!border-tf-marca' : ''} ${!feito && !ativo ? 'opacity-50' : ''}`}>
       <div className="flex items-center gap-3">
         <span
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${
