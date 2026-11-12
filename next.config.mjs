@@ -8,6 +8,12 @@ const nextConfig = {
       },
     ],
   },
+  // Tarefix: permite importar os .sql como texto (a tela /tarefix/instalar
+  // mostra o SQL de instalação com botão "Copiar").
+  webpack(config) {
+    config.module.rules.push({ test: /\.sql$/, type: 'asset/source' })
+    return config
+  },
   // Cache-Control headers para evitar que navegadores agressivos (Safari iOS)
   // sirvam HTML antigo após um deploy. Rotas dinâmicas/autenticadas não devem
   // ser cacheadas. Assets estáticos em _next/static continuam com o cache
@@ -36,6 +42,7 @@ const nextConfig = {
       { source: '/esqueci-senha',               headers: NO_CACHE },
       { source: '/redefinir-senha',             headers: NO_CACHE },
       { source: '/redefinir-senha-obrigatoria', headers: NO_CACHE },
+      { source: '/tarefix/:path*',              headers: NO_CACHE },
     ]
   },
 }
