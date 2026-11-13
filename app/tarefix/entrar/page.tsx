@@ -8,6 +8,7 @@ export const metadata = { title: 'Entrar' }
 
 export default async function Entrar() {
   const s = await sessaoDono()
+  if (s === 'suspenso') redirect('/tarefix/sem-acesso?motivo=suspenso')
   if (s !== 'sem-login' && s !== 'sem-acesso') redirect('/tarefix/painel')
 
   return (

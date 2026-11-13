@@ -10,6 +10,7 @@ export type Empresa = {
   tom_mensagens: TomMensagens
   liberar_continuas_min: number // minutos antes do fechamento em que libera o check das tarefas do dia todo
   push_tipos?: Record<string, boolean> // quais notificações push estão ligadas
+  ativo?: boolean // false = acesso suspenso pelo admin
   criado_em: string
 }
 

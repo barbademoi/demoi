@@ -67,6 +67,10 @@ export async function criarDono(_: RespostaCriarDono, form: FormData): Promise<R
     return { erro: `Erro ao criar o dono: ${erroDono.message}` }
   }
 
+  // O primeiro dono instalado vira o administrador (quem concede acesso a mentorados).
+  const { count: admins } = await db.from('admins').select('user_id', { count: 'exact', head: true })
+  if (!admins) await db.from('admins').insert({ user_id: userId })
+
   await db.from('bonus_config').insert({
     empresa_id: emp.id,
     ativo: false,

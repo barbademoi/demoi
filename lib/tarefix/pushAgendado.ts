@@ -31,6 +31,7 @@ export async function rodarTick(ref: Date = new Date(), db: Db = createTarefixAd
 
   const { data: empresas } = await db.from('empresas').select('*')
   for (const empresa of (empresas ?? []) as Empresa[]) {
+    if (empresa.ativo === false) continue // suspensa
     res.empresas++
     const tipos = tiposLigados(empresa.push_tipos)
     const { data: insc } = await db.from('push_inscricoes').select('id, endpoint, p256dh, auth, colaborador_id, dono_id').eq('empresa_id', empresa.id)
