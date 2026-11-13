@@ -9,6 +9,7 @@ export type Empresa = {
   horario_fechamento: string // 'HH:MM:SS'
   tom_mensagens: TomMensagens
   liberar_continuas_min: number // minutos antes do fechamento em que libera o check das tarefas do dia todo
+  push_tipos?: Record<string, boolean> // quais notificações push estão ligadas
   criado_em: string
 }
 

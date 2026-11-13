@@ -8,7 +8,8 @@ import type { EstadoHoje, TarefaTela } from '@/lib/tarefix/estadoHoje'
 import { Avatar, Erro, Modal } from '@/components/tarefix/ui'
 import { Termometro } from '@/components/tarefix/Termometro'
 import { escolherMomento, preencher, sortearMensagem, variaveisDa, type Momento } from '@/lib/tarefix/mensagens'
-import { desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra, salvarObservacao } from './acoes'
+import { ativarPush, chavePush, desativarPush, desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra, salvarObservacao } from './acoes'
+import { AtivarNotificacoes } from '@/components/tarefix/AtivarNotificacoes'
 import { MeuMes } from './MeuMes'
 import { duracao, eAgora, estaAtrasada, foraDoHorario, janela, minutosDeAtraso, prazoEfetivo } from '@/lib/tarefix/prazo'
 import { AUTOAVALIACAO, liberacaoContinuas, rotuloAutoavaliacao } from '@/lib/tarefix/continuas'
@@ -355,6 +356,14 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
       </header>
 
       <DicaInstalar />
+      <div className="mt-4">
+        <AtivarNotificacoes
+          obterChave={() => chavePush(token)}
+          ativar={(s, n) => ativarPush(token, s, n)}
+          desativar={(e) => desativarPush(token, e)}
+          texto="Receba um aviso na hora de começar cada tarefa e antes do fechamento, mesmo com o app fechado."
+        />
+      </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm">
         <span className="font-bold first-letter:uppercase">{dataPorExtenso(estado.hoje)}</span>

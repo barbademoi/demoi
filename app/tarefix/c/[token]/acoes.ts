@@ -6,6 +6,8 @@ import { carregarAcesso, gravarSessao } from '@/lib/tarefix/sessaoColaborador'
 import { conferirPin, pinValido } from '@/lib/tarefix/pin'
 import { dataCurta, hojeSP, minutosParaFechamento } from '@/lib/tarefix/datas'
 import { liberacaoContinuas } from '@/lib/tarefix/continuas'
+import { avisarDonos, chavesVapid } from '@/lib/tarefix/push'
+import { apagarInscricao, gravarInscricao, type InscricaoNavegador } from '@/lib/tarefix/pushInscricao'
 import { montarEstado, type Ctx, type EstadoHoje } from '@/lib/tarefix/estadoHoje'
 
 const BUCKET = 'tarefix-provas'
@@ -187,6 +189,12 @@ export async function registrarExtra(token: string, descricao: string, fotoCamin
     .select('id')
     .single()
   if (error || !extra) return { ok: false, erro: error?.message ?? 'Não consegui registrar.' }
+  await avisarDonos(ctx.empresa, 'extra', {
+    titulo: 'Nova tarefa extra para aprovar',
+    corpo: `${ctx.colaborador.nome.split(' ')[0]}: ${texto.slice(0, 120)}`,
+    url: '/tarefix/painel',
+    tag: 'extra',
+  })
   await db.from('avisos').insert({
     empresa_id: ctx.empresa.id,
     tipo: 'extra_nova',
@@ -241,4 +249,28 @@ export async function salvarObservacao(token: string, tarefaId: string, texto: s
     await db.from('avisos').delete().eq('empresa_id', ctx.empresa.id).eq('chave', chave)
   }
   return { ok: true, estado: await montarEstado(ctx, false) }
+}
+
+/* ====================================================================== */
+/* Notificações push (este aparelho)                                       */
+/* ====================================================================== */
+
+export async function chavePush(token: string): Promise<{ ok: true; chave: string } | { ok: false; erro: string }> {
+  const ctx = await contexto(token)
+  if ('ok' in ctx) return ctx
+  const { publica } = await chavesVapid()
+  return { ok: true, chave: publica }
+}
+
+export async function ativarPush(token: string, inscricao: InscricaoNavegador, navegador: string): Promise<{ ok: true } | { ok: false; erro: string }> {
+  const ctx = await contexto(token)
+  if ('ok' in ctx) return ctx
+  return gravarInscricao({ empresa_id: ctx.empresa.id, colaborador_id: ctx.colaborador.id }, inscricao, navegador)
+}
+
+export async function desativarPush(token: string, endpoint: string): Promise<{ ok: true } | { ok: false; erro: string }> {
+  const ctx = await contexto(token)
+  if ('ok' in ctx) return ctx
+  await apagarInscricao(endpoint, { colaborador_id: ctx.colaborador.id })
+  return { ok: true }
 }
