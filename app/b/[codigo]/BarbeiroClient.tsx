@@ -15,6 +15,7 @@ import { pegarRegrasGerais } from '@/lib/regras'
 import LancarDiaForm from './LancarDiaForm'
 import CelebracaoOverlay from '@/components/barbeiro/CelebracaoOverlay'
 import AvisoLancamentoDiario from '@/components/dashboard/AvisoLancamentoDiario'
+import AtivarBarbeiro from '@/components/notificacoes/AtivarBarbeiro'
 import ComparativoMesAnterior from '@/components/autonomo/ComparativoMesAnterior'
 import HistoricoMeses from '@/components/autonomo/HistoricoMeses'
 import TicketMedio from '@/components/autonomo/TicketMedio'
@@ -330,6 +331,19 @@ export default function BarbeiroClient({
           prêmio é o momento dele, e cobrir isso com um lembrete seria roubar a
           única comemoração que o sistema tem. Quando a celebração fecha, o
           componente monta e o aviso aparece em seguida. */}
+      {/* Convite pra ligar as notificações. Mesma regra do aviso abaixo: fora
+          da tela enquanto a celebração de meta está no ar. */}
+      {!celebrando && (
+        <AtivarBarbeiro
+          barbeiroId={barbeiro.id}
+          linkCodigo={barbeiro.link_codigo}
+          // NEXT_PUBLIC_* é embutido no bundle em tempo de build, então um
+          // componente de cliente lê direto — não precisa descer como prop
+          // desde o server component.
+          chavePublica={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''}
+        />
+      )}
+
       {!celebrando && (
         <AvisoLancamentoDiario
           userId={barbeiro.id}

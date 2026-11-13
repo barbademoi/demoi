@@ -9,6 +9,7 @@ import NovoBarbeiroModal from '@/components/dashboard/NovoBarbeiroModal'
 import MetasModal from '@/components/dashboard/MetasModal'
 import LembreteMetaModal from '@/components/dashboard/LembreteMetaModal'
 import AvisoLancamentoDiario from '@/components/dashboard/AvisoLancamentoDiario'
+import AtivarDono from '@/components/notificacoes/AtivarDono'
 import { montarLembreteMeta } from '@/lib/metas/lembreteServer'
 import LogoUpload from '@/components/dashboard/LogoUpload'
 import ModoMesSelector from '@/components/dashboard/ModoMesSelector'
@@ -516,6 +517,14 @@ export default async function DashboardPage({
         fila de popups com a prioridade mais baixa: se o lembrete de meta ou um
         popup da Brindoleta estiver na tela, espera a vez. */}
     <AvisoLancamentoDiario userId={user.id} />
+    {/* Convite pra ligar as notificações. Aparece no máximo a cada 7 dias
+        enquanto não estiver ativo, e some pra sempre depois de ativado ou
+        recusado. A chave pública do VAPID é pública por definição — é ela que
+        o navegador usa pra criar a inscrição. */}
+    <AtivarDono
+      userId={user.id}
+      chavePublica={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''}
+    />
     </>
   )
 }

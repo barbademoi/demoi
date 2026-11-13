@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { cicloDeData, cicloAtual, hojeBrasil } from '@/lib/ciclo'
 import { dataLocalStr } from '@/lib/utils'
+import { avisarDonoQuePontuou } from '@/lib/push/eventos'
 
 // Valida que uma data ('YYYY-MM-DD') cai no CICLO ATUAL e não é futura — no
 // fuso America/Sao_Paulo. Bloqueia retroativo em ciclo já fechado/anterior.
@@ -105,6 +106,27 @@ export async function lancarDiaBarbeiro(params: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (admin as any).from('dias_sem_pontuacao')
     .delete().eq('barbeiro_id', barbeiro_id).eq('data', params.data)
+
+  // AVISA O DONO. Só quando é o próprio barbeiro lançando e só no dia de
+  // hoje: lançamento retroativo, ou feito pelo dono, não é novidade pra ele.
+  // Não é aguardado — o lançamento já está salvo, e uma falha de push não
+  // pode virar erro na tela de quem acabou de lançar.
+  if (lancado_por === 'barbeiro' && params.data === dataLocalStr(hojeBrasil())) {
+    const total = params.servicos.reduce((s, x) => s + (Number(x.quantidade) || 0), 0)
+    if (total > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: nomeRaw } = await (admin as any)
+        .from('barbeiros').select('nome').eq('id', barbeiro_id).maybeSingle()
+      void avisarDonoQuePontuou({
+        barbeariaId: barbeiroRaw.barbearia_id,
+        barbeiroId: barbeiro_id,
+        nomeBarbeiro: (nomeRaw as { nome?: string } | null)?.nome ?? 'Um barbeiro',
+        // Serviços lançados, não pontos: a conversão em pontos depende da
+        // apuração inteira, e a frase funciona com a quantidade.
+        pontosHoje: total,
+      })
+    }
+  }
 
   revalidatePath('/b/' + params.linkCodigo)
   return { ok: true }
