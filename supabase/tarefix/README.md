@@ -78,6 +78,9 @@ do BarberMeta:
   só leitura: tarefas, horários, fora do horário, fotos, observações e extras.
 - **Push "tarefa concluída"** para o dono (liga/desliga em Ajustes); o aviso de cada colaborador
   substitui o anterior na tela.
+- **Botão atualizar** (`components/tarefix/BotaoAtualizar.tsx`): no painel (cabeçalho e lateral) e na
+  tela do colaborador. Também atualiza sozinho quando o app volta para a frente e de tempos em tempos
+  enquanto visível (painel 60 s, colaborador 120 s, sem atrapalhar uma marcação em andamento).
 
 ## Instalar (pelo navegador)
 

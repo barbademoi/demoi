@@ -298,3 +298,10 @@ export async function verDia(token: string, data: string): Promise<{ ok: true; d
   if (!dia) return { ok: false, erro: 'Esse dia não está disponível.' }
   return { ok: true, dia }
 }
+
+/** Recarrega a tela Hoje (botão "atualizar" e quando o app volta para a frente). */
+export async function recarregar(token: string): Promise<Resposta> {
+  const ctx = await contexto(token)
+  if ('ok' in ctx) return ctx
+  return { ok: true, estado: await montarEstado(ctx, false) }
+}

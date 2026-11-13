@@ -9,7 +9,7 @@ import type { EstadoHoje, TarefaTela } from '@/lib/tarefix/estadoHoje'
 import { Avatar, Erro, Modal } from '@/components/tarefix/ui'
 import { Termometro } from '@/components/tarefix/Termometro'
 import { escolherMomento, preencher, sortearMensagem, variaveisDa, type Momento } from '@/lib/tarefix/mensagens'
-import { ativarPush, chavePush, desativarPush, verDia, desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra, salvarObservacao } from './acoes'
+import { ativarPush, chavePush, desativarPush, recarregar, verDia, desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra, salvarObservacao } from './acoes'
 import { AtivarNotificacoes } from '@/components/tarefix/AtivarNotificacoes'
 import { MeuMes } from './MeuMes'
 import { DiaAnterior } from './DiaAnterior'
@@ -17,6 +17,7 @@ import type { DiaPassado } from '@/lib/tarefix/estadoHoje'
 import { duracao, eAgora, estaAtrasada, foraDoHorario, janela, minutosDeAtraso, prazoEfetivo } from '@/lib/tarefix/prazo'
 import { AUTOAVALIACAO, liberacaoContinuas, rotuloAutoavaliacao } from '@/lib/tarefix/continuas'
 import { BotaoTema } from '@/components/tarefix/Tema'
+import { BotaoAtualizar } from '@/components/tarefix/BotaoAtualizar'
 import { DicaInstalar } from '@/components/tarefix/DicaInstalar'
 
 type Props = {
@@ -386,6 +387,16 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={empresa.logo_url} alt="" className="h-10 w-10 rounded-xl object-cover" />
         )}
+        <BotaoAtualizar
+          intervaloSeg={120}
+          aoAtualizar={async () => {
+            if (ocupada) return // não atrapalha uma marcação em andamento
+            const r = await recarregar(token)
+            if (r.estado) setEstado(r.estado)
+            else if (!r.ok) setErro(r.erro)
+            if (diaVisto) await irPara(diaVisto)
+          }}
+        />
         <BotaoTema />
       </header>
 
