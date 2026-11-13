@@ -9,6 +9,7 @@ const I_HOJE = { href: '/tarefix/painel', rotulo: 'Hoje', icone: 'M4 12l8-8 8 8M
 const I_MES = { href: '/tarefix/painel/mes', rotulo: 'Mês', icone: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z' }
 const I_HIST = { href: '/tarefix/painel/historico', rotulo: 'Histórico', icone: 'M3 12a9 9 0 109-9 9.7 9.7 0 00-6.7 2.8L3 8M3 3v5h5M12 7v5l4 2' }
 const I_MENTORADOS = { href: '/tarefix/painel/acessos', rotulo: 'Mentorados', icone: 'M12 2l7 3v6c0 5-3.5 9-7 11-3.5-2-7-6-7-11V5l7-3zM9 12l2 2 4-4' }
+const I_AJUDA = { href: '/tarefix/painel/como-usar', rotulo: 'Como usar', icone: 'M12 22a10 10 0 100-20 10 10 0 000 20zM9.1 9a3 3 0 015.8 1c0 2-3 3-3 3M12 17h.01' }
 const I_MAIS = { href: '/tarefix/painel/mais', rotulo: 'Mais', icone: 'M5 12h.01M12 12h.01M19 12h.01' }
 
 export const ITENS = [
@@ -31,7 +32,7 @@ function Icone({ d }: { d: string }) {
 
 // Celular: 5 botões; Histórico, Funções, Avisos e Ajustes ficam em "Mais".
 const ITENS_CELULAR = [I_HOJE, I_MES, ITENS[3], ITENS[4], I_MAIS]
-const DENTRO_DE_MAIS = ['/tarefix/painel/mais', '/tarefix/painel/historico', '/tarefix/painel/funcoes', '/tarefix/painel/configuracoes', '/tarefix/painel/avisos', '/tarefix/painel/acessos']
+const DENTRO_DE_MAIS = ['/tarefix/painel/mais', '/tarefix/painel/historico', '/tarefix/painel/funcoes', '/tarefix/painel/configuracoes', '/tarefix/painel/avisos', '/tarefix/painel/acessos', '/tarefix/painel/como-usar']
 
 function ativo(pathname: string, href: string) {
   if (href === I_MAIS.href) return DENTRO_DE_MAIS.some((p) => pathname.startsWith(p))
@@ -63,7 +64,7 @@ export function Sininho({ naoLidos }: { naoLidos: number }) {
 /** Barra inferior no celular; coluna lateral no desktop. */
 export function Nav({ nomeEmpresa, naoLidos, admin = false }: { nomeEmpresa: string; naoLidos: number; admin?: boolean }) {
   const pathname = usePathname() ?? ''
-  const itens = admin ? [...ITENS, I_MENTORADOS] : ITENS
+  const itens = [...ITENS, ...(admin ? [I_MENTORADOS] : []), I_AJUDA]
   return (
     <>
       <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-tf-borda bg-tf-card px-4 py-6 lg:flex">

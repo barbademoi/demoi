@@ -50,6 +50,16 @@ export default async function PainelHoje({ searchParams }: { searchParams: { c?:
       </div>
 
       {!configurado && (
+        <Link href="/tarefix/painel/como-usar" className="tf-cartao mb-3 flex items-center gap-4 !border-tf-marca p-4 hover:bg-tf-marca-clara/50">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tf-marca text-lg font-black text-white">?</span>
+          <span className="flex-1">
+            <span className="block font-extrabold">Primeira vez? Veja o “Como usar”</span>
+            <span className="block text-sm text-tf-suave">Passo a passo com exemplos reais, do cadastro ao bônus.</span>
+          </span>
+          <span className="text-xl text-tf-suave" aria-hidden>›</span>
+        </Link>
+      )}
+      {!configurado && (
         <section className="tf-cartao mb-6 divide-y divide-tf-borda">
           {passos.map((p, i) => (
             <Link key={p.href} href={p.href} className="flex min-h-[72px] items-center gap-4 px-5 py-4 hover:bg-tf-marca-clara/50">

@@ -6,6 +6,8 @@ import { carregarMesDono, mesesDisponiveis } from '@/lib/tarefix/mesDono'
 import { Avatar, Titulo, Vazio } from '@/components/tarefix/ui'
 import { Termometro } from '@/components/tarefix/Termometro'
 import { BotaoFecharMes } from './BotaoFecharMes'
+import { Dica } from '@/components/tarefix/Dica'
+import { DICAS } from '@/components/tarefix/dicas'
 
 export const metadata = { title: 'Mês' }
 
@@ -92,6 +94,7 @@ export default async function Mes({ searchParams }: { searchParams: { m?: string
                 </div>
                 <Termometro
                   rotulo={resumo.atual ? 'No mês (prévia)' : 'No mês'}
+                  {...(resumo.atual ? DICAS.termoMes : {})}
                   percentual={l.placar?.percentual ?? null}
                   detalhe={l.placar && l.placar.total ? detalhePlacar(l.placar, '') : undefined}
                 />
@@ -114,7 +117,7 @@ export default async function Mes({ searchParams }: { searchParams: { m?: string
 
           {!resumo.fechado && (
             <section className="tf-cartao space-y-3 p-5">
-              <h2 className="text-lg font-extrabold">Fechar mês</h2>
+              <h2 className="flex items-center gap-2 text-lg font-extrabold">Fechar mês <Dica titulo="Fechar mês" {...DICAS.fecharMes} /></h2>
               {resumo.atual ? (
                 <p className="text-tf-suave">Disponível quando o mês terminar. Até lá, os números ainda mudam.</p>
               ) : (

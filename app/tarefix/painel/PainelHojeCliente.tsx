@@ -4,11 +4,13 @@ import { detalhePlacar } from '@/lib/tarefix/placarTexto'
 import { useEffect, useState } from 'react'
 import type { CardColaborador, PainelHoje, TarefaPainel } from '@/lib/tarefix/painelHoje'
 import { dataCurta, FUSO } from '@/lib/tarefix/datas'
-import { Avatar, Erro, Modal, useAcao, useAviso } from '@/components/tarefix/ui'
+import { Avatar, Erro, Modal, Rotulo, useAcao, useAviso } from '@/components/tarefix/ui'
 import { Termometro } from '@/components/tarefix/Termometro'
 import { decidirExtra, reprovarTarefa, restaurarTarefa } from './acoesHoje'
 import { duracao, eAgora, estaAtrasada, foraDoHorario, janela, minutosDeAtraso, prazoEfetivo } from '@/lib/tarefix/prazo'
 import { rotuloAutoavaliacao } from '@/lib/tarefix/continuas'
+import { Dica } from '@/components/tarefix/Dica'
+import { DICAS } from '@/components/tarefix/dicas'
 
 const horaSP = (iso: string) =>
   new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO, hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
@@ -66,14 +68,14 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
     <div className="space-y-5">
       {totalTarefas > 0 && (
         <section className="tf-cartao p-5">
-          <Termometro rotulo={painel.ehHoje ? 'Equipe hoje' : 'Equipe no dia'} percentual={pesoTotal ? Math.round((pesoFeito / pesoTotal) * 100) : null} detalhe={detalhePlacar({ feitas: totalFeitas, total: totalTarefas, pontos: pesoFeito, pontosTotal: pesoTotal })} />
+          <Termometro rotulo={painel.ehHoje ? 'Equipe hoje' : 'Equipe no dia'} percentual={pesoTotal ? Math.round((pesoFeito / pesoTotal) * 100) : null} detalhe={detalhePlacar({ feitas: totalFeitas, total: totalTarefas, pontos: pesoFeito, pontosTotal: pesoTotal })} {...DICAS.termoEquipe} />
         </section>
       )}
 
       {/* ----------------------------- extras ----------------------------- */}
       {painel.extrasPendentes.length > 0 && (
         <section className="tf-cartao p-5">
-          <h2 className="mb-3 text-lg font-extrabold">Extras para aprovar ({painel.extrasPendentes.length})</h2>
+          <h2 className="mb-3 flex items-center gap-2 text-lg font-extrabold">Extras para aprovar ({painel.extrasPendentes.length}) <Dica titulo="Extras" {...DICAS.extras} /></h2>
           <ul className="space-y-3">
             {painel.extrasPendentes.map((x) => (
               <li key={x.id} className="rounded-2xl border border-tf-borda p-4">
@@ -251,9 +253,9 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
                   })
                 }}
               >
-                <label className="tf-rotulo" htmlFor="motivo">
+                <Rotulo htmlFor="motivo" {...DICAS.reprovar}>
                   Motivo (o colaborador vai ver)
-                </label>
+                </Rotulo>
                 <input id="motivo" className="tf-campo" autoFocus maxLength={140} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: Faltou limpar o espelho" />
                 <p className="text-sm text-tf-suave">A tarefa deixa de contar no percentual. Hoje, ainda dá para refazer antes do fechamento.</p>
                 <Erro texto={acao.erro} />

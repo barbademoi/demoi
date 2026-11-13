@@ -4,6 +4,7 @@ import { detalhePlacar } from '@/lib/tarefix/placarTexto'
 import type { EstadoHoje } from '@/lib/tarefix/estadoHoje'
 import { datasDoMes, diaDaSemana, mesPorExtenso, NOMES_DIAS_CURTOS } from '@/lib/tarefix/datas'
 import { Termometro, fundoMetalico } from '@/components/tarefix/Termometro'
+import { DICAS } from '@/components/tarefix/dicas'
 
 export function MeuMes({ estado }: { estado: EstadoHoje }) {
   const datas = datasDoMes(estado.anoMes)
@@ -15,7 +16,7 @@ export function MeuMes({ estado }: { estado: EstadoHoje }) {
     <div className="space-y-5">
       <section className="tf-cartao space-y-4 p-5">
         <h2 className="text-lg font-extrabold first-letter:uppercase">{mesPorExtenso(estado.anoMes)}</h2>
-        <Termometro rotulo="No mês" percentual={estado.mes?.percentual ?? null} detalhe={detalhePlacar(estado.mes)} grande />
+        <Termometro rotulo="No mês" percentual={estado.mes?.percentual ?? null} detalhe={detalhePlacar(estado.mes)} grande {...DICAS.termoMes} />
         <p className="text-sm text-tf-suave">
           {estado.mesRestante.tarefas > 0 ? (
             <>

@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from 'react'
 import type { TarefaAvulsa, TarefaModelo } from '@/lib/tarefix/tipos'
 import { dataCurta, dataPorExtenso } from '@/lib/tarefix/datas'
 import { duracao, fimPrevisto, horarioHHMM, janela } from '@/lib/tarefix/prazo'
-import { ChipsDias, Erro, Interruptor, Modal, resumoDias, useAcao, useAviso } from '@/components/tarefix/ui'
+import { ChipsDias, Erro, Interruptor, Modal, Rotulo, resumoDias, useAcao, useAviso } from '@/components/tarefix/ui'
+import { Dica } from '@/components/tarefix/Dica'
+import { DICAS } from '@/components/tarefix/dicas'
 import { excluirAvulsa, excluirModelo, reordenarModelos, salvarAvulsa, salvarModelo, type DadosAvulsa, type DadosModelo } from './acoes'
 
 type Props = {
@@ -147,7 +149,7 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
       <section>
         <div className="mb-3 flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-extrabold">Recorrentes</h2>
+            <h2 className="flex items-center gap-2 text-lg font-extrabold">Recorrentes <Dica titulo="Recorrentes" {...DICAS.recorrentes} /></h2>
             <p className="text-sm text-tf-suave">Repetem nos dias da semana escolhidos.</p>
           </div>
           <button type="button" className="tf-botao min-h-[44px] shrink-0 whitespace-nowrap px-4 text-sm" onClick={() => abrirModelo()}>
@@ -203,7 +205,7 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
       <section>
         <div className="mb-3 flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-extrabold">Avulsas</h2>
+            <h2 className="flex items-center gap-2 text-lg font-extrabold">Avulsas <Dica titulo="Avulsas" {...DICAS.avulsas} /></h2>
             <p className="text-sm text-tf-suave">Só em uma data específica.</p>
           </div>
           <button type="button" className="tf-botao min-h-[44px] shrink-0 whitespace-nowrap px-4 text-sm" onClick={() => abrirAvulsa()}>
@@ -252,25 +254,26 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
             }}
           >
             <div>
-              <label className="tf-rotulo" htmlFor="m-titulo">Título</label>
+              <Rotulo htmlFor="m-titulo" {...DICAS.titulo}>Título</Rotulo>
               <input id="m-titulo" className="tf-campo" autoFocus value={modelo.titulo} onChange={(e) => setModelo({ ...modelo, titulo: e.target.value })} placeholder="Ex.: Limpar as bancadas" />
             </div>
             <div>
-              <label className="tf-rotulo" htmlFor="m-desc">Descrição (opcional)</label>
+              <Rotulo htmlFor="m-desc" {...DICAS.descricao}>Descrição (opcional)</Rotulo>
               <textarea id="m-desc" className="tf-campo min-h-[88px] py-3" value={modelo.descricao} onChange={(e) => setModelo({ ...modelo, descricao: e.target.value })} placeholder="Como fazer, onde, detalhes…" />
             </div>
             <div>
-              <span className="tf-rotulo">Dias da semana</span>
+              <Rotulo {...DICAS.dias}>Dias da semana</Rotulo>
               <ChipsDias valor={modelo.dias_semana} aoMudar={(v) => setModelo({ ...modelo, dias_semana: v })} />
             </div>
             <Interruptor
               rotulo="Vale o dia todo"
+              {...DICAS.diaTodo}
               descricao="Atendimento, comandas, verificar algo… Fica fixa no topo; o colaborador confirma perto do fechamento e diz como foi."
               ligado={modelo.continua}
               aoMudar={(x) => setModelo({ ...modelo, continua: x, peso: x && modelo.peso === 1 ? 2 : modelo.peso })}
             />
             <div>
-              <span className="tf-rotulo">Peso no percentual</span>
+              <Rotulo {...DICAS.peso}>Peso no percentual</Rotulo>
               <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Peso">
                 {[1, 2, 3].map((n) => (
                   <button
@@ -291,11 +294,11 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
               <>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="tf-rotulo" htmlFor="modelo-inicio">Começar às</label>
+                <Rotulo htmlFor="modelo-inicio" {...DICAS.inicio}>Começar às</Rotulo>
                 <input id="modelo-inicio" type="time" className="tf-campo" value={modelo.horario_inicio} onChange={(e) => setModelo({ ...modelo, horario_inicio: e.target.value })} />
               </div>
               <div>
-                <label className="tf-rotulo" htmlFor="modelo-tempo">Tempo estimado</label>
+                <Rotulo htmlFor="modelo-tempo" {...DICAS.tempo}>Tempo estimado</Rotulo>
                 <div className="relative">
                   <input
                     id="modelo-tempo"
@@ -310,7 +313,7 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
               </div>
             </div>
             <div>
-              <label className="tf-rotulo" htmlFor="modelo-prazo">Fazer até (opcional)</label>
+              <Rotulo htmlFor="modelo-prazo" {...DICAS.prazo}>Fazer até (opcional)</Rotulo>
               <input id="modelo-prazo" type="time" className="tf-campo max-w-[180px]" value={modelo.horario_limite} onChange={(e) => setModelo({ ...modelo, horario_limite: e.target.value })} />
               <p className="mt-1 text-sm text-tf-suave">
                 {(() => {
@@ -323,8 +326,8 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
             </div>
               </>
             )}
-            <Interruptor rotulo="Exige foto" descricao="Só conclui com uma foto tirada na hora." ligado={modelo.exige_foto} aoMudar={(v) => setModelo({ ...modelo, exige_foto: v })} />
-            {modelo.id && <Interruptor rotulo="Ativa" descricao="Pausar tira a tarefa dos próximos dias." ligado={modelo.ativo} aoMudar={(v) => setModelo({ ...modelo, ativo: v })} />}
+            <Interruptor rotulo="Exige foto" descricao="Só conclui com uma foto tirada na hora." {...DICAS.foto} ligado={modelo.exige_foto} aoMudar={(v) => setModelo({ ...modelo, exige_foto: v })} />
+            {modelo.id && <Interruptor rotulo="Ativa" descricao="Pausar tira a tarefa dos próximos dias." {...DICAS.ativa} ligado={modelo.ativo} aoMudar={(v) => setModelo({ ...modelo, ativo: v })} />}
             {modelo.id && <p className="text-sm text-tf-suave">Mudanças valem a partir de agora; dias que já passaram não mudam.</p>}
             <Erro texto={acaoModelo.erro} />
             <button type="submit" className="tf-botao w-full" disabled={acaoModelo.pendente}>
@@ -364,26 +367,27 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
             }}
           >
             <div>
-              <label className="tf-rotulo" htmlFor="a-titulo">Título</label>
+              <Rotulo htmlFor="a-titulo" {...DICAS.titulo}>Título</Rotulo>
               <input id="a-titulo" className="tf-campo" autoFocus value={avulsa.titulo} onChange={(e) => setAvulsa({ ...avulsa, titulo: e.target.value })} />
             </div>
             <div>
-              <label className="tf-rotulo" htmlFor="a-desc">Descrição (opcional)</label>
+              <Rotulo htmlFor="a-desc" {...DICAS.descricao}>Descrição (opcional)</Rotulo>
               <textarea id="a-desc" className="tf-campo min-h-[88px] py-3" value={avulsa.descricao} onChange={(e) => setAvulsa({ ...avulsa, descricao: e.target.value })} />
             </div>
             <div>
-              <label className="tf-rotulo" htmlFor="a-data">Data</label>
+              <Rotulo htmlFor="a-data" {...DICAS.dataAvulsa}>Data</Rotulo>
               <input id="a-data" type="date" className="tf-campo" min={avulsa.id ? undefined : hoje} value={avulsa.data} onChange={(e) => setAvulsa({ ...avulsa, data: e.target.value })} />
               {avulsa.data && <p className="mt-1 text-sm text-tf-suave first-letter:uppercase">{dataPorExtenso(avulsa.data)}</p>}
             </div>
             <Interruptor
               rotulo="Vale o dia todo"
+              {...DICAS.diaTodo}
               descricao="Atendimento, comandas, verificar algo… Fica fixa no topo; o colaborador confirma perto do fechamento e diz como foi."
               ligado={avulsa.continua}
               aoMudar={(x) => setAvulsa({ ...avulsa, continua: x, peso: x && avulsa.peso === 1 ? 2 : avulsa.peso })}
             />
             <div>
-              <span className="tf-rotulo">Peso no percentual</span>
+              <Rotulo {...DICAS.peso}>Peso no percentual</Rotulo>
               <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Peso">
                 {[1, 2, 3].map((n) => (
                   <button
@@ -404,11 +408,11 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
               <>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="tf-rotulo" htmlFor="avulsa-inicio">Começar às</label>
+                <Rotulo htmlFor="avulsa-inicio" {...DICAS.inicio}>Começar às</Rotulo>
                 <input id="avulsa-inicio" type="time" className="tf-campo" value={avulsa.horario_inicio} onChange={(e) => setAvulsa({ ...avulsa, horario_inicio: e.target.value })} />
               </div>
               <div>
-                <label className="tf-rotulo" htmlFor="avulsa-tempo">Tempo estimado</label>
+                <Rotulo htmlFor="avulsa-tempo" {...DICAS.tempo}>Tempo estimado</Rotulo>
                 <div className="relative">
                   <input
                     id="avulsa-tempo"
@@ -423,7 +427,7 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
               </div>
             </div>
             <div>
-              <label className="tf-rotulo" htmlFor="avulsa-prazo">Fazer até (opcional)</label>
+              <Rotulo htmlFor="avulsa-prazo" {...DICAS.prazo}>Fazer até (opcional)</Rotulo>
               <input id="avulsa-prazo" type="time" className="tf-campo max-w-[180px]" value={avulsa.horario_limite} onChange={(e) => setAvulsa({ ...avulsa, horario_limite: e.target.value })} />
               <p className="mt-1 text-sm text-tf-suave">
                 {(() => {
@@ -436,7 +440,7 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
             </div>
               </>
             )}
-            <Interruptor rotulo="Exige foto" ligado={avulsa.exige_foto} aoMudar={(v) => setAvulsa({ ...avulsa, exige_foto: v })} />
+            <Interruptor rotulo="Exige foto" {...DICAS.foto} ligado={avulsa.exige_foto} aoMudar={(v) => setAvulsa({ ...avulsa, exige_foto: v })} />
             <Erro texto={acaoAvulsa.erro} />
             <button type="submit" className="tf-botao w-full" disabled={acaoAvulsa.pendente}>
               {acaoAvulsa.pendente ? 'Salvando…' : 'Salvar'}

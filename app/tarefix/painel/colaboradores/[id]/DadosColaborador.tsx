@@ -3,8 +3,9 @@
 import { useRef, useState } from 'react'
 import { createTarefixClient } from '@/lib/tarefix/supabase/client'
 import { comprimirImagem } from '@/lib/tarefix/imagem'
-import { Avatar, Erro, useAcao, useAviso } from '@/components/tarefix/ui'
+import { Avatar, Erro, Rotulo, useAcao, useAviso } from '@/components/tarefix/ui'
 import { salvarDadosColaborador } from '../acoes'
+import { DICAS } from '@/components/tarefix/dicas'
 
 type Props = {
   empresaId: string
@@ -84,7 +85,7 @@ export function DadosColaborador({ empresaId, colaborador, funcoes }: Props) {
         <input id="d-nome" className="tf-campo" value={nome} onChange={(e) => setNome(e.target.value)} />
       </div>
       <div>
-        <label className="tf-rotulo" htmlFor="d-funcao">Função</label>
+        <Rotulo htmlFor="d-funcao" {...DICAS.funcao}>Função</Rotulo>
         <select id="d-funcao" className="tf-campo" value={funcaoId} onChange={(e) => setFuncaoId(e.target.value)}>
           <option value="">Sem função</option>
           {funcoes

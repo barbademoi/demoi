@@ -10,6 +10,7 @@ const LINKS = [
   { href: '/tarefix/painel/funcoes', titulo: 'Funções', texto: 'Atendimento, Limpeza, Caixa…' },
   { href: '/tarefix/painel/avisos', titulo: 'Avisos', texto: 'Fechamentos, fotos e extras' },
   { href: '/tarefix/painel/configuracoes', titulo: 'Ajustes', texto: 'Empresa, horário, mensagens, bônus e tema' },
+  { href: '/tarefix/painel/como-usar', titulo: 'Como usar', texto: 'Passo a passo com exemplos, dicas e dúvidas' },
 ]
 
 export default async function Mais() {
