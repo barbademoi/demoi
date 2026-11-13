@@ -10,8 +10,13 @@ name: Notificações do BarberMeta
 # arquivo — a rota não muda.
 #
 # PRECISA DE DOIS SECRETS no repositório (Settings → Secrets → Actions):
-#   BARBERMETA_URL  = https://barbermeta.com.br
+#   BARBERMETA_URL  = https://www.barbermeta.com.br
 #   CRON_SECRET     = o mesmo valor que está no Vercel
+#
+# O endereço tem de ser EXATAMENTE o que abre no navegador, COM o www e sem
+# barra no fim. Sem o www o certificado não bate com o nome do host e o curl
+# recusa a conexão antes de existir qualquer resposta (erro 60 do curl) —
+# não adianta o site estar no ar e a rota estar certa.
 
 on:
   schedule:
@@ -42,17 +47,57 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Chamar o agendador
+        env:
+          BASE: ${{ secrets.BARBERMETA_URL }}
+          SEGREDO: ${{ secrets.CRON_SECRET }}
         run: |
+          if [ -z "$BASE" ]; then
+            echo "::error::Falta o secret BARBERMETA_URL (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          if [ -z "$SEGREDO" ]; then
+            echo "::error::Falta o secret CRON_SECRET (tem de ser o mesmo valor que está no Vercel)."
+            exit 1
+          fi
+
+          # Tira a barra do fim: colada com /api viraria // e a rota não existe.
+          BASE="${BASE%/}"
+
+          # O curl pode nem chegar a uma resposta HTTP — DNS errado, domínio sem
+          # www, certificado que não bate. Aí o código fica 000 e o que importa é
+          # o erro do próprio curl, não o status. Sem separar os dois casos, o
+          # passo morria com "exit 60" e nenhuma explicação.
+          set +e
           codigo=$(curl -sS -o /tmp/resposta.json -w '%{http_code}' \
             --max-time 120 \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.BARBERMETA_URL }}/api/cron/notificacoes")
+            -H "Authorization: Bearer $SEGREDO" \
+            "$BASE/api/cron/notificacoes" 2>/tmp/erro.txt)
+          saida=$?
+          set -e
+
+          if [ "$saida" != "0" ]; then
+            echo "Erro do curl ($saida):"
+            cat /tmp/erro.txt
+            if [ "$saida" = "60" ]; then
+              echo "::error::O certificado não bate com o endereço de BARBERMETA_URL. Use o domínio exato que abre no navegador, com www e sem barra no fim."
+            elif [ "$saida" = "6" ]; then
+              echo "::error::O endereço de BARBERMETA_URL não existe (DNS). Confira se está escrito certo, com https:// na frente."
+            else
+              echo "::error::Não deu pra falar com o BarberMeta (curl $saida)."
+            fi
+            exit 1
+          fi
+
           echo "HTTP $codigo"
           cat /tmp/resposta.json
           echo
           # Falhar alto de propósito: notificação que não saiu em silêncio é
           # notificação que ninguém descobre que parou.
           if [ "$codigo" != "200" ]; then
-            echo "::error::O agendador respondeu $codigo"
+            if [ "$codigo" = "401" ]; then
+              echo "::error::401 — o CRON_SECRET do GitHub é diferente do que está no Vercel."
+            else
+              echo "::error::O agendador respondeu $codigo"
+            fi
             exit 1
           fi
