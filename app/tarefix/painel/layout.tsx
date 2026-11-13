@@ -2,6 +2,7 @@ import { exigirDono } from '@/lib/tarefix/dono'
 import { Nav, Sininho } from '@/components/tarefix/Nav'
 import { contarAvisosNaoLidos, garantirResumoDiario } from '@/lib/tarefix/painelHoje'
 import { Logo } from '@/components/tarefix/Logo'
+import { BotaoAtualizar } from '@/components/tarefix/BotaoAtualizar'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +17,7 @@ export default async function PainelLayout({ children }: { children: React.React
         <Logo className="text-2xl" />
         <div className="flex min-w-0 items-center gap-2">
           <span className="truncate text-sm text-tf-suave">{empresa.nome}</span>
+          <BotaoAtualizar intervaloSeg={60} />
           <Sininho naoLidos={naoLidos} />
         </div>
       </header>

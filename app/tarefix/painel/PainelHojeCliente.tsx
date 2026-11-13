@@ -1,5 +1,6 @@
 'use client'
 
+import { detalhePlacar } from '@/lib/tarefix/placarTexto'
 import { useEffect, useState } from 'react'
 import type { CardColaborador, PainelHoje, TarefaPainel } from '@/lib/tarefix/painelHoje'
 import { dataCurta, FUSO } from '@/lib/tarefix/datas'
@@ -65,7 +66,7 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
     <div className="space-y-5">
       {totalTarefas > 0 && (
         <section className="tf-cartao p-5">
-          <Termometro rotulo="Equipe hoje" percentual={pesoTotal ? Math.round((pesoFeito / pesoTotal) * 100) : null} detalhe={`${totalFeitas} de ${totalTarefas} tarefas`} />
+          <Termometro rotulo={painel.ehHoje ? 'Equipe hoje' : 'Equipe no dia'} percentual={pesoTotal ? Math.round((pesoFeito / pesoTotal) * 100) : null} detalhe={detalhePlacar({ feitas: totalFeitas, total: totalTarefas, pontos: pesoFeito, pontosTotal: pesoTotal })} />
         </section>
       )}
 
@@ -120,7 +121,7 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
               <div className="min-w-0 flex-1">
                 <h2 className="truncate text-lg font-extrabold">{c.nome}</h2>
                 <p className="text-sm text-tf-suave">
-                  {c.folga ? 'Folga hoje' : c.tarefas.length === 0 ? 'Sem tarefas hoje' : pendentes ? `${pendentes} pendente${pendentes > 1 ? 's' : ''}` : 'Tudo feito'}
+                  {c.folga ? (painel.ehHoje ? 'Folga hoje' : 'Folga') : c.tarefas.length === 0 ? 'Sem tarefas' : pendentes ? `${pendentes} ${painel.ehHoje ? 'pendente' : 'não feita'}${pendentes > 1 ? 's' : ''}` : 'Tudo feito'}
                   {atrasadas > 0 && ` · ${atrasadas} atrasada${atrasadas > 1 ? 's' : ''}`}
                   {previsto > 0 && ` · ${duracao(previsto)} previstos`}
                   {c.funcao && ` · ${c.funcao}`}
@@ -130,7 +131,7 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
 
             {c.placar && (
               <div className="mt-4">
-                <Termometro rotulo="Hoje" percentual={c.placar.percentual} detalhe={`${c.placar.feitas} de ${c.placar.total}`} />
+                <Termometro rotulo={painel.ehHoje ? 'Hoje' : 'No dia'} percentual={c.placar.percentual} detalhe={detalhePlacar(c.placar, '')} />
               </div>
             )}
 

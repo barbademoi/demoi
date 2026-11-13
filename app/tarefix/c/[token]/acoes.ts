@@ -8,7 +8,7 @@ import { dataCurta, hojeSP, minutosParaFechamento } from '@/lib/tarefix/datas'
 import { liberacaoContinuas } from '@/lib/tarefix/continuas'
 import { avisarDonos, chavesVapid } from '@/lib/tarefix/push'
 import { apagarInscricao, gravarInscricao, type InscricaoNavegador } from '@/lib/tarefix/pushInscricao'
-import { montarEstado, type Ctx, type EstadoHoje } from '@/lib/tarefix/estadoHoje'
+import { montarDiaPassado, montarEstado, type Ctx, type DiaPassado, type EstadoHoje } from '@/lib/tarefix/estadoHoje'
 
 const BUCKET = 'tarefix-provas'
 const MAX_TENTATIVAS = 5
@@ -132,6 +132,18 @@ export async function marcarTarefa(token: string, tarefaId: string, fotoCaminho?
     .select('id')
     .maybeSingle()
   if (error) return { ok: false, erro: error.message }
+
+  // push para o dono a cada tarefa concluída (o aviso de cada colaborador substitui o anterior na tela)
+  if (atualizada) {
+    const fora = minutosParaFechamento(empresa.horario_fechamento) <= 0
+    const extras = [t.exige_foto && 'com foto', nota && `se avaliou: ${['', 'Difícil', 'Fraco', 'Ok', 'Bom', 'Excelente'][nota]}`, fora && 'fora do horário'].filter(Boolean)
+    await avisarDonos(empresa, 'concluida', {
+      titulo: `${colaborador.nome.split(' ')[0]} concluiu uma tarefa`,
+      corpo: `${t.titulo}${extras.length ? ` · ${extras.join(' · ')}` : ''}`,
+      url: `/tarefix/painel?c=${colaborador.id}`,
+      tag: `concluida-${colaborador.id}`,
+    })
+  }
 
   if (atualizada && t.exige_foto) {
     await db.from('avisos').upsert(
@@ -273,4 +285,23 @@ export async function desativarPush(token: string, endpoint: string): Promise<{ 
   if ('ok' in ctx) return ctx
   await apagarInscricao(endpoint, { colaborador_id: ctx.colaborador.id })
   return { ok: true }
+}
+
+/* ====================================================================== */
+/* Ver um dia anterior (só leitura)                                        */
+/* ====================================================================== */
+
+export async function verDia(token: string, data: string): Promise<{ ok: true; dia: DiaPassado } | { ok: false; erro: string }> {
+  const ctx = await contexto(token)
+  if ('ok' in ctx) return ctx
+  const dia = await montarDiaPassado(ctx, data)
+  if (!dia) return { ok: false, erro: 'Esse dia não está disponível.' }
+  return { ok: true, dia }
+}
+
+/** Recarrega a tela Hoje (botão "atualizar" e quando o app volta para a frente). */
+export async function recarregar(token: string): Promise<Resposta> {
+  const ctx = await contexto(token)
+  if ('ok' in ctx) return ctx
+  return { ok: true, estado: await montarEstado(ctx, false) }
 }

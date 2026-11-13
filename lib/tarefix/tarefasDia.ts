@@ -1,5 +1,5 @@
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
-import { agoraSP, anoMesDe, datasDoMes, diaDaSemana, diaFechado, hojeSP } from '@/lib/tarefix/datas'
+import { agoraSP, anoMesDe, datasDoMes, diaDaSemana, diaFechado, hojeSP, somarDias } from '@/lib/tarefix/datas'
 import type { Colaborador, Empresa, TarefaAvulsa, TarefaDia, TarefaModelo } from '@/lib/tarefix/tipos'
 import { ordenarPorPrazo } from '@/lib/tarefix/prazo'
 
@@ -136,7 +136,7 @@ export function gerarTarefasDoDia(colab: ColabMin, empresa: EmpresaMin, data: st
 /* Leitura e cálculo                                                       */
 /* ---------------------------------------------------------------------- */
 
-export type Placar = { feitas: number; total: number; percentual: number }
+export type Placar = { feitas: number; total: number; percentual: number; pontos: number; pontosTotal: number }
 
 /**
  * Percentual = soma dos pesos das feitas ÷ soma de todos os pesos (reprovadas
@@ -151,7 +151,13 @@ export function placar(tarefas: { status: TarefaDia['status']; peso?: number | n
   const p = (t: { peso?: number | null }) => (t.peso && t.peso > 0 ? t.peso : 1)
   const pesoTotal = tarefas.reduce((n, t) => n + p(t), 0)
   const pesoFeito = tarefas.filter((t) => t.status === 'feita').reduce((n, t) => n + p(t), 0)
-  return { feitas, total, percentual: Math.round((pesoFeito / pesoTotal) * 100) }
+  return { feitas, total, percentual: Math.round((pesoFeito / pesoTotal) * 100), pontos: pesoFeito, pontosTotal: pesoTotal }
+}
+
+/** Último dia que já fechou (hoje depois do horário; senão ontem). O mês conta só até ele. */
+export function ultimoDiaFechado(horarioFechamento: string, ref: Date = new Date()): string {
+  const hoje = hojeSP(ref)
+  return diaFechado(hoje, horarioFechamento, ref) ? hoje : somarDias(hoje, -1)
 }
 
 export async function lerDia(colaboradorId: string, data: string, db: Db = createTarefixAdmin()): Promise<TarefaDia[]> {
@@ -170,8 +176,13 @@ export type ResumoMes = {
   extrasAprovadas: number
 }
 
-/** Lê o mês (até hoje). Chame gerarTarefasPeriodo antes se precisar garantir os dias. */
-export async function lerMes(colaboradorId: string, anoMes: string, db: Db = createTarefixAdmin()): Promise<ResumoMes> {
+/**
+ * Lê o mês. porDia traz todos os dias até hoje (o calendário mostra o dia em
+ * andamento); o placar do mês conta só até `ateDia` (os dias já FECHADOS),
+ * para o percentual não "despencar" toda manhã com as tarefas que ainda
+ * estão por fazer. Chame gerarTarefasPeriodo antes se precisar garantir os dias.
+ */
+export async function lerMes(colaboradorId: string, anoMes: string, db: Db = createTarefixAdmin(), ateDia?: string): Promise<ResumoMes> {
   const hoje = hojeSP()
   const datas = datasDoMes(anoMes, hoje)
   if (datas.length === 0) return { anoMes, placar: null, porDia: {}, extrasAprovadas: 0 }
@@ -185,11 +196,12 @@ export async function lerMes(colaboradorId: string, anoMes: string, db: Db = cre
   for (const l of linhas ?? []) (porData[l.data] ??= []).push(l)
   const porDia: Record<string, Placar | null> = {}
   for (const [d, ts] of Object.entries(porData)) porDia[d] = placar(ts)
-  return { anoMes, placar: placar(linhas ?? []), porDia, extrasAprovadas: extras ?? 0 }
+  const doPlacar = ateDia ? (linhas ?? []).filter((l) => l.data <= ateDia) : linhas ?? []
+  return { anoMes, placar: placar(doPlacar), porDia, extrasAprovadas: extras ?? 0 }
 }
 
 /** Gera todos os dias do mês até hoje e devolve o resumo. */
 export async function gerarELerMes(colab: ColabMin, empresa: EmpresaMin, anoMes: string, db: Db = createTarefixAdmin()) {
   await gerarTarefasPeriodo(colab, empresa, datasDoMes(anoMes, hojeSP()), db)
-  return lerMes(colab.id, anoMes, db)
+  return lerMes(colab.id, anoMes, db, ultimoDiaFechado(empresa.horario_fechamento))
 }

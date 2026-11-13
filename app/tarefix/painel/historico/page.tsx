@@ -1,4 +1,5 @@
 import { exigirDono } from '@/lib/tarefix/dono'
+import { detalhePlacar } from '@/lib/tarefix/placarTexto'
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { dataPorExtenso, hojeSP, somarDias } from '@/lib/tarefix/datas'
 import { gerarTarefasDoDia, lerDia, placar } from '@/lib/tarefix/tarefasDia'
@@ -62,7 +63,7 @@ export default async function Historico({ searchParams }: { searchParams: { c?: 
       ) : (
         <>
           <section className="tf-cartao mb-5 p-5">
-            <Termometro rotulo={data === hoje ? 'Até agora' : 'Resultado do dia'} percentual={p?.percentual ?? null} detalhe={p ? `${p.feitas} de ${p.total}` : undefined} />
+            <Termometro rotulo={data === hoje ? 'Até agora' : 'Resultado do dia'} percentual={p?.percentual ?? null} detalhe={detalhePlacar(p, '')} />
           </section>
           <DiaHistorico
             data={data}

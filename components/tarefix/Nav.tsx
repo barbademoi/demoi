@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Logo } from './Logo'
+import { BotaoAtualizar } from './BotaoAtualizar'
 
 const I_HOJE = { href: '/tarefix/painel', rotulo: 'Hoje', icone: 'M4 12l8-8 8 8M6 10v10h12V10' }
 const I_MES = { href: '/tarefix/painel/mes', rotulo: 'Mês', icone: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z' }
@@ -68,7 +69,10 @@ export function Nav({ nomeEmpresa, naoLidos }: { nomeEmpresa: string; naoLidos: 
           <Link href="/tarefix/painel">
             <Logo className="text-3xl" />
           </Link>
-          <Sininho naoLidos={naoLidos} />
+          <div className="flex items-center">
+            <BotaoAtualizar className="hidden lg:flex" />
+            <Sininho naoLidos={naoLidos} />
+          </div>
         </div>
         <p className="mt-2 truncate px-3 text-sm text-tf-suave">{nomeEmpresa}</p>
         <nav className="mt-8 flex flex-col gap-1">

@@ -1,5 +1,5 @@
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
-import { dataCurta, diaFechado, hojeSP, somarDias } from '@/lib/tarefix/datas'
+import { agoraSP, dataCurta, diaFechado, hojeSP, somarDias } from '@/lib/tarefix/datas'
 import { gerarTarefasDoDia, placar, type Placar } from '@/lib/tarefix/tarefasDia'
 import type { Empresa, TarefaDia } from '@/lib/tarefix/tipos'
 import { ordenarPorPrazo } from '@/lib/tarefix/prazo'
@@ -35,7 +35,8 @@ export type ExtraPainel = {
 }
 
 export type PainelHoje = {
-  hoje: string
+  hoje: string // o dia exibido (hoje ou um dia anterior)
+  ehHoje: boolean
   fechado: boolean
   horarioFechamento: string
   cards: CardColaborador[]
@@ -51,15 +52,24 @@ async function assinar(db: ReturnType<typeof createTarefixAdmin>, caminhos: stri
   return urls
 }
 
-export async function carregarPainelHoje(empresa: Empresa): Promise<PainelHoje> {
+/** Dias anteriores que o dono pode consultar pelas setas do painel. */
+export const DIAS_PAINEL_PARA_TRAS = 60
+
+export async function carregarPainelHoje(empresa: Empresa, dataPedida?: string): Promise<PainelHoje> {
   const db = createTarefixAdmin()
-  const hoje = hojeSP()
+  const hojeReal = hojeSP()
+  // dia exibido: hoje, ou um dia anterior dentro do limite
+  const hoje =
+    dataPedida && /^\d{4}-\d{2}-\d{2}$/.test(dataPedida) && dataPedida < hojeReal && dataPedida >= somarDias(hojeReal, -DIAS_PAINEL_PARA_TRAS)
+      ? dataPedida
+      : hojeReal
 
   const [{ data: colabs }, { data: funcoes }] = await Promise.all([
     db.from('colaboradores').select('id, empresa_id, nome, foto_url, funcao_id, criado_em').eq('empresa_id', empresa.id).eq('ativo', true).order('nome'),
     db.from('funcoes').select('id, nome').eq('empresa_id', empresa.id),
   ])
-  const lista = colabs ?? []
+  // num dia anterior, só quem já estava cadastrado naquele dia
+  const lista = (colabs ?? []).filter((c) => agoraSP(new Date(c.criado_em)).data <= hoje)
   const nomeFuncao = Object.fromEntries((funcoes ?? []).map((f) => [f.id, f.nome]))
 
   // Abrir o dia no painel também gera as tarefas (regra: sem cron).
@@ -85,6 +95,7 @@ export async function carregarPainelHoje(empresa: Empresa): Promise<PainelHoje> 
 
   return {
     hoje,
+    ehHoje: hoje === hojeReal,
     fechado: diaFechado(hoje, empresa.horario_fechamento),
     horarioFechamento: empresa.horario_fechamento,
     cards: lista.map((c) => {

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { detalhePlacar } from '@/lib/tarefix/placarTexto'
 import { exigirDono } from '@/lib/tarefix/dono'
 import { anoMesDe, hojeSP, mesPorExtenso } from '@/lib/tarefix/datas'
 import { carregarMesDono, mesesDisponiveis } from '@/lib/tarefix/mesDono'
@@ -90,9 +91,9 @@ export default async function Mes({ searchParams }: { searchParams: { m?: string
                   </div>
                 </div>
                 <Termometro
-                  rotulo="No mês"
+                  rotulo={resumo.atual ? 'No mês (dias fechados)' : 'No mês'}
                   percentual={l.placar?.percentual ?? null}
-                  detalhe={l.placar && l.placar.total ? `${l.placar.feitas} de ${l.placar.total}` : undefined}
+                  detalhe={l.placar && l.placar.total ? detalhePlacar(l.placar, '') : undefined}
                 />
                 {l.bonus && (
                   <p className="mt-3 text-sm font-bold">

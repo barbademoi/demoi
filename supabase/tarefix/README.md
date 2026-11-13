@@ -71,6 +71,18 @@ do BarberMeta:
       )
     $$);
     ```
+- **Mês só com dias fechados**: o percentual do mês (colaborador, painel Mês e bônus) conta até o último
+  dia fechado (`ultimoDiaFechado`); o dia de hoje entra no horário de fechamento. O calendário continua
+  mostrando o dia em andamento. Com peso, os textos mostram **pontos** ("23 de 41 pontos").
+- **Dias anteriores na aba Hoje**: setas ‹ › para consultar até 60 dias para trás (desde o cadastro),
+  só leitura: tarefas, horários, fora do horário, fotos, observações e extras.
+- **Push "tarefa concluída"** para o dono (liga/desliga em Ajustes); o aviso de cada colaborador
+  substitui o anterior na tela.
+- **Botão atualizar** (`components/tarefix/BotaoAtualizar.tsx`): no painel (cabeçalho e lateral) e na
+  tela do colaborador. Também atualiza sozinho quando o app volta para a frente e de tempos em tempos
+  enquanto visível (painel 60 s, colaborador 120 s, sem atrapalhar uma marcação em andamento).
+- **Dias anteriores no painel do dono**: setas ‹ › na tela Hoje (`/tarefix/painel?d=AAAA-MM-DD`, até 60
+  dias), com os cards de cada colaborador daquele dia; dá para reprovar enquanto o mês não fechar.
 
 ## Instalar (pelo navegador)
 

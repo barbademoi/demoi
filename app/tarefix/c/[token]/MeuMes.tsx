@@ -1,5 +1,6 @@
 'use client'
 
+import { detalhePlacar } from '@/lib/tarefix/placarTexto'
 import type { EstadoHoje } from '@/lib/tarefix/estadoHoje'
 import { datasDoMes, diaDaSemana, mesPorExtenso, NOMES_DIAS_CURTOS } from '@/lib/tarefix/datas'
 import { Termometro, fundoMetalico } from '@/components/tarefix/Termometro'
@@ -14,7 +15,8 @@ export function MeuMes({ estado }: { estado: EstadoHoje }) {
     <div className="space-y-5">
       <section className="tf-cartao space-y-4 p-5">
         <h2 className="text-lg font-extrabold first-letter:uppercase">{mesPorExtenso(estado.anoMes)}</h2>
-        <Termometro rotulo="No mês" percentual={estado.mes?.percentual ?? null} detalhe={estado.mes ? `${estado.mes.feitas} de ${estado.mes.total} tarefas` : undefined} grande />
+        <Termometro rotulo={estado.fechado ? 'No mês' : 'No mês (até ontem)'} percentual={estado.mes?.percentual ?? null} detalhe={detalhePlacar(estado.mes)} grande />
+        <p className="text-xs text-tf-suave">Conta os dias já fechados. O dia de hoje entra no mês no horário de fechamento.</p>
         {estado.extrasAprovadasMes > 0 && (
           <p className="font-bold text-tf-marca-texto">
             +{estado.extrasAprovadasMes} extra{estado.extrasAprovadasMes > 1 ? 's' : ''} aprovada{estado.extrasAprovadasMes > 1 ? 's' : ''} no mês

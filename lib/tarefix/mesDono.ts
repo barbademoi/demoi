@@ -1,6 +1,6 @@
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { anoMesDe, datasDoMes, hojeSP } from '@/lib/tarefix/datas'
-import { gerarTarefasPeriodo, lerMes, type Placar } from '@/lib/tarefix/tarefasDia'
+import { gerarTarefasPeriodo, lerMes, ultimoDiaFechado, type Placar } from '@/lib/tarefix/tarefasDia'
 import { niveisOrdenados, situacaoBonus, type SituacaoBonus } from '@/lib/tarefix/bonus'
 import type { Empresa, NivelBonus } from '@/lib/tarefix/tipos'
 
@@ -68,7 +68,7 @@ export async function carregarMesDono(empresa: Empresa, anoMes: string): Promise
           nome: porId[f.colaborador_id]?.nome ?? '—',
           foto_url: porId[f.colaborador_id]?.foto_url ?? null,
           ativo: porId[f.colaborador_id]?.ativo ?? false,
-          placar: { feitas: 0, total: 0, percentual: Math.round(Number(f.percentual_final)) },
+          placar: { feitas: 0, total: 0, percentual: Math.round(Number(f.percentual_final)), pontos: 0, pontosTotal: 0 },
           extrasAprovadas: f.extras_aprovadas,
           bonus: f.bonus_atingido ? { niveis, atingido: f.bonus_atingido, proximo: null, falta: null } : null,
         }))
@@ -82,7 +82,8 @@ export async function carregarMesDono(empresa: Empresa, anoMes: string): Promise
 
   const linhas: LinhaMes[] = []
   for (const c of colabs ?? []) {
-    const r = await lerMes(c.id, anoMes, db)
+    // mês corrente: só os dias já fechados (como o colaborador vê)
+    const r = await lerMes(c.id, anoMes, db, atual ? ultimoDiaFechado(empresa.horario_fechamento) : undefined)
     if (!c.ativo && !r.placar) continue // inativo sem nada no mês: some da lista
     linhas.push({
       colaborador_id: c.id,

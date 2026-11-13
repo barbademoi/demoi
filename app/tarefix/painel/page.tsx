@@ -1,13 +1,13 @@
 import Link from 'next/link'
 import { exigirDono } from '@/lib/tarefix/dono'
-import { dataPorExtenso, hojeSP, horarioCurto } from '@/lib/tarefix/datas'
-import { carregarPainelHoje } from '@/lib/tarefix/painelHoje'
+import { dataPorExtenso, hojeSP, horarioCurto, somarDias } from '@/lib/tarefix/datas'
+import { carregarPainelHoje, DIAS_PAINEL_PARA_TRAS } from '@/lib/tarefix/painelHoje'
 import { Titulo } from '@/components/tarefix/ui'
 import { PainelHojeCliente } from './PainelHojeCliente'
 
 export const metadata = { title: 'Hoje' }
 
-export default async function PainelHoje({ searchParams }: { searchParams: { c?: string } }) {
+export default async function PainelHoje({ searchParams }: { searchParams: { c?: string; d?: string } }) {
   const { db, dono, empresa } = await exigirDono()
   const [funcoes, colaboradores, modelos] = await Promise.all([
     db.from('funcoes').select('*', { count: 'exact', head: true }),
@@ -22,14 +22,32 @@ export default async function PainelHoje({ searchParams }: { searchParams: { c?:
   const configurado = passos.every((p) => p.feito)
   const primeiroNome = dono.nome.split(' ')[0]
 
-  const painel = (colaboradores.count ?? 0) > 0 ? await carregarPainelHoje(empresa) : null
+  const painel = (colaboradores.count ?? 0) > 0 ? await carregarPainelHoje(empresa, searchParams.d) : null
+  const hoje = hojeSP()
+  const dia = painel?.hoje ?? hoje
+  const ehHoje = dia === hoje
+  const anterior = somarDias(dia, -1)
+  const podeVoltar = anterior >= somarDias(hoje, -DIAS_PAINEL_PARA_TRAS)
+  const seta = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-2xl font-bold hover:bg-tf-marca-clara'
 
   return (
     <>
-      <Titulo>Olá, {primeiroNome}</Titulo>
-      <p className="-mt-3 mb-6 text-tf-suave first-letter:uppercase">
-        {dataPorExtenso(hojeSP())} · {painel?.fechado ? 'dia fechado às' : 'fecha às'} {horarioCurto(empresa.horario_fechamento)}
-      </p>
+      <Titulo>{ehHoje ? `Olá, ${primeiroNome}` : 'Dia anterior'}</Titulo>
+      <div className="-mt-3 mb-6 flex flex-wrap items-center gap-x-1 gap-y-2 text-tf-suave">
+        {painel && podeVoltar ? (
+          <Link href={`/tarefix/painel?d=${anterior}`} className={`-ml-2 ${seta}`} aria-label="Ver o dia anterior">‹</Link>
+        ) : null}
+        <span className="first-letter:uppercase">
+          {dataPorExtenso(dia)}
+          {ehHoje && ` · ${painel?.fechado ? 'dia fechado às' : 'fecha às'} ${horarioCurto(empresa.horario_fechamento)}`}
+        </span>
+        {painel && !ehHoje && (
+          <>
+            <Link href={somarDias(dia, 1) >= hoje ? '/tarefix/painel' : `/tarefix/painel?d=${somarDias(dia, 1)}`} className={seta} aria-label="Ver o dia seguinte">›</Link>
+            <Link href="/tarefix/painel" className="ml-auto rounded-full bg-tf-marca px-3 py-1 text-sm font-bold text-white">Voltar para hoje</Link>
+          </>
+        )}
+      </div>
 
       {!configurado && (
         <section className="tf-cartao mb-6 divide-y divide-tf-borda">
