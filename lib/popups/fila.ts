@@ -48,6 +48,13 @@ export const PRIORIDADE = {
   'lembrete-meta': 1,
   'brindoleta-lancamento': 2,
   'brindoleta-oferta': 3,
+  /**
+   * Convite pra ligar as notificações. Vem antes do aviso de lançamento
+   * porque resolve o mesmo problema de um jeito melhor: quem liga os avisos
+   * é lembrado no celular, às 18h, sem precisar abrir o sistema pra ver um
+   * popup. E aparece no máximo a cada 7 dias, então não disputa espaço.
+   */
+  'ativar-notificacoes': 3.5,
   'aviso-lancamento': 4,
 } as const
 

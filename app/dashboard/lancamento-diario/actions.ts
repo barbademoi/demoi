@@ -1,9 +1,11 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { avisarBarbeirosQueDonoLancou } from '@/lib/push/eventos'
 import { createClient } from '@/lib/supabase/server'
 import { estaFechado } from '@/lib/mesFechado'
 import { cicloDeData, hojeBrasil } from '@/lib/ciclo'
+import { dataLocalStr } from '@/lib/utils'
 import { registrarFotoDoDia } from '@/lib/fotoDoDia'
 
 interface ComandaItem {
@@ -149,6 +151,14 @@ export async function salvarComandasDia(
         .update({ numero_atendimentos: novoAtend })
         .eq('id', metaRaw.id)
     }
+  }
+
+  // AVISA OS BARBEIROS de que o dia foi lançado — a comissão deles acabou de
+  // mudar. Só pro dia de HOJE: lançamento retroativo não é novidade pra
+  // ninguém. Não é aguardado; o lançamento já está salvo, e uma falha de push
+  // não pode virar erro na tela de quem acabou de lançar.
+  if (data === dataLocalStr(hojeBrasil())) {
+    void avisarBarbeirosQueDonoLancou({ barbeariaId: barbearia_id })
   }
 
   revalidatePath('/dashboard')

@@ -1,0 +1,58 @@
+name: Notificações do BarberMeta
+
+# POR QUE AQUI, E NÃO NO VERCEL
+# Os lembretes precisam sair de hora em hora (18h às 23h, mais as janelas de
+# manhã e do fim da tarde). O plano Hobby da Vercel só permite cron 1×/dia, e
+# os seis disparos não cabem. O GitHub Actions faz o mesmo de graça: ele só
+# bate na rota, e toda a decisão continua no servidor.
+#
+# Virando Vercel Pro, é só mover o agendamento pro `vercel.json` e apagar este
+# arquivo — a rota não muda.
+#
+# PRECISA DE DOIS SECRETS no repositório (Settings → Secrets → Actions):
+#   BARBERMETA_URL  = https://barbermeta.com.br
+#   CRON_SECRET     = o mesmo valor que está no Vercel
+
+on:
+  schedule:
+    # Horários em UTC. São Paulo é UTC−3 o ano todo (não há mais horário de
+    # verão desde 2019), então: 13h UTC = 10h local, e 20h–02h UTC = 17h–23h.
+    # Cada linha é uma hora local que alguma regra usa.
+    - cron: '5 13 * * *'   # 10h — oferecer serviço extra, comparativo (seg)
+    - cron: '5 20 * * *'   # 17h — resumo: pontos que faltam, comissão, metas
+    - cron: '5 21 * * *'   # 18h — lembrete de lançar (dono e barbeiro)
+    - cron: '5 22 * * *'   # 19h
+    - cron: '5 23 * * *'   # 20h
+    - cron: '5 0 * * *'    # 21h
+    - cron: '5 1 * * *'    # 22h
+    - cron: '5 2 * * *'    # 23h — último lembrete do dia
+    - cron: '5 6 * * *'    # 3h  — faxina do histórico de envios
+  # Pra testar sem esperar o horário.
+  workflow_dispatch:
+
+# Só uma execução por vez: se uma demorar, a seguinte espera em vez de
+# rodarem juntas. A rota aguenta as duas (o unique impede o aviso dobrado),
+# mas não há motivo pra pagar o trabalho duas vezes.
+concurrency:
+  group: notificacoes
+  cancel-in-progress: false
+
+jobs:
+  disparar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar o agendador
+        run: |
+          codigo=$(curl -sS -o /tmp/resposta.json -w '%{http_code}' \
+            --max-time 120 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.BARBERMETA_URL }}/api/cron/notificacoes")
+          echo "HTTP $codigo"
+          cat /tmp/resposta.json
+          echo
+          # Falhar alto de propósito: notificação que não saiu em silêncio é
+          # notificação que ninguém descobre que parou.
+          if [ "$codigo" != "200" ]; then
+            echo "::error::O agendador respondeu $codigo"
+            exit 1
+          fi
