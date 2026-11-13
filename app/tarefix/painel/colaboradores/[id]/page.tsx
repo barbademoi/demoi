@@ -7,6 +7,8 @@ import { DadosColaborador } from './DadosColaborador'
 import { AcessoColaborador } from './AcessoColaborador'
 import { CalendarioFolgas } from './CalendarioFolgas'
 import { StatusColaborador } from './StatusColaborador'
+import { Dica } from '@/components/tarefix/Dica'
+import { DICAS } from '@/components/tarefix/dicas'
 
 export const metadata = { title: 'Colaborador' }
 
@@ -48,7 +50,7 @@ export default async function Colaborador({ params, searchParams }: { params: { 
       )}
 
       <section className="tf-cartao space-y-4 p-5">
-        <h2 className="text-lg font-extrabold">Acesso</h2>
+        <h2 className="flex items-center gap-2 text-lg font-extrabold">Acesso <Dica titulo="Link e PIN" {...DICAS.acesso} /></h2>
         {bloqueado && (
           <p className="rounded-xl bg-tf-marca-clara px-4 py-3 text-sm font-bold">
             Bloqueado por 5 minutos após PINs errados. Trocar o PIN desbloqueia na hora.
@@ -79,7 +81,7 @@ export default async function Colaborador({ params, searchParams }: { params: { 
       </section>
 
       <section className="tf-cartao space-y-3 p-5">
-        <h2 className="text-lg font-extrabold">Folgas</h2>
+        <h2 className="flex items-center gap-2 text-lg font-extrabold">Folgas <Dica titulo="Folgas" {...DICAS.folgas} /></h2>
         <p className="text-sm text-tf-suave">Toque nos dias de folga. Nesses dias não há tarefas e o dia não conta no mês.</p>
         <CalendarioFolgas colaboradorId={c.id} folgas={(folgas ?? []).map((f) => f.data)} hoje={hojeSP()} />
       </section>

@@ -4,8 +4,9 @@ import { useRef, useState } from 'react'
 import type { Empresa } from '@/lib/tarefix/tipos'
 import { createTarefixClient } from '@/lib/tarefix/supabase/client'
 import { comprimirImagem } from '@/lib/tarefix/imagem'
-import { Erro, useAcao, useAviso } from '@/components/tarefix/ui'
+import { Erro, Rotulo, useAcao, useAviso } from '@/components/tarefix/ui'
 import { salvarEmpresa } from './acoes'
+import { DICAS } from '@/components/tarefix/dicas'
 
 export function FormEmpresa({ empresa }: { empresa: Empresa }) {
   const [nome, setNome] = useState(empresa.nome)
@@ -78,13 +79,13 @@ export function FormEmpresa({ empresa }: { empresa: Empresa }) {
       </div>
 
       <div>
-        <label className="tf-rotulo" htmlFor="e-horario">Horário de fechamento do dia</label>
+        <Rotulo htmlFor="e-horario" {...DICAS.fechamento}>Horário de fechamento do dia</Rotulo>
         <input id="e-horario" type="time" className="tf-campo max-w-[180px]" value={horario} onChange={(e) => setHorario(e.target.value)} />
-        <p className="mt-1 text-sm text-tf-suave">Depois desse horário o dia trava e o que ficou pendente conta como não feito. (Horário de Brasília)</p>
+        <p className="mt-1 text-sm text-tf-suave">Depois dele, ainda dá para marcar até a meia-noite, mas fica como “fora do horário”. (Horário de Brasília)</p>
       </div>
 
       <div>
-        <label className="tf-rotulo" htmlFor="e-liberar">Tarefas do dia todo: liberar a confirmação</label>
+        <Rotulo htmlFor="e-liberar" {...DICAS.liberarDiaTodo}>Tarefas do dia todo: liberar a confirmação</Rotulo>
         <div className="flex items-center gap-2">
           <div className="relative w-32">
             <input
@@ -101,7 +102,7 @@ export function FormEmpresa({ empresa }: { empresa: Empresa }) {
       </div>
 
       <div>
-        <span className="tf-rotulo">Tom das mensagens</span>
+        <Rotulo {...DICAS.tom}>Tom das mensagens</Rotulo>
         <div className="grid grid-cols-2 gap-2">
           {(
             [

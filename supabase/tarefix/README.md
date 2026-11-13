@@ -94,6 +94,10 @@ do BarberMeta:
   bloqueia o dono (tela "acesso suspenso"), os links da equipe e os pushes — os dados ficam guardados.
   Para adicionar outro admin: `insert into tarefix.admins (user_id) values ('<id do auth.users>');`
 - **Trocar senha** em Ajustes → Conta (vale também para o BarberMeta).
+- **Como usar** (`/tarefix/painel/como-usar`, guia da equipe público em `/tarefix/ajuda`): passo a passo
+  com exemplos de barbearia, simulações do termômetro, "assim não / assim sim", rotina e dúvidas; checklist
+  "Seu progresso" com dados reais. Dicas "?" nos campos (`components/tarefix/Dica.tsx`, textos em
+  `components/tarefix/dicas.tsx`): passar o mouse no computador, tocar no celular.
 - **Termômetro "instrumento"**: moldura de aço grafite, trilho escuro, cores profundas (rubi → ouro
   velho → esmeralda) com reflexo cromado, marcas em 25/50/75 e marcador de aço.
 

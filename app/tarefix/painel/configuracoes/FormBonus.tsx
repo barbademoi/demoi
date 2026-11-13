@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import type { NivelBonus } from '@/lib/tarefix/tipos'
-import { Erro, Interruptor, useAcao, useAviso } from '@/components/tarefix/ui'
+import { Erro, Interruptor, Rotulo, useAcao, useAviso } from '@/components/tarefix/ui'
 import { salvarBonus } from './acoes'
+import { DICAS } from '@/components/tarefix/dicas'
 
 type Props = { ativo: boolean; mostrar: boolean; niveis: NivelBonus[] }
 type Linha = { percentual: string; premio: string }
@@ -32,12 +33,12 @@ export function FormBonus({ ativo: a0, mostrar: m0, niveis: n0 }: Props) {
         )
       }}
     >
-      <Interruptor rotulo="Bônus ativo" descricao="Premia quem atingir o percentual no mês." ligado={ativo} aoMudar={setAtivo} />
+      <Interruptor rotulo="Bônus ativo" descricao="Premia quem atingir o percentual no mês." {...DICAS.bonus} ligado={ativo} aoMudar={setAtivo} />
       {ativo && (
         <>
-          <Interruptor rotulo="Mostrar para o colaborador" descricao="Ele vê os níveis e quanto falta para o próximo." ligado={mostrar} aoMudar={setMostrar} />
+          <Interruptor rotulo="Mostrar para o colaborador" descricao="Ele vê os níveis e quanto falta para o próximo." {...DICAS.bonusMostrar} ligado={mostrar} aoMudar={setMostrar} />
           <div className="space-y-2">
-            <span className="tf-rotulo">Níveis</span>
+            <Rotulo {...DICAS.bonusNiveis}>Níveis</Rotulo>
             {linhas.map((l, i) => (
               <div key={i} className="flex items-center gap-2">
                 <div className="relative w-24 shrink-0">

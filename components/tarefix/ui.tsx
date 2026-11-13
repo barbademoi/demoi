@@ -1,5 +1,7 @@
 'use client'
 
+import { Dica } from './Dica'
+
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { NOMES_DIAS_CURTOS } from '@/lib/tarefix/datas'
 
@@ -55,30 +57,75 @@ export function Interruptor({
   rotulo,
   descricao,
   desabilitado,
+  dica,
+  exemplo,
 }: {
   ligado: boolean
   aoMudar: (v: boolean) => void
   rotulo: string
   descricao?: string
   desabilitado?: boolean
+  /** Texto da dica "?" ao lado do rótulo (opcional). */
+  dica?: React.ReactNode
+  exemplo?: React.ReactNode
 }) {
+  if (!dica)
+    return (
+      <button
+        type="button"
+        role="switch"
+        aria-checked={ligado}
+        disabled={desabilitado}
+        onClick={() => aoMudar(!ligado)}
+        className="flex min-h-[48px] w-full items-center justify-between gap-4 text-left disabled:opacity-50"
+      >
+        <span>
+          <span className="block font-bold">{rotulo}</span>
+          {descricao && <span className="block text-sm text-tf-suave">{descricao}</span>}
+        </span>
+        <Chave ligado={ligado} />
+      </button>
+    )
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={ligado}
-      disabled={desabilitado}
-      onClick={() => aoMudar(!ligado)}
-      className="flex min-h-[48px] w-full items-center justify-between gap-4 text-left disabled:opacity-50"
-    >
-      <span>
-        <span className="block font-bold">{rotulo}</span>
+    <div className={`flex min-h-[48px] w-full items-center justify-between gap-4 ${desabilitado ? 'opacity-50' : ''}`}>
+      <span className="min-w-0">
+        <span className="flex items-center gap-2">
+          <span className="cursor-pointer font-bold" onClick={() => !desabilitado && aoMudar(!ligado)}>
+            {rotulo}
+          </span>
+          <Dica titulo={rotulo} exemplo={exemplo}>
+            {dica}
+          </Dica>
+        </span>
         {descricao && <span className="block text-sm text-tf-suave">{descricao}</span>}
       </span>
-      <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${ligado ? 'bg-tf-marca' : 'bg-tf-borda'}`}>
-        <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${ligado ? 'left-6' : 'left-1'}`} />
-      </span>
-    </button>
+      <button type="button" role="switch" aria-checked={ligado} aria-label={rotulo} disabled={desabilitado} onClick={() => aoMudar(!ligado)} className="shrink-0">
+        <Chave ligado={ligado} />
+      </button>
+    </div>
+  )
+}
+
+function Chave({ ligado }: { ligado: boolean }) {
+  return (
+    <span className={`relative block h-7 w-12 shrink-0 rounded-full transition ${ligado ? 'bg-tf-marca' : 'bg-tf-borda'}`}>
+      <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${ligado ? 'left-6' : 'left-1'}`} />
+    </span>
+  )
+}
+
+/** Rótulo de campo com dica "?" ao lado. */
+export function Rotulo({ htmlFor, children, dica, exemplo }: { htmlFor?: string; children: React.ReactNode; dica?: React.ReactNode; exemplo?: React.ReactNode }) {
+  const texto = typeof children === 'string' ? children : undefined
+  return (
+    <span className="tf-rotulo !flex items-center gap-2">
+      {htmlFor ? <label htmlFor={htmlFor}>{children}</label> : <span>{children}</span>}
+      {dica && (
+        <Dica titulo={texto} exemplo={exemplo}>
+          {dica}
+        </Dica>
+      )}
+    </span>
   )
 }
 

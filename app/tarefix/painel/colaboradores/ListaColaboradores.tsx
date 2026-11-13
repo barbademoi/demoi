@@ -3,8 +3,9 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
-import { Avatar, Erro, Modal, Titulo, Vazio } from '@/components/tarefix/ui'
+import { Avatar, Erro, Modal, Rotulo, Titulo, Vazio } from '@/components/tarefix/ui'
 import { criarColaborador } from './acoes'
+import { DICAS } from '@/components/tarefix/dicas'
 
 type Item = { id: string; nome: string; foto_url: string | null; funcao_id: string | null; ativo: boolean }
 type FuncaoItem = { id: string; nome: string; ativo: boolean }
@@ -77,7 +78,7 @@ export function ListaColaboradores({ colaboradores, funcoes }: { colaboradores: 
             <input id="c-nome" className="tf-campo" autoFocus value={nome} onChange={(e) => setNome(e.target.value)} />
           </div>
           <div>
-            <label className="tf-rotulo" htmlFor="c-funcao">Função</label>
+            <Rotulo htmlFor="c-funcao" {...DICAS.funcao}>Função</Rotulo>
             <select id="c-funcao" className="tf-campo" value={funcaoId} onChange={(e) => setFuncaoId(e.target.value)}>
               <option value="">Sem função</option>
               {funcoes
@@ -90,7 +91,7 @@ export function ListaColaboradores({ colaboradores, funcoes }: { colaboradores: 
             </select>
           </div>
           <div>
-            <label className="tf-rotulo" htmlFor="c-pin">PIN de acesso (4 números)</label>
+            <Rotulo htmlFor="c-pin" {...DICAS.pin}>PIN de acesso (4 números)</Rotulo>
             <input
               id="c-pin"
               className="tf-campo text-center text-2xl tracking-[0.5em]"

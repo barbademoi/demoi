@@ -105,3 +105,8 @@ body:has(.tarefix) {
 @media (prefers-reduced-motion: reduce) {
   .tf-termo-reflexo { animation: none; opacity: 0; }
 }
+
+/* ---------- Guia "Como usar": passos numerados ---------- */
+.tf-passos { counter-reset: passo; }
+.tf-passos > li { counter-increment: passo; }
+.tf-passo-num::before { content: counter(passo); }

@@ -19,6 +19,8 @@ import { AUTOAVALIACAO, liberacaoContinuas, rotuloAutoavaliacao } from '@/lib/ta
 import { BotaoTema } from '@/components/tarefix/Tema'
 import { BotaoAtualizar } from '@/components/tarefix/BotaoAtualizar'
 import { DicaInstalar } from '@/components/tarefix/DicaInstalar'
+import { Dica } from '@/components/tarefix/Dica'
+import { DICAS } from '@/components/tarefix/dicas'
 
 type Props = {
   token: string
@@ -446,7 +448,8 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
       </div>
 
       {/* Abas */}
-      <div className="mt-5 grid grid-cols-2 gap-1 rounded-2xl bg-tf-card p-1" role="tablist">
+      <div className="mt-5 flex gap-2">
+      <div className="grid flex-1 grid-cols-2 gap-1 rounded-2xl bg-tf-card p-1" role="tablist">
         {(
           [
             ['hoje', 'Hoje'],
@@ -464,6 +467,15 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
             {r}
           </button>
         ))}
+      </div>
+        <a
+          href="/tarefix/ajuda"
+          aria-label="Como usar o Tarefix"
+          title="Como usar"
+          className="flex w-[52px] shrink-0 items-center justify-center rounded-2xl bg-tf-card text-xl font-black text-tf-marca-texto hover:bg-tf-marca-clara"
+        >
+          ?
+        </a>
       </div>
 
       {aba === 'mes' ? (
@@ -493,9 +505,9 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
 
       {/* Termômetros */}
       <section className="tf-cartao mt-5 space-y-5 p-5">
-        <Termometro rotulo="Hoje" percentual={estado.dia?.percentual ?? null} detalhe={detalhePlacar(estado.dia, '')} grande />
+        <Termometro rotulo="Hoje" percentual={estado.dia?.percentual ?? null} detalhe={detalhePlacar(estado.dia, '')} grande {...DICAS.hojeEquipe} />
         <div>
-          <Termometro rotulo="No mês" percentual={estado.mes?.percentual ?? null} detalhe={estado.extrasAprovadasMes ? `+${estado.extrasAprovadasMes} extra${estado.extrasAprovadasMes > 1 ? 's' : ''} aprovada${estado.extrasAprovadasMes > 1 ? 's' : ''}` : undefined} />
+          <Termometro rotulo="No mês" percentual={estado.mes?.percentual ?? null} detalhe={estado.extrasAprovadasMes ? `+${estado.extrasAprovadasMes} extra${estado.extrasAprovadasMes > 1 ? 's' : ''} aprovada${estado.extrasAprovadasMes > 1 ? 's' : ''}` : undefined} {...DICAS.termoMes} />
           {estado.mesRestante.tarefas > 0 && (
             <p className="mt-1.5 text-sm text-tf-suave">
               Faltam <b className="text-tf-texto">{estado.mesRestante.tarefas} tarefa{estado.mesRestante.tarefas > 1 ? 's' : ''}</b> em {estado.mesRestante.dias} dia{estado.mesRestante.dias > 1 ? 's' : ''} para fechar o mês.
@@ -544,7 +556,7 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
       {estado.tarefas.some((t) => t.continua) && (
         <section className="mt-4 overflow-hidden rounded-2xl bg-tf-marca text-white">
           <div className="px-4 pb-2 pt-4">
-            <h2 className="text-lg font-extrabold">Durante o dia todo</h2>
+            <h2 className="flex items-center gap-2 text-lg font-extrabold">Durante o dia todo <Dica titulo="Durante o dia todo" className="!text-white" {...DICAS.diaTodoEquipe} /></h2>
             <p className="text-sm text-white/85">
               {estado.tom === 'zoeira'
                 ? 'Essas não têm check rápido: valem o dia inteiro e pesam mais. Capricha do primeiro ao último cliente.'
@@ -756,7 +768,7 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
             enviarExtra()
           }}
         >
-          <p className="text-tf-suave">Fez algo além da lista? Conte aqui. Quem cuida da equipe aprova depois.</p>
+          <p className="flex items-center gap-2 text-tf-suave">Fez algo além da lista? Conte aqui. Quem cuida da equipe aprova depois. <Dica titulo="Tarefa extra" {...DICAS.extraEquipe} /></p>
           <textarea
             className="tf-campo min-h-[110px] py-3"
             maxLength={500}

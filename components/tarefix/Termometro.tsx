@@ -9,6 +9,8 @@
  * Rubi/ouro/esmeralda são reservados a este componente (e ao calendário do mês).
  */
 
+import { Dica } from './Dica'
+
 export const CORES_TERMOMETRO = { vermelho: '#A3121F', amarelo: '#B8780C', verde: '#0E7A3B' } as const
 
 const PARADAS = [
@@ -54,11 +56,16 @@ export function Termometro({
   rotulo,
   detalhe,
   grande = false,
+  dica,
+  exemplo,
 }: {
   percentual: number | null
   rotulo: string
   detalhe?: string
   grande?: boolean
+  /** Explicação "?" ao lado do rótulo. */
+  dica?: React.ReactNode
+  exemplo?: React.ReactNode
 }) {
   const vazio = percentual === null
   const p = vazio ? 0 : Math.max(0, Math.min(100, percentual))
@@ -66,7 +73,14 @@ export function Termometro({
   return (
     <div>
       <div className="mb-2 flex items-baseline justify-between gap-3">
-        <span className="font-extrabold uppercase tracking-wide text-tf-suave">{rotulo}</span>
+        <span className="flex items-center gap-2 font-extrabold uppercase tracking-wide text-tf-suave">
+          {rotulo}
+          {dica && (
+            <Dica titulo={rotulo} exemplo={exemplo}>
+              {dica}
+            </Dica>
+          )}
+        </span>
         {detalhe && <span className="text-sm text-tf-suave">{detalhe}</span>}
       </div>
       <div className={`flex items-center ${grande ? 'gap-6' : 'gap-5'}`}>
