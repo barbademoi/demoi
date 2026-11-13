@@ -15,8 +15,16 @@ export function MeuMes({ estado }: { estado: EstadoHoje }) {
     <div className="space-y-5">
       <section className="tf-cartao space-y-4 p-5">
         <h2 className="text-lg font-extrabold first-letter:uppercase">{mesPorExtenso(estado.anoMes)}</h2>
-        <Termometro rotulo={estado.fechado ? 'No mês' : 'No mês (até ontem)'} percentual={estado.mes?.percentual ?? null} detalhe={detalhePlacar(estado.mes)} grande />
-        <p className="text-xs text-tf-suave">Conta os dias já fechados. O dia de hoje entra no mês no horário de fechamento.</p>
+        <Termometro rotulo="No mês" percentual={estado.mes?.percentual ?? null} detalhe={detalhePlacar(estado.mes)} grande />
+        <p className="text-sm text-tf-suave">
+          {estado.mesRestante.tarefas > 0 ? (
+            <>
+              Faltam <b className="text-tf-texto">{estado.mesRestante.tarefas} tarefa{estado.mesRestante.tarefas > 1 ? 's' : ''}</b> em {estado.mesRestante.dias} dia{estado.mesRestante.dias > 1 ? 's' : ''}. O termômetro enche conforme você faz: fazendo tudo, o mês fecha em 100%.
+            </>
+          ) : (
+            'Nada mais previsto para este mês.'
+          )}
+        </p>
         {estado.extrasAprovadasMes > 0 && (
           <p className="font-bold text-tf-marca-texto">
             +{estado.extrasAprovadasMes} extra{estado.extrasAprovadasMes > 1 ? 's' : ''} aprovada{estado.extrasAprovadasMes > 1 ? 's' : ''} no mês

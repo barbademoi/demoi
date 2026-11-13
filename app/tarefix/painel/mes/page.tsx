@@ -91,10 +91,15 @@ export default async function Mes({ searchParams }: { searchParams: { m?: string
                   </div>
                 </div>
                 <Termometro
-                  rotulo={resumo.atual ? 'No mês (dias fechados)' : 'No mês'}
+                  rotulo={resumo.atual ? 'No mês (prévia)' : 'No mês'}
                   percentual={l.placar?.percentual ?? null}
                   detalhe={l.placar && l.placar.total ? detalhePlacar(l.placar, '') : undefined}
                 />
+                {resumo.atual && l.restante && l.restante.tarefas > 0 && (
+                  <p className="mt-1.5 text-sm text-tf-suave">
+                    Faltam {l.restante.tarefas} tarefa{l.restante.tarefas > 1 ? 's' : ''} em {l.restante.dias} dia{l.restante.dias > 1 ? 's' : ''}.
+                  </p>
+                )}
                 {l.bonus && (
                   <p className="mt-3 text-sm font-bold">
                     {l.bonus.atingido ? `Bônus: ${l.bonus.atingido.premio}` : 'Sem bônus'}

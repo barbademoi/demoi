@@ -71,9 +71,12 @@ do BarberMeta:
       )
     $$);
     ```
-- **Mês só com dias fechados**: o percentual do mês (colaborador, painel Mês e bônus) conta até o último
-  dia fechado (`ultimoDiaFechado`); o dia de hoje entra no horário de fechamento. O calendário continua
-  mostrando o dia em andamento. Com peso, os textos mostram **pontos** ("23 de 41 pontos").
+- **Mês = prévia do mês inteiro** (`lerMes` com `previsao`): percentual = pontos feitos até agora ÷
+  pontos de TODAS as tarefas do mês — as que já existem nos dias que passaram (e hoje) + as previstas
+  para os dias que faltam (recorrentes ativas e avulsas já criadas, a partir do cadastro, sem folgas).
+  O termômetro enche ao longo do mês e fecha em 100% se tudo for feito; aparece "Faltam X tarefas em
+  Y dias". Meses passados (e o fechamento) usam só o que aconteceu. A comparação com o mês passado usa o
+  ritmo dos dias até hoje. Com peso, os textos mostram **pontos** ("23 de 41 pontos").
 - **Dias anteriores na aba Hoje**: setas ‹ › para consultar até 60 dias para trás (desde o cadastro),
   só leitura: tarefas, horários, fora do horário, fotos, observações e extras.
 - **Push "tarefa concluída"** para o dono (liga/desliga em Ajustes); o aviso de cada colaborador
