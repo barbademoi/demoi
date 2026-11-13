@@ -154,12 +154,6 @@ export function placar(tarefas: { status: TarefaDia['status']; peso?: number | n
   return { feitas, total, percentual: Math.round((pesoFeito / pesoTotal) * 100), pontos: pesoFeito, pontosTotal: pesoTotal }
 }
 
-/** Último dia que já fechou (hoje depois do horário; senão ontem). O mês conta só até ele. */
-export function ultimoDiaFechado(horarioFechamento: string, ref: Date = new Date()): string {
-  const hoje = hojeSP(ref)
-  return diaFechado(hoje, horarioFechamento, ref) ? hoje : somarDias(hoje, -1)
-}
-
 export async function lerDia(colaboradorId: string, data: string, db: Db = createTarefixAdmin()): Promise<TarefaDia[]> {
   const { data: linhas } = await db
     .from('tarefas_dia')
@@ -171,37 +165,91 @@ export async function lerDia(colaboradorId: string, data: string, db: Db = creat
 
 export type ResumoMes = {
   anoMes: string
+  /**
+   * Placar do MÊS INTEIRO (prévia): feitas até agora ÷ todas as tarefas do mês —
+   * as que já existem nos dias que passaram (e hoje) + as previstas para os dias
+   * que faltam (recorrentes ativas e avulsas já criadas, sem as folgas). Começa
+   * baixo e vai enchendo até o fim do mês.
+   */
   placar: Placar | null
-  porDia: Record<string, Placar | null> // só datas com tarefas
+  /** Placar só dos dias até hoje (ritmo; usado para comparar com o mês passado). */
+  placarAteHoje: Placar | null
+  /** O que ainda falta no mês: tarefas pendentes de hoje + previstas dos próximos dias. */
+  restante: { tarefas: number; pontos: number; dias: number }
+  porDia: Record<string, Placar | null> // só datas com tarefas (até hoje)
   extrasAprovadas: number
 }
 
+type Previsao = { colaborador: { id: string; criado_em: string } }
+
 /**
- * Lê o mês. porDia traz todos os dias até hoje (o calendário mostra o dia em
- * andamento); o placar do mês conta só até `ateDia` (os dias já FECHADOS),
- * para o percentual não "despencar" toda manhã com as tarefas que ainda
- * estão por fazer. Chame gerarTarefasPeriodo antes se precisar garantir os dias.
+ * Lê o mês. Com `previsao`, soma ao total as tarefas previstas dos dias que
+ * ainda vão acontecer (para meses passados não há o que prever).
+ * Chame gerarTarefasPeriodo antes se precisar garantir os dias até hoje.
  */
-export async function lerMes(colaboradorId: string, anoMes: string, db: Db = createTarefixAdmin(), ateDia?: string): Promise<ResumoMes> {
+export async function lerMes(colaboradorId: string, anoMes: string, db: Db = createTarefixAdmin(), previsao?: Previsao): Promise<ResumoMes> {
   const hoje = hojeSP()
   const datas = datasDoMes(anoMes, hoje)
-  if (datas.length === 0) return { anoMes, placar: null, porDia: {}, extrasAprovadas: 0 }
-  const ini = datas[0]
-  const fim = datas[datas.length - 1]
+  const vazio = { anoMes, placar: null, placarAteHoje: null, restante: { tarefas: 0, pontos: 0, dias: 0 }, porDia: {}, extrasAprovadas: 0 }
+  if (datas.length === 0 && !previsao) return vazio
+  const ini = `${anoMes}-01`
+  const fimMes = datasDoMes(anoMes).slice(-1)[0]
   const [{ data: linhas }, { count: extras }] = await Promise.all([
-    db.from('tarefas_dia').select('data, status, peso').eq('colaborador_id', colaboradorId).gte('data', ini).lte('data', fim),
-    db.from('extras').select('*', { count: 'exact', head: true }).eq('colaborador_id', colaboradorId).eq('status', 'aprovada').gte('data', `${anoMes}-01`).lte('data', `${anoMes}-31`),
+    datas.length
+      ? db.from('tarefas_dia').select('data, status, peso').eq('colaborador_id', colaboradorId).gte('data', ini).lte('data', datas[datas.length - 1])
+      : Promise.resolve({ data: [] as { data: string; status: TarefaDia['status']; peso: number }[] }),
+    db.from('extras').select('*', { count: 'exact', head: true }).eq('colaborador_id', colaboradorId).eq('status', 'aprovada').gte('data', ini).lte('data', fimMes),
   ])
-  const porData: Record<string, { status: TarefaDia['status']; peso?: number | null }[]> = {}
-  for (const l of linhas ?? []) (porData[l.data] ??= []).push(l)
+  const reais = (linhas ?? []) as { data: string; status: TarefaDia['status']; peso?: number | null }[]
+  const porData: Record<string, typeof reais> = {}
+  for (const l of reais) (porData[l.data] ??= []).push(l)
   const porDia: Record<string, Placar | null> = {}
   for (const [d, ts] of Object.entries(porData)) porDia[d] = placar(ts)
-  const doPlacar = ateDia ? (linhas ?? []).filter((l) => l.data <= ateDia) : linhas ?? []
-  return { anoMes, placar: placar(doPlacar), porDia, extrasAprovadas: extras ?? 0 }
+
+  // Previsão dos dias que faltam (depois de hoje), com as tarefas que já estão criadas.
+  const previstas: { status: TarefaDia['status']; peso: number }[] = []
+  let diasRestantes = 0
+  if (previsao) {
+    const inicio = agoraSP(new Date(previsao.colaborador.criado_em)).data
+    const futuros = datasDoMes(anoMes).filter((d) => d > hoje && d >= inicio)
+    if (futuros.length) {
+      const [{ data: modelos }, { data: avulsas }, { data: folgas }] = await Promise.all([
+        db.from('tarefas_modelo').select('dias_semana, peso').eq('colaborador_id', colaboradorId).eq('ativo', true),
+        db.from('tarefas_avulsas').select('data, peso').eq('colaborador_id', colaboradorId).gt('data', hoje).lte('data', fimMes),
+        db.from('folgas').select('data').eq('colaborador_id', colaboradorId).gt('data', hoje).lte('data', fimMes),
+      ])
+      const diasFolga = new Set((folgas ?? []).map((f) => f.data))
+      for (const d of futuros) {
+        if (diasFolga.has(d)) continue
+        const dow = diaDaSemana(d)
+        const doDia = [
+          ...((modelos ?? []) as { dias_semana: number[]; peso: number | null }[]).filter((m) => m.dias_semana.includes(dow)),
+          ...((avulsas ?? []) as { data: string; peso: number | null }[]).filter((a) => a.data === d),
+        ]
+        if (doDia.length) diasRestantes++
+        for (const t of doDia) previstas.push({ status: 'pendente', peso: t.peso && t.peso > 0 ? t.peso : 1 })
+      }
+    }
+  }
+
+  const pendentesHoje = (porData[hoje] ?? []).filter((t) => t.status !== 'feita')
+  const pesoDe = (t: { peso?: number | null }) => (t.peso && t.peso > 0 ? t.peso : 1)
+  return {
+    anoMes,
+    placar: placar([...reais, ...previstas]),
+    placarAteHoje: placar(reais),
+    restante: {
+      tarefas: pendentesHoje.length + previstas.length,
+      pontos: pendentesHoje.reduce((n, t) => n + pesoDe(t), 0) + previstas.reduce((n, t) => n + t.peso, 0),
+      dias: diasRestantes + (pendentesHoje.length ? 1 : 0),
+    },
+    porDia,
+    extrasAprovadas: extras ?? 0,
+  }
 }
 
 /** Gera todos os dias do mês até hoje e devolve o resumo. */
 export async function gerarELerMes(colab: ColabMin, empresa: EmpresaMin, anoMes: string, db: Db = createTarefixAdmin()) {
   await gerarTarefasPeriodo(colab, empresa, datasDoMes(anoMes, hojeSP()), db)
-  return lerMes(colab.id, anoMes, db, ultimoDiaFechado(empresa.horario_fechamento))
+  return lerMes(colab.id, anoMes, db, { colaborador: colab })
 }

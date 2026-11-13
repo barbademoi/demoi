@@ -494,7 +494,14 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
       {/* Termômetros */}
       <section className="tf-cartao mt-5 space-y-5 p-5">
         <Termometro rotulo="Hoje" percentual={estado.dia?.percentual ?? null} detalhe={detalhePlacar(estado.dia, '')} grande />
-        <Termometro rotulo={fechado ? 'No mês' : 'No mês (até ontem)'} percentual={estado.mes?.percentual ?? null} detalhe={estado.extrasAprovadasMes ? `+${estado.extrasAprovadasMes} extra${estado.extrasAprovadasMes > 1 ? 's' : ''} aprovada${estado.extrasAprovadasMes > 1 ? 's' : ''}` : undefined} />
+        <div>
+          <Termometro rotulo="No mês" percentual={estado.mes?.percentual ?? null} detalhe={estado.extrasAprovadasMes ? `+${estado.extrasAprovadasMes} extra${estado.extrasAprovadasMes > 1 ? 's' : ''} aprovada${estado.extrasAprovadasMes > 1 ? 's' : ''}` : undefined} />
+          {estado.mesRestante.tarefas > 0 && (
+            <p className="mt-1.5 text-sm text-tf-suave">
+              Faltam <b className="text-tf-texto">{estado.mesRestante.tarefas} tarefa{estado.mesRestante.tarefas > 1 ? 's' : ''}</b> em {estado.mesRestante.dias} dia{estado.mesRestante.dias > 1 ? 's' : ''} para fechar o mês.
+            </p>
+          )}
+        </div>
         {(() => {
           const previsto = estado.tarefas.filter((t) => t.status !== 'feita').reduce((n, t) => n + (t.tempo_estimado_min ?? 0), 0)
           return previsto > 0 ? (

@@ -1,6 +1,6 @@
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { agoraSP, anoMesDe, diaFechado, hojeSP, mesAnterior, minutosParaFechamento, somarDias } from '@/lib/tarefix/datas'
-import { gerarELerMes, gerarTarefasDoDia, lerDia, lerMes, placar, ultimoDiaFechado, type Placar } from '@/lib/tarefix/tarefasDia'
+import { gerarELerMes, gerarTarefasDoDia, lerDia, lerMes, placar, type Placar } from '@/lib/tarefix/tarefasDia'
 import { niveisOrdenados, situacaoBonus, type SituacaoBonus } from '@/lib/tarefix/bonus'
 import type { Colaborador, Empresa, TomMensagens } from '@/lib/tarefix/tipos'
 
@@ -40,7 +40,8 @@ export type EstadoHoje = {
   folga: boolean
   tarefas: TarefaTela[]
   dia: Placar | null
-  mes: Placar | null
+  mes: Placar | null // prévia do mês inteiro: feitas ÷ todas as tarefas do mês (inclusive as dos dias que faltam)
+  mesRestante: { tarefas: number; pontos: number; dias: number }
   extrasHoje: ExtraTela[]
   extrasAprovadasMes: number
   /* ---- Meu mês, bônus e mensagens ---- */
@@ -62,7 +63,7 @@ export async function montarEstado({ colaborador, empresa }: Ctx, gerar: boolean
   const anoMes = anoMesDe(hoje)
 
   // Ao abrir a tela: gera o mês todo até hoje (inclui hoje). Depois de uma ação: só lê.
-  const resumoMes = gerar ? await gerarELerMes(colaborador, empresa, anoMes, db) : await lerMes(colaborador.id, anoMes, db, ultimoDiaFechado(empresa.horario_fechamento))
+  const resumoMes = gerar ? await gerarELerMes(colaborador, empresa, anoMes, db) : await lerMes(colaborador.id, anoMes, db, { colaborador })
   if (!gerar) await gerarTarefasDoDia(colaborador, empresa, hoje, db)
 
   const inicioSequencia = somarDias(hoje, -60)
@@ -88,7 +89,9 @@ export async function montarEstado({ colaborador, empresa }: Ctx, gerar: boolean
   const niveis = niveisOrdenados(bonusCfg?.niveis)
   const bonusVisivel = Boolean(bonusCfg?.ativo && bonusCfg?.mostrar_para_colaborador && niveis.length)
   const pctMes = resumoMes.placar?.percentual ?? null
-  const evolucao = anterior !== null && pctMes !== null && pctMes > anterior ? pctMes - anterior : null
+  // evolução: ritmo dos dias até hoje × resultado do mês passado (a prévia do mês ainda está enchendo)
+  const ritmo = resumoMes.placarAteHoje?.percentual ?? null
+  const evolucao = anterior !== null && ritmo !== null && ritmo > anterior ? ritmo - anterior : null
 
   // Miniaturas das fotos (links temporários do bucket privado)
   const caminhos = linhas.map((t) => t.foto_path).filter((p): p is string => Boolean(p))
@@ -122,6 +125,7 @@ export async function montarEstado({ colaborador, empresa }: Ctx, gerar: boolean
     })),
     dia: placar(linhas),
     mes: resumoMes.placar,
+    mesRestante: resumoMes.restante,
     extrasHoje: (extras ?? []) as ExtraTela[],
     extrasAprovadasMes: resumoMes.extrasAprovadas,
     anoMes,

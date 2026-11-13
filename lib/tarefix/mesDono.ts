@@ -1,6 +1,6 @@
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { anoMesDe, datasDoMes, hojeSP } from '@/lib/tarefix/datas'
-import { gerarTarefasPeriodo, lerMes, ultimoDiaFechado, type Placar } from '@/lib/tarefix/tarefasDia'
+import { gerarTarefasPeriodo, lerMes, type Placar } from '@/lib/tarefix/tarefasDia'
 import { niveisOrdenados, situacaoBonus, type SituacaoBonus } from '@/lib/tarefix/bonus'
 import type { Empresa, NivelBonus } from '@/lib/tarefix/tipos'
 
@@ -15,6 +15,7 @@ export type LinhaMes = {
   foto_url: string | null
   ativo: boolean
   placar: Placar | null
+  restante?: { tarefas: number; dias: number }
   extrasAprovadas: number
   bonus: SituacaoBonus | null
 }
@@ -82,8 +83,8 @@ export async function carregarMesDono(empresa: Empresa, anoMes: string): Promise
 
   const linhas: LinhaMes[] = []
   for (const c of colabs ?? []) {
-    // mês corrente: só os dias já fechados (como o colaborador vê)
-    const r = await lerMes(c.id, anoMes, db, atual ? ultimoDiaFechado(empresa.horario_fechamento) : undefined)
+    // mês corrente: prévia do mês inteiro (como o colaborador vê); meses passados: o que aconteceu
+    const r = await lerMes(c.id, anoMes, db, atual && c.ativo ? { colaborador: c } : undefined)
     if (!c.ativo && !r.placar) continue // inativo sem nada no mês: some da lista
     linhas.push({
       colaborador_id: c.id,
@@ -91,6 +92,7 @@ export async function carregarMesDono(empresa: Empresa, anoMes: string): Promise
       foto_url: c.foto_url,
       ativo: c.ativo,
       placar: r.placar,
+      restante: { tarefas: r.restante.tarefas, dias: r.restante.dias },
       extrasAprovadas: r.extrasAprovadas,
       bonus: bonusAtivo ? situacaoBonus(niveis, r.placar?.percentual ?? null) : null,
     })
