@@ -7,15 +7,16 @@ import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
  * sem precisar configurar nada na Vercel). Só o servidor usa este módulo.
  */
 
-export type TipoPush = 'inicio' | 'fechamento' | 'reprovada' | 'resumo' | 'extra'
+export type TipoPush = 'inicio' | 'fechamento' | 'reprovada' | 'resumo' | 'extra' | 'concluida'
 export const TIPOS_PUSH: { tipo: TipoPush; rotulo: string; para: 'colaborador' | 'dono' }[] = [
   { tipo: 'inicio', rotulo: 'Na hora de começar cada tarefa', para: 'colaborador' },
   { tipo: 'fechamento', rotulo: '30 min antes do fechamento, se houver pendentes', para: 'colaborador' },
   { tipo: 'reprovada', rotulo: 'Quando uma tarefa for reprovada', para: 'colaborador' },
   { tipo: 'resumo', rotulo: 'Resumo do dia no fechamento', para: 'dono' },
+  { tipo: 'concluida', rotulo: 'Cada tarefa concluída pela equipe', para: 'dono' },
   { tipo: 'extra', rotulo: 'Nova tarefa extra para aprovar', para: 'dono' },
 ]
-export const PUSH_PADRAO: Record<TipoPush, boolean> = { inicio: true, fechamento: true, reprovada: true, resumo: true, extra: true }
+export const PUSH_PADRAO: Record<TipoPush, boolean> = { inicio: true, fechamento: true, reprovada: true, resumo: true, extra: true, concluida: true }
 
 export function tiposLigados(v: unknown): Record<TipoPush, boolean> {
   const o = (v && typeof v === 'object' ? v : {}) as Partial<Record<TipoPush, unknown>>

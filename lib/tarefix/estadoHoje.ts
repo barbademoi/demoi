@@ -1,6 +1,6 @@
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
-import { anoMesDe, diaFechado, hojeSP, mesAnterior, minutosParaFechamento, somarDias } from '@/lib/tarefix/datas'
-import { gerarELerMes, gerarTarefasDoDia, lerDia, lerMes, placar, type Placar } from '@/lib/tarefix/tarefasDia'
+import { agoraSP, anoMesDe, diaFechado, hojeSP, mesAnterior, minutosParaFechamento, somarDias } from '@/lib/tarefix/datas'
+import { gerarELerMes, gerarTarefasDoDia, lerDia, lerMes, placar, ultimoDiaFechado, type Placar } from '@/lib/tarefix/tarefasDia'
 import { niveisOrdenados, situacaoBonus, type SituacaoBonus } from '@/lib/tarefix/bonus'
 import type { Colaborador, Empresa, TomMensagens } from '@/lib/tarefix/tipos'
 
@@ -62,7 +62,7 @@ export async function montarEstado({ colaborador, empresa }: Ctx, gerar: boolean
   const anoMes = anoMesDe(hoje)
 
   // Ao abrir a tela: gera o mês todo até hoje (inclui hoje). Depois de uma ação: só lê.
-  const resumoMes = gerar ? await gerarELerMes(colaborador, empresa, anoMes, db) : await lerMes(colaborador.id, anoMes, db)
+  const resumoMes = gerar ? await gerarELerMes(colaborador, empresa, anoMes, db) : await lerMes(colaborador.id, anoMes, db, ultimoDiaFechado(empresa.horario_fechamento))
   if (!gerar) await gerarTarefasDoDia(colaborador, empresa, hoje, db)
 
   const inicioSequencia = somarDias(hoje, -60)
@@ -144,3 +144,60 @@ async function mesPassado(colaboradorId: string, anoMes: string, db: ReturnType<
   return r.placar?.percentual ?? null
 }
 
+
+/* ====================================================================== */
+/* Dia anterior (só leitura) — a setinha "‹" da aba Hoje                   */
+/* ====================================================================== */
+
+export type DiaPassado = {
+  data: string
+  folga: boolean
+  tarefas: TarefaTela[]
+  dia: Placar | null
+  extras: ExtraTela[]
+}
+
+export const DIAS_PARA_TRAS = 60
+
+/** Monta um dia passado do colaborador (recebe o contexto já validado). */
+export async function montarDiaPassado({ colaborador, empresa }: Ctx, data: string): Promise<DiaPassado | null> {
+  const hoje = hojeSP()
+  const inicio = agoraSP(new Date(colaborador.criado_em)).data
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || data >= hoje || data < inicio || data < somarDias(hoje, -DIAS_PARA_TRAS)) return null
+  const db = createTarefixAdmin()
+  await gerarTarefasDoDia(colaborador, empresa, data, db) // dia nunca aberto: gera uma vez (regras de dia fechado)
+  const [linhas, { data: folga }, { data: extras }] = await Promise.all([
+    lerDia(colaborador.id, data, db),
+    db.from('folgas').select('id').eq('colaborador_id', colaborador.id).eq('data', data).maybeSingle(),
+    db.from('extras').select('id, descricao, status').eq('colaborador_id', colaborador.id).eq('data', data).order('criado_em'),
+  ])
+  const caminhos = linhas.map((t) => t.foto_path).filter((p): p is string => Boolean(p))
+  const urls: Record<string, string> = {}
+  if (caminhos.length) {
+    const { data: assinadas } = await db.storage.from(BUCKET).createSignedUrls(caminhos, 60 * 60)
+    for (const a of assinadas ?? []) if (a.path && a.signedUrl) urls[a.path] = a.signedUrl
+  }
+  return {
+    data,
+    folga: Boolean(folga),
+    dia: placar(linhas),
+    extras: (extras ?? []) as ExtraTela[],
+    tarefas: linhas.map((t) => ({
+      id: t.id,
+      titulo: t.titulo,
+      descricao: t.descricao,
+      exige_foto: t.exige_foto,
+      status: t.status,
+      feita_em: t.feita_em,
+      motivo_reprovacao: t.motivo_reprovacao,
+      foto_url: t.foto_path ? urls[t.foto_path] ?? null : null,
+      horario_inicio: t.horario_inicio ? t.horario_inicio.slice(0, 5) : null,
+      horario_limite: t.horario_limite ? t.horario_limite.slice(0, 5) : null,
+      tempo_estimado_min: t.tempo_estimado_min ?? null,
+      continua: t.continua ?? false,
+      peso: t.peso ?? 1,
+      autoavaliacao: t.autoavaliacao ?? null,
+      observacao: t.observacao ?? null,
+    })),
+  }
+}

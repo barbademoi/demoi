@@ -1,5 +1,6 @@
 'use client'
 
+import { detalhePlacar } from '@/lib/tarefix/placarTexto'
 import { useEffect, useState } from 'react'
 import type { CardColaborador, PainelHoje, TarefaPainel } from '@/lib/tarefix/painelHoje'
 import { dataCurta, FUSO } from '@/lib/tarefix/datas'
@@ -65,7 +66,7 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
     <div className="space-y-5">
       {totalTarefas > 0 && (
         <section className="tf-cartao p-5">
-          <Termometro rotulo="Equipe hoje" percentual={pesoTotal ? Math.round((pesoFeito / pesoTotal) * 100) : null} detalhe={`${totalFeitas} de ${totalTarefas} tarefas`} />
+          <Termometro rotulo="Equipe hoje" percentual={pesoTotal ? Math.round((pesoFeito / pesoTotal) * 100) : null} detalhe={detalhePlacar({ feitas: totalFeitas, total: totalTarefas, pontos: pesoFeito, pontosTotal: pesoTotal })} />
         </section>
       )}
 
@@ -130,7 +131,7 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
 
             {c.placar && (
               <div className="mt-4">
-                <Termometro rotulo="Hoje" percentual={c.placar.percentual} detalhe={`${c.placar.feitas} de ${c.placar.total}`} />
+                <Termometro rotulo="Hoje" percentual={c.placar.percentual} detalhe={detalhePlacar(c.placar, '')} />
               </div>
             )}
 

@@ -71,6 +71,13 @@ do BarberMeta:
       )
     $$);
     ```
+- **Mês só com dias fechados**: o percentual do mês (colaborador, painel Mês e bônus) conta até o último
+  dia fechado (`ultimoDiaFechado`); o dia de hoje entra no horário de fechamento. O calendário continua
+  mostrando o dia em andamento. Com peso, os textos mostram **pontos** ("23 de 41 pontos").
+- **Dias anteriores na aba Hoje**: setas ‹ › para consultar até 60 dias para trás (desde o cadastro),
+  só leitura: tarefas, horários, fora do horário, fotos, observações e extras.
+- **Push "tarefa concluída"** para o dono (liga/desliga em Ajustes); o aviso de cada colaborador
+  substitui o anterior na tela.
 
 ## Instalar (pelo navegador)
 

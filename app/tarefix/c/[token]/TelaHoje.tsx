@@ -1,16 +1,19 @@
 'use client'
 
+import { detalhePlacar } from '@/lib/tarefix/placarTexto'
 import { useEffect, useRef, useState } from 'react'
 import { createTarefixClient } from '@/lib/tarefix/supabase/client'
 import { comprimirImagem } from '@/lib/tarefix/imagem'
-import { dataPorExtenso, FUSO } from '@/lib/tarefix/datas'
+import { dataPorExtenso, FUSO, somarDias } from '@/lib/tarefix/datas'
 import type { EstadoHoje, TarefaTela } from '@/lib/tarefix/estadoHoje'
 import { Avatar, Erro, Modal } from '@/components/tarefix/ui'
 import { Termometro } from '@/components/tarefix/Termometro'
 import { escolherMomento, preencher, sortearMensagem, variaveisDa, type Momento } from '@/lib/tarefix/mensagens'
-import { ativarPush, chavePush, desativarPush, desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra, salvarObservacao } from './acoes'
+import { ativarPush, chavePush, desativarPush, verDia, desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra, salvarObservacao } from './acoes'
 import { AtivarNotificacoes } from '@/components/tarefix/AtivarNotificacoes'
 import { MeuMes } from './MeuMes'
+import { DiaAnterior } from './DiaAnterior'
+import type { DiaPassado } from '@/lib/tarefix/estadoHoje'
 import { duracao, eAgora, estaAtrasada, foraDoHorario, janela, minutosDeAtraso, prazoEfetivo } from '@/lib/tarefix/prazo'
 import { AUTOAVALIACAO, liberacaoContinuas, rotuloAutoavaliacao } from '@/lib/tarefix/continuas'
 import { BotaoTema } from '@/components/tarefix/Tema'
@@ -83,7 +86,7 @@ function comTarefa(e: EstadoHoje, id: string, mudanca: Partial<TarefaTela>): Est
     ...e,
     tarefas,
     // o termômetro do mês o servidor confirma em seguida
-    dia: tarefas.length ? { feitas: feitas.length, total: tarefas.length, percentual: Math.round((pesoFeito / pesoTotal) * 100) } : null,
+    dia: tarefas.length ? { feitas: feitas.length, total: tarefas.length, percentual: Math.round((pesoFeito / pesoTotal) * 100), pontos: pesoFeito, pontosTotal: pesoTotal } : null,
   }
 }
 
@@ -111,6 +114,37 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
   const fechado = estado.fechado
   const pendentes = estado.tarefas.filter((t) => t.status !== 'feita').length
   const [aba, setAba] = useState<'hoje' | 'mes'>('hoje')
+
+  /* ------------------------ dias anteriores (‹ ›) ------------------------ */
+  const [diaVisto, setDiaVisto] = useState<string | null>(null) // null = hoje
+  const [passado, setPassado] = useState<DiaPassado | null>(null)
+  const [carregandoDia, setCarregandoDia] = useState(false)
+  const [erroDia, setErroDia] = useState<string | null>(null)
+  const limiteParaTras = somarDias(estado.hoje, -60)
+
+  async function irPara(data: string | null) {
+    setErroDia(null)
+    setAba('hoje')
+    if (!data || data >= estado.hoje) {
+      setDiaVisto(null)
+      setPassado(null)
+      return
+    }
+    setDiaVisto(data)
+    setCarregandoDia(true)
+    try {
+      const r = await verDia(token, data)
+      if (r.ok) setPassado(r.dia)
+      else {
+        setPassado(null)
+        setErroDia(r.erro)
+      }
+    } catch {
+      setErroDia('Sem conexão. Confira a internet e tente de novo.')
+    } finally {
+      setCarregandoDia(false)
+    }
+  }
 
   /* ----------------------- relógio (minutos p/ fechar) ----------------------- */
   const recebidoEm = useRef(Date.now())
@@ -365,11 +399,39 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
         />
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm">
-        <span className="font-bold first-letter:uppercase">{dataPorExtenso(estado.hoje)}</span>
-        <span className={`rounded-full px-3 py-1 font-bold ${fechado ? 'bg-tf-texto text-tf-fundo' : 'bg-tf-marca-clara text-tf-marca-texto'}`}>
-          {fechado ? `Fechou às ${empresa.fecha}` : `Fecha às ${empresa.fecha}`}
-        </span>
+      <div className="mt-4 flex items-center justify-between gap-2 text-sm">
+        <div className="flex min-w-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={() => irPara(somarDias(diaVisto ?? estado.hoje, -1))}
+            disabled={carregandoDia || (diaVisto ?? estado.hoje) <= limiteParaTras}
+            aria-label="Ver o dia anterior"
+            className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-2xl font-bold hover:bg-tf-marca-clara disabled:opacity-30"
+          >
+            ‹
+          </button>
+          <span className="truncate font-bold first-letter:uppercase">{dataPorExtenso(diaVisto ?? estado.hoje)}</span>
+          {diaVisto && (
+            <button
+              type="button"
+              onClick={() => irPara(somarDias(diaVisto, 1))}
+              disabled={carregandoDia}
+              aria-label="Ver o dia seguinte"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-2xl font-bold hover:bg-tf-marca-clara disabled:opacity-30"
+            >
+              ›
+            </button>
+          )}
+        </div>
+        {diaVisto ? (
+          <button type="button" onClick={() => irPara(null)} className="shrink-0 rounded-full bg-tf-marca px-3 py-1 font-bold text-white">
+            Voltar para hoje
+          </button>
+        ) : (
+          <span className={`shrink-0 rounded-full px-3 py-1 font-bold ${fechado ? 'bg-tf-texto text-tf-fundo' : 'bg-tf-marca-clara text-tf-marca-texto'}`}>
+            {fechado ? `Fechou às ${empresa.fecha}` : `Fecha às ${empresa.fecha}`}
+          </span>
+        )}
       </div>
 
       {/* Abas */}
@@ -397,6 +459,16 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
         <div className="mt-5">
           <MeuMes estado={estado} />
         </div>
+      ) : diaVisto ? (
+        carregandoDia ? (
+          <div className="tf-cartao mt-5 px-5 py-10 text-center text-tf-suave">Carregando…</div>
+        ) : erroDia || !passado ? (
+          <div className="mt-5">
+            <Erro texto={erroDia ?? 'Esse dia não está disponível.'} />
+          </div>
+        ) : (
+          <DiaAnterior dia={passado} fechamento={empresa.fechaHorario} />
+        )
       ) : (
       <>
       {/* Mensagem do topo (banco com sorteio em lib/tarefix/mensagens.ts) */}
@@ -410,8 +482,8 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
 
       {/* Termômetros */}
       <section className="tf-cartao mt-5 space-y-5 p-5">
-        <Termometro rotulo="Hoje" percentual={estado.dia?.percentual ?? null} detalhe={estado.dia ? `${estado.dia.feitas} de ${estado.dia.total}` : undefined} grande />
-        <Termometro rotulo="No mês" percentual={estado.mes?.percentual ?? null} detalhe={estado.extrasAprovadasMes ? `+${estado.extrasAprovadasMes} extra${estado.extrasAprovadasMes > 1 ? 's' : ''} aprovada${estado.extrasAprovadasMes > 1 ? 's' : ''}` : undefined} />
+        <Termometro rotulo="Hoje" percentual={estado.dia?.percentual ?? null} detalhe={detalhePlacar(estado.dia, '')} grande />
+        <Termometro rotulo={fechado ? 'No mês' : 'No mês (até ontem)'} percentual={estado.mes?.percentual ?? null} detalhe={estado.extrasAprovadasMes ? `+${estado.extrasAprovadasMes} extra${estado.extrasAprovadasMes > 1 ? 's' : ''} aprovada${estado.extrasAprovadasMes > 1 ? 's' : ''}` : undefined} />
         {(() => {
           const previsto = estado.tarefas.filter((t) => t.status !== 'feita').reduce((n, t) => n + (t.tempo_estimado_min ?? 0), 0)
           return previsto > 0 ? (
