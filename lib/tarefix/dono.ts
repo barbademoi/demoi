@@ -13,7 +13,7 @@ export type SessaoDono = {
  * Sessão do dono (Supabase Auth — a mesma do BarberMeta) com cadastro em tarefix.donos.
  * Retorna o cliente com RLS: tudo que ele lê/grava fica restrito à empresa do dono.
  */
-export async function sessaoDono(): Promise<SessaoDono | 'sem-login' | 'sem-acesso'> {
+export async function sessaoDono(): Promise<SessaoDono | 'sem-login' | 'sem-acesso' | 'suspenso'> {
   const db = createTarefixServer()
   const {
     data: { user },
@@ -23,6 +23,7 @@ export async function sessaoDono(): Promise<SessaoDono | 'sem-login' | 'sem-aces
   if (!dono) return 'sem-acesso'
   const { data: empresa } = await db.from('empresas').select('*').eq('id', dono.empresa_id).single()
   if (!empresa) return 'sem-acesso'
+  if (empresa.ativo === false) return 'suspenso' // acesso suspenso pelo admin
   return { db, userId: user.id, dono: dono as Dono, empresa: empresa as Empresa }
 }
 
@@ -31,6 +32,7 @@ export async function exigirDono(): Promise<SessaoDono> {
   const s = await sessaoDono()
   if (s === 'sem-login') redirect('/tarefix/entrar')
   if (s === 'sem-acesso') redirect('/tarefix/sem-acesso')
+  if (s === 'suspenso') redirect('/tarefix/sem-acesso?motivo=suspenso')
   return s
 }
 
@@ -41,6 +43,7 @@ export async function donoOuErro(): Promise<SessaoDono | { ok: false; erro: stri
   const s = await sessaoDono()
   if (s === 'sem-login') return { ok: false, erro: 'Sua sessão expirou. Entre de novo.' }
   if (s === 'sem-acesso') return { ok: false, erro: 'Sem acesso ao Tarefix.' }
+  if (s === 'suspenso') return { ok: false, erro: 'Seu acesso ao Tarefix está suspenso.' }
   return s
 }
 

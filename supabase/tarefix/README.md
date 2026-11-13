@@ -86,6 +86,16 @@ do BarberMeta:
   enquanto visível (painel 60 s, colaborador 120 s, sem atrapalhar uma marcação em andamento).
 - **Dias anteriores no painel do dono**: setas ‹ › na tela Hoje (`/tarefix/painel?d=AAAA-MM-DD`, até 60
   dias), com os cards de cada colaborador daquele dia; dá para reprovar enquanto o mês não fechar.
+- **Acessos de mentorados** (`009_acessos.sql`, `lib/tarefix/acessos.ts`, `/tarefix/painel/acessos`):
+  `tarefix.admins` guarda quem pode conceder acesso (o primeiro dono instalado; só service role lê).
+  "Conceder acesso" cria uma empresa nova + o dono dela: e-mail novo ganha conta com senha provisória
+  (mostrada uma vez, com botões Copiar / WhatsApp); e-mail que já tem conta no BarberMeta só é ligado, a
+  senha não muda. Cada mentorado vê só a própria empresa (RLS). Suspender (`empresas.ativo = false`)
+  bloqueia o dono (tela "acesso suspenso"), os links da equipe e os pushes — os dados ficam guardados.
+  Para adicionar outro admin: `insert into tarefix.admins (user_id) values ('<id do auth.users>');`
+- **Trocar senha** em Ajustes → Conta (vale também para o BarberMeta).
+- **Termômetro "instrumento"**: moldura de aço grafite, trilho escuro, cores profundas (rubi → ouro
+  velho → esmeralda) com reflexo cromado, marcas em 25/50/75 e marcador de aço.
 
 ## Instalar (pelo navegador)
 

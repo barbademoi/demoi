@@ -72,7 +72,7 @@ function guardarUsada(chave: string, modelo: string) {
 async function soltarConfete() {
   if (typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
   const confetti = (await import('canvas-confetti')).default
-  const cores = ['#5B3DF5', '#8B74FF', '#F59E0B', '#16A34A', '#FFFFFF']
+  const cores = ['#5B3DF5', '#8B74FF', '#D4A017', '#0E7A3B', '#C0C4CC', '#FFFFFF']
   confetti({ particleCount: 120, spread: 80, origin: { y: 0.65 }, colors: cores, disableForReducedMotion: true })
   setTimeout(() => confetti({ particleCount: 80, spread: 110, origin: { y: 0.6 }, colors: cores, disableForReducedMotion: true }), 250)
 }

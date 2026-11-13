@@ -68,7 +68,7 @@ export async function carregarAcesso(token: string): Promise<AcessoColaborador> 
   const { data: c } = await db.from('colaboradores').select('*').eq('token_acesso', token).maybeSingle()
   if (!c || !c.ativo) return { estado: 'invalido' }
   const { data: empresa } = await db.from('empresas').select('*').eq('id', c.empresa_id).single()
-  if (!empresa) return { estado: 'invalido' }
+  if (!empresa || empresa.ativo === false) return { estado: 'invalido' } // empresa suspensa: links param
   if (!sessaoValida(c as Colaborador)) return { estado: 'pin', colaborador: c as Colaborador, empresa: empresa as Empresa }
   let funcao: string | null = null
   if (c.funcao_id) {
