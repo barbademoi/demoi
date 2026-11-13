@@ -49,6 +49,28 @@ do BarberMeta:
   histórico. Ele vê um aviso fixo e, na primeira marcação fora do horário do dia, um alerta lembrando
   que o check é todos os dias até o fechamento. O resumo do fechamento continua sendo o retrato do
   momento em que o painel foi aberto depois do horário.
+- **Notificações push no celular** (`008_push.sql`, `lib/tarefix/push.ts`, `lib/tarefix/pushAgendado.ts`,
+  `public/tarefix/sw.js`): Web Push com VAPID. As chaves são geradas pelo servidor na primeira vez e
+  guardadas em `tarefix.push_config` (só service role) — nada para configurar na Vercel.
+  - Colaborador ativa no próprio link; dono ativa em Ajustes (com botão de teste). iPhone: só com o
+    Tarefix na tela inicial (iOS 16.4+).
+  - Imediatas: tarefa reprovada (colaborador) e extra nova (dono).
+  - Agendadas: `/tarefix/api/push/tick`, chamado a cada 5 min pelo **pg_cron + pg_net do Supabase**
+    com o cabeçalho `x-tarefix-cron` = `push_config.segredo_cron`. Avisos: na hora de começar cada
+    tarefa (tolerância 10 min), 30 min antes do fechamento com pendentes, resumo ao dono até 1h
+    depois do fechamento. `push_enviados` garante que cada aviso sai uma vez só.
+  - Ajustes liga/desliga cada tipo (`empresas.push_tipos`).
+  - Para (re)criar o agendamento no SQL Editor:
+    ```sql
+    create extension if not exists pg_net;
+    create extension if not exists pg_cron;
+    select cron.schedule('tarefix-push-tick', '*/5 * * * *', $$
+      select net.http_get(
+        url := 'https://www.barbermeta.com.br/tarefix/api/push/tick',
+        headers := jsonb_build_object('x-tarefix-cron', (select segredo_cron from tarefix.push_config where id = 1))
+      )
+    $$);
+    ```
 
 ## Instalar (pelo navegador)
 

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { donoOuErro, falha, type Resultado } from '@/lib/tarefix/dono'
+import { avisarColaborador } from '@/lib/tarefix/push'
 
 // Todas usam o cliente com RLS do dono: só alcançam a própria empresa.
 // O gatilho do banco impede mexer em mês já fechado.
@@ -18,10 +19,21 @@ export async function reprovarTarefa(id: string, motivo: string): Promise<Result
     .update({ status: 'reprovada', motivo_reprovacao: texto, reprovada_em: new Date().toISOString() })
     .eq('id', id)
     .eq('status', 'feita')
-    .select('id')
+    .select('id, colaborador_id, titulo')
     .maybeSingle()
   if (error) return falha(error)
   if (!data) return { ok: false, erro: 'Só dá para reprovar uma tarefa marcada como feita.' }
+
+  // push para o colaborador (link dele)
+  const { data: c } = await s.db.from('colaboradores').select('token_acesso').eq('id', data.colaborador_id).maybeSingle()
+  if (c) {
+    await avisarColaborador(s.empresa, data.colaborador_id, 'reprovada', {
+      titulo: 'Uma tarefa voltou',
+      corpo: `${data.titulo}: "${texto}". Bora acertar.`,
+      url: `/tarefix/c/${c.token_acesso}`,
+      tag: `reprovada-${id}`,
+    })
+  }
   revalidatePath('/tarefix/painel', 'layout')
   return { ok: true }
 }
