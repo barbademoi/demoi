@@ -13,6 +13,7 @@ const BUCKET = 'tarefix-provas'
 
 export type TarefaPainel = Pick<TarefaDia, 'id' | 'titulo' | 'descricao' | 'exige_foto' | 'status' | 'feita_em' | 'motivo_reprovacao' | 'horario_inicio' | 'horario_limite' | 'tempo_estimado_min' | 'continua' | 'peso' | 'autoavaliacao' | 'observacao'> & {
   foto_url: string | null
+  checklist: { t: string; f: boolean }[]
 }
 
 export type CardColaborador = {
@@ -123,6 +124,7 @@ export async function carregarPainelHoje(empresa: Empresa, dataPedida?: string):
       peso: t.peso ?? 1,
       autoavaliacao: t.autoavaliacao ?? null,
       observacao: t.observacao ?? null,
+          checklist: Array.isArray(t.checklist) ? t.checklist : [],
         })),
       }
     }),

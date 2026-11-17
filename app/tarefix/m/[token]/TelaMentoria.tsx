@@ -11,7 +11,8 @@ import { BotaoTema } from '@/components/tarefix/Tema'
 import { BotaoAtualizar } from '@/components/tarefix/BotaoAtualizar'
 import { DicaInstalar } from '@/components/tarefix/DicaInstalar'
 import { AtivarNotificacoes } from '@/components/tarefix/AtivarNotificacoes'
-import { ativarPushMentoria, chavePushMentoria, desativarPushMentoria, entregarMissao, prepararUploadMentoria, recarregarMentoria } from './acoes'
+import { ativarPushMentoria, chavePushMentoria, desativarPushMentoria, entregarMissao, marcarItemMissao, prepararUploadMentoria, recarregarMentoria } from './acoes'
+import { Checklist } from '../../c/[token]/PessoalExtras'
 
 type Entrega = EstadoMentoria['entregas'][number]
 
@@ -37,6 +38,27 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
   const [verConcluidas, setVerConcluidas] = useState(false)
   const camera = useRef<HTMLInputElement>(null)
   const primeiro = nome.split(' ')[0]
+  const [marcando, setMarcando] = useState<string | null>(null)
+
+  async function marcarItem(x: Entrega, i: number, f: boolean) {
+    setErro(null)
+    setMarcando(x.id)
+    const anterior = estado
+    setEstado((s) => ({ ...s, entregas: s.entregas.map((e) => (e.id === x.id ? { ...e, checklist: e.checklist.map((c, n) => (n === i ? { ...c, f } : c)) } : e)) }))
+    try {
+      const r = await marcarItemMissao(token, x.id, i, f)
+      if (r.estado) setEstado(r.estado)
+      if (!r.ok) {
+        if (!r.estado) setEstado(anterior)
+        setErro(r.erro)
+      }
+    } catch {
+      setEstado(anterior)
+      setErro('Sem conexão. Tente de novo.')
+    } finally {
+      setMarcando(null)
+    }
+  }
 
   const e = estado.entregas
   const grupos: { titulo: string; itens: Entrega[]; tom: 'forte' | 'marca' | 'normal' }[] = [
@@ -151,6 +173,11 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
                       {x.prova !== 'nenhuma' && x.situacao !== 'aguardando' && ` · enviar ${x.prova === 'foto' ? 'foto ou print' : 'texto'}`}
                     </p>
                     {x.descricao && <p className="mt-2 whitespace-pre-line text-sm text-tf-suave">{x.descricao}</p>}
+                    <Checklist
+                      itens={x.checklist}
+                      desabilitado={marcando === x.id || x.situacao === 'aguardando'}
+                      aoMarcar={(i, f) => marcarItem(x, i, f)}
+                    />
                     {x.situacao === 'devolvida' && x.motivo && (
                       <p className="mt-2 rounded-xl bg-tf-texto px-3 py-2 text-sm font-bold text-tf-fundo">
                         {estado.mentor} pediu ajuste: “{x.motivo}”
