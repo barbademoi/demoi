@@ -141,6 +141,10 @@ do BarberMeta:
   recorrentes da mentoria têm "Começa em" e "Termina em" opcionais (`inicio`/`fim`), respeitados na geração do
   dia, na prévia do mês, na agenda .ics e nas entregas. No Meu dia, o adicionar rápido e o "Algum dia" têm
   "Escolher data", e a lista "📅 Próximos dias" mostra as avulsas já agendadas (60 dias).
+- **Checklist em todo lugar** (`013_checklist_missoes.sql`): missões da mentoria têm checklist (`missoes.checklist`
+  → `entregas.checklist`), marcado pelo mentorado no link; editar a missão alinha as entregas abertas sem perder
+  o que já foi marcado. No painel Hoje do dono, cada tarefa com checklist mostra "checklist 2/4" e os itens no
+  detalhe (o checklist dos colaboradores já existia desde o Meu dia).
 - **Termômetro "instrumento"**: moldura de aço grafite, trilho escuro, cores profundas (rubi → ouro
   velho → esmeralda) com reflexo cromado, marcas em 25/50/75 e marcador de aço.
 

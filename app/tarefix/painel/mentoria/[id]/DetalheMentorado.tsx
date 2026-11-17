@@ -186,6 +186,12 @@ export function DetalheMentorado(p: {
                           {textoPrazo(e, p.hoje)}
                           {e.enviada_em && ` · entregue ${new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(e.enviada_em))}`}
                         </p>
+                        {e.checklist.length > 0 && (
+                          <p className="text-sm text-tf-suave">
+                            checklist {e.checklist.filter((c) => c.f).length}/{e.checklist.length}
+                            {e.checklist.some((c) => !c.f) && e.situacao === 'aguardando' && ` · faltou: ${e.checklist.filter((c) => !c.f).map((c) => c.t).join(', ')}`}
+                          </p>
+                        )}
                         {e.texto && <p className="mt-2 whitespace-pre-line rounded-xl bg-tf-fundo px-3 py-2 text-sm">{e.texto}</p>}
                         {e.motivo && e.situacao === 'devolvida' && <p className="mt-1 text-sm font-bold">Você devolveu: “{e.motivo}”</p>}
                       </div>
@@ -258,6 +264,7 @@ export function DetalheMentorado(p: {
                     {regraMissao(x)}
                     {x.prova !== 'nenhuma' && ` · prova: ${x.prova === 'foto' ? 'foto' : 'texto'}`}
                     {x.aprovacao && ' · com aprovação'}
+                    {(x.checklist?.length ?? 0) > 0 && ` · checklist de ${x.checklist!.length}`}
                     {x.para.length > 1 && ` · ${x.para.length} mentorados`}
                     {!x.ativo && ' · pausada'}
                   </p>

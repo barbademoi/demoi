@@ -36,6 +36,7 @@ export type Missao = {
   ativo: boolean
   inicio?: string | null
   fim?: string | null
+  checklist?: string[]
   criado_em: string
 }
 
@@ -57,6 +58,7 @@ export type EntregaTela = {
   enviada_em: string | null
   motivo: string | null
   tipo: TipoMissao
+  checklist: { t: string; f: boolean }[]
 }
 
 export const JANELA_PASSADO = 30
@@ -100,21 +102,31 @@ export async function gerarEntregas(mentoradoId: string, db: Db = createTarefixA
   const ativas = ((missoes ?? []) as Missao[]).filter((m) => m.ativo)
 
   const esperadas = new Set<string>()
-  const novas: { missao_id: string; mentorado_id: string; prazo: string }[] = []
+  const novas: { missao_id: string; mentorado_id: string; prazo: string; checklist: { t: string; f: boolean }[] }[] = []
   for (const m of ativas) {
     const desde = agoraSP(new Date((atrib ?? []).find((a) => a.missao_id === m.id)!.criado_em)).data
     const de = desde > somarDias(hoje, -JANELA_PASSADO) ? desde : somarDias(hoje, -JANELA_PASSADO)
     for (const prazo of prazosDaMissao(m, de, ate)) {
       esperadas.add(`${m.id}:${prazo}`)
-      novas.push({ missao_id: m.id, mentorado_id: mentoradoId, prazo })
+      novas.push({ missao_id: m.id, mentorado_id: mentoradoId, prazo, checklist: (m.checklist ?? []).map((t) => ({ t, f: false })) })
     }
   }
   if (novas.length) await db.from('entregas').upsert(novas, { onConflict: 'missao_id,mentorado_id,prazo', ignoreDuplicates: true })
 
   // limpeza das pendentes que não valem mais
-  const { data: pendentes } = await db.from('entregas').select('id, missao_id, prazo').eq('mentorado_id', mentoradoId).eq('status', 'pendente')
+  const { data: pendentes } = await db.from('entregas').select('id, missao_id, prazo, checklist, status').eq('mentorado_id', mentoradoId).in('status', ['pendente', 'devolvida'])
   const ativa = new Set(ativas.map((m) => m.id))
+  // checklist editado pelo mentor: alinha as abertas, mantendo o que já foi marcado
+  const porMissao = Object.fromEntries(ativas.map((m) => [m.id, m.checklist ?? []]))
+  for (const p of pendentes ?? []) {
+    const itens = porMissao[p.missao_id]
+    if (!itens) continue
+    const atual = (Array.isArray(p.checklist) ? p.checklist : []) as { t: string; f: boolean }[]
+    const novo = itens.map((t) => ({ t, f: atual.some((x) => x.t === t && x.f) }))
+    if (JSON.stringify(novo) !== JSON.stringify(atual)) await db.from('entregas').update({ checklist: novo }).eq('id', p.id)
+  }
   const remover = (pendentes ?? [])
+    .filter((p) => p.status === 'pendente') // devolvida (com entrega) não some
     .filter((p) => !ativa.has(p.missao_id) || (p.prazo >= hoje && !esperadas.has(`${p.missao_id}:${p.prazo}`)))
     .map((p) => p.id)
   if (remover.length) await db.from('entregas').delete().in('id', remover)
@@ -147,6 +159,7 @@ export async function lerEntregas(mentoradoId: string, db: Db = createTarefixAdm
         foto_path: l.foto_path,
         enviada_em: l.enviada_em,
         motivo: l.motivo,
+        checklist: Array.isArray(l.checklist) ? l.checklist : [],
         tipo: m.tipo,
       }
     })

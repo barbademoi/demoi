@@ -165,6 +165,11 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
                           </span>
                         )}
                         {!t.continua && t.peso > 1 && <span className="block text-sm text-tf-suave">vale {t.peso}×</span>}
+                        {t.checklist.length > 0 && (
+                          <span className="block text-sm text-tf-suave">
+                            checklist {t.checklist.filter((i) => i.f).length}/{t.checklist.length}
+                          </span>
+                        )}
                         {t.observacao && <span className="mt-0.5 block whitespace-normal text-sm italic text-tf-texto">Obs.: {t.observacao}</span>}
                         {t.status === 'reprovada' && t.motivo_reprovacao && <span className="block truncate text-sm text-tf-suave">Voltou: {t.motivo_reprovacao}</span>}
                         {estaAtrasada(t, painel.hoje) ? (
@@ -222,6 +227,18 @@ export function PainelHojeCliente({ painel, destaque }: { painel: PainelHoje; de
               {aberta.tarefa.continua && rotuloAutoavaliacao(aberta.tarefa.autoavaliacao) && ` · se avaliou: ${rotuloAutoavaliacao(aberta.tarefa.autoavaliacao)}`}
               {aberta.tarefa.peso > 1 && ` · vale ${aberta.tarefa.peso}×`}
             </p>
+            {aberta.tarefa.checklist.length > 0 && (
+              <ul className="space-y-1 rounded-xl bg-tf-fundo px-4 py-3 text-sm">
+                {aberta.tarefa.checklist.map((i, n) => (
+                  <li key={n} className="flex items-center gap-2">
+                    <span className={i.f ? 'font-black text-tf-marca-texto' : 'text-tf-suave'} aria-hidden>
+                      {i.f ? '✓' : '○'}
+                    </span>
+                    <span className={i.f ? '' : 'text-tf-suave'}>{i.t}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             {aberta.tarefa.observacao && (
               <p className="rounded-xl bg-tf-marca-clara px-4 py-3 text-sm">
                 <b>Observação de {aberta.colaborador}:</b> {aberta.tarefa.observacao}

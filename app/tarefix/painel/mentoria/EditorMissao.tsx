@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ChipsDias, Erro, Interruptor, Modal, Rotulo, useAcao } from '@/components/tarefix/ui'
 import type { Missao } from '@/lib/tarefix/mentoria'
 import { salvarMissao, type DadosMissao } from './acoes'
+import { EditorChecklist } from '../tarefas/CamposExtras'
 
 const NOMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
@@ -36,8 +37,9 @@ function inicial(p: Props): DadosMissao {
       mentorados: m.para,
       inicio: m.inicio ?? '',
       fim: m.fim ?? '',
+      checklist: m.checklist ?? [],
     }
-  return { titulo: '', descricao: '', tipo: 'data', data: p.hoje, dias_semana: [1, 3, 5], dia_prazo: 1, hora: '', prova: 'nenhuma', aprovacao: false, mentorados: p.paraPadrao ?? [], inicio: '', fim: '' }
+  return { titulo: '', descricao: '', tipo: 'data', data: p.hoje, dias_semana: [1, 3, 5], dia_prazo: 1, hora: '', prova: 'nenhuma', aprovacao: false, mentorados: p.paraPadrao ?? [], inicio: '', fim: '', checklist: [] }
 }
 
 export function EditorMissao(p: Props) {
@@ -64,6 +66,8 @@ export function EditorMissao(p: Props) {
           <label className="tf-rotulo" htmlFor="mi-desc">Como fazer (opcional)</label>
           <textarea id="mi-desc" className="tf-campo min-h-[88px] py-3" maxLength={2000} value={d.descricao} onChange={(e) => setD({ ...d, descricao: e.target.value })} placeholder="Passo a passo, padrão esperado, links de apoio…" />
         </div>
+
+        <EditorChecklist itens={d.checklist ?? []} aoMudar={(v) => setD({ ...d, checklist: v })} />
 
         {/* prazo */}
         <div className="space-y-3">
