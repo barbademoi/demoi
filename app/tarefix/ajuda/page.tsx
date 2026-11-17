@@ -183,6 +183,12 @@ export default function AjudaEquipe() {
             </li>
           ))}
         </ul>
+        <p>
+          O aviso de cada tarefa fica na tela até você mexer. Fez? Toque em <b>✓ Feito</b> direto na notificação (as que pedem foto abrem o app). No iPhone, segure a notificação para ver o botão.
+        </p>
+        <p>
+          Quer o alarme da agenda também? Na sua tela, toque em <b>📅 Pôr na agenda do celular</b>: as tarefas com horário aparecem na agenda com alerta 15 min antes, mesmo sem internet.
+        </p>
         <p className="text-sm text-tf-suave">No iPhone, os avisos só funcionam com o Tarefix na tela inicial (iOS 16.4 ou mais novo).</p>
       </Secao>
 
