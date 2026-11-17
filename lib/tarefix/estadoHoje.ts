@@ -39,6 +39,7 @@ export type TarefaTela = {
 export type PessoalTela = {
   categorias: Categoria[]
   algumDia: { id: string; titulo: string; categoria_id: string | null }[]
+  proximas: { id: string; titulo: string; data: string; horario: string | null; categoria_id: string | null }[] // avulsas agendadas (próximos 60 dias)
   adiadas: number // empurradas para amanhã hoje
 }
 
@@ -91,13 +92,16 @@ const paraTela = (t: TarefaDia, urls: Record<string, string>): TarefaTela => ({
 
 async function lerPessoal(colaborador: Colaborador, linhas: TarefaDia[], db: ReturnType<typeof createTarefixAdmin>): Promise<PessoalTela | null> {
   if (!colaborador.eh_dono) return null
-  const [{ data: categorias }, { data: ideias }] = await Promise.all([
+  const hoje = hojeSP()
+  const [{ data: categorias }, { data: ideias }, { data: futuras }] = await Promise.all([
     db.from('categorias').select('id, empresa_id, nome, cor, ordem').eq('empresa_id', colaborador.empresa_id).order('ordem').order('criado_em'),
     db.from('tarefas_avulsas').select('id, titulo, categoria_id').eq('colaborador_id', colaborador.id).is('data', null).order('criado_em'),
+    db.from('tarefas_avulsas').select('id, titulo, data, horario_inicio, categoria_id').eq('colaborador_id', colaborador.id).gt('data', hoje).lte('data', somarDias(hoje, 60)).order('data'),
   ])
   return {
     categorias: (categorias ?? []) as Categoria[],
     algumDia: (ideias ?? []) as PessoalTela['algumDia'],
+    proximas: (futuras ?? []).map((f) => ({ id: f.id, titulo: f.titulo, data: f.data, horario: f.horario_inicio ? String(f.horario_inicio).slice(0, 5) : null, categoria_id: f.categoria_id ?? null })),
     adiadas: linhas.filter((t) => t.status === 'adiada').length,
   }
 }

@@ -70,6 +70,8 @@ export type DadosMissao = {
   prova: Prova
   aprovacao: boolean
   mentorados: string[]
+  inicio?: string // recorrentes: começa em ('' = já)
+  fim?: string // recorrentes: termina em ('' = sem fim)
 }
 
 export async function salvarMissao(d: DadosMissao): Promise<Resultado> {
@@ -84,6 +86,10 @@ export async function salvarMissao(d: DadosMissao): Promise<Resultado> {
   if (d.tipo === 'dias' && dias.length === 0) return { ok: false, erro: 'Escolha pelo menos um dia da semana.' }
   if (d.tipo === 'semanal' && !(Number.isInteger(d.dia_prazo) && d.dia_prazo! >= 0 && d.dia_prazo! <= 6)) return { ok: false, erro: 'Escolha o dia do prazo.' }
   const hora = /^([01]\d|2[0-3]):[0-5]\d$/.test(d.hora) ? d.hora : null
+  const dataOk = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)
+  const inicio = d.tipo === 'data' ? null : dataOk(d.inicio)
+  const fim = d.tipo === 'data' ? null : dataOk(d.fim)
+  if (inicio && fim && fim < inicio) return { ok: false, erro: '"Termina em" precisa ser depois de "Começa em".' }
 
   // só mentorados da própria empresa
   const { data: meus } = await a.db.from('mentorados').select('id').eq('empresa_id', a.empresaId).in('id', (d.mentorados ?? []).slice(0, 200))
@@ -100,6 +106,8 @@ export async function salvarMissao(d: DadosMissao): Promise<Resultado> {
     hora,
     prova: d.prova,
     aprovacao: Boolean(d.aprovacao),
+    inicio,
+    fim,
   }
   let id = d.id
   if (id) {

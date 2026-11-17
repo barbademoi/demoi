@@ -339,7 +339,7 @@ const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:
 /** Adicionar rápido: hoje, amanhã ou "Algum dia" (sem data). */
 export async function adicionarRapida(
   token: string,
-  d: { titulo: string; quando: 'hoje' | 'amanha' | 'algum'; horario?: string; categoria_id?: string | null }
+  d: { titulo: string; quando: 'hoje' | 'amanha' | 'algum' | 'data'; data?: string; horario?: string; categoria_id?: string | null }
 ): Promise<Resposta> {
   const ctx = await contextoPessoal(token)
   if ('ok' in ctx) return ctx
@@ -353,11 +353,12 @@ export async function adicionarRapida(
     categoria_id = cat?.id ?? null
   }
   const hoje = hojeSP()
+  if (d.quando === 'data' && !(d.data && /^\d{4}-\d{2}-\d{2}$/.test(d.data) && d.data >= hoje)) return { ok: false, erro: 'Escolha uma data de hoje em diante.' }
   const { error } = await db.from('tarefas_avulsas').insert({
     empresa_id: ctx.empresa.id,
     colaborador_id: ctx.colaborador.id,
     titulo,
-    data: d.quando === 'algum' ? null : d.quando === 'amanha' ? somarDias(hoje, 1) : hoje,
+    data: d.quando === 'algum' ? null : d.quando === 'amanha' ? somarDias(hoje, 1) : d.quando === 'data' ? d.data : hoje,
     horario_inicio: horario,
     categoria_id,
     exige_foto: false,
@@ -415,15 +416,16 @@ export async function adiarTarefa(token: string, tarefaId: string, opcao: '1h' |
 }
 
 /** "Algum dia" → hoje/amanhã, ou apagar a ideia. */
-export async function moverIdeia(token: string, avulsaId: string, para: 'hoje' | 'amanha' | 'apagar'): Promise<Resposta> {
+export async function moverIdeia(token: string, avulsaId: string, para: 'hoje' | 'amanha' | 'apagar' | 'data', data?: string): Promise<Resposta> {
   const ctx = await contextoPessoal(token)
   if ('ok' in ctx) return ctx
   const db = createTarefixAdmin()
+  if (para === 'data' && !(data && /^\d{4}-\d{2}-\d{2}$/.test(data) && data >= hojeSP())) return { ok: false, erro: 'Escolha uma data de hoje em diante.' }
   const q = db.from('tarefas_avulsas')
   const { error } =
     para === 'apagar'
       ? await q.delete().eq('id', avulsaId).eq('colaborador_id', ctx.colaborador.id).is('data', null)
-      : await q.update({ data: para === 'hoje' ? hojeSP() : somarDias(hojeSP(), 1) }).eq('id', avulsaId).eq('colaborador_id', ctx.colaborador.id).is('data', null)
+      : await q.update({ data: para === 'hoje' ? hojeSP() : para === 'data' ? data : somarDias(hojeSP(), 1) }).eq('id', avulsaId).eq('colaborador_id', ctx.colaborador.id).is('data', null)
   if (error) return { ok: false, erro: error.message }
   return { ok: true, estado: await montarEstado(ctx, false) }
 }

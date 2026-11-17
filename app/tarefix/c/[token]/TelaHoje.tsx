@@ -11,7 +11,7 @@ import { Termometro } from '@/components/tarefix/Termometro'
 import { escolherMomento, preencher, sortearMensagem, variaveisDa, type Momento } from '@/lib/tarefix/mensagens'
 import { adiarTarefa, adicionarRapida, ativarPush, chavePush, desativarPush, marcarItem, moverIdeia, recarregar, verDia, desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra, salvarObservacao } from './acoes'
 import { ativarPushDono, chavePushDono, desativarPushDono } from '@/app/tarefix/painel/acoesPush'
-import { AlgumDia, BarraRapida, Checklist, EtiquetaCategoria, FiltroCategorias, MenuAdiar, corDe } from './PessoalExtras'
+import { AlgumDia, BarraRapida, Checklist, EtiquetaCategoria, FiltroCategorias, MenuAdiar, ProximosDias, corDe } from './PessoalExtras'
 import { AtivarNotificacoes } from '@/components/tarefix/AtivarNotificacoes'
 import { AgendaCelular } from '@/components/tarefix/AgendaCelular'
 import { MeuMes } from './MeuMes'
@@ -792,7 +792,8 @@ export function TelaHoje({ token, colaborador, empresa, inicial, linkTarefas, ag
 
       {pessoal && (
         <>
-          <AlgumDia pessoal={pessoal} desabilitado={Boolean(ocupada)} aoMover={(id, para) => rodarPessoal(moverIdeia(token, id, para))} />
+          <ProximosDias pessoal={pessoal} />
+          <AlgumDia pessoal={pessoal} desabilitado={Boolean(ocupada)} aoMover={(id, para, data) => rodarPessoal(moverIdeia(token, id, para, data))} />
           {linkTarefas && (
             <a href={linkTarefas} className="tf-botao2 mt-4 w-full text-center">
               ✨ Rotina que se repete e sugestões

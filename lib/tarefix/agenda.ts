@@ -3,6 +3,7 @@ import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { segredoSessao } from '@/lib/tarefix/segredo'
 import { agoraSP, diaDaSemana, hojeSP, somarDias } from '@/lib/tarefix/datas'
 import { lerDia } from '@/lib/tarefix/tarefasDia'
+import { valeNoDia } from '@/lib/tarefix/periodo'
 
 /**
  * Agenda do celular: um link .ics que a pessoa assina uma vez (Google Agenda /
@@ -67,7 +68,7 @@ export async function gerarIcs(c: ColabAgenda, base: string, db: Db = createTare
   const inicio = agoraSP(new Date(c.criado_em)).data
   const [doDia, { data: modelos }, { data: avulsas }, { data: folgas }] = await Promise.all([
     lerDia(c.id, hoje, db),
-    db.from('tarefas_modelo').select('id, titulo, descricao, dias_semana, horario_inicio, tempo_estimado_min, continua').eq('colaborador_id', c.id).eq('ativo', true),
+    db.from('tarefas_modelo').select('id, titulo, descricao, dias_semana, horario_inicio, tempo_estimado_min, continua, inicio, fim').eq('colaborador_id', c.id).eq('ativo', true),
     db.from('tarefas_avulsas').select('id, titulo, descricao, data, horario_inicio, tempo_estimado_min, continua').eq('colaborador_id', c.id).gt('data', hoje).lte('data', ate),
     db.from('folgas').select('data').eq('colaborador_id', c.id).gte('data', hoje).lte('data', ate),
   ])
@@ -87,7 +88,7 @@ export async function gerarIcs(c: ColabAgenda, base: string, db: Db = createTare
     if (d < inicio || folga.has(d)) continue
     const dow = diaDaSemana(d)
     for (const m of modelos ?? []) {
-      if (m.continua || !m.horario_inicio || !m.dias_semana.includes(dow)) continue
+      if (m.continua || !m.horario_inicio || !m.dias_semana.includes(dow) || !valeNoDia(m, d)) continue
       eventos.push({ uid: `m-${m.id}-${d}`, data: d, hora: m.horario_inicio.slice(0, 5), min: m.tempo_estimado_min ?? 15, titulo: m.titulo, descricao: m.descricao })
     }
     for (const a of avulsas ?? []) {

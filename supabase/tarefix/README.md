@@ -137,6 +137,10 @@ do BarberMeta:
   hora e link. Lembretes no tick: 2 dias antes e no dia (9h, ou 2h antes da hora), cobrança diária de
   atrasadas (9h–21h), aviso ao admin quando atrasa (uma vez por entrega, também no sininho), reunião 1 dia e
   1 hora antes para os dois. Tudo pela service role; as tabelas não têm policy para o dono comum.
+- **Datas futuras** (`012_periodo.sql`, `lib/tarefix/periodo.ts`): recorrentes (equipe e Meu dia) e missões
+  recorrentes da mentoria têm "Começa em" e "Termina em" opcionais (`inicio`/`fim`), respeitados na geração do
+  dia, na prévia do mês, na agenda .ics e nas entregas. No Meu dia, o adicionar rápido e o "Algum dia" têm
+  "Escolher data", e a lista "📅 Próximos dias" mostra as avulsas já agendadas (60 dias).
 - **Termômetro "instrumento"**: moldura de aço grafite, trilho escuro, cores profundas (rubi → ouro
   velho → esmeralda) com reflexo cromado, marcas em 25/50/75 e marcador de aço.
 
