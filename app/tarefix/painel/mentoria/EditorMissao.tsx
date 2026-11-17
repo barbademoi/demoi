@@ -197,11 +197,13 @@ export function EditorMissao(p: Props) {
             })}
           </div>
           {d.mentorados.length > 1 && <p className="mt-1 text-sm text-tf-suave">Cada um recebe a própria missão para entregar.</p>}
+          {d.mentorados.length === 0 && <p className="mt-1 text-sm text-tf-suave">Sem ninguém marcado, a missão fica guardada na biblioteca para vincular depois.</p>}
+          {d.id && <p className="mt-1 text-sm text-tf-suave">Editar muda a missão para todos que a recebem; o que já foi entregue fica como estava.</p>}
         </div>
 
         <Erro texto={acao.erro} />
         <button type="submit" className="tf-botao w-full" disabled={acao.pendente}>
-          {acao.pendente ? 'Salvando…' : d.id ? 'Salvar missão' : `Criar missão${d.mentorados.length > 1 ? ` para ${d.mentorados.length}` : ''}`}
+          {acao.pendente ? 'Salvando…' : d.mentorados.length === 0 ? 'Salvar na biblioteca (sem mentorado)' : d.id ? 'Salvar missão' : `Criar missão${d.mentorados.length > 1 ? ` para ${d.mentorados.length}` : ''}`}
         </button>
       </form>
     </Modal>

@@ -145,6 +145,10 @@ do BarberMeta:
   → `entregas.checklist`), marcado pelo mentorado no link; editar a missão alinha as entregas abertas sem perder
   o que já foi marcado. No painel Hoje do dono, cada tarefa com checklist mostra "checklist 2/4" e os itens no
   detalhe (o checklist dos colaboradores já existia desde o Meu dia).
+- **Biblioteca de missões** (`/tarefix/painel/mentoria/missoes`): todas as missões do admin, com busca e filtros
+  (em uso, sem mentorado, pausadas), editar/vincular, duplicar (`duplicarMissao`, cópia sem mentorados),
+  pausar e excluir. Missão pode ser salva sem mentorado (fica só na biblioteca). Na página do mentorado,
+  "📚 Da biblioteca" vincula missões prontas (`vincularMissoes`). Editar não desvincula mentorado pausado.
 - **Termômetro "instrumento"**: moldura de aço grafite, trilho escuro, cores profundas (rubi → ouro
   velho → esmeralda) com reflexo cromado, marcas em 25/50/75 e marcador de aço.
 

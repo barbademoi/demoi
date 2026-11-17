@@ -39,6 +39,18 @@ export function ListaMentoria({ cartoes, hoje }: { cartoes: CartaoMentorado[]; h
           + Missão
         </button>
       </div>
+      <Link href="/tarefix/painel/mentoria/missoes" className="tf-cartao flex items-center gap-3 p-4 hover:bg-tf-marca-clara/40">
+        <span className="text-2xl" aria-hidden>
+          📚
+        </span>
+        <span className="flex-1">
+          <span className="block font-extrabold">Biblioteca de missões</span>
+          <span className="block text-sm text-tf-suave">Todas as missões criadas: editar, vincular a outros mentorados e duplicar.</span>
+        </span>
+        <span className="text-xl text-tf-suave" aria-hidden>
+          ›
+        </span>
+      </Link>
 
       {cartoes.length === 0 ? (
         <Vazio titulo="Nenhum mentorado ainda" texto="Cadastre o primeiro: ele recebe um link com as missões e a próxima reunião." />

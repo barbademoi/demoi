@@ -18,11 +18,12 @@ export default async function PaginaMentorado({ params, searchParams }: { params
   if (!m) notFound()
   const mentorado = m as Mentorado
 
-  const [entregas, reuniao, { data: atrib }, { data: todos }] = await Promise.all([
+  const [entregas, reuniao, { data: atrib }, { data: todos }, { data: todasMissoes }] = await Promise.all([
     lerEntregas(mentorado.id, db),
     proximaReuniao(mentorado.id, db),
     db.from('missoes_mentorados').select('missao_id').eq('mentorado_id', mentorado.id),
     db.from('mentorados').select('id, nome').eq('empresa_id', empresa.id).eq('ativo', true).order('nome'),
+    db.from('missoes').select('*').eq('empresa_id', empresa.id).eq('ativo', true).order('criado_em', { ascending: false }),
   ])
   const ids = (atrib ?? []).map((a) => a.missao_id)
   const [{ data: missoes }, { data: para }] = ids.length
@@ -50,6 +51,7 @@ export default async function PaginaMentorado({ params, searchParams }: { params
         reuniao={reuniao}
         missoes={((missoes ?? []) as Missao[]).map((x) => ({ ...x, para: (para ?? []).filter((p) => p.missao_id === x.id).map((p) => p.mentorado_id) }))}
         todos={todos ?? []}
+        biblioteca={((todasMissoes ?? []) as Missao[]).filter((x) => !ids.includes(x.id))}
         hoje={hojeSP()}
       />
     </div>

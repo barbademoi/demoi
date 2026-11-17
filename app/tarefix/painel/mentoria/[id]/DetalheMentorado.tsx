@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { EntregaTela, Mentorado, Missao, Reuniao } from '@/lib/tarefix/mentoria'
 import { Erro, Interruptor, Modal, resumoDias, useAcao, useAviso } from '@/components/tarefix/ui'
-import { decidirEntrega, editarMentorado, excluirMissao, novoLinkMentorado, pausarMissao, removerReuniao, salvarReuniao } from '../acoes'
+import { decidirEntrega, editarMentorado, excluirMissao, novoLinkMentorado, pausarMissao, removerReuniao, salvarReuniao, vincularMissoes } from '../acoes'
 import { EditorMissao } from '../EditorMissao'
 import { textoPrazo } from '@/lib/tarefix/mentoriaTexto'
 import { textoPeriodo } from '@/lib/tarefix/periodo'
@@ -18,7 +18,7 @@ const quandoBR = (iso: string) =>
   new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
 
 export function regraMissao(m: Missao) {
-  const hora = m.hora ? ` até ${m.hora.slice(0, 5)}` : ''
+  const hora = m.hora ? ` às ${m.hora.slice(0, 5)}` : ''
   if (m.tipo === 'data') return `Uma vez · até ${m.data!.split('-').reverse().slice(0, 2).join('/')}${hora}`
   const periodo = textoPeriodo(m, hojeSP()) ? ` · ${textoPeriodo(m, hojeSP())}` : ''
   if (m.tipo === 'dias') return `${resumoDias(m.dias_semana)}${hora}${periodo}`
@@ -33,6 +33,8 @@ export function DetalheMentorado(p: {
   reuniao: Reuniao | null
   missoes: MissaoPara[]
   todos: { id: string; nome: string }[]
+  /** Missões ativas da biblioteca que ele ainda não tem. */
+  biblioteca: Missao[]
   hoje: string
 }) {
   const router = useRouter()
@@ -58,6 +60,8 @@ export function DetalheMentorado(p: {
     link: p.reuniao?.link ?? '',
   })
   const [mostrarConcluidas, setMostrarConcluidas] = useState(false)
+  const [bib, setBib] = useState(false)
+  const [escolhidas, setEscolhidas] = useState<string[]>([])
 
   const pronto = (t: string) => () => {
     aviso.mostrar(t)
@@ -248,9 +252,16 @@ export function DetalheMentorado(p: {
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-extrabold">Missões de {primeiro}</h2>
-          <button type="button" className="tf-botao min-h-[44px] px-4 text-sm" disabled={!m.ativo} onClick={() => setEditando('nova')}>
-            + Missão
-          </button>
+          <div className="flex shrink-0 gap-2">
+            {p.biblioteca.length > 0 && (
+              <button type="button" className="tf-botao2 min-h-[44px] px-3 text-sm" disabled={!m.ativo} onClick={() => (setEscolhidas([]), setBib(true))}>
+                📚 Da biblioteca
+              </button>
+            )}
+            <button type="button" className="tf-botao min-h-[44px] px-4 text-sm" disabled={!m.ativo} onClick={() => setEditando('nova')}>
+              + Missão
+            </button>
+          </div>
         </div>
         {p.missoes.length === 0 ? (
           <div className="tf-cartao px-5 py-8 text-center text-tf-suave">Nenhuma missão ainda. Crie a primeira: o que {primeiro} precisa fazer para ter resultado?</div>
@@ -304,6 +315,52 @@ export function DetalheMentorado(p: {
           }}
         />
       )}
+
+      <Modal aberto={bib} aoFechar={() => !acao.pendente && setBib(false)} titulo="Da biblioteca">
+        <div className="space-y-4">
+          <p className="text-tf-suave">Missões que você já criou e {primeiro} ainda não tem. Marque e vincule.</p>
+          <ul className="divide-y divide-tf-borda rounded-2xl border border-tf-borda">
+            {p.biblioteca.map((x) => {
+              const sel = escolhidas.includes(x.id)
+              return (
+                <li key={x.id}>
+                  <button
+                    type="button"
+                    aria-pressed={sel}
+                    onClick={() => setEscolhidas(sel ? escolhidas.filter((i) => i !== x.id) : [...escolhidas, x.id])}
+                    className="flex w-full items-start gap-3 px-3 py-3 text-left"
+                  >
+                    <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border-2 text-sm font-black ${sel ? 'border-tf-marca bg-tf-marca text-white' : 'border-tf-borda text-transparent'}`} aria-hidden>
+                      ✓
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-bold">{x.titulo}</span>
+                      <span className="block text-sm text-tf-suave">{regraMissao(x)}</span>
+                      {x.tipo === 'data' && x.data && x.data < p.hoje && (
+                        <span className="block text-sm font-bold text-tf-texto">O prazo já passou: duplique na biblioteca e troque a data.</span>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+          <Erro texto={acao.erro} />
+          <button
+            type="button"
+            className="tf-botao w-full"
+            disabled={acao.pendente || escolhidas.length === 0}
+            onClick={() =>
+              acao.rodar(() => vincularMissoes(m.id, escolhidas), () => {
+                setBib(false)
+                pronto(escolhidas.length > 1 ? `${escolhidas.length} missões vinculadas` : 'Missão vinculada')()
+              })
+            }
+          >
+            {escolhidas.length === 0 ? 'Marque as missões' : `Vincular ${escolhidas.length} a ${primeiro}`}
+          </button>
+        </div>
+      </Modal>
 
       <Modal aberto={devolvendo !== null} aoFechar={() => setDevolvendo(null)} titulo="Devolver entrega">
         {devolvendo && (

@@ -94,8 +94,7 @@ export async function salvarMissao(d: DadosMissao): Promise<Resultado> {
 
   // só mentorados da própria empresa
   const { data: meus } = await a.db.from('mentorados').select('id').eq('empresa_id', a.empresaId).in('id', (d.mentorados ?? []).slice(0, 200))
-  const para = (meus ?? []).map((m) => m.id)
-  if (para.length === 0) return { ok: false, erro: 'Escolha para quem é a missão.' }
+  const para = (meus ?? []).map((m) => m.id) // pode ficar vazio: missão guardada só na biblioteca
 
   const linha = {
     titulo,
@@ -119,15 +118,50 @@ export async function salvarMissao(d: DadosMissao): Promise<Resultado> {
     const { error } = await a.db.from('missoes').update(linha).eq('id', id).eq('empresa_id', a.empresaId)
     if (error) return { ok: false, erro: error.message }
     // atribuições: tira quem saiu (e as pendentes dele somem na próxima geração), põe quem entrou
-    const { data: atuais } = await a.db.from('missoes_mentorados').select('mentorado_id').eq('missao_id', id)
-    const sair = (atuais ?? []).map((x) => x.mentorado_id).filter((m) => !para.includes(m))
+    // (mentorado pausado não aparece no formulário: continua vinculado)
+    const [{ data: atuais }, { data: ativos }] = await Promise.all([
+      a.db.from('missoes_mentorados').select('mentorado_id').eq('missao_id', id),
+      a.db.from('mentorados').select('id').eq('empresa_id', a.empresaId).eq('ativo', true),
+    ])
+    const visiveis = new Set((ativos ?? []).map((x) => x.id))
+    const sair = (atuais ?? []).map((x) => x.mentorado_id).filter((m) => visiveis.has(m) && !para.includes(m))
     if (sair.length) await a.db.from('missoes_mentorados').delete().eq('missao_id', id).in('mentorado_id', sair)
   } else {
     const { data, error } = await a.db.from('missoes').insert({ ...linha, empresa_id: a.empresaId }).select('id').single()
     if (error || !data) return { ok: false, erro: 'Não consegui salvar a missão.' }
     id = data.id
   }
-  await a.db.from('missoes_mentorados').upsert(para.map((m) => ({ missao_id: id, mentorado_id: m })), { onConflict: 'missao_id,mentorado_id', ignoreDuplicates: true })
+  if (para.length) await a.db.from('missoes_mentorados').upsert(para.map((m) => ({ missao_id: id, mentorado_id: m })), { onConflict: 'missao_id,mentorado_id', ignoreDuplicates: true })
+  revalidar()
+  return { ok: true }
+}
+
+/** Vincula missões já criadas (da biblioteca) a um mentorado. */
+export async function vincularMissoes(mentoradoId: string, missaoIds: string[]): Promise<Resultado> {
+  const a = await admin()
+  if ('ok' in a) return a
+  const { data: m } = await a.db.from('mentorados').select('id').eq('id', mentoradoId).eq('empresa_id', a.empresaId).maybeSingle()
+  if (!m) return { ok: false, erro: 'Mentorado não encontrado.' }
+  const { data: minhas } = await a.db.from('missoes').select('id').eq('empresa_id', a.empresaId).in('id', (missaoIds ?? []).slice(0, 200))
+  const ids = (minhas ?? []).map((x) => x.id)
+  if (ids.length === 0) return { ok: false, erro: 'Escolha pelo menos uma missão.' }
+  const { error } = await a.db.from('missoes_mentorados').upsert(ids.map((id) => ({ missao_id: id, mentorado_id: mentoradoId })), { onConflict: 'missao_id,mentorado_id', ignoreDuplicates: true })
+  if (error) return { ok: false, erro: error.message }
+  revalidar()
+  return { ok: true }
+}
+
+/** Copia uma missão (sem mentorados) para criar uma variação. */
+export async function duplicarMissao(id: string): Promise<Resultado> {
+  const a = await admin()
+  if ('ok' in a) return a
+  const { data: m } = await a.db.from('missoes').select('*').eq('id', id).eq('empresa_id', a.empresaId).maybeSingle()
+  if (!m) return { ok: false, erro: 'Missão não encontrada.' }
+  const { id: _id, criado_em: _c, ...resto } = m
+  void _id
+  void _c
+  const { error } = await a.db.from('missoes').insert({ ...resto, titulo: `${m.titulo} (cópia)`.slice(0, 140) })
+  if (error) return { ok: false, erro: error.message }
   revalidar()
   return { ok: true }
 }
