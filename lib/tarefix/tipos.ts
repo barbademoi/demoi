@@ -11,8 +11,21 @@ export type Empresa = {
   liberar_continuas_min: number // minutos antes do fechamento em que libera o check das tarefas do dia todo
   push_tipos?: Record<string, boolean> // quais notificações push estão ligadas
   ativo?: boolean // false = acesso suspenso pelo admin
+  pessoal?: Partial<ConfigPessoal> // lembretes do Meu dia
   criado_em: string
 }
+
+/** Lembretes do Meu dia (empresas.pessoal). */
+export type ConfigPessoal = {
+  antes_min: number // 0 = só na hora
+  na_hora: boolean
+  insistente: boolean // avisa de novo 30 e 60 min depois se não marcou
+  manha: string | null // 'HH:MM' do resumo da manhã (null = desligado)
+  noite: string | null // 'HH:MM' do resumo da noite (null = desligado)
+  passar_para_amanha: boolean // avulsa não feita vai para o dia seguinte
+}
+
+export type Categoria = { id: string; empresa_id: string; nome: string; cor: string; ordem: number }
 
 export type Dono = { id: string; empresa_id: string; nome: string; email: string }
 
@@ -36,6 +49,8 @@ export type Colaborador = {
   pin_tentativas: number
   pin_bloqueado_ate: string | null
   ativo: boolean
+  eh_dono?: boolean // o "colaborador" do Meu dia do próprio dono
+  dono_id?: string | null
   criado_em: string
 }
 
@@ -54,6 +69,8 @@ export type TarefaModelo = {
   peso: number // 1..3
   horario_limite: string | null // 'HH:MM:SS' — "fazer até"
   tempo_estimado_min: number | null
+  categoria_id?: string | null
+  checklist?: string[]
   criado_em: string
 }
 
@@ -63,19 +80,22 @@ export type TarefaAvulsa = {
   colaborador_id: string
   titulo: string
   descricao: string | null
-  data: string
+  data: string | null // null = "Algum dia"
   exige_foto: boolean
   horario_inicio: string | null
   horario_limite: string | null
   tempo_estimado_min: number | null
   continua: boolean
   peso: number
+  categoria_id?: string | null
+  checklist?: string[]
   criado_em: string
 }
 
 export type Folga = { id: string; empresa_id: string; colaborador_id: string; data: string }
 
-export type StatusTarefa = 'pendente' | 'feita' | 'reprovada'
+export type StatusTarefa = 'pendente' | 'feita' | 'reprovada' | 'adiada'
+export type ItemChecklist = { t: string; f: boolean }
 
 export type TarefaDia = {
   id: string
@@ -101,6 +121,10 @@ export type TarefaDia = {
   foto_path: string | null
   motivo_reprovacao: string | null
   reprovada_em: string | null
+  categoria_id?: string | null
+  checklist?: ItemChecklist[]
+  ajustada?: boolean
+  veio_de?: string | null
 }
 
 export type Extra = {

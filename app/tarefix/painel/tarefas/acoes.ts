@@ -1,7 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { donoOuErro, falha, type Resultado } from '@/lib/tarefix/dono'
+import { donoOuErro, falha, type Resultado, type SessaoDono } from '@/lib/tarefix/dono'
+import { ROTINA_DONO } from '@/lib/tarefix/rotinaDono'
+
+type SessaoDonoDb = SessaoDono['db']
 import { lerHorario, lerMinutos } from '@/lib/tarefix/prazo'
 import { mesmoTitulo, modelosParaCopiar } from '@/lib/tarefix/sugestoes'
 
@@ -38,6 +41,8 @@ export type DadosModelo = {
   horario_inicio: string // 'HH:MM' ou ''
   horario_limite: string // 'HH:MM' ou ''
   tempo_estimado_min: string // minutos ou ''
+  checklist?: string[]
+  categoria_id?: string | null
 }
 
 export async function salvarModelo(d: DadosModelo): Promise<Resultado> {
@@ -49,7 +54,10 @@ export async function salvarModelo(d: DadosModelo): Promise<Resultado> {
   if (dias.length === 0) return { ok: false, erro: 'Escolha pelo menos um dia da semana.' }
   const prazo = lerPrazo(d)
   if (typeof prazo === 'string') return { ok: false, erro: prazo }
-  const linha = { titulo, descricao: d.descricao.trim() || null, dias_semana: dias, exige_foto: d.exige_foto, ativo: d.ativo, ...prazo }
+  const linha = {
+    titulo, descricao: d.descricao.trim() || null, dias_semana: dias, exige_foto: d.exige_foto, ativo: d.ativo, ...prazo,
+    checklist: lerChecklist(d.checklist), categoria_id: await lerCategoria(s.db, d.categoria_id),
+  }
 
   if (d.id) {
     const { error } = await s.db.from('tarefas_modelo').update(linha).eq('id', d.id)
@@ -109,6 +117,23 @@ export type DadosAvulsa = {
   horario_inicio: string
   horario_limite: string
   tempo_estimado_min: string
+  checklist?: string[]
+  categoria_id?: string | null
+}
+
+/** Checklist limpo: até 20 itens de até 80 caracteres, sem vazios. */
+function lerChecklist(v: unknown): string[] {
+  return (Array.isArray(v) ? v : [])
+    .map((x) => String(x ?? '').trim().slice(0, 80))
+    .filter(Boolean)
+    .slice(0, 20)
+}
+
+/** Categoria só se for da própria empresa (RLS confere). */
+async function lerCategoria(db: SessaoDonoDb, id: string | null | undefined): Promise<string | null> {
+  if (!id) return null
+  const { data } = await db.from('categorias').select('id').eq('id', id).maybeSingle()
+  return data?.id ?? null
 }
 
 export async function salvarAvulsa(d: DadosAvulsa): Promise<Resultado> {
@@ -119,7 +144,10 @@ export async function salvarAvulsa(d: DadosAvulsa): Promise<Resultado> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d.data)) return { ok: false, erro: 'Escolha a data.' }
   const prazo = lerPrazo(d)
   if (typeof prazo === 'string') return { ok: false, erro: prazo }
-  const linha = { titulo, descricao: d.descricao.trim() || null, data: d.data, exige_foto: d.exige_foto, ...prazo }
+  const linha = {
+    titulo, descricao: d.descricao.trim() || null, data: d.data, exige_foto: d.exige_foto, ...prazo,
+    checklist: lerChecklist(d.checklist), categoria_id: await lerCategoria(s.db, d.categoria_id),
+  }
   const { error } = d.id
     ? await s.db.from('tarefas_avulsas').update(linha).eq('id', d.id)
     : await s.db.from('tarefas_avulsas').insert({ ...linha, empresa_id: s.empresa.id, colaborador_id: d.colaborador_id })
@@ -145,9 +173,13 @@ export async function adicionarSugestoes(colaboradorId: string, ids: string[]): 
   const s = await donoOuErro()
   if ('ok' in s) return s
   // RLS: só encontra colaborador da própria empresa
-  const { data: colab } = await s.db.from('colaboradores').select('id').eq('id', colaboradorId).maybeSingle()
+  const { data: colab } = await s.db.from('colaboradores').select('id, eh_dono').eq('id', colaboradorId).maybeSingle()
   if (!colab) return { ok: false, erro: 'Colaborador não encontrado.' }
-  const origem = await modelosParaCopiar(ids)
+  // Meu dia: a sugestão de rotina entra na categoria com o mesmo nome do grupo
+  const { data: cats } = colab.eh_dono ? await s.db.from('categorias').select('id, nome') : { data: [] as { id: string; nome: string }[] }
+  const categoriaDo = (grupo?: string) => (cats ?? []).find((c) => c.nome === grupo)?.id ?? null
+  const fixas = ROTINA_DONO.grupos.flatMap((g) => g.itens).filter((x) => ids.includes(x.id))
+  const origem = [...fixas, ...(await modelosParaCopiar(ids.filter((id) => !id.startsWith('rotina-'))))]
   if (origem.length === 0) return { ok: false, erro: 'Escolha pelo menos uma sugestão.' }
 
   const { data: atuais } = await s.db.from('tarefas_modelo').select('titulo, ordem').eq('colaborador_id', colaboradorId)
@@ -168,6 +200,8 @@ export async function adicionarSugestoes(colaboradorId: string, ids: string[]): 
       continua: Boolean(m.continua),
       peso: m.peso || 1,
       exige_foto: Boolean(m.exige_foto),
+      checklist: m.checklist ?? [],
+      categoria_id: 'grupo' in m ? categoriaDo((m as { grupo?: string }).grupo) : null,
       ativo: true,
       ordem: ++ordem,
     }))

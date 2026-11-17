@@ -49,6 +49,7 @@ export async function salvarDadosColaborador(dados: {
     .from('colaboradores')
     .update({ nome, funcao_id: dados.funcao_id || null, foto_url: dados.foto_url })
     .eq('id', dados.id)
+    .eq('eh_dono', false)
   if (error) return falha(error)
   revalidar(dados.id)
   return { ok: true }
@@ -63,6 +64,7 @@ export async function trocarPin(id: string, pin: string): Promise<Resultado> {
     .from('colaboradores')
     .update({ pin_hash: hashPin(pin), pin_tentativas: 0, pin_bloqueado_ate: null })
     .eq('id', id)
+    .eq('eh_dono', false)
   if (error) return falha(error)
   revalidar(id)
   return { ok: true }
@@ -71,7 +73,7 @@ export async function trocarPin(id: string, pin: string): Promise<Resultado> {
 export async function gerarNovoLink(id: string): Promise<Resultado> {
   const s = await donoOuErro()
   if ('ok' in s) return s
-  const { error } = await s.db.from('colaboradores').update({ token_acesso: novoToken() }).eq('id', id)
+  const { error } = await s.db.from('colaboradores').update({ token_acesso: novoToken() }).eq('id', id).eq('eh_dono', false)
   if (error) return falha(error)
   revalidar(id)
   return { ok: true }
@@ -80,7 +82,7 @@ export async function gerarNovoLink(id: string): Promise<Resultado> {
 export async function definirAtivo(id: string, ativo: boolean): Promise<Resultado> {
   const s = await donoOuErro()
   if ('ok' in s) return s
-  const { error } = await s.db.from('colaboradores').update({ ativo }).eq('id', id)
+  const { error } = await s.db.from('colaboradores').update({ ativo }).eq('id', id).eq('eh_dono', false)
   if (error) return falha(error)
   revalidar(id)
   return { ok: true }

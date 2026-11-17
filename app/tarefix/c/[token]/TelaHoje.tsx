@@ -9,7 +9,9 @@ import type { EstadoHoje, TarefaTela } from '@/lib/tarefix/estadoHoje'
 import { Avatar, Erro, Modal } from '@/components/tarefix/ui'
 import { Termometro } from '@/components/tarefix/Termometro'
 import { escolherMomento, preencher, sortearMensagem, variaveisDa, type Momento } from '@/lib/tarefix/mensagens'
-import { ativarPush, chavePush, desativarPush, recarregar, verDia, desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra, salvarObservacao } from './acoes'
+import { adiarTarefa, adicionarRapida, ativarPush, chavePush, desativarPush, marcarItem, moverIdeia, recarregar, verDia, desmarcarTarefa, marcarTarefa, prepararUpload, registrarExtra, salvarObservacao } from './acoes'
+import { ativarPushDono, chavePushDono, desativarPushDono } from '@/app/tarefix/painel/acoesPush'
+import { AlgumDia, BarraRapida, Checklist, EtiquetaCategoria, FiltroCategorias, MenuAdiar, corDe } from './PessoalExtras'
 import { AtivarNotificacoes } from '@/components/tarefix/AtivarNotificacoes'
 import { MeuMes } from './MeuMes'
 import { DiaAnterior } from './DiaAnterior'
@@ -27,6 +29,8 @@ type Props = {
   colaborador: { nome: string; foto_url: string | null; funcao: string | null }
   empresa: { nome: string; logo_url: string | null; fecha: string; fechaHorario: string }
   inicial: EstadoHoje
+  /** Meu dia (o dono usando para si): link para editar as recorrentes. */
+  linkTarefas?: string
 }
 
 const horaSP = (iso: string) =>
@@ -105,7 +109,7 @@ async function enviarFoto(token: string, arquivo: File): Promise<string> {
   return prep.caminho
 }
 
-export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
+export function TelaHoje({ token, colaborador, empresa, inicial, linkTarefas }: Props) {
   const [estado, setEstado] = useState(inicial)
   const [ocupada, setOcupada] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
@@ -117,6 +121,34 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
   const fechado = estado.fechado
   const pendentes = estado.tarefas.filter((t) => t.status !== 'feita').length
   const [aba, setAba] = useState<'hoje' | 'mes'>('hoje')
+
+  /* ------------------------------ Meu dia ------------------------------ */
+  const pessoal = estado.pessoal
+  const [filtro, setFiltro] = useState<string | null>(null)
+  const visiveis = filtro ? estado.tarefas.filter((t) => t.categoria_id === filtro) : estado.tarefas
+  const categoriasUsadas = new Set(estado.tarefas.map((t) => t.categoria_id).filter((x): x is string => Boolean(x)))
+
+  async function rodarPessoal(p: Promise<{ ok: boolean; erro?: string; estado?: EstadoHoje }>, id = 'pessoal') {
+    setErro(null)
+    setOcupada(id)
+    try {
+      const r = await p
+      if (r.estado) setEstado(r.estado)
+      if (!r.ok) setErro(r.erro ?? 'Algo deu errado.')
+      return r.ok
+    } catch {
+      setErro('Sem conexão. Confira a internet e tente de novo.')
+      return false
+    } finally {
+      setOcupada(null)
+    }
+  }
+
+  async function tocarItem(t: TarefaTela, i: number, f: boolean) {
+    const anterior = estado
+    setEstado((e) => comTarefa(e, t.id, { checklist: t.checklist.map((x, n) => (n === i ? { ...x, f } : x)) }))
+    await aplicar(marcarItem(token, t.id, i, f), anterior)
+  }
 
   /* ------------------------ dias anteriores (‹ ›) ------------------------ */
   const [diaVisto, setDiaVisto] = useState<string | null>(null) // null = hoje
@@ -383,7 +415,7 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
         <Avatar nome={colaborador.nome} url={colaborador.foto_url} tamanho={56} />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-xl font-extrabold">{colaborador.nome}</h1>
-          <p className="truncate text-sm text-tf-suave">{[colaborador.funcao, empresa.nome].filter(Boolean).join(' · ')}</p>
+          <p className="truncate text-sm text-tf-suave">{pessoal ? 'Meu dia' : [colaborador.funcao, empresa.nome].filter(Boolean).join(' · ')}</p>
         </div>
         {empresa.logo_url && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -404,12 +436,21 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
 
       <DicaInstalar />
       <div className="mt-4">
-        <AtivarNotificacoes
-          obterChave={() => chavePush(token)}
-          ativar={(s, n) => ativarPush(token, s, n)}
-          desativar={(e) => desativarPush(token, e)}
-          texto="Receba um aviso na hora de começar cada tarefa e antes do fechamento, mesmo com o app fechado."
-        />
+        {pessoal ? (
+          <AtivarNotificacoes
+            obterChave={chavePushDono}
+            ativar={ativarPushDono}
+            desativar={desativarPushDono}
+            texto="Receba os lembretes das suas tarefas, o resumo da manhã e o da noite, mesmo com o app fechado."
+          />
+        ) : (
+          <AtivarNotificacoes
+            obterChave={() => chavePush(token)}
+            ativar={(s, n) => ativarPush(token, s, n)}
+            desativar={(e) => desativarPush(token, e)}
+            texto="Receba um aviso na hora de começar cada tarefa e antes do fechamento, mesmo com o app fechado."
+          />
+        )}
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-2 text-sm">
@@ -440,6 +481,12 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
           <button type="button" onClick={() => irPara(null)} className="shrink-0 rounded-full bg-tf-marca px-3 py-1 font-bold text-white">
             Voltar para hoje
           </button>
+        ) : pessoal ? (
+          estado.sequencia > 0 ? (
+            <span className="shrink-0 rounded-full bg-tf-marca-clara px-3 py-1 font-bold text-tf-marca-texto" title="Dias seguidos com 100%">
+              🔥 {estado.sequencia} dia{estado.sequencia > 1 ? 's' : ''} seguido{estado.sequencia > 1 ? 's' : ''}
+            </span>
+          ) : null
         ) : (
           <span className={`shrink-0 rounded-full px-3 py-1 font-bold ${fechado ? 'bg-tf-texto text-tf-fundo' : 'bg-tf-marca-clara text-tf-marca-texto'}`}>
             {fechado ? `Fechou às ${empresa.fecha}` : `Fecha às ${empresa.fecha}`}
@@ -469,7 +516,7 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
         ))}
       </div>
         <a
-          href="/tarefix/ajuda"
+          href={pessoal ? '/tarefix/painel/como-usar#meu-dia' : '/tarefix/ajuda'}
           aria-label="Como usar o Tarefix"
           title="Como usar"
           className="flex w-[52px] shrink-0 items-center justify-center rounded-2xl bg-tf-card text-xl font-black text-tf-marca-texto hover:bg-tf-marca-clara"
@@ -531,13 +578,25 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
         )}
       </section>
 
-      {!fechado && pendentes > 0 && minutosRestantes > 0 && minutosRestantes <= 60 && momento !== 'perto_fechamento' && (
+      {pessoal && (
+        <>
+          <BarraRapida categorias={pessoal.categorias} aoAdicionar={(d) => rodarPessoal(adicionarRapida(token, d))} />
+          <FiltroCategorias categorias={pessoal.categorias} usadas={categoriasUsadas} filtro={filtro} aoMudar={setFiltro} />
+          {pessoal.adiadas > 0 && (
+            <p className="mt-3 text-sm text-tf-suave">
+              {pessoal.adiadas} tarefa{pessoal.adiadas > 1 ? 's' : ''} adiada{pessoal.adiadas > 1 ? 's' : ''} para amanhã.
+            </p>
+          )}
+        </>
+      )}
+
+      {!pessoal && !fechado && pendentes > 0 && minutosRestantes > 0 && minutosRestantes <= 60 && momento !== 'perto_fechamento' && (
         <p className="mt-4 rounded-2xl bg-tf-marca-clara px-4 py-3 font-bold text-tf-marca-texto">
           Faltam {minutosRestantes} min para fechar e {pendentes} tarefa{pendentes > 1 ? 's' : ''} pendente{pendentes > 1 ? 's' : ''}.
         </p>
       )}
 
-      {fechado && !estado.folga && estado.tarefas.length > 0 && (
+      {!pessoal && fechado && !estado.folga && estado.tarefas.length > 0 && (
         <div role="alert" className="mt-4 rounded-2xl bg-tf-texto px-4 py-4 text-tf-fundo">
           <p className="font-extrabold">Passou do horário de fechamento ({empresa.fecha})</p>
           <p className="mt-1 text-sm opacity-90">
@@ -553,18 +612,20 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
       </div>
 
       {/* Tarefas do dia todo: fixas no topo, com cor e peso próprios */}
-      {estado.tarefas.some((t) => t.continua) && (
+      {visiveis.some((t) => t.continua) && (
         <section className="mt-4 overflow-hidden rounded-2xl bg-tf-marca text-white">
           <div className="px-4 pb-2 pt-4">
             <h2 className="flex items-center gap-2 text-lg font-extrabold">Durante o dia todo <Dica titulo="Durante o dia todo" className="!text-white" {...DICAS.diaTodoEquipe} /></h2>
             <p className="text-sm text-white/85">
-              {estado.tom === 'zoeira'
+              {pessoal
+                ? `Valem o dia inteiro e pesam mais. A confirmação libera às ${horaLiberacao}.`
+                : estado.tom === 'zoeira'
                 ? 'Essas não têm check rápido: valem o dia inteiro e pesam mais. Capricha do primeiro ao último cliente.'
                 : 'Estas tarefas valem durante todo o dia e têm peso maior no seu resultado.'}
             </p>
           </div>
           <ul className="divide-y divide-white/15">
-            {estado.tarefas
+            {visiveis
               .filter((t) => t.continua)
               .map((t) => {
                 const feita = t.status === 'feita'
@@ -606,6 +667,7 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
                             : `confirma a partir das ${horaLiberacao}`}
                       </p>
                       {t.observacao && <p className="mt-1 text-sm italic text-white/90">Obs.: {t.observacao}</p>}
+                      <Checklist itens={t.checklist} claro desabilitado={Boolean(ocupada)} aoMarcar={(i, f) => tocarItem(t, i, f)} />
                     </div>
                     {(
                       <button
@@ -625,9 +687,9 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
       )}
 
       {/* Lista de tarefas */}
-      {estado.tarefas.some((t) => !t.continua) && (
+      {visiveis.some((t) => !t.continua) && (
         <ul className="mt-4 space-y-3">
-          {estado.tarefas.filter((t) => !t.continua).map((t) => {
+          {visiveis.filter((t) => !t.continua).map((t) => {
             const feita = t.status === 'feita'
             const reprovada = t.status === 'reprovada'
             const carregando = ocupada === t.id
@@ -663,6 +725,8 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
                     <p className={`text-lg font-bold leading-snug ${feita ? 'text-tf-suave line-through decoration-2' : ''}`}>{t.titulo}</p>
                     {t.descricao && <p className="mt-0.5 text-sm text-tf-suave">{t.descricao}</p>}
                     <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tf-suave">
+                      {pessoal && <EtiquetaCategoria categoria={corDe(pessoal.categorias, t.categoria_id)} />}
+                      {pessoal && t.veio_de && !feita && <span className="rounded-full bg-tf-borda px-2 py-0.5 text-xs font-bold">veio de {t.veio_de.slice(8, 10)}/{t.veio_de.slice(5, 7)}</span>}
                       {!feita && janela(t) && (
                         <span className="rounded-full bg-tf-marca-clara px-2 py-0.5 text-xs font-bold text-tf-marca-texto">{janela(t)}</span>
                       )}
@@ -686,7 +750,11 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
                       )}
                     </p>
                     {t.observacao && <p className="mt-1 text-sm italic text-tf-texto">Obs.: {t.observacao}</p>}
+                    <Checklist itens={t.checklist} desabilitado={Boolean(ocupada)} aoMarcar={(i, f) => tocarItem(t, i, f)} />
                   </div>
+                  {pessoal && !feita && t.status === 'pendente' && (
+                    <MenuAdiar desabilitado={Boolean(ocupada)} aoAdiar={(o) => rodarPessoal(adiarTarefa(token, t.id, o), t.id)} />
+                  )}
                   {(
                     <button
                       type="button"
@@ -714,8 +782,19 @@ export function TelaHoje({ token, colaborador, empresa, inicial }: Props) {
         <div className="tf-cartao mt-4 px-5 py-8 text-center text-tf-suave">Dia de folga não conta no mês.</div>
       )}
 
+      {pessoal && (
+        <>
+          <AlgumDia pessoal={pessoal} desabilitado={Boolean(ocupada)} aoMover={(id, para) => rodarPessoal(moverIdeia(token, id, para))} />
+          {linkTarefas && (
+            <a href={linkTarefas} className="tf-botao2 mt-4 w-full text-center">
+              ✨ Rotina que se repete e sugestões
+            </a>
+          )}
+        </>
+      )}
+
       {/* Extras */}
-      {!estado.folga && (
+      {!estado.folga && !pessoal && (
         <section className="mt-6 space-y-3">
           <button
             type="button"

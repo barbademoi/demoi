@@ -104,6 +104,22 @@ do BarberMeta:
   (`adicionarSugestoes`): a cópia leva dias, horários, tempo, peso, dia todo, foto e descrição, e pula o que
   ele já tem com o mesmo título. Mudou uma tarefa na empresa do admin? As sugestões mudam na hora; as
   cópias já feitas não mudam.
+- **Meu dia** (`010_meu_dia.sql`, `lib/tarefix/meuDia.ts`, `/tarefix/painel/meu-dia`): o dono usa o Tarefix
+  para si através de um "colaborador" especial (`colaboradores.eh_dono`, `dono_id`), sem PIN (só abre com o
+  login do próprio dono), fora da equipe, do painel, do mês, do resumo e das sugestões. O dia dele vai até
+  23:59 e as tarefas do dia todo liberam às 18h. Sem equipe, o painel abre direto no Meu dia e o menu fica
+  enxuto. Recursos: adicionar rápido (hoje, amanhã ou "Algum dia" = avulsa sem data), adiar (+1h, hoje à
+  noite, amanhã → status `adiada`, que não conta no %; horário mudado só no dia fica com `ajustada`),
+  avulsa não feita passa para o dia seguinte (`veio_de`), categorias com cor (`tarefix.categorias`, 4
+  padrão), checklist (também para a equipe), sequência 🔥 e rotina pronta de dono
+  (`lib/tarefix/rotinaDono.ts`, em Tarefas → Eu → Sugestões). Lembretes (`empresas.pessoal`, Ajustes → Meu
+  dia), no tick de push, para o celular do dono: X min antes, na hora, insistente (+30 e +60), resumo da
+  manhã e da noite.
+- **Cadastro público** (`/tarefix/criar-conta`, `lib/tarefix/cadastro.ts`): "Só para mim" ou "Com minha
+  equipe". Conta nova recebe `app_metadata.tarefix_only` e o `middleware.ts` do BarberMeta a manda de volta
+  para /tarefix (vale também para mentorados com e-mail novo; a 010 marcou os que já existiam sem cadastro
+  no BarberMeta). Limite: 3 cadastros por IP/hora e 300/dia (`tarefix.cadastros`) + campo-isca. E-mail que
+  já tem conta (ex.: BarberMeta) entra normalmente e cria o Tarefix em um toque na tela "sem acesso".
 - **Termômetro "instrumento"**: moldura de aço grafite, trilho escuro, cores profundas (rubi → ouro
   velho → esmeralda) com reflexo cromado, marcas em 25/50/75 e marcador de aço.
 

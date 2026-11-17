@@ -2,6 +2,8 @@ import { createHash, createHmac, timingSafeEqual } from 'crypto'
 import { cookies } from 'next/headers'
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { segredoSessao } from '@/lib/tarefix/segredo'
+import { createTarefixServer } from '@/lib/tarefix/supabase/server'
+import { empresaPessoal } from '@/lib/tarefix/meuDia'
 import type { Colaborador, Empresa } from '@/lib/tarefix/tipos'
 
 /**
@@ -69,6 +71,12 @@ export async function carregarAcesso(token: string): Promise<AcessoColaborador> 
   if (!c || !c.ativo) return { estado: 'invalido' }
   const { data: empresa } = await db.from('empresas').select('*').eq('id', c.empresa_id).single()
   if (!empresa || empresa.ativo === false) return { estado: 'invalido' } // empresa suspensa: links param
+  // Meu dia: sem PIN — só abre com o login do próprio dono.
+  if (c.eh_dono) {
+    const { data: { user } } = await createTarefixServer().auth.getUser()
+    if (!user || user.id !== c.dono_id) return { estado: 'invalido' }
+    return { estado: 'ok', colaborador: c as Colaborador, empresa: empresaPessoal(empresa as Empresa), funcao: null }
+  }
   if (!sessaoValida(c as Colaborador)) return { estado: 'pin', colaborador: c as Colaborador, empresa: empresa as Empresa }
   let funcao: string | null = null
   if (c.funcao_id) {

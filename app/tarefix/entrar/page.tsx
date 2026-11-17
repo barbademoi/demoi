@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { Logo } from '@/components/tarefix/Logo'
 import { sessaoDono } from '@/lib/tarefix/dono'
@@ -15,9 +16,15 @@ export default async function Entrar() {
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-8 px-4 py-10">
       <div className="text-center">
         <Logo className="text-5xl" />
-        <p className="mt-3 text-tf-suave">Painel do dono</p>
+        <p className="mt-3 text-tf-suave">Entrar no Tarefix</p>
       </div>
       <FormEntrar semAcesso={s === 'sem-acesso'} />
+      <p className="text-center text-sm text-tf-suave">
+        Ainda não tem conta?{' '}
+        <Link href="/tarefix/criar-conta" className="font-bold text-tf-marca-texto underline">
+          Criar conta grátis
+        </Link>
+      </p>
       <p className="text-center text-sm text-tf-suave">Colaborador? Use o link que você recebeu.</p>
     </main>
   )

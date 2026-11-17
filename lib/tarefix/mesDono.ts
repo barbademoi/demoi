@@ -47,7 +47,7 @@ export async function carregarMesDono(empresa: Empresa, anoMes: string): Promise
   const atual = anoMes === anoMesDe(hojeSP())
 
   const [{ data: colabs }, { data: bonusCfg }, { data: fechados }] = await Promise.all([
-    db.from('colaboradores').select('id, empresa_id, nome, foto_url, ativo, criado_em').eq('empresa_id', empresa.id).order('nome'),
+    db.from('colaboradores').select('id, empresa_id, nome, foto_url, ativo, criado_em').eq('empresa_id', empresa.id).eq('eh_dono', false).order('nome'),
     db.from('bonus_config').select('*').eq('empresa_id', empresa.id).maybeSingle(),
     db.from('meses_fechados').select('*').eq('empresa_id', empresa.id).eq('ano_mes', anoMes),
   ])

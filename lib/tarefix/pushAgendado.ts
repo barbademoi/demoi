@@ -5,6 +5,7 @@ import { garantirResumoDiario } from '@/lib/tarefix/painelHoje'
 import { duracao, janela } from '@/lib/tarefix/prazo'
 import { enviar, marcarEnviado, tiposLigados } from '@/lib/tarefix/push'
 import type { Empresa } from '@/lib/tarefix/tipos'
+import { configPessoal, empresaPessoal } from '@/lib/tarefix/meuDia'
 
 /**
  * Rodado a cada ~5 min pelo agendador do Supabase (pg_cron → /tarefix/api/push/tick).
@@ -92,6 +93,15 @@ export async function rodarTick(ref: Date = new Date(), db: Db = createTarefixAd
 
     /* --------------------------------- dono --------------------------------- */
     const donos = inscricoes.filter((i) => i.dono_id)
+
+    /* -------------------------- Meu dia (pessoal) -------------------------- */
+    if (donos.length) {
+      const { data: eus } = await db.from('colaboradores').select('id, empresa_id, nome, criado_em, dono_id, eh_dono').eq('empresa_id', empresa.id).eq('eh_dono', true).eq('ativo', true)
+      for (const eu of eus ?? []) {
+        const alvo = donos.filter((i) => i.dono_id === eu.dono_id)
+        if (alvo.length) await lembretesPessoais(eu, empresa, alvo, ref, db, res)
+      }
+    }
     if (donos.length && tipos.resumo && diaFechado(hoje, empresa.horario_fechamento, ref)) {
       const passou = -minutosParaFechamento(empresa.horario_fechamento, ref)
       if (passou >= 0 && passou <= JANELA_RESUMO_MIN) {
@@ -109,4 +119,74 @@ export async function rodarTick(ref: Date = new Date(), db: Db = createTarefixAd
   // faxina: o registro de enviados só precisa dos últimos dias
   await db.from('push_enviados').delete().lt('enviado_em', `${somarDias(hoje, -3)}T00:00:00Z`)
   return res
+}
+
+/* ====================================================================== */
+/* Meu dia: lembretes pessoais do dono                                    */
+/* ====================================================================== */
+
+const URL_MEU_DIA = '/tarefix/painel/meu-dia'
+
+async function lembretesPessoais(
+  eu: { id: string; empresa_id: string; nome: string; criado_em: string; eh_dono: boolean },
+  empresa: Empresa,
+  alvo: Inscricao[],
+  ref: Date,
+  db: Db,
+  res: ResultadoTick
+) {
+  const cfg = configPessoal(empresa)
+  const agora = agoraSP(ref)
+  const hoje = agora.data
+  const m = agora.minutosDoDia
+  const emp = empresaPessoal(empresa)
+  await gerarTarefasDoDia(eu, emp, hoje, db) // também passa para hoje o que ficou de ontem
+  const tarefas = (await lerDia(eu.id, hoje, db)).filter((t) => t.status !== 'adiada')
+  const pendentes = tarefas.filter((t) => t.status !== 'feita')
+
+  async function mandar(chave: string, titulo: string, corpo: string, tag: string) {
+    if (!(await marcarEnviado(chave, empresa.id, db))) return
+    const n = await enviar(alvo, { titulo, corpo, url: URL_MEU_DIA, tag }, db)
+    res.enviados += n
+    res.detalhes.push(`meu dia ${eu.nome}: ${titulo} (${n})`)
+  }
+  const dentro = (inicio: number) => m >= inicio && m < inicio + TOLERANCIA_INICIO_MIN
+
+  for (const t of pendentes) {
+    if (t.continua || !t.horario_inicio) continue
+    const ini = minutosDeHorario(t.horario_inicio)
+    const info = [janela(t), duracao(t.tempo_estimado_min)].filter(Boolean).join(' · ')
+    if (cfg.antes_min > 0 && dentro(ini - cfg.antes_min) && m < ini) {
+      await mandar(`p-antes:${t.id}`, `Daqui a ${cfg.antes_min} min: ${t.titulo}`, info || 'Prepare-se.', `p-${t.id}`)
+    }
+    if (cfg.na_hora && dentro(ini)) await mandar(`p-hora:${t.id}`, `Agora: ${t.titulo}`, info || 'Hora de fazer.', `p-${t.id}`)
+    if (cfg.insistente) {
+      for (const k of [30, 60]) {
+        if (dentro(ini + k)) await mandar(`p-ins${k}:${t.id}`, `Ainda não marcado: ${t.titulo}`, k === 30 ? 'Já fez? Marca no Meu dia. Se não deu, adie.' : 'Último lembrete. Se não der hoje, adie para amanhã.', `p-${t.id}`)
+      }
+    }
+  }
+
+  if (cfg.manha && dentro(minutosDeHorario(cfg.manha)) && tarefas.length) {
+    const primeira = pendentes.filter((t) => t.horario_inicio && !t.continua).sort((a, b) => a.horario_inicio!.localeCompare(b.horario_inicio!))[0]
+    await mandar(
+      `p-manha:${eu.id}:${hoje}`,
+      `Bom dia! Hoje: ${tarefas.length} tarefa${tarefas.length > 1 ? 's' : ''}`,
+      primeira ? `A primeira é às ${primeira.horario_inicio!.slice(0, 5)}: ${primeira.titulo}.` : 'Abra o Meu dia para ver a lista.',
+      `p-manha-${hoje}`
+    )
+  }
+
+  if (cfg.noite && dentro(minutosDeHorario(cfg.noite)) && tarefas.length) {
+    const feitas = tarefas.length - pendentes.length
+    const resto = pendentes.slice(0, 2).map((t) => `“${t.titulo}”`).join(' e ')
+    await mandar(
+      `p-noite:${eu.id}:${hoje}`,
+      pendentes.length ? `Hoje: ${feitas} de ${tarefas.length} feitas` : 'Dia 100%! 🔥',
+      pendentes.length
+        ? `Ficou ${resto}${pendentes.length > 2 ? ` e mais ${pendentes.length - 2}` : ''}. Dá tempo, ou adie para amanhã.`
+        : `Fez as ${tarefas.length}. Amanhã tem mais.`,
+      `p-noite-${hoje}`
+    )
+  }
 }

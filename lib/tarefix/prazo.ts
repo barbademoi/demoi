@@ -13,7 +13,7 @@ import { agoraSP, FUSO, minutosDeHorario } from '@/lib/tarefix/datas'
  */
 
 type Horarios = { horario_inicio?: string | null; horario_limite: string | null; tempo_estimado_min?: number | null }
-type ComStatus = Horarios & { status: 'pendente' | 'feita' | 'reprovada'; feita_em: string | null }
+type ComStatus = Horarios & { status: 'pendente' | 'feita' | 'reprovada' | 'adiada'; feita_em: string | null }
 
 /** '09:00:00' → '09:00' */
 export function horarioHHMM(h: string | null | undefined): string | null {

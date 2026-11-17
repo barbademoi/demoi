@@ -10,6 +10,8 @@ import { niveisOrdenados } from '@/lib/tarefix/bonus'
 import { ehAdmin } from '@/lib/tarefix/acessos'
 import Link from 'next/link'
 import { TrocarSenha } from './TrocarSenha'
+import { FormPessoal } from './FormPessoal'
+import { configPessoal } from '@/lib/tarefix/meuDia'
 
 export const metadata = { title: 'Ajustes' }
 
@@ -27,6 +29,11 @@ export default async function Configuracoes() {
       <section className="tf-cartao p-5">
         <h2 className="mb-4 text-lg font-extrabold">Bônus</h2>
         <FormBonus ativo={bonus?.ativo ?? false} mostrar={bonus?.mostrar_para_colaborador ?? true} niveis={niveisOrdenados(bonus?.niveis)} />
+      </section>
+      <section className="tf-cartao p-5">
+        <h2 className="mb-1 text-lg font-extrabold">Meu dia: lembretes</h2>
+        <p className="mb-4 text-sm text-tf-suave">Para as suas tarefas pessoais. Chegam no celular onde você ativou as notificações (abaixo).</p>
+        <FormPessoal inicial={configPessoal(empresa)} />
       </section>
       <section className="tf-cartao p-5">
         <h2 className="mb-4 text-lg font-extrabold">Notificações no celular</h2>

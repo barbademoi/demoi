@@ -18,6 +18,7 @@ export type Sugestao = {
   continua: boolean
   peso: number
   exige_foto: boolean
+  checklist?: string[]
 }
 
 export type Sugestoes = { origem: string; empresaId: string; grupos: { nome: string; itens: Sugestao[] }[]; total: number }
@@ -50,11 +51,11 @@ export async function listarSugestoes(): Promise<Sugestoes | null> {
   const [{ data: modelos }, { data: colabs }, { data: funcoes }] = await Promise.all([
     db
       .from('tarefas_modelo')
-      .select('id, colaborador_id, titulo, descricao, dias_semana, horario_inicio, horario_limite, tempo_estimado_min, continua, peso, exige_foto, ordem')
+      .select('id, colaborador_id, titulo, descricao, dias_semana, horario_inicio, horario_limite, tempo_estimado_min, continua, peso, exige_foto, ordem, checklist')
       .eq('empresa_id', ref.id)
       .eq('ativo', true)
       .order('ordem'),
-    db.from('colaboradores').select('id, funcao_id, ativo').eq('empresa_id', ref.id),
+    db.from('colaboradores').select('id, funcao_id, ativo').eq('empresa_id', ref.id).eq('eh_dono', false), // tarefas pessoais do admin não viram sugestão
     db.from('funcoes').select('id, nome').eq('empresa_id', ref.id),
   ])
   const colab = Object.fromEntries((colabs ?? []).map((c) => [c.id, c]))
@@ -81,6 +82,7 @@ export async function listarSugestoes(): Promise<Sugestoes | null> {
       continua: Boolean(m.continua),
       peso: m.peso || 1,
       exige_foto: Boolean(m.exige_foto),
+      checklist: m.checklist ?? [],
     }
     porGrupo.set(grupo, [...(porGrupo.get(grupo) ?? []), item])
   }
@@ -101,7 +103,7 @@ export async function modelosParaCopiar(ids: string[]) {
   if (!ref || ids.length === 0) return []
   const { data } = await db
     .from('tarefas_modelo')
-    .select('id, titulo, descricao, dias_semana, horario_inicio, horario_limite, tempo_estimado_min, continua, peso, exige_foto')
+    .select('id, titulo, descricao, dias_semana, horario_inicio, horario_limite, tempo_estimado_min, continua, peso, exige_foto, checklist')
     .eq('empresa_id', ref.id)
     .eq('ativo', true)
     .in('id', ids.slice(0, 200))

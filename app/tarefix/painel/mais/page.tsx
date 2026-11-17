@@ -6,6 +6,7 @@ import { ehAdmin } from '@/lib/tarefix/acessos'
 export const metadata = { title: 'Mais' }
 
 const LINKS = [
+  { href: '/tarefix/painel/mes', titulo: 'Mês da equipe', texto: 'Percentual de cada um, bônus e fechamento' },
   { href: '/tarefix/painel/historico', titulo: 'Histórico', texto: 'Como foi um dia de cada colaborador' },
   { href: '/tarefix/painel/funcoes', titulo: 'Funções', texto: 'Atendimento, Limpeza, Caixa…' },
   { href: '/tarefix/painel/avisos', titulo: 'Avisos', texto: 'Fechamentos, fotos e extras' },

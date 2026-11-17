@@ -13,6 +13,7 @@ export function GuiaDono({ progresso, fecha, admin }: { progresso: ItemProgresso
 
   const secoes = [
     { id: 'como-funciona', titulo: 'Como o Tarefix funciona' },
+    { id: 'meu-dia', titulo: 'Meu dia: as suas tarefas' },
     { id: 'ajustes', titulo: 'Ajustes da empresa' },
     { id: 'funcoes', titulo: 'Funções' },
     { id: 'equipe', titulo: 'Cadastrar a equipe e mandar o link' },
@@ -94,6 +95,32 @@ export function GuiaDono({ progresso, fecha, admin }: { progresso: ItemProgresso
       </Secao>
 
       {/* ------------------------------ 2. ajustes ------------------------------ */}
+      <Secao id="meu-dia" numero={num()} titulo="Meu dia: as suas tarefas" resumo="Para você, dono: a sua lista do dia, com lembretes no celular. Funciona com ou sem equipe.">
+        <Passos>
+          <Passo titulo="Abra o Meu dia" href="/tarefix/painel/meu-dia" botao="Abrir Meu dia">
+            <p>É a mesma tela que a equipe usa, só que sua: check, termômetro do dia e do mês, e a sequência 🔥 de dias com 100%. Não tem PIN: abre com o seu login.</p>
+          </Passo>
+          <Passo titulo="Adicione rápido">
+            <p>Escreva na barra do topo, escolha Hoje, Amanhã ou Algum dia, a hora (opcional) e a categoria. Pronto.</p>
+            <Exemplo>
+              <p>“Ligar pro contador” · Amanhã · 10:00 · Finanças.</p>
+            </Exemplo>
+          </Passo>
+          <Passo titulo="Monte a rotina que se repete" href="/tarefix/painel/tarefas" botao="Abrir Tarefas">
+            <p>Em Tarefas, escolha <b>Eu</b> e toque em <b>✨ Sugestões</b>: tem uma rotina pronta de dono de barbearia (agenda, caixa, equipe, conteúdo e saúde). Marque as que servem e ajuste os horários.</p>
+          </Passo>
+          <Passo titulo="Não deu tempo? Adie">
+            <p>No relógio ao lado da tarefa: <b>+1 hora</b>, <b>Hoje à noite</b> ou <b>Amanhã</b>. Tarefa avulsa que ficou para trás passa sozinha para o dia seguinte, com a marca “veio de…”.</p>
+          </Passo>
+          <Passo titulo="Ligue os lembretes" href="/tarefix/painel/configuracoes" botao="Abrir Ajustes">
+            <p>Em Ajustes → Meu dia: lembrete antes (ex.: 15 min), na hora, insistente (avisa de novo 30 e 60 min depois se não marcou), resumo da manhã (7h) e da noite (21h).</p>
+          </Passo>
+        </Passos>
+        <Dicao>
+          <p>Use o <b>checklist</b> para tarefas com várias partes (“Fechar o caixa” → Dinheiro, Cartão, Pix, Bater com o sistema) e o <b>💡 Algum dia</b> para ideias sem data.</p>
+        </Dicao>
+      </Secao>
+
       <Secao id="ajustes" numero={num()} titulo="Ajustes da empresa" resumo="5 minutos. Define as regras do dia para todo mundo.">
         <Passos>
           <Passo titulo="Confira o horário de fechamento" href="/tarefix/painel/configuracoes" botao="Abrir Ajustes">

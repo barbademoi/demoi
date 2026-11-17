@@ -2,6 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { donoOuErro, falha, type Resultado } from '@/lib/tarefix/dono'
+import { configPessoal } from '@/lib/tarefix/meuDia'
+import type { ConfigPessoal } from '@/lib/tarefix/tipos'
 
 export async function salvarEmpresa(d: {
   nome: string
@@ -50,6 +52,18 @@ export async function salvarBonus(d: {
       { empresa_id: s.empresa.id, ativo: d.ativo, mostrar_para_colaborador: d.mostrar_para_colaborador, niveis },
       { onConflict: 'empresa_id' }
     )
+  if (error) return falha(error)
+  revalidatePath('/tarefix/painel', 'layout')
+  return { ok: true }
+}
+
+/** Lembretes do Meu dia. */
+export async function salvarPessoal(d: ConfigPessoal): Promise<Resultado> {
+  const s = await donoOuErro()
+  if ('ok' in s) return s
+  const hora = (v: string | null) => (v && /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : null)
+  const cfg = configPessoal({ pessoal: { ...d, manha: hora(d.manha), noite: hora(d.noite) } })
+  const { error } = await s.db.from('empresas').update({ pessoal: cfg }).eq('id', s.empresa.id)
   if (error) return falha(error)
   revalidatePath('/tarefix/painel', 'layout')
   return { ok: true }
