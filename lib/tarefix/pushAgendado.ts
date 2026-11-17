@@ -7,6 +7,7 @@ import { enviar, marcarEnviado, tiposLigados } from '@/lib/tarefix/push'
 import type { Empresa } from '@/lib/tarefix/tipos'
 import { configPessoal, empresaPessoal } from '@/lib/tarefix/meuDia'
 import { botoesPara, passeDaTarefa } from '@/lib/tarefix/acaoPush'
+import { lerEntregas, proximaReuniao, textoPrazo, type Mentorado } from '@/lib/tarefix/mentoria'
 
 /**
  * Rodado a cada ~5 min pelo agendador do Supabase (pg_cron → /tarefix/api/push/tick).
@@ -22,7 +23,7 @@ const JANELA_FECHAMENTO_MIN = 30
 const JANELA_RESUMO_MIN = 60
 
 type Db = ReturnType<typeof createTarefixAdmin>
-type Inscricao = { id: string; endpoint: string; p256dh: string; auth: string; colaborador_id: string | null; dono_id: string | null }
+type Inscricao = { id: string; endpoint: string; p256dh: string; auth: string; colaborador_id: string | null; dono_id: string | null; mentorado_id?: string | null }
 
 export type ResultadoTick = { empresas: number; enviados: number; detalhes: string[] }
 
@@ -36,7 +37,7 @@ export async function rodarTick(ref: Date = new Date(), db: Db = createTarefixAd
     if (empresa.ativo === false) continue // suspensa
     res.empresas++
     const tipos = tiposLigados(empresa.push_tipos)
-    const { data: insc } = await db.from('push_inscricoes').select('id, endpoint, p256dh, auth, colaborador_id, dono_id').eq('empresa_id', empresa.id)
+    const { data: insc } = await db.from('push_inscricoes').select('id, endpoint, p256dh, auth, colaborador_id, dono_id, mentorado_id').eq('empresa_id', empresa.id)
     const inscricoes = (insc ?? []) as Inscricao[]
     if (inscricoes.length === 0) continue
 
@@ -97,6 +98,9 @@ export async function rodarTick(ref: Date = new Date(), db: Db = createTarefixAd
 
     /* --------------------------------- dono --------------------------------- */
     const donos = inscricoes.filter((i) => i.dono_id)
+
+    /* ------------------------------- Mentoria ------------------------------- */
+    await lembretesMentoria(empresa, inscricoes, ref, db, res)
 
     /* -------------------------- Meu dia (pessoal) -------------------------- */
     if (donos.length) {
@@ -193,5 +197,92 @@ async function lembretesPessoais(
         : `Fez as ${tarefas.length}. Amanhã tem mais.`,
       `p-noite-${hoje}`
     )
+  }
+}
+
+/* ====================================================================== */
+/* Mentoria: lembretes do mentorado e aviso de atraso para o mentor       */
+/* ====================================================================== */
+
+const NOVE_DA_MANHA = 9 * 60
+
+async function lembretesMentoria(empresa: Empresa, inscricoes: Inscricao[], ref: Date, db: Db, res: ResultadoTick) {
+  const { data: mentorados } = await db.from('mentorados').select('*').eq('empresa_id', empresa.id).eq('ativo', true)
+  if (!mentorados?.length) return
+  const agora = agoraSP(ref)
+  const hoje = agora.data
+  const m = agora.minutosDoDia
+  const mentor = inscricoes.filter((i) => i.dono_id)
+  const dentro = (inicio: number) => m >= inicio && m < inicio + TOLERANCIA_INICIO_MIN
+  const horarioComercial = m >= NOVE_DA_MANHA && m < 21 * 60
+
+  async function mandar(chave: string, alvo: Inscricao[], msg: Parameters<typeof enviar>[1]) {
+    if (!alvo.length || !(await marcarEnviado(chave, empresa.id, db))) return
+    const n = await enviar(alvo, msg, db)
+    res.enviados += n
+    res.detalhes.push(`mentoria: ${msg.titulo} (${n})`)
+  }
+
+  for (const mt of mentorados as Mentorado[]) {
+    const dele = inscricoes.filter((i) => i.mentorado_id === mt.id)
+    const url = `/tarefix/m/${mt.token}`
+    const primeiro = mt.nome.split(' ')[0]
+    const entregas = await lerEntregas(mt.id, db, ref)
+    const abertas = entregas.filter((e) => e.status === 'pendente' || e.status === 'devolvida')
+
+    for (const e of abertas) {
+      if (e.prazo === somarDias(hoje, 2) && dentro(NOVE_DA_MANHA)) {
+        await mandar(`m-2d:${e.id}`, dele, { titulo: `Faltam 2 dias: ${e.titulo}`, corpo: textoPrazo(e, hoje), url, tag: `m-${e.id}` })
+      }
+      const hora = e.hora ? minutosDeHorario(e.hora) : null
+      if (e.prazo === hoje && e.situacao === 'hoje' && dentro(hora !== null ? Math.max(hora - 120, 0) : NOVE_DA_MANHA)) {
+        await mandar(`m-dia:${e.id}`, dele, { titulo: `Hoje é o prazo: ${e.titulo}`, corpo: e.hora ? `Entregar até às ${e.hora}.` : 'Entregue hoje pelo link da mentoria.', url, tag: `m-${e.id}`, forte: true })
+      }
+    }
+
+    const atrasadas = abertas.filter((x) => x.situacao === 'atrasada')
+    if (atrasadas.length && horarioComercial) {
+      // mentorado: cobrança 1x por dia enquanto houver atraso
+      await mandar(`m-atr:${mt.id}:${hoje}`, dele, {
+        titulo: atrasadas.length > 1 ? `${atrasadas.length} missões atrasadas` : `Missão atrasada: ${atrasadas[0].titulo}`,
+        corpo: atrasadas.length > 1 ? atrasadas.slice(0, 3).map((x) => x.titulo).join(' · ') : 'Entregue assim que puder pelo link da mentoria.',
+        url,
+        tag: `m-atr-${mt.id}`,
+        forte: true,
+      })
+      // mentor: só as que acabaram de atrasar (uma vez por entrega)
+      const novas: string[] = []
+      for (const x of atrasadas) {
+        if (x.prazo < somarDias(hoje, -2)) continue // o registro de enviados só guarda 3 dias
+        if (await marcarEnviado(`m-adm:${x.id}`, empresa.id, db)) novas.push(x.titulo)
+      }
+      if (novas.length) {
+        await db.from('avisos').upsert(
+          { empresa_id: empresa.id, tipo: 'geral', texto: `${primeiro} atrasou: ${novas.join(', ')}`, link: `/tarefix/painel/mentoria/${mt.id}`, chave: `mentoria-atraso:${mt.id}:${hoje}:${novas.length}` },
+          { onConflict: 'empresa_id,chave', ignoreDuplicates: true }
+        )
+        if (mentor.length) {
+          const n = await enviar(mentor, { titulo: `${primeiro} atrasou ${novas.length > 1 ? `${novas.length} missões` : 'uma missão'}`, corpo: novas.slice(0, 3).join(' · '), url: `/tarefix/painel/mentoria/${mt.id}`, tag: `m-adm-${mt.id}` }, db)
+          res.enviados += n
+          res.detalhes.push(`mentoria atraso ${primeiro} (${n})`)
+        }
+      }
+    }
+
+    // reunião: 1 dia antes e 1 hora antes, para os dois
+    const r = await proximaReuniao(mt.id, db)
+    if (r) {
+      const falta = Math.round((new Date(r.quando).getTime() - ref.getTime()) / 60000)
+      const quando = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', hour: '2-digit', minute: '2-digit' }).format(new Date(r.quando))
+      for (const [chave, ini, titulo] of [
+        [`r-1d:${r.id}`, 24 * 60, `Reunião amanhã: ${quando}`],
+        [`r-1h:${r.id}`, 60, 'Reunião em 1 hora'],
+      ] as const) {
+        if (falta <= ini && falta > ini - TOLERANCIA_INICIO_MIN) {
+          await mandar(`${chave}:m`, dele, { titulo, corpo: r.link ? 'Toque para abrir o link da reunião.' : 'Abra o link da mentoria para ver os detalhes.', url: r.link ?? url, tag: `r-${r.id}`, forte: true })
+          await mandar(`${chave}:a`, mentor, { titulo: `${titulo} · ${primeiro}`, corpo: r.link ?? 'Sem link cadastrado.', url: `/tarefix/painel/mentoria/${mt.id}`, tag: `r-${r.id}` })
+        }
+      }
+    }
   }
 }

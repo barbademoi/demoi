@@ -128,6 +128,15 @@ do BarberMeta:
   com as tarefas com horário de hoje (pendentes) e dos próximos 14 dias, com alerta nativo 15 min antes.
   A chave é derivada do token do colaborador (gerar link novo invalida a agenda). Botão "📅 Pôr na agenda
   do celular" no Meu dia e na tela de cada colaborador (iPhone: webcal; Google Agenda: link `cid`).
+- **Mentoria** (`011_mentoria.sql`, `lib/tarefix/mentoria.ts`, `/tarefix/painel/mentoria`, link
+  `/tarefix/m/[token]`): só o admin. Mentorados não precisam de conta: recebem um link secreto (sem PIN;
+  "gerar novo link" invalida o antigo e desliga o aparelho dele). Missões `data` (uma vez), `dias` (nos dias
+  da semana, cada dia uma entrega) ou `semanal` (prazo num dia da semana), com hora opcional, prova
+  (nenhuma/foto/texto), aprovação opcional e vários mentorados por missão. As `entregas` são geradas sob
+  demanda (30 dias para trás, 7 à frente); pausar/tirar o mentorado apaga só as pendentes. Reunião: data,
+  hora e link. Lembretes no tick: 2 dias antes e no dia (9h, ou 2h antes da hora), cobrança diária de
+  atrasadas (9h–21h), aviso ao admin quando atrasa (uma vez por entrega, também no sininho), reunião 1 dia e
+  1 hora antes para os dois. Tudo pela service role; as tabelas não têm policy para o dono comum.
 - **Termômetro "instrumento"**: moldura de aço grafite, trilho escuro, cores profundas (rubi → ouro
   velho → esmeralda) com reflexo cromado, marcas em 25/50/75 e marcador de aço.
 

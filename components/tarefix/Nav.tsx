@@ -8,7 +8,8 @@ import { BotaoAtualizar } from './BotaoAtualizar'
 const I_HOJE = { href: '/tarefix/painel', rotulo: 'Hoje', icone: 'M4 12l8-8 8 8M6 10v10h12V10' }
 const I_MES = { href: '/tarefix/painel/mes', rotulo: 'Mês', icone: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z' }
 const I_HIST = { href: '/tarefix/painel/historico', rotulo: 'Histórico', icone: 'M3 12a9 9 0 109-9 9.7 9.7 0 00-6.7 2.8L3 8M3 3v5h5M12 7v5l4 2' }
-const I_MENTORADOS = { href: '/tarefix/painel/acessos', rotulo: 'Mentorados', icone: 'M12 2l7 3v6c0 5-3.5 9-7 11-3.5-2-7-6-7-11V5l7-3zM9 12l2 2 4-4' }
+const I_MENTORIA = { href: '/tarefix/painel/mentoria', rotulo: 'Mentoria', icone: 'M12 14l9-5-9-5-9 5 9 5zM12 14v7M5 11.5v4.5c0 1.5 3 3 7 3s7-1.5 7-3v-4.5' }
+const I_MENTORADOS = { href: '/tarefix/painel/acessos', rotulo: 'Acessos', icone: 'M12 2l7 3v6c0 5-3.5 9-7 11-3.5-2-7-6-7-11V5l7-3zM9 12l2 2 4-4' }
 const I_AJUDA = { href: '/tarefix/painel/como-usar', rotulo: 'Como usar', icone: 'M12 22a10 10 0 100-20 10 10 0 000 20zM9.1 9a3 3 0 015.8 1c0 2-3 3-3 3M12 17h.01' }
 const I_MEU_DIA = { href: '/tarefix/painel/meu-dia', rotulo: 'Meu dia', icone: 'M12 3v2M12 19v2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M3 12h2M19 12h2M5.6 18.4L7 17M17 7l1.4-1.4M12 16a4 4 0 100-8 4 4 0 000 8z' }
 const I_MAIS = { href: '/tarefix/painel/mais', rotulo: 'Mais', icone: 'M5 12h.01M12 12h.01M19 12h.01' }
@@ -35,7 +36,7 @@ function Icone({ d }: { d: string }) {
 const ITENS_CELULAR = [I_HOJE, I_MEU_DIA, ITENS[3], ITENS[4], I_MAIS]
 // Sem equipe (uso pessoal): Meu dia em primeiro, sem as telas de acompanhar equipe
 const ITENS_CELULAR_SOLO = [I_MEU_DIA, ITENS[4], ITENS[3], I_MAIS]
-const DENTRO_DE_MAIS = ['/tarefix/painel/mais', '/tarefix/painel/mes', '/tarefix/painel/historico', '/tarefix/painel/funcoes', '/tarefix/painel/configuracoes', '/tarefix/painel/avisos', '/tarefix/painel/acessos', '/tarefix/painel/como-usar']
+const DENTRO_DE_MAIS = ['/tarefix/painel/mais', '/tarefix/painel/mes', '/tarefix/painel/historico', '/tarefix/painel/funcoes', '/tarefix/painel/configuracoes', '/tarefix/painel/avisos', '/tarefix/painel/acessos', '/tarefix/painel/mentoria', '/tarefix/painel/como-usar']
 
 function ativo(pathname: string, href: string) {
   if (href === I_MAIS.href) return DENTRO_DE_MAIS.some((p) => pathname.startsWith(p))
@@ -68,7 +69,7 @@ export function Sininho({ naoLidos }: { naoLidos: number }) {
 export function Nav({ nomeEmpresa, naoLidos, admin = false, equipe = true }: { nomeEmpresa: string; naoLidos: number; admin?: boolean; equipe?: boolean }) {
   const pathname = usePathname() ?? ''
   const base = equipe ? [ITENS[0], I_MEU_DIA, ...ITENS.slice(1)] : [I_MEU_DIA, ITENS[4], ITENS[3], ITENS[6]]
-  const itens = [...base, ...(admin ? [I_MENTORADOS] : []), I_AJUDA]
+  const itens = [...base, ...(admin ? [I_MENTORIA, I_MENTORADOS] : []), I_AJUDA]
   const celular = equipe ? ITENS_CELULAR : ITENS_CELULAR_SOLO
   return (
     <>

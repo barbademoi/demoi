@@ -17,7 +17,11 @@ const LINKS = [
 export default async function Mais() {
   const { userId } = await exigirDono()
   const links = (await ehAdmin(userId))
-    ? [...LINKS, { href: '/tarefix/painel/acessos', titulo: 'Mentorados', texto: 'Conceder e suspender acessos ao Tarefix' }]
+    ? [
+        { href: '/tarefix/painel/mentoria', titulo: 'Mentoria', texto: 'Missões, prazos e reuniões dos mentorados' },
+        ...LINKS,
+        { href: '/tarefix/painel/acessos', titulo: 'Acessos', texto: 'Conceder e suspender acessos ao Tarefix' },
+      ]
     : LINKS
   return (
     <>

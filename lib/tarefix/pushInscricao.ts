@@ -19,7 +19,7 @@ export function validarInscricao(s: InscricaoNavegador): { endpoint: string; p25
  * está usando agora (o endpoint é único por navegador).
  */
 export async function gravarInscricao(
-  dono: { empresa_id: string; dono_id?: string; colaborador_id?: string },
+  dono: { empresa_id: string; dono_id?: string; colaborador_id?: string; mentorado_id?: string },
   sub: InscricaoNavegador,
   navegador: string
 ): Promise<{ ok: true } | { ok: false; erro: string }> {
@@ -32,6 +32,7 @@ export async function gravarInscricao(
         empresa_id: dono.empresa_id,
         dono_id: dono.dono_id ?? null,
         colaborador_id: dono.colaborador_id ?? null,
+        mentorado_id: dono.mentorado_id ?? null,
         endpoint: v.endpoint,
         p256dh: v.p256dh,
         auth: v.auth,
@@ -43,9 +44,10 @@ export async function gravarInscricao(
   return { ok: true }
 }
 
-export async function apagarInscricao(endpoint: string, filtro: { dono_id?: string; colaborador_id?: string }) {
+export async function apagarInscricao(endpoint: string, filtro: { dono_id?: string; colaborador_id?: string; mentorado_id?: string }) {
   let q = createTarefixAdmin().from('push_inscricoes').delete().eq('endpoint', String(endpoint).slice(0, 1000))
   if (filtro.dono_id) q = q.eq('dono_id', filtro.dono_id)
   if (filtro.colaborador_id) q = q.eq('colaborador_id', filtro.colaborador_id)
+  if (filtro.mentorado_id) q = q.eq('mentorado_id', filtro.mentorado_id)
   await q
 }
