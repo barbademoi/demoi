@@ -7,6 +7,8 @@ import { duracao, fimPrevisto, horarioHHMM, janela } from '@/lib/tarefix/prazo'
 import { ChipsDias, Erro, Interruptor, Modal, Rotulo, resumoDias, useAcao, useAviso } from '@/components/tarefix/ui'
 import { Dica } from '@/components/tarefix/Dica'
 import { DICAS } from '@/components/tarefix/dicas'
+import type { Sugestoes } from '@/lib/tarefix/sugestoes'
+import { useSugestoes } from './SugestoesTarefas'
 import { excluirAvulsa, excluirModelo, reordenarModelos, salvarAvulsa, salvarModelo, type DadosAvulsa, type DadosModelo } from './acoes'
 
 type Props = {
@@ -14,7 +16,12 @@ type Props = {
   modelos: TarefaModelo[]
   avulsas: TarefaAvulsa[]
   hoje: string
+  /** Tarefas da barbearia de referência para copiar (null = nenhuma). */
+  sugestoes?: Sugestoes | null
+  referencia?: boolean
 }
+
+const SEM_SUGESTOES: Sugestoes = { origem: '', empresaId: '', grupos: [], total: 0 }
 
 function IconeCamera() {
   return (
@@ -25,9 +32,17 @@ function IconeCamera() {
   )
 }
 
-export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
+export function EditorTarefas({ colaborador, modelos, avulsas, hoje, sugestoes, referencia = false }: Props) {
   const primeiroNome = colaborador.nome.split(' ')[0]
   const aviso = useAviso()
+  const sug = useSugestoes({
+    sugestoes: sugestoes ?? SEM_SUGESTOES,
+    colaborador,
+    titulosAtuais: modelos.map((m) => m.titulo),
+    referencia,
+    aoAdicionar: (n) => aviso.mostrar(n ? `${n} tarefa${n > 1 ? 's' : ''} adicionada${n > 1 ? 's' : ''}` : 'Essas tarefas já estavam na lista'),
+  })
+  const temSugestoes = sug.total > 0
 
   /* ----------------------------- recorrentes ----------------------------- */
   const [itens, setItens] = useState(modelos)
@@ -147,18 +162,38 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
     <div className="space-y-8">
       {/* ============================ RECORRENTES ============================ */}
       <section>
-        <div className="mb-3 flex items-center justify-between gap-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-extrabold">Recorrentes <Dica titulo="Recorrentes" {...DICAS.recorrentes} /></h2>
             <p className="text-sm text-tf-suave">Repetem nos dias da semana escolhidos.</p>
           </div>
-          <button type="button" className="tf-botao min-h-[44px] shrink-0 whitespace-nowrap px-4 text-sm" onClick={() => abrirModelo()}>
-            + Nova
-          </button>
+          <div className={`flex gap-2 ${temSugestoes ? 'w-full sm:w-auto' : 'shrink-0'}`}>
+            {temSugestoes && (
+              <button type="button" className="tf-botao2 min-h-[44px] flex-1 whitespace-nowrap px-4 text-sm sm:flex-none" onClick={sug.abrir}>
+                ✨ Sugestões
+              </button>
+            )}
+            <button type="button" className={`tf-botao min-h-[44px] whitespace-nowrap px-4 text-sm ${temSugestoes ? 'flex-1 sm:flex-none' : ''}`} onClick={() => abrirModelo()}>
+              + Nova
+            </button>
+          </div>
         </div>
 
         {itens.length === 0 ? (
-          <div className="tf-cartao px-5 py-8 text-center text-tf-suave">Nenhuma tarefa recorrente para {primeiroNome}.</div>
+          temSugestoes && !referencia ? (
+            <div className="tf-cartao !border-tf-marca space-y-3 px-5 py-6 text-center">
+              <p className="text-3xl" aria-hidden>✨</p>
+              <p className="text-lg font-extrabold">Comece pelas tarefas que já funcionam</p>
+              <p className="text-tf-suave">
+                {sugestoes!.origem} usa {sug.total} tarefas no dia a dia. Escolha as que servem para {primeiroNome} e ajuste do seu jeito: assim nada fica esquecido.
+              </p>
+              <button type="button" className="tf-botao w-full sm:w-auto sm:px-8" onClick={sug.abrir}>
+                Ver as sugestões
+              </button>
+            </div>
+          ) : (
+            <div className="tf-cartao px-5 py-8 text-center text-tf-suave">Nenhuma tarefa recorrente para {primeiroNome}.</div>
+          )
         ) : (
           <ul ref={lista} className="tf-cartao divide-y divide-tf-borda overflow-hidden">
             {itens.map((m) => {
@@ -464,6 +499,7 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje }: Props) {
           </form>
         )}
       </Modal>
+      {sug.modal}
       {aviso.elemento}
     </div>
   )

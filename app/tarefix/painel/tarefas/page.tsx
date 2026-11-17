@@ -4,11 +4,12 @@ import { hojeSP, somarDias } from '@/lib/tarefix/datas'
 import type { TarefaAvulsa, TarefaModelo } from '@/lib/tarefix/tipos'
 import { Avatar, Titulo, Vazio } from '@/components/tarefix/ui'
 import { EditorTarefas } from './EditorTarefas'
+import { listarSugestoes } from '@/lib/tarefix/sugestoes'
 
 export const metadata = { title: 'Tarefas' }
 
 export default async function Tarefas({ searchParams }: { searchParams: { c?: string } }) {
-  const { db } = await exigirDono()
+  const { db, empresa } = await exigirDono()
   const { data: colaboradores } = await db
     .from('colaboradores')
     .select('id, nome, foto_url, ativo')
@@ -31,7 +32,7 @@ export default async function Tarefas({ searchParams }: { searchParams: { c?: st
 
   const atual = lista.find((c) => c.id === searchParams.c) ?? lista.find((c) => c.ativo) ?? lista[0]
   const hoje = hojeSP()
-  const [{ data: modelos }, { data: avulsas }] = await Promise.all([
+  const [{ data: modelos }, { data: avulsas }, sugestoes] = await Promise.all([
     db.from('tarefas_modelo').select('*').eq('colaborador_id', atual.id).order('ordem').order('criado_em'),
     db
       .from('tarefas_avulsas')
@@ -40,6 +41,7 @@ export default async function Tarefas({ searchParams }: { searchParams: { c?: st
       .gte('data', somarDias(hoje, -14))
       .order('data')
       .order('criado_em'),
+    listarSugestoes(),
   ])
 
   return (
@@ -65,6 +67,8 @@ export default async function Tarefas({ searchParams }: { searchParams: { c?: st
         modelos={(modelos ?? []) as TarefaModelo[]}
         avulsas={(avulsas ?? []) as TarefaAvulsa[]}
         hoje={hoje}
+        sugestoes={sugestoes && { ...sugestoes, empresaId: '' }}
+        referencia={sugestoes?.empresaId === empresa.id}
       />
     </>
   )

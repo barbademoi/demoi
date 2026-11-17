@@ -98,6 +98,12 @@ do BarberMeta:
   com exemplos de barbearia, simulações do termômetro, "assim não / assim sim", rotina e dúvidas; checklist
   "Seu progresso" com dados reais. Dicas "?" nos campos (`components/tarefix/Dica.tsx`, textos em
   `components/tarefix/dicas.tsx`): passar o mouse no computador, tocar no celular.
+- **Sugestões de tarefas** (`lib/tarefix/sugestoes.ts`, botão "✨ Sugestões" em Tarefas): as tarefas
+  recorrentes ativas da empresa do admin (de colaboradores ativos), lidas ao vivo, agrupadas pela função de
+  quem faz e sem repetir título. Todo mentorado (atual e futuro) escolhe e copia para um colaborador
+  (`adicionarSugestoes`): a cópia leva dias, horários, tempo, peso, dia todo, foto e descrição, e pula o que
+  ele já tem com o mesmo título. Mudou uma tarefa na empresa do admin? As sugestões mudam na hora; as
+  cópias já feitas não mudam.
 - **Termômetro "instrumento"**: moldura de aço grafite, trilho escuro, cores profundas (rubi → ouro
   velho → esmeralda) com reflexo cromado, marcas em 25/50/75 e marcador de aço.
 
