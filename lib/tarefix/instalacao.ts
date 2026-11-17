@@ -10,9 +10,10 @@ import sql7 from '@/supabase/tarefix/007_observacoes.sql'
 import sql8 from '@/supabase/tarefix/008_push.sql'
 import sql9 from '@/supabase/tarefix/009_acessos.sql'
 import sql10 from '@/supabase/tarefix/010_meu_dia.sql'
+import sql11 from '@/supabase/tarefix/011_mentoria.sql'
 
 /** SQL completo de instalação, numa transação só (se der erro, nada fica pela metade). */
-export const SQL_INSTALACAO = ['begin;', sql1, sql2, sql3, sql4, sql5, sql6, sql7, sql8, sql9, sql10, 'commit;'].join('\n\n')
+export const SQL_INSTALACAO = ['begin;', sql1, sql2, sql3, sql4, sql5, sql6, sql7, sql8, sql9, sql10, sql11, 'commit;'].join('\n\n')
 
 export const VARIAVEIS = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'] as const
 

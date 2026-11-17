@@ -445,6 +445,15 @@ export function GuiaDono({ progresso, fecha, admin }: { progresso: ItemProgresso
             <Passo titulo="Envie os dados de entrada">
               <p>E-mail novo: aparece uma senha provisória (só uma vez). Use <b>Enviar no WhatsApp</b>. Se o e-mail já tem conta no BarberMeta, ele entra com a senha de sempre.</p>
             </Passo>
+            <Passo titulo="Cobre resultado com a Mentoria" href="/tarefix/painel/mentoria" botao="Abrir Mentoria">
+              <p>
+                Em <b>Mentoria</b>, cadastre o mentorado (nome e WhatsApp) e mande o link: ele não precisa ter conta. Crie missões com prazo (uma vez, nos dias da semana ou toda semana), peça prova (foto/print
+                ou texto) e escolha se precisa da sua aprovação. Marque a próxima reunião com o link.
+              </p>
+              <Exemplo>
+                <p>“Mandar o faturamento da semana” · toda segunda até 18:00 · prova: texto. Ele recebe lembrete 2 dias antes e no dia; se atrasar, você recebe “Leozin atrasou”.</p>
+              </Exemplo>
+            </Passo>
             <Passo titulo="Suspenda se precisar">
               <p>Desligar “Acesso liberado” bloqueia o mentorado e a equipe dele. Os dados ficam guardados; religou, volta tudo.</p>
             </Passo>
