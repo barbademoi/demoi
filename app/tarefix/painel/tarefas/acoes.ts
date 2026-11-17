@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { donoOuErro, falha, type Resultado } from '@/lib/tarefix/dono'
 import { lerHorario, lerMinutos } from '@/lib/tarefix/prazo'
+import { mesmoTitulo, modelosParaCopiar } from '@/lib/tarefix/sugestoes'
 
 /** Lê "fazer até" e "tempo estimado" do formulário (ou devolve a mensagem de erro). */
 function lerPrazo(d: { horario_inicio: string; horario_limite: string; tempo_estimado_min: string; continua: boolean; peso: number }) {
@@ -134,4 +135,45 @@ export async function excluirAvulsa(id: string): Promise<Resultado> {
   if (error) return falha(error)
   revalidar()
   return { ok: true }
+}
+
+/**
+ * Copia sugestões (tarefas da barbearia de referência) para um colaborador.
+ * Pula as que ele já tem com o mesmo título. Depois, cada uma é editável normalmente.
+ */
+export async function adicionarSugestoes(colaboradorId: string, ids: string[]): Promise<{ ok: true; adicionadas: number } | { ok: false; erro: string }> {
+  const s = await donoOuErro()
+  if ('ok' in s) return s
+  // RLS: só encontra colaborador da própria empresa
+  const { data: colab } = await s.db.from('colaboradores').select('id').eq('id', colaboradorId).maybeSingle()
+  if (!colab) return { ok: false, erro: 'Colaborador não encontrado.' }
+  const origem = await modelosParaCopiar(ids)
+  if (origem.length === 0) return { ok: false, erro: 'Escolha pelo menos uma sugestão.' }
+
+  const { data: atuais } = await s.db.from('tarefas_modelo').select('titulo, ordem').eq('colaborador_id', colaboradorId)
+  let ordem = Math.max(-1, ...(atuais ?? []).map((t) => t.ordem ?? 0))
+  const ordemPedida = new Map(ids.map((id, i) => [id, i]))
+  const novas = origem
+    .filter((m) => !(atuais ?? []).some((t) => mesmoTitulo(t.titulo, m.titulo)))
+    .sort((a, b) => (ordemPedida.get(a.id) ?? 0) - (ordemPedida.get(b.id) ?? 0))
+    .map((m) => ({
+      empresa_id: s.empresa.id,
+      colaborador_id: colaboradorId,
+      titulo: m.titulo,
+      descricao: m.descricao,
+      dias_semana: m.dias_semana,
+      horario_inicio: m.continua ? null : m.horario_inicio,
+      horario_limite: m.continua ? null : m.horario_limite,
+      tempo_estimado_min: m.continua ? null : m.tempo_estimado_min,
+      continua: Boolean(m.continua),
+      peso: m.peso || 1,
+      exige_foto: Boolean(m.exige_foto),
+      ativo: true,
+      ordem: ++ordem,
+    }))
+  if (novas.length === 0) return { ok: true, adicionadas: 0 }
+  const { error } = await s.db.from('tarefas_modelo').insert(novas)
+  if (error) return { ok: false, erro: (falha(error) as { erro: string }).erro }
+  revalidar()
+  return { ok: true, adicionadas: novas.length }
 }

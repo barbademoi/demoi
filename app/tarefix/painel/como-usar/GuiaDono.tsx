@@ -190,6 +190,12 @@ export function GuiaDono({ progresso, fecha, admin }: { progresso: ItemProgresso
           </div>
         </div>
 
+        <Dicao>
+          <p>
+            Não precisa começar do zero: toque em <b>✨ Sugestões</b> para ver as tarefas que já funcionam numa barbearia de verdade, marque as que servem para a pessoa e adicione todas de uma vez. Depois é só
+            ajustar horários e dias.
+          </p>
+        </Dicao>
         <h3 className="pt-2 text-lg font-extrabold">Cada campo, com exemplo</h3>
         <Tabela
           cabecalho={['Campo', 'Para que serve', 'Exemplo']}
