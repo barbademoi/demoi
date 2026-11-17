@@ -7,6 +7,8 @@ import { Erro, Interruptor, Modal, resumoDias, useAcao, useAviso } from '@/compo
 import { decidirEntrega, editarMentorado, excluirMissao, novoLinkMentorado, pausarMissao, removerReuniao, salvarReuniao } from '../acoes'
 import { EditorMissao } from '../EditorMissao'
 import { textoPrazo } from '@/lib/tarefix/mentoriaTexto'
+import { textoPeriodo } from '@/lib/tarefix/periodo'
+import { hojeSP } from '@/lib/tarefix/datas'
 
 type Entrega = EntregaTela & { foto_url: string | null }
 type MissaoPara = Missao & { para: string[] }
@@ -18,8 +20,9 @@ const quandoBR = (iso: string) =>
 export function regraMissao(m: Missao) {
   const hora = m.hora ? ` até ${m.hora.slice(0, 5)}` : ''
   if (m.tipo === 'data') return `Uma vez · até ${m.data!.split('-').reverse().slice(0, 2).join('/')}${hora}`
-  if (m.tipo === 'dias') return `${resumoDias(m.dias_semana)}${hora}`
-  return `Toda semana · até ${NOMES[m.dia_prazo ?? 1]}${hora}`
+  const periodo = textoPeriodo(m, hojeSP()) ? ` · ${textoPeriodo(m, hojeSP())}` : ''
+  if (m.tipo === 'dias') return `${resumoDias(m.dias_semana)}${hora}${periodo}`
+  return `Toda semana · até ${NOMES[m.dia_prazo ?? 1]}${hora}${periodo}`
 }
 
 export function DetalheMentorado(p: {

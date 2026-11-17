@@ -34,8 +34,10 @@ function inicial(p: Props): DadosMissao {
       prova: m.prova,
       aprovacao: m.aprovacao,
       mentorados: m.para,
+      inicio: m.inicio ?? '',
+      fim: m.fim ?? '',
     }
-  return { titulo: '', descricao: '', tipo: 'data', data: p.hoje, dias_semana: [1, 3, 5], dia_prazo: 1, hora: '', prova: 'nenhuma', aprovacao: false, mentorados: p.paraPadrao ?? [] }
+  return { titulo: '', descricao: '', tipo: 'data', data: p.hoje, dias_semana: [1, 3, 5], dia_prazo: 1, hora: '', prova: 'nenhuma', aprovacao: false, mentorados: p.paraPadrao ?? [], inicio: '', fim: '' }
 }
 
 export function EditorMissao(p: Props) {
@@ -110,6 +112,19 @@ export function EditorMissao(p: Props) {
                 ))}
               </select>
               <p className="mt-1 text-sm text-tf-suave">Ex.: “Mandar o faturamento da semana” toda segunda.</p>
+            </div>
+          )}
+          {d.tipo !== 'data' && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="tf-rotulo" htmlFor="mi-inicio">Começa em (opcional)</label>
+                <input id="mi-inicio" type="date" className="tf-campo" min={d.id ? undefined : p.hoje} value={d.inicio ?? ''} onChange={(e) => setD({ ...d, inicio: e.target.value })} />
+              </div>
+              <div>
+                <label className="tf-rotulo" htmlFor="mi-fim">Termina em (opcional)</label>
+                <input id="mi-fim" type="date" className="tf-campo" min={d.inicio || p.hoje} value={d.fim ?? ''} onChange={(e) => setD({ ...d, fim: e.target.value })} />
+              </div>
+              <p className="col-span-2 -mt-1 text-sm text-tf-suave">Ex.: método novo de agenda a partir da semana que vem, por 4 semanas.</p>
             </div>
           )}
           <div>

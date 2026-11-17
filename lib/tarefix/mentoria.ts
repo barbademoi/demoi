@@ -34,6 +34,8 @@ export type Missao = {
   prova: Prova
   aprovacao: boolean
   ativo: boolean
+  inicio?: string | null
+  fim?: string | null
   criado_em: string
 }
 
@@ -61,8 +63,11 @@ export const JANELA_PASSADO = 30
 export const JANELA_FUTURO = 7
 
 /** Prazos que uma missão gera entre `de` e `ate` (inclusive). */
-export function prazosDaMissao(m: Pick<Missao, 'tipo' | 'data' | 'dias_semana' | 'dia_prazo'>, de: string, ate: string): string[] {
+export function prazosDaMissao(m: Pick<Missao, 'tipo' | 'data' | 'dias_semana' | 'dia_prazo' | 'inicio' | 'fim'>, de: string, ate: string): string[] {
   if (m.tipo === 'data') return m.data ? [m.data] : []
+  // período opcional (começa em / termina em)
+  if (m.inicio && m.inicio > de) de = m.inicio
+  if (m.fim && m.fim < ate) ate = m.fim
   const out: string[] = []
   for (let d = de; d <= ate; d = somarDias(d, 1)) {
     const dow = diaDaSemana(d)

@@ -2,6 +2,7 @@ import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { agoraSP, anoMesDe, datasDoMes, diaDaSemana, diaFechado, hojeSP, somarDias } from '@/lib/tarefix/datas'
 import type { Colaborador, Empresa, ItemChecklist, TarefaAvulsa, TarefaDia, TarefaModelo } from '@/lib/tarefix/tipos'
 import { ordenarPorPrazo } from '@/lib/tarefix/prazo'
+import { valeNoDia } from '@/lib/tarefix/periodo'
 
 /**
  * Geração das tarefas do dia — SEM cron.
@@ -68,7 +69,7 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
     const dow = diaDaSemana(data)
     const aberto = !diaFechado(data, empresa.horario_fechamento)
     for (const m of (modelos ?? []) as TarefaModelo[]) {
-      if (!m.dias_semana.includes(dow)) continue
+      if (!m.dias_semana.includes(dow) || !valeNoDia(m, data)) continue
       // gerando um dia passado tardiamente: só vale modelo que já existia naquele dia
       if (!aberto && agoraSP(new Date(m.criado_em)).data > data) continue
       linhas.push({
@@ -253,7 +254,7 @@ export async function lerMes(colaboradorId: string, anoMes: string, db: Db = cre
     const futuros = datasDoMes(anoMes).filter((d) => d > hoje && d >= inicio)
     if (futuros.length) {
       const [{ data: modelos }, { data: avulsas }, { data: folgas }] = await Promise.all([
-        db.from('tarefas_modelo').select('dias_semana, peso').eq('colaborador_id', colaboradorId).eq('ativo', true),
+        db.from('tarefas_modelo').select('dias_semana, peso, inicio, fim').eq('colaborador_id', colaboradorId).eq('ativo', true),
         db.from('tarefas_avulsas').select('data, peso').eq('colaborador_id', colaboradorId).gt('data', hoje).lte('data', fimMes),
         db.from('folgas').select('data').eq('colaborador_id', colaboradorId).gt('data', hoje).lte('data', fimMes),
       ])
@@ -262,7 +263,7 @@ export async function lerMes(colaboradorId: string, anoMes: string, db: Db = cre
         if (diasFolga.has(d)) continue
         const dow = diaDaSemana(d)
         const doDia = [
-          ...((modelos ?? []) as { dias_semana: number[]; peso: number | null }[]).filter((m) => m.dias_semana.includes(dow)),
+          ...((modelos ?? []) as { dias_semana: number[]; peso: number | null; inicio: string | null; fim: string | null }[]).filter((m) => m.dias_semana.includes(dow) && valeNoDia(m, d)),
           ...((avulsas ?? []) as { data: string; peso: number | null }[]).filter((a) => a.data === d),
         ]
         if (doDia.length) diasRestantes++

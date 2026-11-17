@@ -43,6 +43,8 @@ export type DadosModelo = {
   tempo_estimado_min: string // minutos ou ''
   checklist?: string[]
   categoria_id?: string | null
+  inicio?: string // 'AAAA-MM-DD' ou '' (começa em)
+  fim?: string // 'AAAA-MM-DD' ou '' (termina em)
 }
 
 export async function salvarModelo(d: DadosModelo): Promise<Resultado> {
@@ -54,8 +56,10 @@ export async function salvarModelo(d: DadosModelo): Promise<Resultado> {
   if (dias.length === 0) return { ok: false, erro: 'Escolha pelo menos um dia da semana.' }
   const prazo = lerPrazo(d)
   if (typeof prazo === 'string') return { ok: false, erro: prazo }
+  const periodo = lerPeriodo(d.inicio, d.fim)
+  if (typeof periodo === 'string') return { ok: false, erro: periodo }
   const linha = {
-    titulo, descricao: d.descricao.trim() || null, dias_semana: dias, exige_foto: d.exige_foto, ativo: d.ativo, ...prazo,
+    titulo, descricao: d.descricao.trim() || null, dias_semana: dias, exige_foto: d.exige_foto, ativo: d.ativo, ...prazo, ...periodo,
     checklist: lerChecklist(d.checklist), categoria_id: await lerCategoria(s.db, d.categoria_id),
   }
 
@@ -119,6 +123,15 @@ export type DadosAvulsa = {
   tempo_estimado_min: string
   checklist?: string[]
   categoria_id?: string | null
+}
+
+/** "Começa em" / "Termina em" (opcionais). */
+function lerPeriodo(inicio?: string, fim?: string): { inicio: string | null; fim: string | null } | string {
+  const data = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)
+  const i = data(inicio)
+  const f = data(fim)
+  if (i && f && f < i) return '"Termina em" precisa ser depois de "Começa em".'
+  return { inicio: i, fim: f }
 }
 
 /** Checklist limpo: até 20 itens de até 80 caracteres, sem vazios. */

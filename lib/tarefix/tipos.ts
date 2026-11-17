@@ -71,6 +71,8 @@ export type TarefaModelo = {
   tempo_estimado_min: number | null
   categoria_id?: string | null
   checklist?: string[]
+  inicio?: string | null // só vale a partir deste dia
+  fim?: string | null // só vale até este dia
   criado_em: string
 }
 

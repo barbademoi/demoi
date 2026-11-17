@@ -10,6 +10,7 @@ import { DICAS } from '@/components/tarefix/dicas'
 import type { Sugestoes } from '@/lib/tarefix/sugestoes'
 import type { Categoria } from '@/lib/tarefix/tipos'
 import { EditorChecklist, SeletorCategoria } from './CamposExtras'
+import { textoPeriodo } from '@/lib/tarefix/periodo'
 import { useSugestoes } from './SugestoesTarefas'
 import { excluirAvulsa, excluirModelo, reordenarModelos, salvarAvulsa, salvarModelo, type DadosAvulsa, type DadosModelo } from './acoes'
 
@@ -66,9 +67,9 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje, sugestoes, 
         ? {
             id: m.id, colaborador_id: colaborador.id, titulo: m.titulo, descricao: m.descricao ?? '', dias_semana: m.dias_semana, exige_foto: m.exige_foto, ativo: m.ativo,
             continua: m.continua ?? false, peso: m.peso ?? 1,
-            horario_inicio: horarioHHMM(m.horario_inicio) ?? '', horario_limite: horarioHHMM(m.horario_limite) ?? '', tempo_estimado_min: m.tempo_estimado_min ? String(m.tempo_estimado_min) : '', checklist: m.checklist ?? [], categoria_id: m.categoria_id ?? null,
+            horario_inicio: horarioHHMM(m.horario_inicio) ?? '', horario_limite: horarioHHMM(m.horario_limite) ?? '', tempo_estimado_min: m.tempo_estimado_min ? String(m.tempo_estimado_min) : '', checklist: m.checklist ?? [], categoria_id: m.categoria_id ?? null, inicio: m.inicio ?? '', fim: m.fim ?? '',
           }
-        : { colaborador_id: colaborador.id, titulo: '', descricao: '', dias_semana: [1, 2, 3, 4, 5, 6], exige_foto: false, ativo: true, continua: false, peso: 1, horario_inicio: '', horario_limite: '', tempo_estimado_min: '', checklist: [], categoria_id: null }
+        : { colaborador_id: colaborador.id, titulo: '', descricao: '', dias_semana: [1, 2, 3, 4, 5, 6], exige_foto: false, ativo: true, continua: false, peso: 1, horario_inicio: '', horario_limite: '', tempo_estimado_min: '', checklist: [], categoria_id: null, inicio: '', fim: '' }
     )
   }
 
@@ -230,7 +231,7 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje, sugestoes, 
                       {m.exige_foto && <span className="text-tf-marca-texto"><IconeCamera /></span>}
                     </span>
                     <span className="text-sm text-tf-suave">
-                      {[resumoDias(m.dias_semana), m.continua ? 'o dia todo' : janela(m), !m.continua && duracao(m.tempo_estimado_min), m.peso > 1 && `vale ${m.peso}×`].filter(Boolean).join(' · ')}
+                      {[resumoDias(m.dias_semana), textoPeriodo(m, hoje), m.continua ? 'o dia todo' : janela(m), !m.continua && duracao(m.tempo_estimado_min), m.peso > 1 && `vale ${m.peso}×`].filter(Boolean).join(' · ')}
                       {!m.ativo && ' · pausada'}
                     </span>
                   </button>
@@ -369,6 +370,28 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje, sugestoes, 
             </div>
               </>
             )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Rotulo
+                  htmlFor="modelo-inicio-data"
+                  dica={<p>Deixe vazio para começar já. Com data, a tarefa só aparece a partir desse dia.</p>}
+                  exemplo={<>Rotina nova de fechamento a partir de 01/12.</>}
+                >
+                  Começa em
+                </Rotulo>
+                <input id="modelo-inicio-data" type="date" className="tf-campo" min={modelo.id ? undefined : hoje} value={modelo.inicio ?? ''} onChange={(e) => setModelo({ ...modelo, inicio: e.target.value })} />
+              </div>
+              <div>
+                <Rotulo
+                  htmlFor="modelo-fim-data"
+                  dica={<p>Opcional. Depois desse dia a tarefa para de aparecer sozinha.</p>}
+                  exemplo={<>“Montar a vitrine de Natal” de 01 a 24/12.</>}
+                >
+                  Termina em
+                </Rotulo>
+                <input id="modelo-fim-data" type="date" className="tf-campo" min={modelo.inicio || hoje} value={modelo.fim ?? ''} onChange={(e) => setModelo({ ...modelo, fim: e.target.value })} />
+              </div>
+            </div>
             <SeletorCategoria categorias={categorias} valor={modelo.categoria_id ?? null} aoMudar={(v) => setModelo({ ...modelo, categoria_id: v })} />
             <EditorChecklist itens={modelo.checklist ?? []} aoMudar={(v) => setModelo({ ...modelo, checklist: v })} />
             <Interruptor rotulo="Exige foto" descricao="Só conclui com uma foto tirada na hora." {...DICAS.foto} ligado={modelo.exige_foto} aoMudar={(v) => setModelo({ ...modelo, exige_foto: v })} />
