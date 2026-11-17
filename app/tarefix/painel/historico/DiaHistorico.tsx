@@ -9,7 +9,7 @@ import { duracao, estaAtrasada, foraDoHorario, janela, minutosDeAtraso } from '@
 import { rotuloAutoavaliacao } from '@/lib/tarefix/continuas'
 
 const horaSP = (iso: string) => new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO, hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
-const STATUS = { feita: 'Feita', pendente: 'Não feita', reprovada: 'Reprovada' } as const
+const STATUS = { feita: 'Feita', pendente: 'Não feita', reprovada: 'Reprovada', adiada: 'Adiada' } as const
 const STATUS_EXTRA = { pendente: 'Aguardando', aprovada: 'Aprovada', recusada: 'Recusada' } as const
 
 type Extra = { id: string; descricao: string; status: keyof typeof STATUS_EXTRA; foto_url: string | null }

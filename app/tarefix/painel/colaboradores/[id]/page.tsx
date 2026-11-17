@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { exigirDono } from '@/lib/tarefix/dono'
 import { hojeSP } from '@/lib/tarefix/datas'
 import { Avatar } from '@/components/tarefix/ui'
@@ -16,10 +16,11 @@ export default async function Colaborador({ params, searchParams }: { params: { 
   const { db, empresa } = await exigirDono()
   const { data: c } = await db
     .from('colaboradores')
-    .select('id, nome, foto_url, funcao_id, ativo, token_acesso, pin_bloqueado_ate, criado_em')
+    .select('id, nome, foto_url, funcao_id, ativo, token_acesso, pin_bloqueado_ate, criado_em, eh_dono')
     .eq('id', params.id)
     .maybeSingle()
   if (!c) notFound()
+  if (c.eh_dono) redirect('/tarefix/painel/meu-dia') // o "colaborador" do Meu dia não é da equipe
 
   const [{ data: funcoes }, { data: folgas }, { count: qtdTarefas }] = await Promise.all([
     db.from('funcoes').select('id, nome, ativo').order('nome'),

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { exigirDono } from '@/lib/tarefix/dono'
 import { dataPorExtenso, hojeSP, horarioCurto, somarDias } from '@/lib/tarefix/datas'
 import { carregarPainelHoje, DIAS_PAINEL_PARA_TRAS } from '@/lib/tarefix/painelHoje'
@@ -11,7 +12,7 @@ export default async function PainelHoje({ searchParams }: { searchParams: { c?:
   const { db, dono, empresa } = await exigirDono()
   const [funcoes, colaboradores, modelos] = await Promise.all([
     db.from('funcoes').select('*', { count: 'exact', head: true }),
-    db.from('colaboradores').select('*', { count: 'exact', head: true }).eq('ativo', true),
+    db.from('colaboradores').select('*', { count: 'exact', head: true }).eq('ativo', true).eq('eh_dono', false),
     db.from('tarefas_modelo').select('*', { count: 'exact', head: true }).eq('ativo', true),
   ])
   const passos = [
@@ -19,6 +20,8 @@ export default async function PainelHoje({ searchParams }: { searchParams: { c?:
     { feito: (colaboradores.count ?? 0) > 0, titulo: 'Cadastre a equipe', texto: 'Nome, foto, função e PIN de cada um.', href: '/tarefix/painel/colaboradores' },
     { feito: (modelos.count ?? 0) > 0, titulo: 'Monte as tarefas', texto: 'O que cada um faz em cada dia da semana.', href: '/tarefix/painel/tarefas' },
   ]
+  // Sem equipe: o Tarefix é de uso pessoal → abre direto no Meu dia (sem ?d= de dia anterior)
+  if ((colaboradores.count ?? 0) === 0 && !searchParams.d) redirect('/tarefix/painel/meu-dia')
   const configurado = passos.every((p) => p.feito)
   const primeiroNome = dono.nome.split(' ')[0]
 

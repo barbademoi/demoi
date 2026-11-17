@@ -65,7 +65,7 @@ export async function carregarPainelHoje(empresa: Empresa, dataPedida?: string):
       : hojeReal
 
   const [{ data: colabs }, { data: funcoes }] = await Promise.all([
-    db.from('colaboradores').select('id, empresa_id, nome, foto_url, funcao_id, criado_em').eq('empresa_id', empresa.id).eq('ativo', true).order('nome'),
+    db.from('colaboradores').select('id, empresa_id, nome, foto_url, funcao_id, criado_em').eq('empresa_id', empresa.id).eq('ativo', true).eq('eh_dono', false).order('nome'),
     db.from('funcoes').select('id, nome').eq('empresa_id', empresa.id),
   ])
   // num dia anterior, só quem já estava cadastrado naquele dia
@@ -154,7 +154,7 @@ export async function garantirResumoDiario(empresa: Empresa) {
   const { data: existe } = await db.from('avisos').select('id').eq('empresa_id', empresa.id).eq('chave', chave).maybeSingle()
   if (existe) return
 
-  const { data: colabs } = await db.from('colaboradores').select('id, empresa_id, nome, criado_em').eq('empresa_id', empresa.id).eq('ativo', true).order('nome')
+  const { data: colabs } = await db.from('colaboradores').select('id, empresa_id, nome, criado_em').eq('empresa_id', empresa.id).eq('ativo', true).eq('eh_dono', false).order('nome')
   const lista = colabs ?? []
   if (lista.length === 0) return
   // Garante as tarefas do dia (se ninguém abriu, geramos agora com as regras de dia fechado).

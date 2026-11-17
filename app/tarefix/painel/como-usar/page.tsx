@@ -10,7 +10,7 @@ export default async function ComoUsar() {
   const { db, empresa, userId } = await exigirDono()
   const [funcoes, colaboradores, modelos, feitas, bonus, push, admin] = await Promise.all([
     db.from('funcoes').select('*', { count: 'exact', head: true }),
-    db.from('colaboradores').select('*', { count: 'exact', head: true }).eq('ativo', true),
+    db.from('colaboradores').select('*', { count: 'exact', head: true }).eq('ativo', true).eq('eh_dono', false),
     db.from('tarefas_modelo').select('*', { count: 'exact', head: true }).eq('ativo', true),
     db.from('tarefas_dia').select('*', { count: 'exact', head: true }).eq('status', 'feita'),
     db.from('bonus_config').select('ativo').maybeSingle(),

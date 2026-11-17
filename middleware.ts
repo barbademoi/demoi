@@ -64,6 +64,11 @@ export async function middleware(request: NextRequest) {
     if (!user && !isPublicRoute) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
+    // Conta criada só pelo Tarefix (cadastro do Tarefix ou mentorado com e-mail
+    // novo) não tem acesso ao BarberMeta: volta para o Tarefix.
+    if (user?.app_metadata?.tarefix_only === true && (!isPublicRoute || isAuthRoute)) {
+      return NextResponse.redirect(new URL('/tarefix', request.url))
+    }
     if (user && isAuthRoute) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }

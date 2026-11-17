@@ -83,7 +83,9 @@ export function useSugestoes({ sugestoes, colaborador, titulosAtuais, referencia
     <Modal aberto={aberto} aoFechar={() => !acao.pendente && setAberto(false)} titulo="Sugestões prontas">
       <div className="space-y-4">
         <p className="text-tf-suave">
-          {referencia ? (
+          {sugestoes.grupos[0]?.itens[0]?.id.startsWith('rotina-') ? (
+            <>Rotina pronta para dono de barbearia: agenda, caixa, equipe, conteúdo e saúde. Marque o que serve para você e ajuste os horários.</>
+          ) : referencia ? (
             <>Estas são as tarefas da sua barbearia. É exatamente isso que os seus mentorados veem aqui, sempre atualizado.</>
           ) : (
             <>

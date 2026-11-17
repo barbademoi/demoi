@@ -12,7 +12,7 @@ export const metadata = { title: 'Histórico' }
 export default async function Historico({ searchParams }: { searchParams: { c?: string; d?: string } }) {
   const { db, empresa } = await exigirDono()
   const hoje = hojeSP()
-  const { data: colabs } = await db.from('colaboradores').select('id, empresa_id, nome, ativo, criado_em').order('ativo', { ascending: false }).order('nome')
+  const { data: colabs } = await db.from('colaboradores').select('id, empresa_id, nome, ativo, criado_em').eq('eh_dono', false).order('ativo', { ascending: false }).order('nome')
   const lista = colabs ?? []
   if (lista.length === 0) return (<><Titulo>Histórico</Titulo><Vazio titulo="Ninguém cadastrado ainda" /></>)
 

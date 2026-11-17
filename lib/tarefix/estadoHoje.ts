@@ -2,7 +2,7 @@ import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { agoraSP, anoMesDe, diaFechado, hojeSP, mesAnterior, minutosParaFechamento, somarDias } from '@/lib/tarefix/datas'
 import { gerarELerMes, gerarTarefasDoDia, lerDia, lerMes, placar, type Placar } from '@/lib/tarefix/tarefasDia'
 import { niveisOrdenados, situacaoBonus, type SituacaoBonus } from '@/lib/tarefix/bonus'
-import type { Colaborador, Empresa, TomMensagens } from '@/lib/tarefix/tipos'
+import type { Categoria, Colaborador, Empresa, ItemChecklist, TarefaDia, TomMensagens } from '@/lib/tarefix/tipos'
 
 // NÃO é 'use server': recebe o colaborador já validado e não pode virar
 // uma ação pública (senão qualquer um leria as tarefas de qualquer um).
@@ -18,7 +18,7 @@ export type TarefaTela = {
   titulo: string
   descricao: string | null
   exige_foto: boolean
-  status: 'pendente' | 'feita' | 'reprovada'
+  status: 'pendente' | 'feita' | 'reprovada' | 'adiada'
   feita_em: string | null
   motivo_reprovacao: string | null
   foto_url: string | null
@@ -29,6 +29,17 @@ export type TarefaTela = {
   observacao: string | null
   horario_limite: string | null // 'HH:MM'
   tempo_estimado_min: number | null
+  categoria_id: string | null
+  checklist: ItemChecklist[]
+  veio_de: string | null // avulsa que passou de um dia anterior
+  origem: 'modelo' | 'avulsa'
+}
+
+/** Extras do Meu dia (só para o "colaborador" do próprio dono). */
+export type PessoalTela = {
+  categorias: Categoria[]
+  algumDia: { id: string; titulo: string; categoria_id: string | null }[]
+  adiadas: number // empurradas para amanhã hoje
 }
 
 export type ExtraTela = { id: string; descricao: string; status: 'pendente' | 'aprovada' | 'recusada' }
@@ -53,6 +64,42 @@ export type EstadoHoje = {
   evolucao: number | null // pontos acima do mês passado (só se > 0)
   tom: TomMensagens
   liberarContinuasMin: number // check das tarefas do dia todo libera X min antes do fechamento
+  pessoal: PessoalTela | null
+}
+
+const paraTela = (t: TarefaDia, urls: Record<string, string>): TarefaTela => ({
+  id: t.id,
+  titulo: t.titulo,
+  descricao: t.descricao,
+  exige_foto: t.exige_foto,
+  status: t.status,
+  feita_em: t.feita_em,
+  motivo_reprovacao: t.motivo_reprovacao,
+  foto_url: t.foto_path ? urls[t.foto_path] ?? null : null,
+  horario_inicio: t.horario_inicio ? t.horario_inicio.slice(0, 5) : null,
+  horario_limite: t.horario_limite ? t.horario_limite.slice(0, 5) : null,
+  tempo_estimado_min: t.tempo_estimado_min ?? null,
+  continua: t.continua ?? false,
+  peso: t.peso ?? 1,
+  autoavaliacao: t.autoavaliacao ?? null,
+  observacao: t.observacao ?? null,
+  categoria_id: t.categoria_id ?? null,
+  checklist: Array.isArray(t.checklist) ? t.checklist : [],
+  veio_de: t.veio_de ?? null,
+  origem: t.origem,
+})
+
+async function lerPessoal(colaborador: Colaborador, linhas: TarefaDia[], db: ReturnType<typeof createTarefixAdmin>): Promise<PessoalTela | null> {
+  if (!colaborador.eh_dono) return null
+  const [{ data: categorias }, { data: ideias }] = await Promise.all([
+    db.from('categorias').select('id, empresa_id, nome, cor, ordem').eq('empresa_id', colaborador.empresa_id).order('ordem').order('criado_em'),
+    db.from('tarefas_avulsas').select('id, titulo, categoria_id').eq('colaborador_id', colaborador.id).is('data', null).order('criado_em'),
+  ])
+  return {
+    categorias: (categorias ?? []) as Categoria[],
+    algumDia: (ideias ?? []) as PessoalTela['algumDia'],
+    adiadas: linhas.filter((t) => t.status === 'adiada').length,
+  }
 }
 
 export type Ctx = { colaborador: Colaborador; empresa: Empresa }
@@ -82,7 +129,9 @@ export async function montarEstado({ colaborador, empresa }: Ctx, gerar: boolean
   for (const r of recentes ?? []) (porDia[r.data] ??= []).push(r)
   let sequencia = 0
   for (const d of Object.keys(porDia).sort().reverse()) {
-    if (porDia[d].every((t) => t.status === 'feita')) sequencia++
+    const contam = porDia[d].filter((t) => t.status !== 'adiada')
+    if (!contam.length) continue
+    if (contam.every((t) => t.status === 'feita')) sequencia++
     else break
   }
 
@@ -106,23 +155,7 @@ export async function montarEstado({ colaborador, empresa }: Ctx, gerar: boolean
     fechado: diaFechado(hoje, empresa.horario_fechamento),
     minutosParaFechar: minutosParaFechamento(empresa.horario_fechamento),
     folga,
-    tarefas: linhas.map((t) => ({
-      id: t.id,
-      titulo: t.titulo,
-      descricao: t.descricao,
-      exige_foto: t.exige_foto,
-      status: t.status,
-      feita_em: t.feita_em,
-      motivo_reprovacao: t.motivo_reprovacao,
-      foto_url: t.foto_path ? urls[t.foto_path] ?? null : null,
-      horario_inicio: t.horario_inicio ? t.horario_inicio.slice(0, 5) : null,
-      horario_limite: t.horario_limite ? t.horario_limite.slice(0, 5) : null,
-      tempo_estimado_min: t.tempo_estimado_min ?? null,
-      continua: t.continua ?? false,
-      peso: t.peso ?? 1,
-      autoavaliacao: t.autoavaliacao ?? null,
-      observacao: t.observacao ?? null,
-    })),
+    tarefas: linhas.filter((t) => t.status !== 'adiada').map((t) => paraTela(t, urls)),
     dia: placar(linhas),
     mes: resumoMes.placar,
     mesRestante: resumoMes.restante,
@@ -136,6 +169,7 @@ export async function montarEstado({ colaborador, empresa }: Ctx, gerar: boolean
     evolucao,
     tom: empresa.tom_mensagens,
     liberarContinuasMin: empresa.liberar_continuas_min ?? 60,
+    pessoal: await lerPessoal(colaborador, linhas, db),
   }
 }
 
@@ -186,22 +220,6 @@ export async function montarDiaPassado({ colaborador, empresa }: Ctx, data: stri
     folga: Boolean(folga),
     dia: placar(linhas),
     extras: (extras ?? []) as ExtraTela[],
-    tarefas: linhas.map((t) => ({
-      id: t.id,
-      titulo: t.titulo,
-      descricao: t.descricao,
-      exige_foto: t.exige_foto,
-      status: t.status,
-      feita_em: t.feita_em,
-      motivo_reprovacao: t.motivo_reprovacao,
-      foto_url: t.foto_path ? urls[t.foto_path] ?? null : null,
-      horario_inicio: t.horario_inicio ? t.horario_inicio.slice(0, 5) : null,
-      horario_limite: t.horario_limite ? t.horario_limite.slice(0, 5) : null,
-      tempo_estimado_min: t.tempo_estimado_min ?? null,
-      continua: t.continua ?? false,
-      peso: t.peso ?? 1,
-      autoavaliacao: t.autoavaliacao ?? null,
-      observacao: t.observacao ?? null,
-    })),
+    tarefas: linhas.filter((t) => t.status !== 'adiada').map((t) => paraTela(t, urls)),
   }
 }

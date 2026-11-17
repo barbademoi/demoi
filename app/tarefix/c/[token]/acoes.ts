@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto'
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { carregarAcesso, gravarSessao } from '@/lib/tarefix/sessaoColaborador'
 import { conferirPin, pinValido } from '@/lib/tarefix/pin'
-import { dataCurta, hojeSP, minutosParaFechamento } from '@/lib/tarefix/datas'
+import { agoraSP, dataCurta, hojeSP, minutosDeHorario, minutosParaFechamento, somarDias } from '@/lib/tarefix/datas'
 import { liberacaoContinuas } from '@/lib/tarefix/continuas'
 import { avisarDonos, chavesVapid } from '@/lib/tarefix/push'
 import { apagarInscricao, gravarInscricao, type InscricaoNavegador } from '@/lib/tarefix/pushInscricao'
@@ -134,7 +134,8 @@ export async function marcarTarefa(token: string, tarefaId: string, fotoCaminho?
   if (error) return { ok: false, erro: error.message }
 
   // push para o dono a cada tarefa concluída (o aviso de cada colaborador substitui o anterior na tela)
-  if (atualizada) {
+  // — menos no Meu dia: o dono não precisa ser avisado do que ele mesmo fez
+  if (atualizada && !colaborador.eh_dono) {
     const fora = minutosParaFechamento(empresa.horario_fechamento) <= 0
     const extras = [t.exige_foto && 'com foto', nota && `se avaliou: ${['', 'Difícil', 'Fraco', 'Ok', 'Bom', 'Excelente'][nota]}`, fora && 'fora do horário'].filter(Boolean)
     await avisarDonos(empresa, 'concluida', {
@@ -145,7 +146,7 @@ export async function marcarTarefa(token: string, tarefaId: string, fotoCaminho?
     })
   }
 
-  if (atualizada && t.exige_foto) {
+  if (atualizada && t.exige_foto && !colaborador.eh_dono) {
     await db.from('avisos').upsert(
       {
         empresa_id: empresa.id,
@@ -303,5 +304,126 @@ export async function verDia(token: string, data: string): Promise<{ ok: true; d
 export async function recarregar(token: string): Promise<Resposta> {
   const ctx = await contexto(token)
   if ('ok' in ctx) return ctx
+  return { ok: true, estado: await montarEstado(ctx, false) }
+}
+
+/* ====================================================================== */
+/* Checklist (qualquer colaborador) e Meu dia (só o do próprio dono)       */
+/* ====================================================================== */
+
+/** Marca/desmarca um subitem do checklist de uma tarefa de hoje. */
+export async function marcarItem(token: string, tarefaId: string, indice: number, feito: boolean): Promise<Resposta> {
+  const ctx = await contexto(token)
+  if ('ok' in ctx) return ctx
+  const db = createTarefixAdmin()
+  const { data: t } = await db.from('tarefas_dia').select('id, data, checklist').eq('id', tarefaId).eq('colaborador_id', ctx.colaborador.id).maybeSingle()
+  if (!t) return { ok: false, erro: 'Tarefa não encontrada.' }
+  if (t.data !== hojeSP()) return { ok: false, erro: 'Só dá para mexer nas tarefas de hoje.', estado: await montarEstado(ctx, false) }
+  const lista = (Array.isArray(t.checklist) ? t.checklist : []) as { t: string; f: boolean }[]
+  if (!Number.isInteger(indice) || indice < 0 || indice >= lista.length) return { ok: false, erro: 'Item não encontrado.' }
+  lista[indice] = { ...lista[indice], f: Boolean(feito) }
+  const { error } = await db.from('tarefas_dia').update({ checklist: lista }).eq('id', t.id)
+  if (error) return { ok: false, erro: error.message }
+  return { ok: true, estado: await montarEstado(ctx, false) }
+}
+
+async function contextoPessoal(token: string): Promise<Ctx | { ok: false; erro: string }> {
+  const ctx = await contexto(token)
+  if ('ok' in ctx) return ctx
+  if (!ctx.colaborador.eh_dono) return { ok: false, erro: 'Isso só existe no Meu dia.' }
+  return ctx
+}
+
+const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
+
+/** Adicionar rápido: hoje, amanhã ou "Algum dia" (sem data). */
+export async function adicionarRapida(
+  token: string,
+  d: { titulo: string; quando: 'hoje' | 'amanha' | 'algum'; horario?: string; categoria_id?: string | null }
+): Promise<Resposta> {
+  const ctx = await contextoPessoal(token)
+  if ('ok' in ctx) return ctx
+  const titulo = d.titulo.trim().slice(0, 120)
+  if (!titulo) return { ok: false, erro: 'Escreva o que precisa fazer.' }
+  const horario = d.quando !== 'algum' && d.horario && /^\d\d:\d\d$/.test(d.horario) ? d.horario : null
+  const db = createTarefixAdmin()
+  let categoria_id: string | null = null
+  if (d.categoria_id) {
+    const { data: cat } = await db.from('categorias').select('id').eq('id', d.categoria_id).eq('empresa_id', ctx.empresa.id).maybeSingle()
+    categoria_id = cat?.id ?? null
+  }
+  const hoje = hojeSP()
+  const { error } = await db.from('tarefas_avulsas').insert({
+    empresa_id: ctx.empresa.id,
+    colaborador_id: ctx.colaborador.id,
+    titulo,
+    data: d.quando === 'algum' ? null : d.quando === 'amanha' ? somarDias(hoje, 1) : hoje,
+    horario_inicio: horario,
+    categoria_id,
+    exige_foto: false,
+    continua: false,
+    peso: 1,
+  })
+  if (error) return { ok: false, erro: error.message }
+  return { ok: true, estado: await montarEstado(ctx, false) }
+}
+
+/**
+ * Adiar uma tarefa pendente de hoje.
+ * - '1h' / 'noite': muda o horário só hoje (avulsa: muda a própria avulsa).
+ * - 'amanha': avulsa vai para amanhã; recorrente vira "adiada" hoje e ganha uma cópia avulsa amanhã.
+ */
+export async function adiarTarefa(token: string, tarefaId: string, opcao: '1h' | 'noite' | 'amanha'): Promise<Resposta> {
+  const ctx = await contextoPessoal(token)
+  if ('ok' in ctx) return ctx
+  const db = createTarefixAdmin()
+  const hoje = hojeSP()
+  const { data: t } = await db.from('tarefas_dia').select('*').eq('id', tarefaId).eq('colaborador_id', ctx.colaborador.id).maybeSingle()
+  if (!t || t.data !== hoje) return { ok: false, erro: 'Tarefa não encontrada.' }
+  if (t.status !== 'pendente') return { ok: true, estado: await montarEstado(ctx, false) }
+
+  if (opcao === 'amanha') {
+    const amanha = somarDias(hoje, 1)
+    if (t.origem === 'avulsa') {
+      await db.from('tarefas_avulsas').update({ data: amanha }).eq('id', t.origem_id).eq('colaborador_id', ctx.colaborador.id)
+      await db.from('tarefas_dia').delete().eq('id', t.id)
+    } else {
+      await db.from('tarefas_avulsas').insert({
+        empresa_id: ctx.empresa.id, colaborador_id: ctx.colaborador.id, titulo: t.titulo, descricao: t.descricao, data: amanha,
+        exige_foto: t.exige_foto, horario_inicio: t.horario_inicio, horario_limite: t.horario_limite, tempo_estimado_min: t.tempo_estimado_min,
+        continua: t.continua, peso: t.peso, categoria_id: t.categoria_id,
+        checklist: ((Array.isArray(t.checklist) ? t.checklist : []) as { t: string }[]).map((i) => i.t),
+      })
+      await db.from('tarefas_dia').update({ status: 'adiada' }).eq('id', t.id).eq('status', 'pendente')
+    }
+    return { ok: true, estado: await montarEstado(ctx, false) }
+  }
+
+  const agora = agoraSP().minutosDoDia
+  const base = t.horario_inicio ? Math.max(minutosDeHorario(t.horario_inicio), agora) : agora
+  let novo = opcao === '1h' ? base + 60 : Math.max(19 * 60, agora + 30)
+  novo = Math.min(Math.ceil(novo / 5) * 5, 23 * 60 + 30)
+  const delta = t.horario_inicio ? novo - minutosDeHorario(t.horario_inicio) : 0
+  const limite = t.horario_limite ? hhmm(Math.min(minutosDeHorario(t.horario_limite) + Math.max(delta, 0), 23 * 60 + 55)) : null
+  if (t.origem === 'avulsa') {
+    await db.from('tarefas_avulsas').update({ horario_inicio: hhmm(novo), horario_limite: limite }).eq('id', t.origem_id).eq('colaborador_id', ctx.colaborador.id)
+  }
+  await db.from('tarefas_dia').update({ horario_inicio: hhmm(novo), horario_limite: limite, ajustada: true }).eq('id', t.id)
+  // os lembretes da tarefa voltam a valer para o novo horário
+  await db.from('push_enviados').delete().like('chave', `%:${t.id}%`)
+  return { ok: true, estado: await montarEstado(ctx, false) }
+}
+
+/** "Algum dia" → hoje/amanhã, ou apagar a ideia. */
+export async function moverIdeia(token: string, avulsaId: string, para: 'hoje' | 'amanha' | 'apagar'): Promise<Resposta> {
+  const ctx = await contextoPessoal(token)
+  if ('ok' in ctx) return ctx
+  const db = createTarefixAdmin()
+  const q = db.from('tarefas_avulsas')
+  const { error } =
+    para === 'apagar'
+      ? await q.delete().eq('id', avulsaId).eq('colaborador_id', ctx.colaborador.id).is('data', null)
+      : await q.update({ data: para === 'hoje' ? hojeSP() : somarDias(hojeSP(), 1) }).eq('id', avulsaId).eq('colaborador_id', ctx.colaborador.id).is('data', null)
+  if (error) return { ok: false, erro: error.message }
   return { ok: true, estado: await montarEstado(ctx, false) }
 }

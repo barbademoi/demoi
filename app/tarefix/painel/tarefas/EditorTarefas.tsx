@@ -8,6 +8,8 @@ import { ChipsDias, Erro, Interruptor, Modal, Rotulo, resumoDias, useAcao, useAv
 import { Dica } from '@/components/tarefix/Dica'
 import { DICAS } from '@/components/tarefix/dicas'
 import type { Sugestoes } from '@/lib/tarefix/sugestoes'
+import type { Categoria } from '@/lib/tarefix/tipos'
+import { EditorChecklist, SeletorCategoria } from './CamposExtras'
 import { useSugestoes } from './SugestoesTarefas'
 import { excluirAvulsa, excluirModelo, reordenarModelos, salvarAvulsa, salvarModelo, type DadosAvulsa, type DadosModelo } from './acoes'
 
@@ -19,6 +21,8 @@ type Props = {
   /** Tarefas da barbearia de referência para copiar (null = nenhuma). */
   sugestoes?: Sugestoes | null
   referencia?: boolean
+  /** Só no Meu dia: categorias para escolher. */
+  categorias?: Categoria[]
 }
 
 const SEM_SUGESTOES: Sugestoes = { origem: '', empresaId: '', grupos: [], total: 0 }
@@ -32,7 +36,7 @@ function IconeCamera() {
   )
 }
 
-export function EditorTarefas({ colaborador, modelos, avulsas, hoje, sugestoes, referencia = false }: Props) {
+export function EditorTarefas({ colaborador, modelos, avulsas, hoje, sugestoes, referencia = false, categorias = [] }: Props) {
   const primeiroNome = colaborador.nome.split(' ')[0]
   const aviso = useAviso()
   const sug = useSugestoes({
@@ -62,9 +66,9 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje, sugestoes, 
         ? {
             id: m.id, colaborador_id: colaborador.id, titulo: m.titulo, descricao: m.descricao ?? '', dias_semana: m.dias_semana, exige_foto: m.exige_foto, ativo: m.ativo,
             continua: m.continua ?? false, peso: m.peso ?? 1,
-            horario_inicio: horarioHHMM(m.horario_inicio) ?? '', horario_limite: horarioHHMM(m.horario_limite) ?? '', tempo_estimado_min: m.tempo_estimado_min ? String(m.tempo_estimado_min) : '',
+            horario_inicio: horarioHHMM(m.horario_inicio) ?? '', horario_limite: horarioHHMM(m.horario_limite) ?? '', tempo_estimado_min: m.tempo_estimado_min ? String(m.tempo_estimado_min) : '', checklist: m.checklist ?? [], categoria_id: m.categoria_id ?? null,
           }
-        : { colaborador_id: colaborador.id, titulo: '', descricao: '', dias_semana: [1, 2, 3, 4, 5, 6], exige_foto: false, ativo: true, continua: false, peso: 1, horario_inicio: '', horario_limite: '', tempo_estimado_min: '' }
+        : { colaborador_id: colaborador.id, titulo: '', descricao: '', dias_semana: [1, 2, 3, 4, 5, 6], exige_foto: false, ativo: true, continua: false, peso: 1, horario_inicio: '', horario_limite: '', tempo_estimado_min: '', checklist: [], categoria_id: null }
     )
   }
 
@@ -142,19 +146,21 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje, sugestoes, 
   /* ------------------------------- avulsas ------------------------------- */
   const [avulsa, setAvulsa] = useState<DadosAvulsa | null>(null)
   const acaoAvulsa = useAcao()
-  const futuras = avulsas.filter((a) => a.data >= hoje)
-  const passadas = avulsas.filter((a) => a.data < hoje).reverse()
+  // "Algum dia" (sem data) fica no Meu dia, não nesta lista
+  const comData = avulsas.filter((a): a is TarefaAvulsa & { data: string } => Boolean(a.data))
+  const futuras = comData.filter((a) => a.data >= hoje)
+  const passadas = comData.filter((a) => a.data < hoje).reverse()
 
   function abrirAvulsa(a?: TarefaAvulsa) {
     acaoAvulsa.setErro(null)
     setAvulsa(
       a
         ? {
-            id: a.id, colaborador_id: colaborador.id, titulo: a.titulo, descricao: a.descricao ?? '', data: a.data, exige_foto: a.exige_foto,
+            id: a.id, colaborador_id: colaborador.id, titulo: a.titulo, descricao: a.descricao ?? '', data: a.data ?? hoje, exige_foto: a.exige_foto,
             continua: a.continua ?? false, peso: a.peso ?? 1,
-            horario_inicio: horarioHHMM(a.horario_inicio) ?? '', horario_limite: horarioHHMM(a.horario_limite) ?? '', tempo_estimado_min: a.tempo_estimado_min ? String(a.tempo_estimado_min) : '',
+            horario_inicio: horarioHHMM(a.horario_inicio) ?? '', horario_limite: horarioHHMM(a.horario_limite) ?? '', tempo_estimado_min: a.tempo_estimado_min ? String(a.tempo_estimado_min) : '', checklist: a.checklist ?? [], categoria_id: a.categoria_id ?? null,
           }
-        : { colaborador_id: colaborador.id, titulo: '', descricao: '', data: hoje, exige_foto: false, continua: false, peso: 1, horario_inicio: '', horario_limite: '', tempo_estimado_min: '' }
+        : { colaborador_id: colaborador.id, titulo: '', descricao: '', data: hoje, exige_foto: false, continua: false, peso: 1, horario_inicio: '', horario_limite: '', tempo_estimado_min: '', checklist: [], categoria_id: null }
     )
   }
 
@@ -185,7 +191,9 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje, sugestoes, 
               <p className="text-3xl" aria-hidden>✨</p>
               <p className="text-lg font-extrabold">Comece pelas tarefas que já funcionam</p>
               <p className="text-tf-suave">
-                {sugestoes!.origem} usa {sug.total} tarefas no dia a dia. Escolha as que servem para {primeiroNome} e ajuste do seu jeito: assim nada fica esquecido.
+                {sugestoes!.origem === 'Rotina do dono'
+                  ? `São ${sug.total} tarefas de rotina de dono de barbearia (agenda, caixa, equipe, saúde). Escolha as suas e ajuste do seu jeito.`
+                  : `${sugestoes!.origem} usa ${sug.total} tarefas no dia a dia. Escolha as que servem para ${primeiroNome} e ajuste do seu jeito: assim nada fica esquecido.`}
               </p>
               <button type="button" className="tf-botao w-full sm:w-auto sm:px-8" onClick={sug.abrir}>
                 Ver as sugestões
@@ -361,6 +369,8 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje, sugestoes, 
             </div>
               </>
             )}
+            <SeletorCategoria categorias={categorias} valor={modelo.categoria_id ?? null} aoMudar={(v) => setModelo({ ...modelo, categoria_id: v })} />
+            <EditorChecklist itens={modelo.checklist ?? []} aoMudar={(v) => setModelo({ ...modelo, checklist: v })} />
             <Interruptor rotulo="Exige foto" descricao="Só conclui com uma foto tirada na hora." {...DICAS.foto} ligado={modelo.exige_foto} aoMudar={(v) => setModelo({ ...modelo, exige_foto: v })} />
             {modelo.id && <Interruptor rotulo="Ativa" descricao="Pausar tira a tarefa dos próximos dias." {...DICAS.ativa} ligado={modelo.ativo} aoMudar={(v) => setModelo({ ...modelo, ativo: v })} />}
             {modelo.id && <p className="text-sm text-tf-suave">Mudanças valem a partir de agora; dias que já passaram não mudam.</p>}
@@ -475,6 +485,8 @@ export function EditorTarefas({ colaborador, modelos, avulsas, hoje, sugestoes, 
             </div>
               </>
             )}
+            <SeletorCategoria categorias={categorias} valor={avulsa.categoria_id ?? null} aoMudar={(v) => setAvulsa({ ...avulsa, categoria_id: v })} />
+            <EditorChecklist itens={avulsa.checklist ?? []} aoMudar={(v) => setAvulsa({ ...avulsa, checklist: v })} />
             <Interruptor rotulo="Exige foto" {...DICAS.foto} ligado={avulsa.exige_foto} aoMudar={(v) => setAvulsa({ ...avulsa, exige_foto: v })} />
             <Erro texto={acaoAvulsa.erro} />
             <button type="submit" className="tf-botao w-full" disabled={acaoAvulsa.pendente}>

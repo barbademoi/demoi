@@ -5,18 +5,24 @@ import type { TarefaAvulsa, TarefaModelo } from '@/lib/tarefix/tipos'
 import { Avatar, Titulo, Vazio } from '@/components/tarefix/ui'
 import { EditorTarefas } from './EditorTarefas'
 import { listarSugestoes } from '@/lib/tarefix/sugestoes'
+import { garantirEu } from '@/lib/tarefix/meuDia'
+import { ROTINA_DONO } from '@/lib/tarefix/rotinaDono'
+import type { Categoria } from '@/lib/tarefix/tipos'
 
 export const metadata = { title: 'Tarefas' }
 
 export default async function Tarefas({ searchParams }: { searchParams: { c?: string } }) {
-  const { db, empresa } = await exigirDono()
+  const { db, empresa, dono } = await exigirDono()
+  const eu = await garantirEu(dono, empresa)
   const { data: colaboradores } = await db
     .from('colaboradores')
     .select('id, nome, foto_url, ativo')
+    .eq('eh_dono', false)
     .order('ativo', { ascending: false })
     .order('nome')
 
-  const lista = colaboradores ?? []
+  // "Eu" (Meu dia) sempre primeiro; depois a equipe
+  const lista = [{ id: eu.id, nome: 'Eu', foto_url: eu.foto_url, ativo: true }, ...(colaboradores ?? [])]
   if (lista.length === 0) {
     return (
       <>
@@ -30,9 +36,11 @@ export default async function Tarefas({ searchParams }: { searchParams: { c?: st
     )
   }
 
-  const atual = lista.find((c) => c.id === searchParams.c) ?? lista.find((c) => c.ativo) ?? lista[0]
+  // sem ?c=: com equipe abre no primeiro colaborador; sem equipe, no "Eu"
+  const atual = lista.find((c) => c.id === searchParams.c) ?? lista.slice(1).find((c) => c.ativo) ?? lista[0]
   const hoje = hojeSP()
-  const [{ data: modelos }, { data: avulsas }, sugestoes] = await Promise.all([
+  const ehEu = atual.id === eu.id
+  const [{ data: modelos }, { data: avulsas }, sugestoesEquipe, { data: categorias }] = await Promise.all([
     db.from('tarefas_modelo').select('*').eq('colaborador_id', atual.id).order('ordem').order('criado_em'),
     db
       .from('tarefas_avulsas')
@@ -41,8 +49,10 @@ export default async function Tarefas({ searchParams }: { searchParams: { c?: st
       .gte('data', somarDias(hoje, -14))
       .order('data')
       .order('criado_em'),
-    listarSugestoes(),
+    ehEu ? Promise.resolve(null) : listarSugestoes(),
+    db.from('categorias').select('id, empresa_id, nome, cor, ordem').order('ordem').order('criado_em'),
   ])
+  const sugestoes = ehEu ? ROTINA_DONO : sugestoesEquipe
 
   return (
     <>
@@ -63,12 +73,13 @@ export default async function Tarefas({ searchParams }: { searchParams: { c?: st
       </div>
       <EditorTarefas
         key={atual.id}
-        colaborador={{ id: atual.id, nome: atual.nome }}
+        colaborador={{ id: atual.id, nome: ehEu ? `${dono.nome.split(' ')[0]} (Meu dia)` : atual.nome }}
+        categorias={ehEu ? ((categorias ?? []) as Categoria[]) : []}
         modelos={(modelos ?? []) as TarefaModelo[]}
         avulsas={(avulsas ?? []) as TarefaAvulsa[]}
         hoje={hoje}
         sugestoes={sugestoes && { ...sugestoes, empresaId: '' }}
-        referencia={sugestoes?.empresaId === empresa.id}
+        referencia={!ehEu && sugestoes?.empresaId === empresa.id}
       />
     </>
   )

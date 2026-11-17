@@ -64,7 +64,8 @@ export async function concederAcesso(adminId: string, d: { nome: string; email: 
     if (jaDono) return { ok: false, erro: 'Esse e-mail já tem acesso ao Tarefix.' }
   } else {
     senha = senhaProvisoria()
-    const { data: criado, error } = await db.auth.admin.createUser({ email, password: senha, email_confirm: true, user_metadata: { nome } })
+    // app_metadata.tarefix_only: conta só do Tarefix (o BarberMeta manda de volta para cá)
+    const { data: criado, error } = await db.auth.admin.createUser({ email, password: senha, email_confirm: true, user_metadata: { nome }, app_metadata: { tarefix_only: true } })
     if (error || !criado.user) return { ok: false, erro: `Não consegui criar a conta: ${error?.message ?? 'erro desconhecido'}` }
     userId = criado.user.id
   }
@@ -103,7 +104,7 @@ export async function listarAcessos(adminEmpresaId: string): Promise<EmpresaAces
   const [{ data: empresas }, { data: donos }, { data: colabs }] = await Promise.all([
     db.from('empresas').select('id, nome, ativo, criado_em').order('criado_em', { ascending: false }),
     db.from('donos').select('empresa_id, nome, email'),
-    db.from('colaboradores').select('empresa_id').eq('ativo', true),
+    db.from('colaboradores').select('empresa_id').eq('ativo', true).eq('eh_dono', false),
   ])
   const donoPor = Object.fromEntries((donos ?? []).map((d) => [d.empresa_id, { nome: d.nome, email: d.email }]))
   const qtd: Record<string, number> = {}

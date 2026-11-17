@@ -1,6 +1,6 @@
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { agoraSP, anoMesDe, datasDoMes, diaDaSemana, diaFechado, hojeSP, somarDias } from '@/lib/tarefix/datas'
-import type { Colaborador, Empresa, TarefaAvulsa, TarefaDia, TarefaModelo } from '@/lib/tarefix/tipos'
+import type { Colaborador, Empresa, ItemChecklist, TarefaAvulsa, TarefaDia, TarefaModelo } from '@/lib/tarefix/tipos'
 import { ordenarPorPrazo } from '@/lib/tarefix/prazo'
 
 /**
@@ -23,8 +23,8 @@ import { ordenarPorPrazo } from '@/lib/tarefix/prazo'
  */
 
 type Db = ReturnType<typeof createTarefixAdmin>
-type ColabMin = Pick<Colaborador, 'id' | 'empresa_id' | 'criado_em'>
-type EmpresaMin = Pick<Empresa, 'id' | 'horario_fechamento'>
+type ColabMin = Pick<Colaborador, 'id' | 'empresa_id' | 'criado_em'> & { eh_dono?: boolean }
+type EmpresaMin = Pick<Empresa, 'id' | 'horario_fechamento'> & { pessoal?: Empresa['pessoal'] }
 
 const ORDEM_AVULSAS = 1000
 
@@ -37,6 +37,9 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
   const min = alvo[0]
   const max = alvo[alvo.length - 1]
   const meses = Array.from(new Set(alvo.map(anoMesDe)))
+
+  // Meu dia: avulsa que ficou pendente num dia anterior passa para hoje.
+  if (colab.eh_dono && alvo.includes(hoje) && empresa.pessoal?.passar_para_amanha !== false) await passarParaHoje(colab, hoje, db)
 
   const [{ data: modelos }, { data: avulsas }, { data: folgas }, { data: fechados }, { data: existentes }] = await Promise.all([
     db.from('tarefas_modelo').select('*').eq('colaborador_id', colab.id).eq('ativo', true),
@@ -60,7 +63,7 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
   )
   if (datasValidas.length === 0) return
 
-  const linhas: Omit<TarefaDia, 'id' | 'status' | 'feita_em' | 'foto_path' | 'motivo_reprovacao' | 'reprovada_em' | 'autoavaliacao' | 'observacao' | 'observacao_em'>[] = []
+  const linhas: Omit<TarefaDia, 'id' | 'status' | 'feita_em' | 'foto_path' | 'motivo_reprovacao' | 'reprovada_em' | 'autoavaliacao' | 'observacao' | 'observacao_em' | 'ajustada' | 'veio_de'>[] = []
   for (const data of datasValidas) {
     const dow = diaDaSemana(data)
     const aberto = !diaFechado(data, empresa.horario_fechamento)
@@ -73,6 +76,7 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
         titulo: m.titulo, descricao: m.descricao, exige_foto: m.exige_foto, ordem: m.ordem,
         horario_inicio: m.horario_inicio ?? null, horario_limite: m.horario_limite ?? null, tempo_estimado_min: m.tempo_estimado_min ?? null,
         continua: m.continua ?? false, peso: m.peso ?? 1,
+        categoria_id: m.categoria_id ?? null, checklist: (m.checklist ?? []).map((t) => ({ t, f: false })),
       })
     }
     ;((avulsas ?? []) as TarefaAvulsa[])
@@ -83,6 +87,7 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
           titulo: a.titulo, descricao: a.descricao, exige_foto: a.exige_foto, ordem: ORDEM_AVULSAS + i,
           horario_inicio: a.horario_inicio ?? null, horario_limite: a.horario_limite ?? null, tempo_estimado_min: a.tempo_estimado_min ?? null,
           continua: a.continua ?? false, peso: a.peso ?? 1,
+          categoria_id: a.categoria_id ?? null, checklist: (a.checklist ?? []).map((t) => ({ t, f: false })),
         })
       })
   }
@@ -99,7 +104,7 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
     const esperadas = new Map(linhas.filter((l) => l.data === hoje).map((l) => [`${l.origem}:${l.origem_id}`, l]))
     const { data: pendentes } = await db
       .from('tarefas_dia')
-      .select('id, origem, origem_id, titulo, descricao, exige_foto, ordem, horario_inicio, horario_limite, tempo_estimado_min, continua, peso')
+      .select('id, origem, origem_id, titulo, descricao, exige_foto, ordem, horario_inicio, horario_limite, tempo_estimado_min, continua, peso, categoria_id, checklist, ajustada')
       .eq('colaborador_id', colab.id)
       .eq('data', hoje)
       .eq('status', 'pendente')
@@ -108,18 +113,51 @@ export async function gerarTarefasPeriodo(colab: ColabMin, empresa: EmpresaMin, 
       const e = esperadas.get(`${p.origem}:${p.origem_id}`)
       if (!e) {
         remover.push(p.id)
-      } else if (
-        e.titulo !== p.titulo || e.descricao !== p.descricao || e.exige_foto !== p.exige_foto || e.ordem !== p.ordem ||
-        mesmoHorario(e.horario_limite) !== mesmoHorario(p.horario_limite) || mesmoHorario(e.horario_inicio) !== mesmoHorario(p.horario_inicio) ||
-        (e.tempo_estimado_min ?? null) !== (p.tempo_estimado_min ?? null) || e.continua !== (p.continua ?? false) || e.peso !== (p.peso ?? 1)
-      ) {
-        await db
-          .from('tarefas_dia')
-          .update({ titulo: e.titulo, descricao: e.descricao, exige_foto: e.exige_foto, ordem: e.ordem, horario_inicio: e.horario_inicio, horario_limite: e.horario_limite, tempo_estimado_min: e.tempo_estimado_min, continua: e.continua, peso: e.peso })
-          .eq('id', p.id)
+      } else {
+        // horário mudado só hoje (+1h no Meu dia): a edição do modelo não desfaz
+        const hIni = p.ajustada ? p.horario_inicio : e.horario_inicio
+        const hLim = p.ajustada ? p.horario_limite : e.horario_limite
+        const listaAtual = (Array.isArray(p.checklist) ? p.checklist : []) as ItemChecklist[]
+        const lista = (e.checklist ?? []).map((i) => ({ t: i.t, f: listaAtual.some((x) => x.t === i.t && x.f) }))
+        if (
+          e.titulo !== p.titulo || e.descricao !== p.descricao || e.exige_foto !== p.exige_foto || e.ordem !== p.ordem ||
+          mesmoHorario(hLim) !== mesmoHorario(p.horario_limite) || mesmoHorario(hIni) !== mesmoHorario(p.horario_inicio) ||
+          (e.tempo_estimado_min ?? null) !== (p.tempo_estimado_min ?? null) || e.continua !== (p.continua ?? false) || e.peso !== (p.peso ?? 1) ||
+          (e.categoria_id ?? null) !== (p.categoria_id ?? null) || JSON.stringify(lista) !== JSON.stringify(listaAtual)
+        ) {
+          await db
+            .from('tarefas_dia')
+            .update({ titulo: e.titulo, descricao: e.descricao, exige_foto: e.exige_foto, ordem: e.ordem, horario_inicio: hIni, horario_limite: hLim, tempo_estimado_min: e.tempo_estimado_min, continua: e.continua, peso: e.peso, categoria_id: e.categoria_id ?? null, checklist: lista })
+            .eq('id', p.id)
+        }
       }
     }
     if (remover.length) await db.from('tarefas_dia').delete().in('id', remover)
+  }
+}
+
+/**
+ * Meu dia: avulsas pendentes de dias anteriores (até 30 dias, mês aberto) vão
+ * para hoje — a linha muda de data (o dia anterior não conta como "não feita")
+ * e a avulsa de origem também, para a sincronização de hoje reconhecê-la.
+ */
+async function passarParaHoje(colab: ColabMin, hoje: string, db: Db) {
+  const { data: atrasadas } = await db
+    .from('tarefas_dia')
+    .select('id, data, origem_id, veio_de')
+    .eq('colaborador_id', colab.id)
+    .eq('origem', 'avulsa')
+    .eq('status', 'pendente')
+    .lt('data', hoje)
+    .gte('data', somarDias(hoje, -30))
+  if (!atrasadas?.length) return
+  const meses = Array.from(new Set(atrasadas.map((t) => anoMesDe(t.data))))
+  const { data: fechados } = await db.from('meses_fechados').select('ano_mes').eq('empresa_id', colab.empresa_id).in('ano_mes', meses)
+  const fechado = new Set((fechados ?? []).map((f) => f.ano_mes))
+  for (const t of atrasadas) {
+    if (fechado.has(anoMesDe(t.data))) continue
+    await db.from('tarefas_avulsas').update({ data: hoje }).eq('id', t.origem_id)
+    await db.from('tarefas_dia').update({ data: hoje, veio_de: t.veio_de ?? t.data }).eq('id', t.id)
   }
 }
 
@@ -144,7 +182,8 @@ export type Placar = { feitas: number; total: number; percentual: number; pontos
  * feitas/total continuam sendo a CONTAGEM de tarefas, para os textos "3 de 5".
  * Sem tarefas → null.
  */
-export function placar(tarefas: { status: TarefaDia['status']; peso?: number | null }[]): Placar | null {
+export function placar(todas: { status: TarefaDia['status']; peso?: number | null }[]): Placar | null {
+  const tarefas = todas.filter((t) => t.status !== 'adiada') // adiada para amanhã não conta
   const total = tarefas.length
   if (total === 0) return null
   const feitas = tarefas.filter((t) => t.status === 'feita').length
@@ -232,7 +271,7 @@ export async function lerMes(colaboradorId: string, anoMes: string, db: Db = cre
     }
   }
 
-  const pendentesHoje = (porData[hoje] ?? []).filter((t) => t.status !== 'feita')
+  const pendentesHoje = (porData[hoje] ?? []).filter((t) => t.status !== 'feita' && t.status !== 'adiada')
   const pesoDe = (t: { peso?: number | null }) => (t.peso && t.peso > 0 ? t.peso : 1)
   return {
     anoMes,

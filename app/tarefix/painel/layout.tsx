@@ -4,6 +4,7 @@ import { contarAvisosNaoLidos, garantirResumoDiario } from '@/lib/tarefix/painel
 import { Logo } from '@/components/tarefix/Logo'
 import { BotaoAtualizar } from '@/components/tarefix/BotaoAtualizar'
 import { ehAdmin } from '@/lib/tarefix/acessos'
+import { contarEquipe } from '@/lib/tarefix/meuDia'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,7 +12,7 @@ export default async function PainelLayout({ children }: { children: React.React
   const { empresa, userId } = await exigirDono()
   // Resumo do fechamento (sem cron): gravado na primeira abertura do painel depois do horário.
   await garantirResumoDiario(empresa)
-  const [naoLidos, admin] = await Promise.all([contarAvisosNaoLidos(empresa.id), ehAdmin(userId)])
+  const [naoLidos, admin, equipe] = await Promise.all([contarAvisosNaoLidos(empresa.id), ehAdmin(userId), contarEquipe(empresa.id)])
   return (
     <div className="min-h-dvh lg:pl-60">
       <header className="flex items-center justify-between px-4 pt-5 lg:hidden">
@@ -22,7 +23,7 @@ export default async function PainelLayout({ children }: { children: React.React
           <Sininho naoLidos={naoLidos} />
         </div>
       </header>
-      <Nav nomeEmpresa={empresa.nome} naoLidos={naoLidos} admin={admin} />
+      <Nav nomeEmpresa={empresa.nome} naoLidos={naoLidos} admin={admin} equipe={equipe > 0} />
       <main className="mx-auto max-w-3xl px-4 pb-28 pt-5 lg:px-8 lg:pb-12 lg:pt-10">{children}</main>
     </div>
   )
