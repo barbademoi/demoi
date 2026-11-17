@@ -112,6 +112,9 @@ export function GuiaDono({ progresso, fecha, admin }: { progresso: ItemProgresso
           <Passo titulo="Não deu tempo? Adie">
             <p>No relógio ao lado da tarefa: <b>+1 hora</b>, <b>Hoje à noite</b> ou <b>Amanhã</b>. Tarefa avulsa que ficou para trás passa sozinha para o dia seguinte, com a marca “veio de…”.</p>
           </Passo>
+          <Passo titulo="Ponha na agenda do celular">
+            <p>No Meu dia, toque em <b>📅 Pôr na agenda do celular</b> e assine uma vez (iPhone ou Google Agenda). As tarefas com horário aparecem na agenda com <b>alerta do próprio celular 15 min antes</b>, mesmo sem internet.</p>
+          </Passo>
           <Passo titulo="Ligue os lembretes" href="/tarefix/painel/configuracoes" botao="Abrir Ajustes">
             <p>Em Ajustes → Meu dia: lembrete antes (ex.: 15 min), na hora, insistente (avisa de novo 30 e 60 min depois se não marcou), resumo da manhã (7h) e da noite (21h).</p>
           </Passo>
@@ -401,6 +404,12 @@ export function GuiaDono({ progresso, fecha, admin }: { progresso: ItemProgresso
         <Passos>
           <Passo titulo="Ligue no seu celular" href="/tarefix/painel/configuracoes" botao="Abrir Ajustes">
             <p>Em Ajustes → Notificações, toque em ativar e permita. Depois use <b>Enviar notificação de teste para mim</b> para conferir.</p>
+          </Passo>
+          <Passo titulo="Aviso de tarefa com cara de alarme">
+            <p>
+              O aviso de cada tarefa fica na tela até você mexer e vibra forte. Ele tem botões: <b>✓ Feito</b> marca sem abrir o app (menos as que pedem foto) e, no Meu dia, <b>⏰ Adiar 15 min</b>.
+              No iPhone os botões aparecem segurando a notificação.
+            </p>
           </Passo>
           <Passo titulo="Escolha o que quer receber">
             <p>Muitos checks por dia? Desligue “Cada tarefa concluída” e fique só com o resumo e as extras.</p>

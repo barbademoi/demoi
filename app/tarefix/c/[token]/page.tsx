@@ -5,6 +5,7 @@ import { montarEstado } from '@/lib/tarefix/estadoHoje'
 import { horarioCurto } from '@/lib/tarefix/datas'
 import { TelaPin } from './TelaPin'
 import { TelaHoje } from './TelaHoje'
+import { caminhoAgenda } from '@/lib/tarefix/agenda'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,6 +46,7 @@ export default async function PaginaColaborador({ params }: { params: { token: s
       colaborador={{ nome: colaborador.nome, foto_url: colaborador.foto_url, funcao }}
       empresa={{ nome: empresa.nome, logo_url: empresa.logo_url, fecha: horarioCurto(empresa.horario_fechamento), fechaHorario: empresa.horario_fechamento }}
       inicial={estado}
+      agenda={caminhoAgenda(colaborador)}
     />
   )
 }

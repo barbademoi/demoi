@@ -13,6 +13,7 @@ import { adiarTarefa, adicionarRapida, ativarPush, chavePush, desativarPush, mar
 import { ativarPushDono, chavePushDono, desativarPushDono } from '@/app/tarefix/painel/acoesPush'
 import { AlgumDia, BarraRapida, Checklist, EtiquetaCategoria, FiltroCategorias, MenuAdiar, corDe } from './PessoalExtras'
 import { AtivarNotificacoes } from '@/components/tarefix/AtivarNotificacoes'
+import { AgendaCelular } from '@/components/tarefix/AgendaCelular'
 import { MeuMes } from './MeuMes'
 import { DiaAnterior } from './DiaAnterior'
 import type { DiaPassado } from '@/lib/tarefix/estadoHoje'
@@ -31,6 +32,8 @@ type Props = {
   inicial: EstadoHoje
   /** Meu dia (o dono usando para si): link para editar as recorrentes. */
   linkTarefas?: string
+  /** Endereço da agenda .ics (alerta do celular 15 min antes). */
+  agenda?: string
 }
 
 const horaSP = (iso: string) =>
@@ -109,7 +112,7 @@ async function enviarFoto(token: string, arquivo: File): Promise<string> {
   return prep.caminho
 }
 
-export function TelaHoje({ token, colaborador, empresa, inicial, linkTarefas }: Props) {
+export function TelaHoje({ token, colaborador, empresa, inicial, linkTarefas, agenda }: Props) {
   const [estado, setEstado] = useState(inicial)
   const [ocupada, setOcupada] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
@@ -452,6 +455,11 @@ export function TelaHoje({ token, colaborador, empresa, inicial, linkTarefas }: 
           />
         )}
       </div>
+      {agenda && (
+        <div className="mt-3">
+          <AgendaCelular caminho={agenda} />
+        </div>
+      )}
 
       <div className="mt-4 flex items-center justify-between gap-2 text-sm">
         <div className="flex min-w-0 items-center gap-1">

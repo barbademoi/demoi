@@ -120,6 +120,14 @@ do BarberMeta:
   para /tarefix (vale também para mentorados com e-mail novo; a 010 marcou os que já existiam sem cadastro
   no BarberMeta). Limite: 3 cadastros por IP/hora e 300/dia (`tarefix.cadastros`) + campo-isca. E-mail que
   já tem conta (ex.: BarberMeta) entra normalmente e cria o Tarefix em um toque na tela "sem acesso".
+- **Aviso "com cara de alarme" + botões** (`public/tarefix/sw.js`, `lib/tarefix/acaoPush.ts`,
+  `/tarefix/api/push/acao`): avisos de tarefa ficam na tela até mexer (`requireInteraction`) e vibram forte.
+  Botões: "✓ Feito" (não vale para tarefa com foto nem do dia todo) e, no Meu dia, "⏰ Adiar 15 min". O
+  service worker não tem sessão: cada notificação leva um passe HMAC da tarefa, válido por 24h.
+- **Agenda do celular** (`lib/tarefix/agenda.ts`, `/tarefix/agenda/[id]/[chave]/tarefix.ics`): feed .ics
+  com as tarefas com horário de hoje (pendentes) e dos próximos 14 dias, com alerta nativo 15 min antes.
+  A chave é derivada do token do colaborador (gerar link novo invalida a agenda). Botão "📅 Pôr na agenda
+  do celular" no Meu dia e na tela de cada colaborador (iPhone: webcal; Google Agenda: link `cid`).
 - **Termômetro "instrumento"**: moldura de aço grafite, trilho escuro, cores profundas (rubi → ouro
   velho → esmeralda) com reflexo cromado, marcas em 25/50/75 e marcador de aço.
 

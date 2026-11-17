@@ -6,6 +6,7 @@ import { duracao, janela } from '@/lib/tarefix/prazo'
 import { enviar, marcarEnviado, tiposLigados } from '@/lib/tarefix/push'
 import type { Empresa } from '@/lib/tarefix/tipos'
 import { configPessoal, empresaPessoal } from '@/lib/tarefix/meuDia'
+import { botoesPara, passeDaTarefa } from '@/lib/tarefix/acaoPush'
 
 /**
  * Rodado a cada ~5 min pelo agendador do Supabase (pg_cron → /tarefix/api/push/tick).
@@ -68,6 +69,9 @@ export async function rodarTick(ref: Date = new Date(), db: Db = createTarefixAd
               corpo: [janela(t), duracao(t.tempo_estimado_min)].filter(Boolean).join(' · ') || 'Hora de começar.',
               url,
               tag: `inicio-${t.id}`,
+              forte: true,
+              botoes: botoesPara(t, false),
+              passe: passeDaTarefa(t.id),
             }, db)
             res.enviados += n
             res.detalhes.push(`inicio ${c.nome}: ${t.titulo} (${n})`)
@@ -144,9 +148,10 @@ async function lembretesPessoais(
   const tarefas = (await lerDia(eu.id, hoje, db)).filter((t) => t.status !== 'adiada')
   const pendentes = tarefas.filter((t) => t.status !== 'feita')
 
-  async function mandar(chave: string, titulo: string, corpo: string, tag: string) {
+  async function mandar(chave: string, titulo: string, corpo: string, tag: string, tarefa?: { id: string; exige_foto: boolean; continua: boolean }) {
     if (!(await marcarEnviado(chave, empresa.id, db))) return
-    const n = await enviar(alvo, { titulo, corpo, url: URL_MEU_DIA, tag }, db)
+    const extra = tarefa ? { forte: true, botoes: botoesPara(tarefa, true), passe: passeDaTarefa(tarefa.id) } : {}
+    const n = await enviar(alvo, { titulo, corpo, url: URL_MEU_DIA, tag, ...extra }, db)
     res.enviados += n
     res.detalhes.push(`meu dia ${eu.nome}: ${titulo} (${n})`)
   }
@@ -157,12 +162,12 @@ async function lembretesPessoais(
     const ini = minutosDeHorario(t.horario_inicio)
     const info = [janela(t), duracao(t.tempo_estimado_min)].filter(Boolean).join(' · ')
     if (cfg.antes_min > 0 && dentro(ini - cfg.antes_min) && m < ini) {
-      await mandar(`p-antes:${t.id}`, `Daqui a ${cfg.antes_min} min: ${t.titulo}`, info || 'Prepare-se.', `p-${t.id}`)
+      await mandar(`p-antes:${t.id}`, `Daqui a ${cfg.antes_min} min: ${t.titulo}`, info || 'Prepare-se.', `p-${t.id}`, t)
     }
-    if (cfg.na_hora && dentro(ini)) await mandar(`p-hora:${t.id}`, `Agora: ${t.titulo}`, info || 'Hora de fazer.', `p-${t.id}`)
+    if (cfg.na_hora && dentro(ini)) await mandar(`p-hora:${t.id}`, `Agora: ${t.titulo}`, info || 'Hora de fazer.', `p-${t.id}`, t)
     if (cfg.insistente) {
       for (const k of [30, 60]) {
-        if (dentro(ini + k)) await mandar(`p-ins${k}:${t.id}`, `Ainda não marcado: ${t.titulo}`, k === 30 ? 'Já fez? Marca no Meu dia. Se não deu, adie.' : 'Último lembrete. Se não der hoje, adie para amanhã.', `p-${t.id}`)
+        if (dentro(ini + k)) await mandar(`p-ins${k}:${t.id}`, `Ainda não marcado: ${t.titulo}`, k === 30 ? 'Já fez? Toque em Feito. Se não deu, adie.' : 'Último lembrete. Se não der hoje, adie para amanhã.', `p-${t.id}`, t)
       }
     }
   }

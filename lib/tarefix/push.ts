@@ -36,7 +36,16 @@ export async function chavesVapid(db: Db = createTarefixAdmin()): Promise<{ publ
   return { publica: final!.vapid_publico, privada: final!.vapid_privado, segredo: final!.segredo_cron }
 }
 
-export type Mensagem = { titulo: string; corpo: string; url: string; tag?: string }
+export type Mensagem = {
+  titulo: string
+  corpo: string
+  url: string
+  tag?: string
+  /** Aviso de tarefa: fica na tela até mexer, vibra forte e pode ter botões. */
+  forte?: boolean
+  botoes?: ('feito' | 'adiar')[]
+  passe?: string // autoriza os botões (ver acaoPush.ts)
+}
 
 type Inscricao = { id: string; endpoint: string; p256dh: string; auth: string }
 
@@ -45,7 +54,7 @@ export async function enviar(inscricoes: Inscricao[], msg: Mensagem, db: Db = cr
   if (inscricoes.length === 0) return 0
   const { publica, privada } = await chavesVapid(db)
   webpush.setVapidDetails('mailto:contato@tarefix.app', publica, privada)
-  const payload = JSON.stringify({ titulo: msg.titulo, corpo: msg.corpo, url: msg.url, tag: msg.tag })
+  const payload = JSON.stringify({ titulo: msg.titulo, corpo: msg.corpo, url: msg.url, tag: msg.tag, forte: msg.forte, botoes: msg.botoes, passe: msg.passe })
   let ok = 0
   const mortas: string[] = []
   await Promise.all(
