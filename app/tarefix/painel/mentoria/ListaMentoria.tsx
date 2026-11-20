@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { Erro, Modal, Vazio, useAcao, useAviso } from '@/components/tarefix/ui'
 import { criarMentorado } from './acoes'
 import { EditorMissao } from './EditorMissao'
+import { SelosEngajamento } from './Engajamento'
+import type { Engajamento } from '@/lib/tarefix/mentoria'
 
 export type CartaoMentorado = {
   id: string
@@ -15,6 +17,7 @@ export type CartaoMentorado = {
   atrasadas: number
   aguardando: number
   reuniao: string | null
+  eng: Engajamento
 }
 
 const quandoBR = (iso: string) =>
@@ -79,6 +82,7 @@ export function ListaMentoria({ cartoes, hoje }: { cartoes: CartaoMentorado[]; h
                     <span className="rounded-full bg-tf-marca-clara px-2 py-1 text-tf-marca-texto">{c.reuniao ? `📅 ${quandoBR(c.reuniao)}` : 'sem reunião marcada'}</span>
                   </div>
                 )}
+                {c.ativo && <SelosEngajamento e={c.eng} />}
               </Link>
             </li>
           ))}

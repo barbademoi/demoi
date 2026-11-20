@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { EstadoMentoria } from '@/lib/tarefix/mentoria'
 import { textoPrazo } from '@/lib/tarefix/mentoriaTexto'
 import { createTarefixClient } from '@/lib/tarefix/supabase/client'
@@ -11,7 +11,7 @@ import { BotaoTema } from '@/components/tarefix/Tema'
 import { BotaoAtualizar } from '@/components/tarefix/BotaoAtualizar'
 import { DicaInstalar } from '@/components/tarefix/DicaInstalar'
 import { AtivarNotificacoes } from '@/components/tarefix/AtivarNotificacoes'
-import { ativarPushMentoria, chavePushMentoria, desativarPushMentoria, entregarMissao, fecharHoje, marcarItemMissao, prepararUploadMentoria, recarregarMentoria } from './acoes'
+import { ativarPushMentoria, chavePushMentoria, desativarPushMentoria, entregarMissao, fecharHoje, marcarItemMissao, registrarAcesso, prepararUploadMentoria, recarregarMentoria } from './acoes'
 import { Checklist } from '../../c/[token]/PessoalExtras'
 
 type Entrega = EstadoMentoria['entregas'][number]
@@ -38,6 +38,20 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
   const [verConcluidas, setVerConcluidas] = useState(false)
   const camera = useRef<HTMLInputElement>(null)
   const primeiro = nome.split(' ')[0]
+
+  // engajamento: conta cada vez que ele abre (ou volta para) o link; o mentor vê no painel
+  useEffect(() => {
+    const instalado = () => window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
+    let ultimo = 0
+    const registrar = () => {
+      if (document.visibilityState !== 'visible' || Date.now() - ultimo < 10 * 60 * 1000) return
+      ultimo = Date.now()
+      registrarAcesso(token, Boolean(instalado())).catch(() => {})
+    }
+    registrar()
+    document.addEventListener('visibilitychange', registrar)
+    return () => document.removeEventListener('visibilitychange', registrar)
+  }, [token])
   // check instantâneo: a tela muda na hora; as gravações saem em fila (uma por vez, na ordem)
   const fila = useRef<Promise<unknown>>(Promise.resolve())
 

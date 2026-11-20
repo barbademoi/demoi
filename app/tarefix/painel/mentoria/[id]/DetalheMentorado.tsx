@@ -36,6 +36,8 @@ export function DetalheMentorado(p: {
   /** Missões ativas da biblioteca que ele ainda não tem. */
   biblioteca: Missao[]
   hoje: string
+  /** Visor de engajamento (montado no servidor). */
+  engajamento?: React.ReactNode
 }) {
   const router = useRouter()
   const aviso = useAviso()
@@ -93,6 +95,8 @@ export function DetalheMentorado(p: {
           <b>Cadastrado!</b> Mande o link para {primeiro} e crie a primeira missão.
         </p>
       )}
+
+      {p.engajamento}
 
       {/* link */}
       <section className="tf-cartao space-y-3 p-5">
