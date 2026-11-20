@@ -2,7 +2,8 @@
 
 import { randomUUID } from 'crypto'
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
-import { mentoradoPorToken, montarTelaMentoria as montar, type EstadoMentoria, type Mentorado } from '@/lib/tarefix/mentoria'
+import { MOTIVO_FECHADA, mentoradoPorToken, montarTelaMentoria as montar, type EstadoMentoria, type Mentorado } from '@/lib/tarefix/mentoria'
+import { hojeSP } from '@/lib/tarefix/datas'
 import { avisarDonos, chavesVapid } from '@/lib/tarefix/push'
 import { apagarInscricao, gravarInscricao, type InscricaoNavegador } from '@/lib/tarefix/pushInscricao'
 
@@ -124,4 +125,44 @@ export async function marcarItemMissao(token: string, entregaId: string, feitos:
   const { error } = await db.from('entregas').update({ checklist: lista.map((x, i) => ({ t: x.t, f: Boolean(feitos[i]) })) }).eq('id', e.id)
   if (error) return { ok: false, erro: 'Não consegui marcar. Confira a internet.' }
   return { ok: true }
+}
+
+/**
+ * "Barbearia fechada hoje": as missões com prazo hoje que ainda estão em aberto
+ * ficam dispensadas (não atrasam e não contam no percentual). Dá para desfazer
+ * no mesmo dia. O mentor é avisado no sininho.
+ */
+export async function fecharHoje(token: string, fechar: boolean): Promise<Resposta> {
+  const m = await contexto(token)
+  if ('ok' in m) return m
+  const db = createTarefixAdmin()
+  const hoje = hojeSP()
+  if (fechar) {
+    const { error } = await db
+      .from('entregas')
+      .update({ status: 'aprovada', motivo: MOTIVO_FECHADA, decidida_em: new Date().toISOString(), enviada_em: null })
+      .eq('mentorado_id', m.id)
+      .eq('prazo', hoje)
+      .eq('status', 'pendente')
+    if (error) return { ok: false, erro: 'Não consegui marcar. Tente de novo.' }
+  } else {
+    const { error } = await db
+      .from('entregas')
+      .update({ status: 'pendente', motivo: null, decidida_em: null })
+      .eq('mentorado_id', m.id)
+      .eq('prazo', hoje)
+      .eq('motivo', MOTIVO_FECHADA)
+    if (error) return { ok: false, erro: 'Não consegui desfazer. Tente de novo.' }
+  }
+  await db.from('avisos').upsert(
+    {
+      empresa_id: m.empresa_id,
+      tipo: 'geral',
+      texto: fechar ? `${m.nome.split(' ')[0]} marcou a barbearia como fechada hoje: as missões do dia foram dispensadas` : `${m.nome.split(' ')[0]} reabriu o dia: as missões de hoje voltaram`,
+      link: `/tarefix/painel/mentoria/${m.id}`,
+      chave: `fechada:${m.id}:${hoje}:${fechar ? 'f' : 'a'}:${Date.now()}`,
+    },
+    { onConflict: 'empresa_id,chave', ignoreDuplicates: true }
+  )
+  return { ok: true, estado: await montar(m) }
 }

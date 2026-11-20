@@ -2,7 +2,7 @@ import { diaDaSemana, hojeSP } from '@/lib/tarefix/datas'
 
 /* Textos da mentoria que rodam também no navegador (sem banco). */
 
-type ComPrazo = { prazo: string; hora: string | null; situacao: 'atrasada' | 'hoje' | 'proxima' | 'aguardando' | 'devolvida' | 'concluida' }
+type ComPrazo = { prazo: string; hora: string | null; situacao: 'atrasada' | 'hoje' | 'proxima' | 'aguardando' | 'devolvida' | 'concluida' | 'fechada' }
 
 /** Texto curto do prazo: "hoje às 18:00", "amanhã", "sex, 20/11", "atrasada há 2 dias". */
 export function textoPrazo(e: ComPrazo, hoje = hojeSP()): string {

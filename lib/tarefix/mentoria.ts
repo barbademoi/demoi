@@ -19,7 +19,10 @@ type Db = ReturnType<typeof createTarefixAdmin>
 export type TipoMissao = 'data' | 'dias' | 'semanal'
 export type Prova = 'nenhuma' | 'foto' | 'texto'
 export type StatusEntrega = 'pendente' | 'enviada' | 'aprovada' | 'devolvida'
-export type Situacao = 'atrasada' | 'hoje' | 'proxima' | 'aguardando' | 'devolvida' | 'concluida'
+export type Situacao = 'atrasada' | 'hoje' | 'proxima' | 'aguardando' | 'devolvida' | 'concluida' | 'fechada'
+
+/** Marca, em entregas.motivo, as missões dispensadas porque a barbearia estava fechada. */
+export const MOTIVO_FECHADA = 'barbearia-fechada'
 
 export type Missao = {
   id: string
@@ -37,6 +40,7 @@ export type Missao = {
   inicio?: string | null
   fim?: string | null
   checklist?: string[]
+  destaque?: boolean // prioridade: topo da lista, cor diferente
   criado_em: string
 }
 
@@ -59,6 +63,7 @@ export type EntregaTela = {
   motivo: string | null
   tipo: TipoMissao
   checklist: { t: string; f: boolean }[]
+  destaque: boolean
 }
 
 export const JANELA_PASSADO = 30
@@ -79,8 +84,8 @@ export function prazosDaMissao(m: Pick<Missao, 'tipo' | 'data' | 'dias_semana' |
 }
 
 /** Situação para a tela (atrasada, hoje, aguardando aprovação…). */
-export function situacaoDe(e: { status: StatusEntrega; prazo: string; hora: string | null }, ref: Date = new Date()): Situacao {
-  if (e.status === 'aprovada') return 'concluida'
+export function situacaoDe(e: { status: StatusEntrega; prazo: string; hora: string | null; motivo?: string | null }, ref: Date = new Date()): Situacao {
+  if (e.status === 'aprovada') return e.motivo === MOTIVO_FECHADA ? 'fechada' : 'concluida'
   if (e.status === 'enviada') return 'aguardando'
   if (e.status === 'devolvida') return 'devolvida'
   const agora = agoraSP(ref)
@@ -154,22 +159,24 @@ export async function lerEntregas(mentoradoId: string, db: Db = createTarefixAdm
         prazo: l.prazo,
         hora,
         status: l.status as StatusEntrega,
-        situacao: situacaoDe({ status: l.status, prazo: l.prazo, hora }, ref),
+        situacao: situacaoDe({ status: l.status, prazo: l.prazo, hora, motivo: l.motivo }, ref),
         texto: l.texto,
         foto_path: l.foto_path,
         enviada_em: l.enviada_em,
         motivo: l.motivo,
         checklist: Array.isArray(l.checklist) ? l.checklist : [],
         tipo: m.tipo,
+        destaque: Boolean(m.destaque),
       }
     })
-    .sort((a, b) => a.prazo.localeCompare(b.prazo) || (a.hora ?? '99').localeCompare(b.hora ?? '99') || a.titulo.localeCompare(b.titulo))
+    .sort((a, b) => Number(b.destaque) - Number(a.destaque) || a.prazo.localeCompare(b.prazo) || (a.hora ?? '99').localeCompare(b.hora ?? '99') || a.titulo.localeCompare(b.titulo))
 }
 
 /** "8 de 10 no prazo": entregas que já venceram (ou foram entregues) e quantas saíram até o prazo. */
 export function noPrazo(entregas: EntregaTela[], ref: Date = new Date()) {
   const hoje = agoraSP(ref).data
-  const contam = entregas.filter((e) => e.prazo < hoje || e.status === 'enviada' || e.status === 'aprovada')
+  // dia de barbearia fechada não conta, nem a favor nem contra
+  const contam = entregas.filter((e) => e.situacao !== 'fechada' && (e.prazo < hoje || e.status === 'enviada' || e.status === 'aprovada'))
   const ok = contam.filter((e) => (e.status === 'enviada' || e.status === 'aprovada') && e.enviada_em && agoraSP(new Date(e.enviada_em)).data <= e.prazo)
   return { total: contam.length, ok: ok.length, percentual: contam.length ? Math.round((ok.length / contam.length) * 100) : null }
 }
