@@ -108,18 +108,20 @@ export async function desativarPushMentoria(token: string, endpoint: string): Pr
   return { ok: true }
 }
 
-/** Marca/desmarca um item do checklist de uma missão em aberto. */
-export async function marcarItemMissao(token: string, entregaId: string, indice: number, feito: boolean): Promise<Resposta> {
+/**
+ * Grava o checklist de uma missão em aberto (o estado inteiro dos itens, na
+ * ordem). Rápido: só grava, não remonta a tela — o navegador já mostrou o check.
+ */
+export async function marcarItemMissao(token: string, entregaId: string, feitos: boolean[]): Promise<{ ok: true } | { ok: false; erro: string }> {
   const m = await contexto(token)
   if ('ok' in m) return m
   const db = createTarefixAdmin()
   const { data: e } = await db.from('entregas').select('id, status, checklist').eq('id', entregaId).eq('mentorado_id', m.id).maybeSingle()
   if (!e) return { ok: false, erro: 'Missão não encontrada.' }
-  if (e.status !== 'pendente' && e.status !== 'devolvida') return { ok: true, estado: await montar(m) }
+  if (e.status !== 'pendente' && e.status !== 'devolvida') return { ok: true }
   const lista = (Array.isArray(e.checklist) ? e.checklist : []) as { t: string; f: boolean }[]
-  if (!Number.isInteger(indice) || indice < 0 || indice >= lista.length) return { ok: false, erro: 'Item não encontrado.' }
-  lista[indice] = { ...lista[indice], f: Boolean(feito) }
-  const { error } = await db.from('entregas').update({ checklist: lista }).eq('id', e.id)
-  if (error) return { ok: false, erro: 'Não consegui marcar. Tente de novo.' }
-  return { ok: true, estado: await montar(m) }
+  if (!Array.isArray(feitos) || feitos.length !== lista.length) return { ok: false, erro: 'O checklist mudou. Toque em atualizar.' }
+  const { error } = await db.from('entregas').update({ checklist: lista.map((x, i) => ({ t: x.t, f: Boolean(feitos[i]) })) }).eq('id', e.id)
+  if (error) return { ok: false, erro: 'Não consegui marcar. Confira a internet.' }
+  return { ok: true }
 }
