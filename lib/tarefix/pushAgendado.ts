@@ -7,7 +7,7 @@ import { enviar, marcarEnviado, tiposLigados } from '@/lib/tarefix/push'
 import type { Empresa } from '@/lib/tarefix/tipos'
 import { configPessoal, empresaPessoal } from '@/lib/tarefix/meuDia'
 import { botoesPara, passeDaTarefa } from '@/lib/tarefix/acaoPush'
-import { lerEntregas, proximaReuniao, textoPrazo, type Mentorado } from '@/lib/tarefix/mentoria'
+import { lerEntregas, proximaReuniao, type Mentorado } from '@/lib/tarefix/mentoria'
 
 /**
  * Rodado a cada ~5 min pelo agendador do Supabase (pg_cron → /tarefix/api/push/tick).
@@ -231,9 +231,6 @@ async function lembretesMentoria(empresa: Empresa, inscricoes: Inscricao[], ref:
     const abertas = entregas.filter((e) => e.status === 'pendente' || e.status === 'devolvida')
 
     for (const e of abertas) {
-      if (e.prazo === somarDias(hoje, 2) && dentro(NOVE_DA_MANHA)) {
-        await mandar(`m-2d:${e.id}`, dele, { titulo: `Faltam 2 dias: ${e.titulo}`, corpo: textoPrazo(e, hoje), url, tag: `m-${e.id}` })
-      }
       const hora = e.hora ? minutosDeHorario(e.hora) : null
       if (e.prazo === hoje && e.situacao === 'hoje' && dentro(hora !== null ? Math.max(hora - 120, 0) : NOVE_DA_MANHA)) {
         await mandar(`m-dia:${e.id}`, dele, { titulo: `Hoje é o prazo: ${e.titulo}`, corpo: e.hora ? `Entregar até às ${e.hora}.` : 'Entregue hoje pelo link da mentoria.', url, tag: `m-${e.id}`, forte: true })
@@ -241,15 +238,18 @@ async function lembretesMentoria(empresa: Empresa, inscricoes: Inscricao[], ref:
     }
 
     const atrasadas = abertas.filter((x) => x.situacao === 'atrasada')
-    if (atrasadas.length && horarioComercial) {
-      // mentorado: cobrança 1x por dia enquanto houver atraso
+    // o mentorado só vê as missões de hoje: a cobrança fala só das de hoje que passaram do horário
+    const atrasadasHoje = atrasadas.filter((x) => x.prazo === hoje)
+    if (atrasadasHoje.length && horarioComercial) {
       await mandar(`m-atr:${mt.id}:${hoje}`, dele, {
-        titulo: atrasadas.length > 1 ? `${atrasadas.length} missões atrasadas` : `Missão atrasada: ${atrasadas[0].titulo}`,
-        corpo: atrasadas.length > 1 ? atrasadas.slice(0, 3).map((x) => x.titulo).join(' · ') : 'Entregue assim que puder pelo link da mentoria.',
+        titulo: atrasadasHoje.length > 1 ? `${atrasadasHoje.length} missões passaram do horário` : `Passou do horário: ${atrasadasHoje[0].titulo}`,
+        corpo: atrasadasHoje.length > 1 ? atrasadasHoje.slice(0, 3).map((x) => x.titulo).join(' · ') : 'Ainda dá para entregar hoje pelo link da mentoria.',
         url,
         tag: `m-atr-${mt.id}`,
         forte: true,
       })
+    }
+    if (atrasadas.length && horarioComercial) {
       // mentor: só as que acabaram de atrasar (uma vez por entrega)
       const novas: string[] = []
       for (const x of atrasadas) {
