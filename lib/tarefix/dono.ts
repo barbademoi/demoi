@@ -1,3 +1,4 @@
+import { porRequisicao } from '@/lib/tarefix/porRequisicao'
 import { redirect } from 'next/navigation'
 import { createTarefixServer } from '@/lib/tarefix/supabase/server'
 import type { Dono, Empresa } from '@/lib/tarefix/tipos'
@@ -13,7 +14,10 @@ export type SessaoDono = {
  * Sessão do dono (Supabase Auth — a mesma do BarberMeta) com cadastro em tarefix.donos.
  * Retorna o cliente com RLS: tudo que ele lê/grava fica restrito à empresa do dono.
  */
-export async function sessaoDono(): Promise<SessaoDono | 'sem-login' | 'sem-acesso' | 'suspenso'> {
+/** Memorizada por requisição: o menu e a página não repetem as mesmas consultas. */
+export const sessaoDono = porRequisicao(sessaoDonoSemCache)
+
+async function sessaoDonoSemCache(): Promise<SessaoDono | 'sem-login' | 'sem-acesso' | 'suspenso'> {
   const db = createTarefixServer()
   const {
     data: { user },

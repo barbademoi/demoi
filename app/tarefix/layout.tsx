@@ -3,6 +3,12 @@ import localFont from 'next/font/local'
 import { ScriptTema } from '@/components/tarefix/ScriptTema'
 import './tarefix.css'
 
+// O banco (Supabase) fica em us-west-2 (Oregon): as telas do Tarefix rodam na
+// região da Vercel mais próxima dele (pdx1), em vez da costa leste dos EUA.
+// Cada tela faz várias consultas em sequência — perto do banco, cada uma leva
+// poucos milissegundos em vez de ~70 ms. Vale para todas as páginas abaixo.
+export const preferredRegion = 'pdx1'
+
 // Tarefix: produto separado que roda dentro do site do BarberMeta.
 // Tudo fica sob o wrapper .tarefix (fonte, cores e tema próprios).
 //

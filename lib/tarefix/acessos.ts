@@ -1,4 +1,5 @@
 import { randomInt } from 'crypto'
+import { porRequisicao } from '@/lib/tarefix/porRequisicao'
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 
 /**
@@ -7,7 +8,10 @@ import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
  * Só o servidor usa este módulo; quem chama já conferiu que é admin.
  */
 
-export async function ehAdmin(userId: string): Promise<boolean> {
+/** Memorizada por requisição (menu + página perguntam a mesma coisa). */
+export const ehAdmin = porRequisicao(ehAdminSemCache)
+
+async function ehAdminSemCache(userId: string): Promise<boolean> {
   const { data } = await createTarefixAdmin().from('admins').select('user_id').eq('user_id', userId).maybeSingle()
   return Boolean(data)
 }

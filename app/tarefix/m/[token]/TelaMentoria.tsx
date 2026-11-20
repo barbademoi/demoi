@@ -92,7 +92,7 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
   const [fechando, setFechando] = useState(false)
 
   async function alternarFechado(fechar: boolean) {
-    if (fechar && !confirm(`Marcar a barbearia como fechada hoje?\n\nAs ${abertasHoje} missões de hoje ficam dispensadas: não atrasam e não contam no seu percentual. ${estado.mentor} vai ver.`)) return
+    if (fechar && !confirm(`A barbearia NÃO abriu hoje?\n\nSe confirmar, as ${abertasHoje} missões de hoje ficam dispensadas: não contam como atraso nem no seu percentual. ${estado.mentor} vai ser avisado.\n\nSe a barbearia abriu, toque em Cancelar.`)) return
     setErro(null)
     setFechando(true)
     try {
@@ -189,26 +189,6 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
         )}
       </section>
 
-      {fechadoHoje ? (
-        <section className="tf-cartao mt-4 flex items-center gap-3 p-4">
-          <span className="text-2xl" aria-hidden>
-            🔒
-          </span>
-          <p className="flex-1 text-sm">
-            <b>Hoje está marcado como barbearia fechada.</b> As missões do dia foram dispensadas.
-          </p>
-          <button type="button" className="shrink-0 text-sm font-bold text-tf-marca-texto underline" disabled={fechando} onClick={() => alternarFechado(false)}>
-            Reabrir
-          </button>
-        </section>
-      ) : (
-        abertasHoje > 0 && (
-          <button type="button" className="tf-botao2 mt-4 w-full" disabled={fechando} onClick={() => alternarFechado(true)}>
-            {fechando ? 'Marcando…' : '🔒 Barbearia fechada hoje'}
-          </button>
-        )
-      )}
-
       <div className="mt-4">
         <Erro texto={!entregando ? erro : null} />
       </div>
@@ -280,6 +260,27 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
             </ul>
           )}
         </section>
+      )}
+
+      {/* Barbearia não abriu hoje: fica no fim, como pergunta, para ninguém tocar sem querer */}
+      {fechadoHoje ? (
+        <section className="tf-cartao mt-6 space-y-2 p-4">
+          <p className="font-extrabold">🔒 Você marcou que a barbearia não abriu hoje</p>
+          <p className="text-sm text-tf-suave">As missões de hoje foram dispensadas: não contam como atraso. {estado.mentor} foi avisado.</p>
+          <button type="button" className="text-sm font-bold text-tf-marca-texto underline" disabled={fechando} onClick={() => alternarFechado(false)}>
+            {fechando ? 'Desfazendo…' : 'Desfazer: a barbearia abriu hoje'}
+          </button>
+        </section>
+      ) : (
+        abertasHoje > 0 && (
+          <section className="mt-8 space-y-2 rounded-2xl border border-dashed border-tf-borda p-4">
+            <p className="font-extrabold">Sua barbearia não abriu hoje?</p>
+            <p className="text-sm text-tf-suave">Se hoje foi folga, feriado ou imprevisto e a barbearia ficou fechada, avise aqui: as missões de hoje não contam como atraso.</p>
+            <button type="button" className="tf-botao2 w-full text-sm" disabled={fechando} onClick={() => alternarFechado(true)}>
+              {fechando ? 'Marcando…' : 'Não abri hoje: dispensar as missões de hoje'}
+            </button>
+          </section>
+        )
       )}
 
       <Modal aberto={entregando !== null} aoFechar={() => !enviando && setEntregando(null)} titulo="Entregar missão">

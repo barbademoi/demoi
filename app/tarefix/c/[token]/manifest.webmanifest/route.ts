@@ -1,5 +1,8 @@
 import { manifesto, respostaManifesto } from '@/lib/tarefix/manifesto'
 
+// perto do banco (Supabase em us-west-2), como o resto do Tarefix
+export const preferredRegion = 'pdx1'
+
 // Manifesto do colaborador: o ícone na tela inicial abre direto no link dele.
 // Não consulta o banco (o token já está na URL de quem pede).
 export function GET(_: Request, { params }: { params: { token: string } }) {
