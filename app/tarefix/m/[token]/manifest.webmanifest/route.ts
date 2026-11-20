@@ -1,5 +1,8 @@
 import { manifesto, respostaManifesto } from '@/lib/tarefix/manifesto'
 
+// perto do banco (Supabase em us-west-2), como o resto do Tarefix
+export const preferredRegion = 'pdx1'
+
 // Manifesto do mentorado: o ícone na tela inicial abre direto no link dele.
 export function GET(_: Request, { params }: { params: { token: string } }) {
   if (!/^[a-f0-9]{32,128}$/i.test(params.token)) return new Response('Not found', { status: 404 })

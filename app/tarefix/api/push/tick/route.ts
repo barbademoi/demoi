@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server'
 import { chavesVapid } from '@/lib/tarefix/push'
 import { rodarTick } from '@/lib/tarefix/pushAgendado'
 
+// perto do banco (Supabase em us-west-2), como o resto do Tarefix
+export const preferredRegion = 'pdx1'
+
 // Chamado a cada 5 min pelo agendador do Supabase (pg_cron + pg_net).
 // Protegido pelo segredo guardado em tarefix.push_config (cabeçalho x-tarefix-cron).
 export const dynamic = 'force-dynamic'

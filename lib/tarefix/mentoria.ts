@@ -94,57 +94,78 @@ export function situacaoDe(e: { status: StatusEntrega; prazo: string; hora: stri
   return 'proxima'
 }
 
+type LinhaEntrega = { id: string; missao_id: string; mentorado_id: string; prazo: string; status: StatusEntrega; texto: string | null; foto_path: string | null; enviada_em: string | null; motivo: string | null; checklist: unknown }
+
 /**
  * Cria as entregas que faltam e tira as pendentes de missões pausadas,
  * desatribuídas ou de dias que saíram da missão (só daqui para a frente).
+ *
+ * Rápido: lê vínculos e entregas de uma vez, grava só o que falta e devolve
+ * as linhas já atualizadas (quem lê não precisa buscar de novo).
  */
-export async function gerarEntregas(mentoradoId: string, db: Db = createTarefixAdmin()) {
+export async function gerarEntregas(mentoradoId: string, db: Db = createTarefixAdmin()): Promise<{ linhas: LinhaEntrega[]; missoes: Record<string, Missao> }> {
   const hoje = hojeSP()
   const ate = somarDias(hoje, JANELA_FUTURO)
-  const { data: atrib } = await db.from('missoes_mentorados').select('missao_id, criado_em').eq('mentorado_id', mentoradoId)
-  const ids = (atrib ?? []).map((a) => a.missao_id)
-  const { data: missoes } = ids.length ? await db.from('missoes').select('*').in('id', ids) : { data: [] as Missao[] }
-  const ativas = ((missoes ?? []) as Missao[]).filter((m) => m.ativo)
+  const [{ data: atrib }, { data: existentes }] = await Promise.all([
+    db.from('missoes_mentorados').select('missao_id, criado_em').eq('mentorado_id', mentoradoId),
+    db.from('entregas').select('*').eq('mentorado_id', mentoradoId).gte('prazo', somarDias(hoje, -60)),
+  ])
+  let linhas = (existentes ?? []) as LinhaEntrega[]
+  // missões vinculadas + as das entregas antigas (histórico de missões desvinculadas)
+  const ids = Array.from(new Set([...(atrib ?? []).map((a) => a.missao_id), ...linhas.map((l) => l.missao_id)]))
+  const { data: lista } = ids.length ? await db.from('missoes').select('*').in('id', ids) : { data: [] as Missao[] }
+  const missoes = Object.fromEntries(((lista ?? []) as Missao[]).map((m) => [m.id, m]))
+  const vinculadas = new Set((atrib ?? []).map((a) => a.missao_id))
+  const ativas = Object.values(missoes).filter((m) => m.ativo && vinculadas.has(m.id))
 
+  const ja = new Set(linhas.map((l) => `${l.missao_id}:${l.prazo}`))
   const esperadas = new Set<string>()
   const novas: { missao_id: string; mentorado_id: string; prazo: string; checklist: { t: string; f: boolean }[] }[] = []
   for (const m of ativas) {
     const desde = agoraSP(new Date((atrib ?? []).find((a) => a.missao_id === m.id)!.criado_em)).data
     const de = desde > somarDias(hoje, -JANELA_PASSADO) ? desde : somarDias(hoje, -JANELA_PASSADO)
     for (const prazo of prazosDaMissao(m, de, ate)) {
-      esperadas.add(`${m.id}:${prazo}`)
-      novas.push({ missao_id: m.id, mentorado_id: mentoradoId, prazo, checklist: (m.checklist ?? []).map((t) => ({ t, f: false })) })
+      const chave = `${m.id}:${prazo}`
+      esperadas.add(chave)
+      if (!ja.has(chave)) novas.push({ missao_id: m.id, mentorado_id: mentoradoId, prazo, checklist: (m.checklist ?? []).map((t) => ({ t, f: false })) })
     }
   }
-  if (novas.length) await db.from('entregas').upsert(novas, { onConflict: 'missao_id,mentorado_id,prazo', ignoreDuplicates: true })
-
-  // limpeza das pendentes que não valem mais
-  const { data: pendentes } = await db.from('entregas').select('id, missao_id, prazo, checklist, status').eq('mentorado_id', mentoradoId).in('status', ['pendente', 'devolvida'])
-  const ativa = new Set(ativas.map((m) => m.id))
-  // checklist editado pelo mentor: alinha as abertas, mantendo o que já foi marcado
-  const porMissao = Object.fromEntries(ativas.map((m) => [m.id, m.checklist ?? []]))
-  for (const p of pendentes ?? []) {
-    const itens = porMissao[p.missao_id]
-    if (!itens) continue
-    const atual = (Array.isArray(p.checklist) ? p.checklist : []) as { t: string; f: boolean }[]
-    const novo = itens.map((t) => ({ t, f: atual.some((x) => x.t === t && x.f) }))
-    if (JSON.stringify(novo) !== JSON.stringify(atual)) await db.from('entregas').update({ checklist: novo }).eq('id', p.id)
+  if (novas.length) {
+    const { data: criadas } = await db.from('entregas').upsert(novas, { onConflict: 'missao_id,mentorado_id,prazo', ignoreDuplicates: true }).select('*')
+    linhas = linhas.concat((criadas ?? []) as LinhaEntrega[])
   }
-  const remover = (pendentes ?? [])
-    .filter((p) => p.status === 'pendente') // devolvida (com entrega) não some
-    .filter((p) => !ativa.has(p.missao_id) || (p.prazo >= hoje && !esperadas.has(`${p.missao_id}:${p.prazo}`)))
+
+  // checklist editado pelo mentor: alinha as abertas, mantendo o que já foi marcado
+  const ajustes: Promise<unknown>[] = []
+  for (const p of linhas) {
+    if (p.status !== 'pendente' && p.status !== 'devolvida') continue
+    const m = missoes[p.missao_id]
+    if (!m || !m.ativo || !vinculadas.has(m.id)) continue
+    const atual = (Array.isArray(p.checklist) ? p.checklist : []) as { t: string; f: boolean }[]
+    const novo = (m.checklist ?? []).map((t) => ({ t, f: atual.some((x) => x.t === t && x.f) }))
+    if (JSON.stringify(novo) !== JSON.stringify(atual)) {
+      p.checklist = novo
+      ajustes.push(Promise.resolve(db.from('entregas').update({ checklist: novo }).eq('id', p.id)))
+    }
+  }
+  // pendentes que não valem mais (devolvida, que já tem entrega, não some)
+  const remover = linhas
+    .filter((p) => p.status === 'pendente')
+    .filter((p) => !(missoes[p.missao_id]?.ativo && vinculadas.has(p.missao_id)) || (p.prazo >= hoje && !esperadas.has(`${p.missao_id}:${p.prazo}`)))
     .map((p) => p.id)
-  if (remover.length) await db.from('entregas').delete().in('id', remover)
+  if (remover.length) {
+    ajustes.push(Promise.resolve(db.from('entregas').delete().in('id', remover)))
+    const fora = new Set(remover)
+    linhas = linhas.filter((l) => !fora.has(l.id))
+  }
+  await Promise.all(ajustes)
+  return { linhas, missoes }
 }
 
 /** Lê as entregas do mentorado (gera antes), com os dados da missão e a situação. */
 export async function lerEntregas(mentoradoId: string, db: Db = createTarefixAdmin(), ref: Date = new Date()): Promise<EntregaTela[]> {
-  await gerarEntregas(mentoradoId, db)
-  const { data: linhas } = await db.from('entregas').select('*').eq('mentorado_id', mentoradoId).gte('prazo', somarDias(hojeSP(), -60))
-  const ids = Array.from(new Set((linhas ?? []).map((l) => l.missao_id)))
-  const { data: missoes } = ids.length ? await db.from('missoes').select('*').in('id', ids) : { data: [] as Missao[] }
-  const porId = Object.fromEntries(((missoes ?? []) as Missao[]).map((m) => [m.id, m]))
-  return (linhas ?? [])
+  const { linhas, missoes: porId } = await gerarEntregas(mentoradoId, db)
+  return linhas
     .filter((l) => porId[l.missao_id])
     .map((l) => {
       const m = porId[l.missao_id]

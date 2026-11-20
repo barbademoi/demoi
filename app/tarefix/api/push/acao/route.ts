@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { executarAcao, type AcaoPush } from '@/lib/tarefix/acaoPush'
 
+// perto do banco (Supabase em us-west-2), como o resto do Tarefix
+export const preferredRegion = 'pdx1'
+
 // Botões da notificação ("Feito" / "Adiar 15 min"), chamados pelo service worker.
 // Autorização: o passe assinado que veio dentro da própria notificação.
 export const dynamic = 'force-dynamic'
