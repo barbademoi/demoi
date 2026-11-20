@@ -226,3 +226,46 @@ export async function montarTelaMentoria(m: Mentorado, db: Db = createTarefixAdm
     mentor: dono?.nome?.split(' ')[0] ?? 'seu mentor',
   }
 }
+
+/* ---------------------------------------------------------------------- */
+/* Engajamento: se abre o link, se instalou, se ativou as notificações     */
+/* ---------------------------------------------------------------------- */
+
+export type Engajamento = {
+  primeiro: string | null // primeiro acesso (ISO)
+  ultimo: string | null // último acesso (ISO)
+  instalado: boolean // já abriu pelo ícone da tela de início
+  notificacoes: boolean // tem aparelho com notificações ativas
+  hoje: number // aberturas hoje
+  dias: { data: string; n: number }[] // últimos 7 dias (do mais antigo para hoje)
+  diasAtivos: number // dias com acesso nos últimos 7
+}
+
+export async function engajamentoDos(ids: string[], db: Db = createTarefixAdmin()): Promise<Record<string, Engajamento>> {
+  const out: Record<string, Engajamento> = {}
+  if (ids.length === 0) return out
+  const hoje = hojeSP()
+  const datas = Array.from({ length: 7 }, (_, i) => somarDias(hoje, i - 6))
+  const desde = `${datas[0]}T03:00:00Z` // 00:00 em Brasília
+  const [{ data: recentes }, { data: primeiros }, { data: inst }, { data: subs }] = await Promise.all([
+    db.from('mentoria_acessos').select('mentorado_id, em, instalado').in('mentorado_id', ids).gte('em', desde).order('em', { ascending: false }),
+    db.from('mentoria_acessos').select('mentorado_id, em').in('mentorado_id', ids).order('em', { ascending: true }).limit(5000),
+    db.from('mentoria_acessos').select('mentorado_id').in('mentorado_id', ids).eq('instalado', true).limit(5000),
+    db.from('push_inscricoes').select('mentorado_id').in('mentorado_id', ids),
+  ])
+  for (const id of ids) {
+    const meus = (recentes ?? []).filter((a) => a.mentorado_id === id)
+    const todos = (primeiros ?? []).filter((a) => a.mentorado_id === id)
+    const porDia = datas.map((d) => ({ data: d, n: meus.filter((a) => agoraSP(new Date(a.em)).data === d).length }))
+    out[id] = {
+      primeiro: todos[0]?.em ?? null,
+      ultimo: meus[0]?.em ?? (todos.length ? todos[todos.length - 1].em : null),
+      instalado: (inst ?? []).some((a) => a.mentorado_id === id),
+      notificacoes: (subs ?? []).some((s) => s.mentorado_id === id),
+      hoje: porDia[6].n,
+      dias: porDia,
+      diasAtivos: porDia.filter((d) => d.n > 0).length,
+    }
+  }
+  return out
+}

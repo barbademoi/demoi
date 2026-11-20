@@ -3,7 +3,7 @@ import { exigirDono } from '@/lib/tarefix/dono'
 import { ehAdmin } from '@/lib/tarefix/acessos'
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { hojeSP } from '@/lib/tarefix/datas'
-import { lerEntregas, noPrazo, proximaReuniao, type Mentorado } from '@/lib/tarefix/mentoria'
+import { engajamentoDos, lerEntregas, noPrazo, proximaReuniao, type Mentorado } from '@/lib/tarefix/mentoria'
 import { Titulo } from '@/components/tarefix/ui'
 import { ListaMentoria, type CartaoMentorado } from './ListaMentoria'
 
@@ -16,6 +16,7 @@ export default async function Mentoria() {
   const db = createTarefixAdmin()
   const { data } = await db.from('mentorados').select('*').eq('empresa_id', empresa.id).order('ativo', { ascending: false }).order('nome')
   const mentorados = (data ?? []) as Mentorado[]
+  const eng = await engajamentoDos(mentorados.map((m) => m.id), db)
   const cartoes: CartaoMentorado[] = await Promise.all(
     mentorados.map(async (m) => {
       const [entregas, reuniao] = await Promise.all([m.ativo ? lerEntregas(m.id, db) : Promise.resolve([]), proximaReuniao(m.id, db)])
@@ -27,6 +28,7 @@ export default async function Mentoria() {
         atrasadas: entregas.filter((e) => e.situacao === 'atrasada').length,
         aguardando: entregas.filter((e) => e.situacao === 'aguardando').length,
         reuniao: reuniao?.quando ?? null,
+        eng: eng[m.id],
       }
     })
   )

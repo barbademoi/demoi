@@ -4,7 +4,8 @@ import { exigirDono } from '@/lib/tarefix/dono'
 import { ehAdmin } from '@/lib/tarefix/acessos'
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { hojeSP } from '@/lib/tarefix/datas'
-import { lerEntregas, noPrazo, proximaReuniao, type Mentorado, type Missao } from '@/lib/tarefix/mentoria'
+import { engajamentoDos, lerEntregas, noPrazo, proximaReuniao, type Mentorado, type Missao } from '@/lib/tarefix/mentoria'
+import { VisorEngajamento } from '../Engajamento'
 import { DetalheMentorado } from './DetalheMentorado'
 
 export const metadata = { title: 'Mentorado' }
@@ -26,6 +27,7 @@ export default async function PaginaMentorado({ params, searchParams }: { params
     db.from('missoes').select('*').eq('empresa_id', empresa.id).eq('ativo', true).order('criado_em', { ascending: false }),
   ])
   const ids = (atrib ?? []).map((a) => a.missao_id)
+  const eng = (await engajamentoDos([mentorado.id], db))[mentorado.id]
   const [{ data: missoes }, { data: para }] = ids.length
     ? await Promise.all([db.from('missoes').select('*').in('id', ids).order('criado_em', { ascending: false }), db.from('missoes_mentorados').select('missao_id, mentorado_id').in('missao_id', ids)])
     : [{ data: [] as Missao[] }, { data: [] as { missao_id: string; mentorado_id: string }[] }]
@@ -44,6 +46,7 @@ export default async function PaginaMentorado({ params, searchParams }: { params
         ‹ Mentoria
       </Link>
       <DetalheMentorado
+        engajamento={<VisorEngajamento e={eng} primeiroNome={mentorado.nome.split(' ')[0]} />}
         mentorado={mentorado}
         novo={Boolean(searchParams.novo)}
         entregas={entregas.map((e) => ({ ...e, foto_url: e.foto_path ? fotos[e.foto_path] ?? null : null }))}

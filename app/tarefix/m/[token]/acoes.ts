@@ -166,3 +166,15 @@ export async function fecharHoje(token: string, fechar: boolean): Promise<Respos
   )
   return { ok: true, estado: await montar(m) }
 }
+
+/** Registra que o mentorado abriu o link (e se foi pelo ícone da tela de início). */
+export async function registrarAcesso(token: string, instalado: boolean): Promise<{ ok: boolean }> {
+  const m = await mentoradoPorToken(token)
+  if (!m) return { ok: false }
+  const db = createTarefixAdmin()
+  // evita contar duas vezes a mesma abertura (recarregar a página em seguida)
+  const { data: ultimo } = await db.from('mentoria_acessos').select('em').eq('mentorado_id', m.id).order('em', { ascending: false }).limit(1).maybeSingle()
+  if (ultimo && Date.now() - new Date(ultimo.em).getTime() < 2 * 60 * 1000) return { ok: true }
+  await db.from('mentoria_acessos').insert({ mentorado_id: m.id, instalado: Boolean(instalado), em: new Date().toISOString() })
+  return { ok: true }
+}
