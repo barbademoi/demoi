@@ -73,6 +73,7 @@ export type DadosMissao = {
   mentorados: string[]
   inicio?: string // recorrentes: começa em ('' = já)
   checklist?: string[] // itens para o mentorado ir marcando
+  destaque?: boolean // prioridade
   fim?: string // recorrentes: termina em ('' = sem fim)
 }
 
@@ -109,6 +110,7 @@ export async function salvarMissao(d: DadosMissao): Promise<Resultado> {
     aprovacao: Boolean(d.aprovacao),
     inicio,
     fim,
+    destaque: Boolean(d.destaque),
     checklist: (Array.isArray(d.checklist) ? d.checklist : [])
       .map((x) => String(x ?? '').trim().slice(0, 80))
       .filter(Boolean)

@@ -74,7 +74,7 @@ export function DetalheMentorado(p: {
     { titulo: 'Devolvidas (esperando ele refazer)', itens: p.entregas.filter((e) => e.situacao === 'devolvida') },
     { titulo: 'Hoje e próximas', itens: p.entregas.filter((e) => e.situacao === 'hoje' || e.situacao === 'proxima') },
   ]
-  const concluidas = p.entregas.filter((e) => e.situacao === 'concluida').reverse()
+  const concluidas = p.entregas.filter((e) => e.situacao === 'concluida' || e.situacao === 'fechada').reverse()
 
   return (
     <div className="space-y-5">
@@ -208,7 +208,10 @@ export function DetalheMentorado(p: {
                   <li key={e.id} className={`tf-cartao p-4 ${g.destaque ? '!border-tf-marca' : e.situacao === 'atrasada' ? '!border-tf-texto' : ''}`}>
                     <div className="flex items-start gap-3">
                       <div className="min-w-0 flex-1">
-                        <p className="font-extrabold">{e.titulo}</p>
+                        <p className="font-extrabold">
+                          {e.destaque && <span className="mr-2 inline-flex items-center rounded-full bg-[#D4A017] px-2 py-0.5 align-middle text-[11px] font-extrabold text-[#1a1408]">⭐ PRIORIDADE</span>}
+                          {e.titulo}
+                        </p>
                         <p className="text-sm text-tf-suave">
                           {textoPrazo(e, p.hoje)}
                           {e.enviada_em && ` · entregue ${new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(e.enviada_em))}`}
@@ -255,9 +258,12 @@ export function DetalheMentorado(p: {
               {concluidas.slice(0, 30).map((e) => (
                 <li key={e.id} className="flex items-center gap-3 px-4 py-3">
                   <span className="text-tf-marca-texto" aria-hidden>
-                    ✓
+                    {e.situacao === 'fechada' ? '🔒' : '✓'}
                   </span>
-                  <span className="min-w-0 flex-1 truncate">{e.titulo}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {e.titulo}
+                    {e.situacao === 'fechada' && <span className="text-tf-suave"> · barbearia fechada</span>}
+                  </span>
                   <span className="shrink-0 text-xs text-tf-suave">{e.prazo.split('-').reverse().slice(0, 2).join('/')}</span>
                   {e.foto_url && (
                     <button type="button" className="shrink-0 text-xs font-bold text-tf-marca-texto" onClick={() => setFoto(e.foto_url)}>
@@ -290,10 +296,13 @@ export function DetalheMentorado(p: {
           <div className="tf-cartao px-5 py-8 text-center text-tf-suave">Nenhuma missão ainda. Crie a primeira: o que {primeiro} precisa fazer para ter resultado?</div>
         ) : (
           <ul className="tf-cartao divide-y divide-tf-borda">
-            {p.missoes.map((x) => (
+            {[...p.missoes].sort((a, b) => Number(Boolean(b.destaque)) - Number(Boolean(a.destaque))).map((x) => (
               <li key={x.id} className={`px-4 py-3 ${x.ativo ? '' : 'opacity-50'}`}>
                 <button type="button" className="block w-full text-left" onClick={() => setEditando(x)}>
-                  <p className="font-bold">{x.titulo}</p>
+                  <p className="font-bold">
+                    {x.destaque && <span className="mr-2 inline-flex items-center rounded-full bg-[#D4A017] px-2 py-0.5 align-middle text-[11px] font-extrabold text-[#1a1408]">⭐ PRIORIDADE</span>}
+                    {x.titulo}
+                  </p>
                   <p className="text-sm text-tf-suave">
                     {regraMissao(x)}
                     {x.prova !== 'nenhuma' && ` · prova: ${x.prova === 'foto' ? 'foto' : 'texto'}`}

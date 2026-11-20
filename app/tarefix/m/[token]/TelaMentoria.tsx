@@ -11,7 +11,7 @@ import { BotaoTema } from '@/components/tarefix/Tema'
 import { BotaoAtualizar } from '@/components/tarefix/BotaoAtualizar'
 import { DicaInstalar } from '@/components/tarefix/DicaInstalar'
 import { AtivarNotificacoes } from '@/components/tarefix/AtivarNotificacoes'
-import { ativarPushMentoria, chavePushMentoria, desativarPushMentoria, entregarMissao, marcarItemMissao, prepararUploadMentoria, recarregarMentoria } from './acoes'
+import { ativarPushMentoria, chavePushMentoria, desativarPushMentoria, entregarMissao, fecharHoje, marcarItemMissao, prepararUploadMentoria, recarregarMentoria } from './acoes'
 import { Checklist } from '../../c/[token]/PessoalExtras'
 
 type Entrega = EstadoMentoria['entregas'][number]
@@ -72,6 +72,24 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
     { titulo: 'Esperando o mentor aprovar', itens: e.filter((x) => x.situacao === 'aguardando'), tom: 'normal' },
   ]
   const concluidas = e.filter((x) => x.situacao === 'concluida').reverse()
+  const fechadoHoje = e.some((x) => x.prazo === hoje && x.situacao === 'fechada')
+  const abertasHoje = e.filter((x) => x.prazo === hoje && x.status === 'pendente').length
+  const [fechando, setFechando] = useState(false)
+
+  async function alternarFechado(fechar: boolean) {
+    if (fechar && !confirm(`Marcar a barbearia como fechada hoje?\n\nAs ${abertasHoje} missões de hoje ficam dispensadas: não atrasam e não contam no seu percentual. ${estado.mentor} vai ver.`)) return
+    setErro(null)
+    setFechando(true)
+    try {
+      const r = await fecharHoje(token, fechar)
+      if (r.estado) setEstado(r.estado)
+      if (!r.ok) setErro(r.erro)
+    } catch {
+      setErro('Sem conexão. Tente de novo.')
+    } finally {
+      setFechando(false)
+    }
+  }
   const pendentes = grupos.slice(0, 4).reduce((n, g) => n + g.itens.length, 0)
 
   function abrir(x: Entrega) {
@@ -156,6 +174,26 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
         )}
       </section>
 
+      {fechadoHoje ? (
+        <section className="tf-cartao mt-4 flex items-center gap-3 p-4">
+          <span className="text-2xl" aria-hidden>
+            🔒
+          </span>
+          <p className="flex-1 text-sm">
+            <b>Hoje está marcado como barbearia fechada.</b> As missões do dia foram dispensadas.
+          </p>
+          <button type="button" className="shrink-0 text-sm font-bold text-tf-marca-texto underline" disabled={fechando} onClick={() => alternarFechado(false)}>
+            Reabrir
+          </button>
+        </section>
+      ) : (
+        abertasHoje > 0 && (
+          <button type="button" className="tf-botao2 mt-4 w-full" disabled={fechando} onClick={() => alternarFechado(true)}>
+            {fechando ? 'Marcando…' : '🔒 Barbearia fechada hoje'}
+          </button>
+        )
+      )}
+
       <div className="mt-4">
         <Erro texto={!entregando ? erro : null} />
       </div>
@@ -169,8 +207,14 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
               </h2>
               <ul className="space-y-3">
                 {g.itens.map((x) => (
-                  <li key={x.id} className={`tf-cartao p-4 ${g.tom === 'forte' ? '!border-2 !border-tf-texto' : g.tom === 'marca' ? '!border-2 !border-tf-marca' : ''}`}>
-                    <p className="text-lg font-extrabold leading-snug">{x.titulo}</p>
+                  <li
+                    key={x.id}
+                    className={`tf-cartao p-4 ${x.destaque ? '!border-2 !border-[#D4A017] !bg-[#D4A017]/10' : g.tom === 'forte' ? '!border-2 !border-tf-texto' : g.tom === 'marca' ? '!border-2 !border-tf-marca' : ''}`}
+                  >
+                    <p className="text-lg font-extrabold leading-snug">
+                      {x.destaque && <span className="mr-2 inline-flex items-center rounded-full bg-[#D4A017] px-2 py-0.5 align-middle text-[11px] font-extrabold text-[#1a1408]">⭐ PRIORIDADE</span>}
+                      {x.titulo}
+                    </p>
                     <p className={`mt-0.5 text-sm font-bold ${x.situacao === 'atrasada' ? 'text-tf-texto' : 'text-tf-suave'}`}>
                       {x.situacao === 'aguardando' ? 'Entregue. Esperando aprovação.' : textoPrazo(x, hoje)}
                       {x.prova !== 'nenhuma' && x.situacao !== 'aguardando' && ` · enviar ${x.prova === 'foto' ? 'foto ou print' : 'texto'}`}

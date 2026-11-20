@@ -29,7 +29,8 @@ export function Biblioteca({ missoes, mentorados, hoje }: { missoes: MissaoPara[
 
   const lista = useMemo(() => {
     const q = norm(busca.trim())
-    return missoes.filter((m) => {
+    const ordenadas = [...missoes].sort((a, b) => Number(Boolean(b.destaque)) - Number(Boolean(a.destaque)))
+    return ordenadas.filter((m) => {
       if (filtro === 'ativas' && (!m.ativo || m.para.length === 0)) return false
       if (filtro === 'sem' && m.para.length > 0) return false
       if (filtro === 'pausadas' && m.ativo) return false
@@ -85,7 +86,10 @@ export function Biblioteca({ missoes, mentorados, hoje }: { missoes: MissaoPara[
           {lista.map((m) => (
             <li key={m.id} className={`tf-cartao p-4 ${m.ativo ? '' : 'opacity-60'}`}>
               <button type="button" className="block w-full text-left" onClick={() => setEditando(m)}>
-                <p className="text-lg font-extrabold leading-snug">{m.titulo}</p>
+                <p className="text-lg font-extrabold leading-snug">
+                  {m.destaque && <span className="mr-2 inline-flex items-center rounded-full bg-[#D4A017] px-2 py-0.5 align-middle text-[11px] font-extrabold text-[#1a1408]">⭐ PRIORIDADE</span>}
+                  {m.titulo}
+                </p>
                 <p className="text-sm text-tf-suave">
                   {regraMissao(m)}
                   {m.prova !== 'nenhuma' && ` · prova: ${m.prova === 'foto' ? 'foto' : 'texto'}`}

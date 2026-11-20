@@ -38,8 +38,9 @@ function inicial(p: Props): DadosMissao {
       inicio: m.inicio ?? '',
       fim: m.fim ?? '',
       checklist: m.checklist ?? [],
+      destaque: Boolean(m.destaque),
     }
-  return { titulo: '', descricao: '', tipo: 'data', data: p.hoje, dias_semana: [1, 3, 5], dia_prazo: 1, hora: '', prova: 'nenhuma', aprovacao: false, mentorados: p.paraPadrao ?? [], inicio: '', fim: '', checklist: [] }
+  return { titulo: '', descricao: '', tipo: 'data', data: p.hoje, dias_semana: [1, 3, 5], dia_prazo: 1, hora: '', prova: 'nenhuma', aprovacao: false, mentorados: p.paraPadrao ?? [], inicio: '', fim: '', checklist: [], destaque: false }
 }
 
 export function EditorMissao(p: Props) {
@@ -162,6 +163,12 @@ export function EditorMissao(p: Props) {
             ))}
           </div>
         </div>
+        <Interruptor
+          rotulo="⭐ Prioridade (destaque)"
+          descricao={d.destaque ? 'Fica no topo da lista do mentorado, com cor diferente.' : 'Missão normal.'}
+          ligado={Boolean(d.destaque)}
+          aoMudar={(v) => setD({ ...d, destaque: v })}
+        />
         <Interruptor
           rotulo="Precisa da minha aprovação"
           descricao={d.aprovacao ? 'Fica “aguardando você”: aprove ou devolva com o motivo.' : 'Entregou, está concluída.'}
