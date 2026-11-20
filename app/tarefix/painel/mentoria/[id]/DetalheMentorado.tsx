@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { EntregaTela, Mentorado, Missao, Reuniao } from '@/lib/tarefix/mentoria'
 import { Erro, Interruptor, Modal, resumoDias, useAcao, useAviso } from '@/components/tarefix/ui'
-import { decidirEntrega, editarMentorado, excluirMissao, novoLinkMentorado, pausarMissao, removerReuniao, salvarReuniao, vincularMissoes } from '../acoes'
+import { decidirEntrega, editarMentorado, excluirMissao, novoLinkMentorado, pausarMissao, removerReuniao, salvarReuniao, vincularMissoes, excluirAtrasadas } from '../acoes'
 import { EditorMissao } from '../EditorMissao'
 import { textoPrazo } from '@/lib/tarefix/mentoriaTexto'
 import { textoPeriodo } from '@/lib/tarefix/periodo'
@@ -177,9 +177,32 @@ export function DetalheMentorado(p: {
         (g) =>
           g.itens.length > 0 && (
             <section key={g.titulo}>
-              <h2 className="mb-2 text-lg font-extrabold">
-                {g.titulo} <span className="text-tf-suave">({g.itens.length})</span>
-              </h2>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <h2 className="text-lg font-extrabold">
+                  {g.titulo} <span className="text-tf-suave">({g.itens.length})</span>
+                </h2>
+                {g.titulo === 'Atrasadas' && (
+                  <button
+                    type="button"
+                    className="shrink-0 text-sm font-bold text-tf-suave underline"
+                    disabled={acao.pendente}
+                    onClick={() =>
+                      confirm(
+                        `Excluir as ${g.itens.length} missões atrasadas de ${primeiro}?\n\nAs que se repetem recomeçam a contar de hoje. As de "uma vez" saem dele e continuam na biblioteca.`
+                      ) &&
+                      acao.rodar(
+                        async () => {
+                          const r = await excluirAtrasadas(m.id)
+                          return r.ok ? { ok: true } : r
+                        },
+                        pronto('Atrasadas excluídas')
+                      )
+                    }
+                  >
+                    Excluir atrasadas
+                  </button>
+                )}
+              </div>
               <ul className="space-y-3">
                 {g.itens.map((e) => (
                   <li key={e.id} className={`tf-cartao p-4 ${g.destaque ? '!border-tf-marca' : e.situacao === 'atrasada' ? '!border-tf-texto' : ''}`}>

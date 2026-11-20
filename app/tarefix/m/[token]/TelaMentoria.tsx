@@ -38,26 +38,29 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
   const [verConcluidas, setVerConcluidas] = useState(false)
   const camera = useRef<HTMLInputElement>(null)
   const primeiro = nome.split(' ')[0]
-  const [marcando, setMarcando] = useState<string | null>(null)
+  // check instantâneo: a tela muda na hora; as gravações saem em fila (uma por vez, na ordem)
+  const fila = useRef<Promise<unknown>>(Promise.resolve())
 
-  async function marcarItem(x: Entrega, i: number, f: boolean) {
+  const atual = useRef(estado)
+  atual.current = estado
+
+  function marcarItem(x: Entrega, i: number, f: boolean) {
     setErro(null)
-    setMarcando(x.id)
-    const anterior = estado
-    setEstado((s) => ({ ...s, entregas: s.entregas.map((e) => (e.id === x.id ? { ...e, checklist: e.checklist.map((c, n) => (n === i ? { ...c, f } : c)) } : e)) }))
-    try {
-      const r = await marcarItemMissao(token, x.id, i, f)
-      if (r.estado) setEstado(r.estado)
-      if (!r.ok) {
-        if (!r.estado) setEstado(anterior)
-        setErro(r.erro)
+    const alvo = atual.current.entregas.find((e) => e.id === x.id)
+    if (!alvo) return
+    const checklist = alvo.checklist.map((c, n) => (n === i ? { ...c, f } : c))
+    const feitos = checklist.map((c) => c.f)
+    const novo = { ...atual.current, entregas: atual.current.entregas.map((e) => (e.id === x.id ? { ...e, checklist } : e)) }
+    atual.current = novo // vale já para o próximo toque, antes da tela redesenhar
+    setEstado(novo)
+    fila.current = fila.current.then(async () => {
+      try {
+        const r = await marcarItemMissao(token, x.id, feitos)
+        if (!r.ok) setErro(r.erro)
+      } catch {
+        setErro('Sem conexão: o check pode não ter sido salvo. Toque em atualizar.')
       }
-    } catch {
-      setEstado(anterior)
-      setErro('Sem conexão. Tente de novo.')
-    } finally {
-      setMarcando(null)
-    }
+    })
   }
 
   const e = estado.entregas
@@ -175,7 +178,7 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
                     {x.descricao && <p className="mt-2 whitespace-pre-line text-sm text-tf-suave">{x.descricao}</p>}
                     <Checklist
                       itens={x.checklist}
-                      desabilitado={marcando === x.id || x.situacao === 'aguardando'}
+                      desabilitado={x.situacao === 'aguardando'}
                       aoMarcar={(i, f) => marcarItem(x, i, f)}
                     />
                     {x.situacao === 'devolvida' && x.motivo && (

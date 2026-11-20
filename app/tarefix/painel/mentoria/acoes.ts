@@ -5,7 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { donoOuErro, type Resultado } from '@/lib/tarefix/dono'
 import { ehAdmin } from '@/lib/tarefix/acessos'
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
-import type { Prova, TipoMissao } from '@/lib/tarefix/mentoria'
+import { lerEntregas, type Prova, type TipoMissao } from '@/lib/tarefix/mentoria'
+import { hojeSP, somarDias } from '@/lib/tarefix/datas'
 
 /** Só o admin mexe na mentoria (tudo pela service role, sempre filtrando pela empresa dele). */
 async function admin() {
@@ -234,4 +235,36 @@ export async function removerReuniao(id: string): Promise<Resultado> {
   await a.db.from('reunioes').delete().eq('id', id)
   revalidar()
   return { ok: true }
+}
+
+/**
+ * Exclui as missões atrasadas de um mentorado (só o admin).
+ * - Recorrentes ("nos dias" / "toda semana"): apaga as entregas atrasadas e a
+ *   missão recomeça a contar de hoje (as de hoje em diante continuam).
+ * - "Uma vez": apaga a entrega e desvincula o mentorado (a missão continua na
+ *   biblioteca para vincular de novo com outra data).
+ */
+export async function excluirAtrasadas(mentoradoId: string): Promise<{ ok: true; excluidas: number } | { ok: false; erro: string }> {
+  const a = await admin()
+  if ('ok' in a) return a
+  const { data: m } = await a.db.from('mentorados').select('id').eq('id', mentoradoId).eq('empresa_id', a.empresaId).maybeSingle()
+  if (!m) return { ok: false, erro: 'Mentorado não encontrado.' }
+  const atrasadas = (await lerEntregas(mentoradoId, a.db)).filter((e) => e.situacao === 'atrasada')
+  if (atrasadas.length === 0) return { ok: true, excluidas: 0 }
+
+  await a.db.from('entregas').delete().in('id', atrasadas.map((e) => e.id)).eq('status', 'pendente')
+  const hoje = hojeSP()
+  for (const missaoId of Array.from(new Set(atrasadas.map((e) => e.missao_id)))) {
+    const dela = atrasadas.filter((e) => e.missao_id === missaoId)
+    if (dela[0].tipo === 'data') {
+      await a.db.from('missoes_mentorados').delete().eq('missao_id', missaoId).eq('mentorado_id', mentoradoId)
+      continue
+    }
+    // recomeça a contar: de hoje (ou de amanhã, se a de hoje também atrasou),
+    // assim a geração não recria os dias que passaram
+    const recomeco = dela.some((e) => e.prazo === hoje) ? `${somarDias(hoje, 1)}T03:00:00Z` : new Date().toISOString()
+    await a.db.from('missoes_mentorados').update({ criado_em: recomeco }).eq('missao_id', missaoId).eq('mentorado_id', mentoradoId)
+  }
+  revalidar()
+  return { ok: true, excluidas: atrasadas.length }
 }
