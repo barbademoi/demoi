@@ -64,14 +64,15 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
   }
 
   const e = estado.entregas
+  const doDia = e.filter((x) => x.prazo === hoje)
   const grupos: { titulo: string; itens: Entrega[]; tom: 'forte' | 'marca' | 'normal' }[] = [
-    { titulo: 'Atrasadas', itens: e.filter((x) => x.situacao === 'atrasada'), tom: 'forte' },
+    // só as missões de HOJE (mais as devolvidas para refazer, que podem ser de outro dia)
+    { titulo: 'Passou do horário', itens: doDia.filter((x) => x.situacao === 'atrasada'), tom: 'forte' },
     { titulo: 'Para refazer', itens: e.filter((x) => x.situacao === 'devolvida'), tom: 'forte' },
-    { titulo: 'Para hoje', itens: e.filter((x) => x.situacao === 'hoje'), tom: 'marca' },
-    { titulo: 'Próximas', itens: e.filter((x) => x.situacao === 'proxima'), tom: 'normal' },
-    { titulo: 'Esperando o mentor aprovar', itens: e.filter((x) => x.situacao === 'aguardando'), tom: 'normal' },
+    { titulo: 'Para hoje', itens: doDia.filter((x) => x.situacao === 'hoje'), tom: 'marca' },
+    { titulo: 'Esperando o mentor aprovar', itens: doDia.filter((x) => x.situacao === 'aguardando'), tom: 'normal' },
   ]
-  const concluidas = e.filter((x) => x.situacao === 'concluida').reverse()
+  const concluidas = doDia.filter((x) => x.situacao === 'concluida').reverse()
   const fechadoHoje = e.some((x) => x.prazo === hoje && x.situacao === 'fechada')
   const abertasHoje = e.filter((x) => x.prazo === hoje && x.status === 'pendente').length
   const [fechando, setFechando] = useState(false)
@@ -90,7 +91,7 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
       setFechando(false)
     }
   }
-  const pendentes = grupos.slice(0, 4).reduce((n, g) => n + g.itens.length, 0)
+  const pendentes = grupos.slice(0, 3).reduce((n, g) => n + g.itens.length, 0)
 
   function abrir(x: Entrega) {
     setErro(null)
@@ -142,7 +143,7 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
       </header>
 
       <h1 className="mt-5 text-2xl font-black leading-tight tracking-tight">
-        {pendentes ? `${primeiro}, você tem ${pendentes} ${pendentes > 1 ? 'missões' : 'missão'} em aberto` : `Tudo em dia, ${primeiro}! 💪`}
+        {pendentes ? `${primeiro}, você tem ${pendentes} ${pendentes > 1 ? 'missões' : 'missão'} para hoje` : `Tudo em dia hoje, ${primeiro}! 💪`}
       </h1>
       <p className="mt-1 text-tf-suave">Mentoria com {estado.mentor}. Entregue no prazo: é aqui que o resultado aparece.</p>
 
@@ -242,7 +243,11 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
           )
       )}
 
-      {e.length === 0 && <div className="tf-cartao mt-6 px-5 py-10 text-center text-tf-suave">Nenhuma missão ainda. Quando {estado.mentor} criar, aparece aqui.</div>}
+      {grupos.every((g) => g.itens.length === 0) && concluidas.length === 0 && !fechadoHoje && (
+        <div className="tf-cartao mt-6 px-5 py-10 text-center text-tf-suave">
+          {e.length === 0 ? `Nenhuma missão ainda. Quando ${estado.mentor} criar, aparece aqui.` : 'Nenhuma missão para hoje. Aproveite o dia! 💪'}
+        </div>
+      )}
 
       {concluidas.length > 0 && (
         <section className="mt-6">
