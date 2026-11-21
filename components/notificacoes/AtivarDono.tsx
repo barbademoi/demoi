@@ -12,12 +12,11 @@
 import AtivarNotificacoes from './AtivarNotificacoes'
 import { inscreverDono } from '@/app/notificacoes/actions'
 
-export default function AtivarDono({ userId, chavePublica }: { userId: string; chavePublica: string }) {
+export default function AtivarDono({ userId }: { userId: string }) {
   return (
     <AtivarNotificacoes
       papel="dono"
       id={userId}
-      chavePublica={chavePublica}
       aoInscrever={async (d) => {
         const r = await inscreverDono(d)
         return r.error ?? null

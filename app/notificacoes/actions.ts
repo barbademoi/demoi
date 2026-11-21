@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { configPush } from '@/lib/push/config'
 
 /**
  * INSCRIÇÃO E CANCELAMENTO DAS NOTIFICAÇÕES.
@@ -30,6 +31,24 @@ export interface DadosInscricao {
 }
 
 export type ResultadoInscricao = { ok?: true; error?: string }
+
+/**
+ * A chave pública do VAPID, pedida na hora de ativar.
+ *
+ * Não exige sessão de propósito: ela é pública por definição (é o que o
+ * navegador usa pra conferir a assinatura do que chega) e o barbeiro, que não
+ * tem conta, também precisa dela. O que vale guardar é a privada, que nunca
+ * sai de `push_config`.
+ *
+ * Vem do servidor, e não de `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, porque variável
+ * `NEXT_PUBLIC_*` é embutida no build: trocá-la exigiria redeploy, e esquecer
+ * o redeploy deixaria o botão de ativar quebrado sem nenhum erro visível.
+ */
+export async function chavePublicaPush(): Promise<{ chave: string } | { error: string }> {
+  const cfg = await configPush(createAdminClient())
+  if (!cfg) return { error: 'As notificações ainda não estão prontas no servidor.' }
+  return { chave: cfg.publica }
+}
 
 function valida(d: DadosInscricao): string | null {
   if (!d?.endpoint || !/^https:\/\//.test(d.endpoint)) return 'Inscrição inválida.'

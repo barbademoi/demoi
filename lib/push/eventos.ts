@@ -19,7 +19,8 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import * as msg from './mensagens'
-import { enviarPara, inscricoesPorDestino, reservarEnvio, pushConfigurado } from './enviar'
+import { enviarPara, inscricoesPorDestino, reservarEnvio } from './enviar'
+import { configPush } from './config'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin = any
@@ -43,10 +44,11 @@ export async function avisarDonoQuePontuou(opts: {
   pontosMes?: number | null
 }): Promise<void> {
   try {
-    if (!pushConfigurado()) return
     if (!opts.pontosHoje || opts.pontosHoje <= 0) return
 
     const admin: Admin = createAdminClient()
+    const cfg = await configPush(admin)
+    if (!cfg) return
 
     const { data: donosRaw } = await admin
       .from('usuarios').select('id').eq('barbearia_id', opts.barbeariaId)
@@ -62,7 +64,7 @@ export async function avisarDonoQuePontuou(opts: {
       const aparelhos = porDestino.get(destino) ?? []
       if (aparelhos.length === 0) continue
       if (!(await reservarEnvio(admin, opts.barbeariaId, destino, 'barbeiro-pontuou', marco))) continue
-      await enviarPara(admin, aparelhos, mensagem)
+      await enviarPara(admin, aparelhos, mensagem, cfg)
     }
   } catch (e) {
     console.error('[push] aviso de pontuação falhou:', e)
@@ -80,8 +82,9 @@ export async function avisarBarbeirosQueDonoLancou(opts: {
   comissaoPorBarbeiro?: Record<string, number>
 }): Promise<void> {
   try {
-    if (!pushConfigurado()) return
     const admin: Admin = createAdminClient()
+    const cfg = await configPush(admin)
+    if (!cfg) return
 
     const { data: barbeirosRaw } = await admin
       .from('barbeiros').select('id, link_codigo, ativo')
@@ -103,7 +106,7 @@ export async function avisarBarbeirosQueDonoLancou(opts: {
 
       const valor = opts.comissaoPorBarbeiro?.[b.id]
       await enviarPara(admin, aparelhos, msg.barbeiroDonoLancou(
-        b.link_codigo, typeof valor === 'number' ? valor : null))
+        b.link_codigo, typeof valor === 'number' ? valor : null), cfg)
     }
   } catch (e) {
     console.error('[push] aviso de lançamento do dono falhou:', e)

@@ -1,10 +1,12 @@
+import { timingSafeEqual } from 'crypto'
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { avisosDoDono, avisosDoBarbeiro, limitarPorDestino, type Aviso } from '@/lib/push/regras'
 import { agoraSaoPaulo, carregarEstado } from '@/lib/push/estadoServidor'
 import { enriquecerComResumo } from '@/lib/push/resumoServidor'
+import { configPush, segredoCron } from '@/lib/push/config'
 import {
-  enviarPara, inscricoesPorDestino, reservarEnvio, devolverReserva, pushConfigurado,
+  enviarPara, inscricoesPorDestino, reservarEnvio, devolverReserva,
 } from '@/lib/push/enviar'
 
 /**
@@ -15,32 +17,56 @@ import {
  * execuções, não tem fila. Se uma execução falhar, a próxima resolve; se rodar
  * duas vezes na mesma hora, nada sai dobrado — `push_enviadas` é o cadeado.
  *
- * Protegido por CRON_SECRET, igual ao cron do brinde mínimo.
- *
  * ── QUEM CHAMA ──────────────────────────────────────────────────────────────
- * O plano Hobby da Vercel só permite cron 1×/dia, e os lembretes precisam de
- * seis disparos (18h às 23h). Então quem chama de hora em hora é um workflow
- * do GitHub Actions (`.github/workflows/notificacoes.yml`), que é grátis e
- * não depende do plano. Virando Pro, é só mover o agendamento pro
- * `vercel.json` e apagar o workflow — esta rota não muda.
+ * O pg_cron do próprio Supabase, nove vezes por dia, mandando o segredo de
+ * `push_config` no cabeçalho `x-barbermeta-cron` (migration 063). É o mesmo
+ * arranjo do Tarefix neste projeto, e foi escolhido por um motivo prático: não
+ * exige variável na Vercel, secret no GitHub nem plano pago — o agendamento
+ * nasce junto com a migration.
+ *
+ * O `Authorization: Bearer <CRON_SECRET>` continua aceito, pra não quebrar
+ * nenhum chamador antigo que ainda exista.
  */
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
+/** Comparação em tempo constante — comparar segredo com `===` vaza o prefixo. */
+function iguais(a: string, b: string): boolean {
+  const x = Buffer.from(a)
+  const y = Buffer.from(b)
+  return x.length === y.length && timingSafeEqual(x, y)
+}
+
 export async function GET(request: Request) {
-  const auth = request.headers.get('authorization')
-  if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  const admin = createAdminClient()
+
+  // ── Primeiro quem é, depois qualquer outra coisa ──
+  // O segredo é lido sozinho, numa consulta barata: `configPush` cria o par
+  // VAPID quando ainda não existe, e isso não pode acontecer por causa de uma
+  // requisição que nem é do agendador.
+  const doBanco = request.headers.get('x-barbermeta-cron') ?? ''
+  const auth = request.headers.get('authorization') ?? ''
+  const segredoEnv = process.env.CRON_SECRET
+
+  let autorizado = !!segredoEnv && auth !== '' && iguais(auth, `Bearer ${segredoEnv}`)
+  if (!autorizado && doBanco !== '') {
+    const segredo = await segredoCron(admin)
+    autorizado = !!segredo && iguais(doBanco, segredo)
+  }
+  if (!autorizado) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Sem as chaves VAPID não há o que entregar. Responde 200 pra o agendador
-  // não ficar marcando falha durante a janela entre o deploy e as chaves.
-  if (!pushConfigurado()) {
-    return NextResponse.json({ ok: true, pulado: 'VAPID não configurado' })
+  // Agora sim: as chaves pra assinar o envio.
+  const cfg = await configPush(admin)
+  if (!cfg) {
+    return NextResponse.json(
+      { error: 'push_config indisponível — rode a migration 063' },
+      { status: 503 },
+    )
   }
 
-  const admin = createAdminClient()
   const agora = agoraSaoPaulo()
 
   // ── Quem tem aparelho inscrito ──
@@ -99,7 +125,7 @@ export async function GET(request: Request) {
     const minha = await reservarEnvio(admin, barbeariaId, aviso.destino, aviso.tipo, aviso.marco)
     if (!minha) { pulados++; continue }
 
-    const r = await enviarPara(admin, aparelhos, aviso.mensagem)
+    const r = await enviarPara(admin, aparelhos, aviso.mensagem, cfg)
     if (r.entregues > 0) {
       enviados++
     } else {

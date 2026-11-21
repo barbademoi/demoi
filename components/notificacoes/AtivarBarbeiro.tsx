@@ -11,13 +11,12 @@ import AtivarNotificacoes from './AtivarNotificacoes'
 import { inscreverBarbeiro } from '@/app/notificacoes/actions'
 
 export default function AtivarBarbeiro({
-  barbeiroId, linkCodigo, chavePublica,
-}: { barbeiroId: string; linkCodigo: string; chavePublica: string }) {
+  barbeiroId, linkCodigo,
+}: { barbeiroId: string; linkCodigo: string }) {
   return (
     <AtivarNotificacoes
       papel="barbeiro"
       id={barbeiroId}
-      chavePublica={chavePublica}
       aoInscrever={async (d) => {
         const r = await inscreverBarbeiro(linkCodigo, d)
         return r.error ?? null

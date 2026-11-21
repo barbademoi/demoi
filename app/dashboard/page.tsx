@@ -519,12 +519,9 @@ export default async function DashboardPage({
     <AvisoLancamentoDiario userId={user.id} />
     {/* Convite pra ligar as notificações. Aparece no máximo a cada 7 dias
         enquanto não estiver ativo, e some pra sempre depois de ativado ou
-        recusado. A chave pública do VAPID é pública por definição — é ela que
-        o navegador usa pra criar a inscrição. */}
-    <AtivarDono
-      userId={user.id}
-      chavePublica={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''}
-    />
+        recusado. A chave pública do VAPID o próprio popup busca no servidor,
+        no clique de ativar. */}
+    <AtivarDono userId={user.id} />
     </>
   )
 }

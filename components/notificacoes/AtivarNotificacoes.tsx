@@ -25,6 +25,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useFilaDePopups } from '@/lib/popups/fila'
 import { ativar, estadoAtual, ehIOS, type EstadoPush } from '@/lib/push/navegador'
+import { chavePublicaPush } from '@/app/notificacoes/actions'
 
 const LATAO = '#E2C68C'
 const LATAO_CLARO = '#F4D998'
@@ -40,8 +41,6 @@ interface Props {
   papel: Papel
   /** Quem está vendo — a chave do adiamento é por pessoa. */
   id: string
-  /** Chave pública VAPID. Vazia = servidor ainda não configurado. */
-  chavePublica: string
   /** Grava a inscrição no servidor. Devolve erro em texto, ou null. */
   aoInscrever: (d: { endpoint: string; p256dh: string; auth: string; userAgent: string }) => Promise<string | null>
 }
@@ -88,7 +87,7 @@ function marcar(id: string, valor: 'agora' | 'nao') {
   } catch { /* sem storage, o convite volta em 7 dias de qualquer forma */ }
 }
 
-export default function AtivarNotificacoes({ papel, id, chavePublica, aoInscrever }: Props) {
+export default function AtivarNotificacoes({ papel, id, aoInscrever }: Props) {
   const [estado, setEstado] = useState<EstadoPush | null>(null)
   const [quer, setQuer] = useState(false)
   const [aberto, setAberto] = useState(false)
@@ -162,7 +161,18 @@ export default function AtivarNotificacoes({ papel, id, chavePublica, aoInscreve
   async function ligar() {
     setErro(null)
     setEnviando(true)
-    const r = await ativar(chavePublica)
+
+    // A chave pública é buscada AQUI, no clique, e não no carregamento da
+    // página: assim ela não entra no HTML de quem nunca vai ativar, e uma
+    // troca de chave no banco passa a valer sem redeploy.
+    const c = await chavePublicaPush()
+    if ('error' in c) {
+      setEnviando(false)
+      setErro(c.error)
+      return
+    }
+
+    const r = await ativar(c.chave)
     if (!r.ok) {
       setEnviando(false)
       setEstado(r.estado)
