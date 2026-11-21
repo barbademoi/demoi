@@ -28,6 +28,7 @@
 // produção, no primeiro envio.
 import { setVapidDetails, sendNotification } from 'web-push'
 import type { Mensagem } from './mensagens'
+import type { ConfigPush } from './config'
 
 /** Falhas seguidas antes de desistir de um aparelho. */
 const MAX_FALHAS = 5
@@ -43,27 +44,22 @@ export interface Inscricao {
   falhas: number
 }
 
-let configurado = false
+let assinadaCom: string | null = null
 
 /**
- * Liga o VAPID a partir das variáveis de ambiente.
+ * Arma a assinatura VAPID com as chaves que vieram do banco.
  *
- * Devolve false quando as chaves não existem — e aí NADA é enviado, em
- * silêncio. É o estado do sistema entre o deploy do código e a hora em que as
- * chaves entram no Vercel; derrubar o cron por isso não ajudaria ninguém.
+ * `setVapidDetails` é estado global do módulo `web-push`, então só vale chamar
+ * de novo quando a chave muda — e guardar qual está armada evita refazer isso
+ * em cada mensagem de uma mesma execução.
  */
-export function pushConfigurado(): boolean {
-  if (configurado) return true
-  const publica = process.env.VAPID_PUBLIC_KEY ?? process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-  const privada = process.env.VAPID_PRIVATE_KEY
-  if (!publica || !privada) return false
-
+function armarVapid(cfg: ConfigPush): void {
+  if (assinadaCom === cfg.publica) return
   // O "subject" é o contato que o push service usa pra reclamar com a gente
   // se o remetente se comportar mal. Precisa ser mailto: ou https:.
   const contato = process.env.VAPID_SUBJECT ?? 'mailto:barbeariademoi@gmail.com'
-  setVapidDetails(contato, publica, privada)
-  configurado = true
-  return true
+  setVapidDetails(contato, cfg.publica, cfg.privada)
+  assinadaCom = cfg.publica
 }
 
 export interface ResultadoEnvio {
@@ -83,10 +79,12 @@ export async function enviarPara(
   admin: Admin,
   inscricoes: Inscricao[],
   mensagem: Mensagem,
+  cfg: ConfigPush,
 ): Promise<ResultadoEnvio> {
-  if (!pushConfigurado() || inscricoes.length === 0) {
+  if (inscricoes.length === 0) {
     return { entregues: 0, removidas: 0, falhas: 0 }
   }
+  armarVapid(cfg)
 
   const carga = JSON.stringify({
     titulo: mensagem.titulo,

@@ -337,10 +337,6 @@ export default function BarbeiroClient({
         <AtivarBarbeiro
           barbeiroId={barbeiro.id}
           linkCodigo={barbeiro.link_codigo}
-          // NEXT_PUBLIC_* é embutido no bundle em tempo de build, então um
-          // componente de cliente lê direto — não precisa descer como prop
-          // desde o server component.
-          chavePublica={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''}
         />
       )}
 
