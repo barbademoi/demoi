@@ -40,33 +40,24 @@ async function fotoValida(m: Mentorado, caminho: string) {
   return Boolean(data?.some((o) => o.name === nome))
 }
 
-/** Entregar uma missão (com a prova que ela pede). */
-export async function entregarMissao(token: string, entregaId: string, d: { texto?: string; foto?: string }): Promise<Resposta> {
-  const m = await contexto(token)
-  if ('ok' in m) return m
+type LinhaEntrega = { id: string }
+type LinhaMissao = { titulo: string; aprovacao: boolean }
+
+/** Grava a entrega e avisa o mentor. Devolve a mensagem de erro, se houver. */
+async function registrarEntrega(m: Mentorado, e: LinhaEntrega, missao: LinhaMissao, texto: string | null, foto: string | null): Promise<string | null> {
   const db = createTarefixAdmin()
-  const { data: e } = await db.from('entregas').select('*').eq('id', entregaId).eq('mentorado_id', m.id).maybeSingle()
-  if (!e) return { ok: false, erro: 'Missão não encontrada.' }
-  const { data: missao } = await db.from('missoes').select('*').eq('id', e.missao_id).maybeSingle()
-  if (!missao || !missao.ativo) return { ok: false, erro: 'Esta missão foi pausada.' }
-  if (e.status !== 'pendente' && e.status !== 'devolvida') return { ok: true, estado: await montar(m) }
-
-  const texto = (d.texto ?? '').trim().slice(0, 2000)
-  if (missao.prova === 'texto' && !texto) return { ok: false, erro: 'Escreva a sua resposta para entregar.' }
-  if (missao.prova === 'foto' && (!d.foto || !(await fotoValida(m, d.foto)))) return { ok: false, erro: 'A foto não chegou. Tente de novo.' }
-
   const { error } = await db
     .from('entregas')
     .update({
       status: missao.aprovacao ? 'enviada' : 'aprovada',
-      texto: texto || null,
-      foto_path: missao.prova === 'foto' ? d.foto : null,
+      texto,
+      foto_path: foto,
       enviada_em: new Date().toISOString(),
       decidida_em: missao.aprovacao ? null : new Date().toISOString(),
     })
     .eq('id', e.id)
     .in('status', ['pendente', 'devolvida'])
-  if (error) return { ok: false, erro: 'Não consegui registrar. Tente de novo.' }
+  if (error) return 'Não consegui registrar. Tente de novo.'
 
   // avisa o mentor: no sininho e, se precisar aprovar, no celular
   const { data: empresa } = await db.from('empresas').select('id, push_tipos').eq('id', m.empresa_id).maybeSingle()
@@ -84,6 +75,26 @@ export async function entregarMissao(token: string, entregaId: string, d: { text
   if (empresa && missao.aprovacao) {
     await avisarDonos(empresa, 'extra', { titulo: `${primeiro} entregou uma missão`, corpo: `${missao.titulo} · toque para aprovar`, url: `/tarefix/painel/mentoria/${m.id}`, tag: `mentoria-${m.id}` })
   }
+  return null
+}
+
+/** Entregar uma missão (com a prova que ela pede). */
+export async function entregarMissao(token: string, entregaId: string, d: { texto?: string; foto?: string }): Promise<Resposta> {
+  const m = await contexto(token)
+  if ('ok' in m) return m
+  const db = createTarefixAdmin()
+  const { data: e } = await db.from('entregas').select('*').eq('id', entregaId).eq('mentorado_id', m.id).maybeSingle()
+  if (!e) return { ok: false, erro: 'Missão não encontrada.' }
+  const { data: missao } = await db.from('missoes').select('*').eq('id', e.missao_id).maybeSingle()
+  if (!missao || !missao.ativo) return { ok: false, erro: 'Esta missão foi pausada.' }
+  if (e.status !== 'pendente' && e.status !== 'devolvida') return { ok: true, estado: await montar(m) }
+
+  const texto = (d.texto ?? '').trim().slice(0, 2000)
+  if (missao.prova === 'texto' && !texto) return { ok: false, erro: 'Escreva a sua resposta para entregar.' }
+  if (missao.prova === 'foto' && (!d.foto || !(await fotoValida(m, d.foto)))) return { ok: false, erro: 'A foto não chegou. Tente de novo.' }
+
+  const erro = await registrarEntrega(m, e, missao, texto || null, missao.prova === 'foto' ? d.foto ?? null : null)
+  if (erro) return { ok: false, erro }
   return { ok: true, estado: await montar(m) }
 }
 
@@ -113,17 +124,26 @@ export async function desativarPushMentoria(token: string, endpoint: string): Pr
  * Grava o checklist de uma missão em aberto (o estado inteiro dos itens, na
  * ordem). Rápido: só grava, não remonta a tela — o navegador já mostrou o check.
  */
-export async function marcarItemMissao(token: string, entregaId: string, feitos: boolean[]): Promise<{ ok: true } | { ok: false; erro: string }> {
+export async function marcarItemMissao(token: string, entregaId: string, feitos: boolean[]): Promise<{ ok: true; estado?: EstadoMentoria } | { ok: false; erro: string }> {
   const m = await contexto(token)
   if ('ok' in m) return m
   const db = createTarefixAdmin()
-  const { data: e } = await db.from('entregas').select('id, status, checklist').eq('id', entregaId).eq('mentorado_id', m.id).maybeSingle()
+  const { data: e } = await db.from('entregas').select('id, status, checklist, missao_id').eq('id', entregaId).eq('mentorado_id', m.id).maybeSingle()
   if (!e) return { ok: false, erro: 'Missão não encontrada.' }
   if (e.status !== 'pendente' && e.status !== 'devolvida') return { ok: true }
   const lista = (Array.isArray(e.checklist) ? e.checklist : []) as { t: string; f: boolean }[]
   if (!Array.isArray(feitos) || feitos.length !== lista.length) return { ok: false, erro: 'O checklist mudou. Toque em atualizar.' }
   const { error } = await db.from('entregas').update({ checklist: lista.map((x, i) => ({ t: x.t, f: Boolean(feitos[i]) })) }).eq('id', e.id)
   if (error) return { ok: false, erro: 'Não consegui marcar. Confira a internet.' }
+  // checklist completo numa missão sem prova: já conta como entregue
+  if (lista.length > 0 && feitos.every(Boolean)) {
+    const { data: missao } = await db.from('missoes').select('titulo, aprovacao, prova, ativo').eq('id', e.missao_id).maybeSingle()
+    if (missao?.ativo && missao.prova === 'nenhuma') {
+      const erro = await registrarEntrega(m, e, missao, null, null)
+      if (erro) return { ok: false, erro }
+      return { ok: true, estado: await montar(m) }
+    }
+  }
   return { ok: true }
 }
 

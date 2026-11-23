@@ -71,6 +71,13 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
       try {
         const r = await marcarItemMissao(token, x.id, feitos)
         if (!r.ok) setErro(r.erro)
+        else if (r.estado) {
+          // a missão concluiu sozinha: usa o estado novo, sem perder checks ainda na fila
+          const local = new Map(atual.current.entregas.map((y) => [y.id, y.checklist]))
+          const junto = { ...r.estado, entregas: r.estado.entregas.map((y) => (y.status === 'pendente' || y.status === 'devolvida' ? { ...y, checklist: local.get(y.id) ?? y.checklist } : y)) }
+          atual.current = junto
+          setEstado(junto)
+        }
       } catch {
         setErro('Sem conexão: o check pode não ter sido salvo. Toque em atualizar.')
       }
