@@ -5,6 +5,7 @@ import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { hojeSP } from '@/lib/tarefix/datas'
 import { engajamentoDos, lerEntregas, noPrazo, proximaReuniao, type Mentorado } from '@/lib/tarefix/mentoria'
 import { Titulo } from '@/components/tarefix/ui'
+import { resumoDoDia } from '@/lib/tarefix/mentoriaTexto'
 import { ListaMentoria, type CartaoMentorado } from './ListaMentoria'
 
 export const metadata = { title: 'Mentoria' }
@@ -27,6 +28,7 @@ export default async function Mentoria() {
         prazo: noPrazo(entregas),
         atrasadas: entregas.filter((e) => e.situacao === 'atrasada').length,
         aguardando: entregas.filter((e) => e.situacao === 'aguardando').length,
+        dia: resumoDoDia(entregas),
         reuniao: reuniao?.quando ?? null,
         eng: eng[m.id],
       }

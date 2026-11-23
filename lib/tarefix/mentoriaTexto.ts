@@ -15,3 +15,16 @@ export function textoPrazo(e: ComPrazo, hoje = hojeSP()): string {
   const [, mm, dd] = e.prazo.split('-')
   return `até ${nomes[diaDaSemana(e.prazo)]}, ${dd}/${mm}${hora}${dias > 1 && dias <= 6 ? ` · faltam ${dias} dias` : ''}`
 }
+
+/**
+ * Resumo do dia de um mentorado: quantas missões de hoje ele já entregou.
+ * Entregue = enviada (esperando aprovação) ou aprovada. "Barbearia não abriu"
+ * não entra na conta.
+ */
+export function resumoDoDia(entregas: { prazo: string; status: string; situacao: ComPrazo['situacao'] }[], hoje = hojeSP()) {
+  const doDia = entregas.filter((e) => e.prazo === hoje)
+  const fechado = doDia.some((e) => e.situacao === 'fechada')
+  const contam = doDia.filter((e) => e.situacao !== 'fechada')
+  const feitas = contam.filter((e) => e.status === 'enviada' || e.status === 'aprovada').length
+  return { total: contam.length, feitas, percentual: contam.length ? Math.round((feitas / contam.length) * 100) : null, fechado }
+}

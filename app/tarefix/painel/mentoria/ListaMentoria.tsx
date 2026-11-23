@@ -16,6 +16,7 @@ export type CartaoMentorado = {
   prazo: { total: number; ok: number; percentual: number | null }
   atrasadas: number
   aguardando: number
+  dia: { total: number; feitas: number; percentual: number | null; fechado: boolean }
   reuniao: string | null
   eng: Engajamento
 }
@@ -75,6 +76,22 @@ export function ListaMentoria({ cartoes, hoje }: { cartoes: CartaoMentorado[]; h
                   </div>
                   {c.prazo.percentual !== null && c.ativo && <span className="shrink-0 text-2xl font-black tabular-nums">{c.prazo.percentual}%</span>}
                 </div>
+                {c.ativo && (c.dia.total > 0 || c.dia.fechado) && (
+                  <div className="mt-3">
+                    <div className="mb-1 flex items-baseline justify-between text-sm">
+                      <span className="font-bold">Hoje</span>
+                      <span className="text-tf-suave">
+                        {c.dia.fechado && c.dia.total === 0 ? '🔒 barbearia não abriu' : `${c.dia.feitas} de ${c.dia.total} · `}
+                        {c.dia.percentual !== null && <b className="text-tf-texto">{c.dia.percentual}%</b>}
+                      </span>
+                    </div>
+                    {c.dia.percentual !== null && (
+                      <div className="h-2 overflow-hidden rounded-full bg-tf-borda">
+                        <div className={`h-full rounded-full ${c.dia.percentual === 100 ? 'bg-[#0E7A3B]' : 'bg-tf-marca'}`} style={{ width: `${c.dia.percentual}%` }} />
+                      </div>
+                    )}
+                  </div>
+                )}
                 {c.ativo && (
                   <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold">
                     {c.atrasadas > 0 && <span className="rounded-full bg-tf-texto px-2 py-1 text-tf-fundo">{c.atrasadas} atrasada{c.atrasadas > 1 ? 's' : ''}</span>}
