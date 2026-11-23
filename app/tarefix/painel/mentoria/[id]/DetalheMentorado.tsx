@@ -522,6 +522,7 @@ function QuadroHoje({ entregas, hoje, primeiro }: { entregas: Entrega[]; hoje: s
                 {e.checklist.length > 0 && (
                   <span className="block text-sm text-tf-suave">
                     checklist {feitos}/{e.checklist.length}
+                    {feitos === e.checklist.length && (e.situacao === 'hoje' || e.situacao === 'atrasada' || e.situacao === 'devolvida') && ' · completo, falta tocar em Entregar'}
                   </span>
                 )}
               </span>
