@@ -6,7 +6,8 @@ import type { EntregaTela, Mentorado, Missao, Reuniao } from '@/lib/tarefix/ment
 import { Erro, Interruptor, Modal, resumoDias, useAcao, useAviso } from '@/components/tarefix/ui'
 import { decidirEntrega, editarMentorado, excluirMissao, novoLinkMentorado, pausarMissao, removerReuniao, salvarReuniao, vincularMissoes, excluirAtrasadas } from '../acoes'
 import { EditorMissao } from '../EditorMissao'
-import { textoPrazo } from '@/lib/tarefix/mentoriaTexto'
+import { resumoDoDia, textoPrazo } from '@/lib/tarefix/mentoriaTexto'
+import { Termometro } from '@/components/tarefix/Termometro'
 import { textoPeriodo } from '@/lib/tarefix/periodo'
 import { hojeSP } from '@/lib/tarefix/datas'
 
@@ -97,6 +98,8 @@ export function DetalheMentorado(p: {
       )}
 
       {p.engajamento}
+
+      <QuadroHoje entregas={p.entregas} hoje={p.hoje} primeiro={primeiro} />
 
       {/* link */}
       <section className="tf-cartao space-y-3 p-5">
@@ -458,5 +461,74 @@ export function DetalheMentorado(p: {
       </Modal>
       {aviso.elemento}
     </div>
+  )
+}
+
+const horaBR = (iso: string) => new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
+
+/** O dia de hoje do mentorado: % entregue e a situação de cada missão. */
+function QuadroHoje({ entregas, hoje, primeiro }: { entregas: Entrega[]; hoje: string; primeiro: string }) {
+  const doDia = entregas.filter((e) => e.prazo === hoje)
+  const r = resumoDoDia(entregas, hoje)
+  if (doDia.length === 0) {
+    return (
+      <section className="tf-cartao p-5">
+        <h2 className="text-lg font-extrabold">Hoje</h2>
+        <p className="mt-1 text-tf-suave">{primeiro} não tem missão para hoje.</p>
+      </section>
+    )
+  }
+  const ordem: Record<string, number> = { atrasada: 0, devolvida: 1, hoje: 2, aguardando: 3, concluida: 4, fechada: 5, proxima: 6 }
+  const lista = [...doDia].sort((a, b) => Number(b.destaque) - Number(a.destaque) || ordem[a.situacao] - ordem[b.situacao])
+  const situacao = (e: Entrega): { texto: string; cor: string; icone: string } => {
+    switch (e.situacao) {
+      case 'concluida':
+        return { texto: e.enviada_em ? `feita às ${horaBR(e.enviada_em)}` : 'feita', cor: 'text-[#0E7A3B]', icone: '✓' }
+      case 'aguardando':
+        return { texto: `entregue às ${e.enviada_em ? horaBR(e.enviada_em) : '—'} · esperando você aprovar`, cor: 'text-tf-marca-texto', icone: '⏳' }
+      case 'atrasada':
+        return { texto: `passou do horário${e.hora ? ` (era até ${e.hora})` : ''}`, cor: 'text-tf-texto font-bold', icone: '!' }
+      case 'devolvida':
+        return { texto: 'devolvida, esperando refazer', cor: 'text-tf-texto', icone: '↩' }
+      case 'fechada':
+        return { texto: 'barbearia não abriu', cor: 'text-tf-suave', icone: '🔒' }
+      default:
+        return { texto: e.hora ? `pendente · até ${e.hora}` : 'pendente', cor: 'text-tf-suave', icone: '○' }
+    }
+  }
+  return (
+    <section className="tf-cartao space-y-4 p-5">
+      <h2 className="text-lg font-extrabold">Hoje</h2>
+      {r.percentual !== null ? (
+        <Termometro rotulo="Entregues hoje" percentual={r.percentual} detalhe={`${r.feitas} de ${r.total} missões`} />
+      ) : (
+        <p className="text-tf-suave">🔒 {primeiro} marcou que a barbearia não abriu hoje.</p>
+      )}
+      <ul className="divide-y divide-tf-borda">
+        {lista.map((e) => {
+          const s = situacao(e)
+          const feitos = e.checklist.filter((c) => c.f).length
+          return (
+            <li key={e.id} className="flex items-start gap-3 py-3">
+              <span className={`w-5 shrink-0 text-center font-black ${s.cor}`} aria-hidden>
+                {s.icone}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className={`block font-bold ${e.situacao === 'concluida' ? 'text-tf-suave line-through decoration-2' : ''}`}>
+                  {e.destaque && '⭐ '}
+                  {e.titulo}
+                </span>
+                <span className={`block text-sm ${s.cor}`}>{s.texto}</span>
+                {e.checklist.length > 0 && (
+                  <span className="block text-sm text-tf-suave">
+                    checklist {feitos}/{e.checklist.length}
+                  </span>
+                )}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }
