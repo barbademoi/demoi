@@ -61,6 +61,9 @@ export type EntregaTela = {
   foto_path: string | null
   enviada_em: string | null
   motivo: string | null
+  /** Recado do mentor nesta missão. */
+  comentario: string | null
+  comentario_em: string | null
   tipo: TipoMissao
   checklist: { t: string; f: boolean }[]
   destaque: boolean
@@ -94,7 +97,7 @@ export function situacaoDe(e: { status: StatusEntrega; prazo: string; hora: stri
   return 'proxima'
 }
 
-type LinhaEntrega = { id: string; missao_id: string; mentorado_id: string; prazo: string; status: StatusEntrega; texto: string | null; foto_path: string | null; enviada_em: string | null; motivo: string | null; checklist: unknown }
+type LinhaEntrega = { id: string; missao_id: string; mentorado_id: string; prazo: string; status: StatusEntrega; texto: string | null; foto_path: string | null; enviada_em: string | null; motivo: string | null; checklist: unknown; comentario?: string | null; comentario_em?: string | null }
 
 /**
  * Cria as entregas que faltam e tira as pendentes de missões pausadas,
@@ -185,6 +188,8 @@ export async function lerEntregas(mentoradoId: string, db: Db = createTarefixAdm
         foto_path: l.foto_path,
         enviada_em: l.enviada_em,
         motivo: l.motivo,
+        comentario: l.comentario ?? null,
+        comentario_em: l.comentario_em ?? null,
         checklist: Array.isArray(l.checklist) ? l.checklist : [],
         tipo: m.tipo,
         destaque: Boolean(m.destaque),

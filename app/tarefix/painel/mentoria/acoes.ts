@@ -7,6 +7,7 @@ import { ehAdmin } from '@/lib/tarefix/acessos'
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { lerEntregas, type Prova, type TipoMissao } from '@/lib/tarefix/mentoria'
 import { hojeSP, somarDias } from '@/lib/tarefix/datas'
+import { enviar } from '@/lib/tarefix/push'
 
 /** Só o admin mexe na mentoria (tudo pela service role, sempre filtrando pela empresa dele). */
 async function admin() {
@@ -203,6 +204,40 @@ export async function decidirEntrega(id: string, decisao: 'aprovar' | 'devolver'
     .update(decisao === 'aprovar' ? { status: 'aprovada', decidida_em: new Date().toISOString(), motivo: null } : { status: 'devolvida', decidida_em: new Date().toISOString(), motivo: texto })
     .eq('id', id)
   if (error) return { ok: false, erro: error.message }
+  revalidar()
+  return { ok: true }
+}
+
+/**
+ * Comentário do mentor numa missão (vazio apaga). O mentorado vê o recado no
+ * link e recebe uma notificação no celular.
+ */
+export async function comentarEntrega(id: string, comentario: string): Promise<Resultado> {
+  const a = await admin()
+  if ('ok' in a) return a
+  const { data: e } = await a.db.from('entregas').select('id, mentorado_id, missao_id').eq('id', id).maybeSingle()
+  if (!e) return { ok: false, erro: 'Missão não encontrada.' }
+  const { data: m } = await a.db.from('mentorados').select('id, token, nome').eq('id', e.mentorado_id).eq('empresa_id', a.empresaId).maybeSingle()
+  if (!m) return { ok: false, erro: 'Missão não encontrada.' }
+  const texto = comentario.trim().slice(0, 500)
+  const { error } = await a.db
+    .from('entregas')
+    .update({ comentario: texto || null, comentario_em: texto ? new Date().toISOString() : null })
+    .eq('id', id)
+  if (error) return { ok: false, erro: 'Não consegui salvar o comentário.' }
+  if (texto) {
+    try {
+      const [{ data: missao }, { data: insc }] = await Promise.all([
+        a.db.from('missoes').select('titulo').eq('id', e.missao_id).maybeSingle(),
+        a.db.from('push_inscricoes').select('id, endpoint, p256dh, auth').eq('mentorado_id', m.id),
+      ])
+      if (insc?.length) {
+        await enviar(insc, { titulo: `💬 Recado do mentor: ${missao?.titulo ?? 'missão'}`, corpo: texto, url: `/tarefix/m/${m.token}`, tag: `m-com-${id}` }, a.db)
+      }
+    } catch (err) {
+      console.error('[tarefix] push do comentário', err)
+    }
+  }
   revalidar()
   return { ok: true }
 }

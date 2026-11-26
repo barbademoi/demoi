@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { EntregaTela, Mentorado, Missao, Reuniao } from '@/lib/tarefix/mentoria'
 import { Erro, Interruptor, Modal, resumoDias, useAcao, useAviso } from '@/components/tarefix/ui'
-import { decidirEntrega, editarMentorado, excluirMissao, novoLinkMentorado, pausarMissao, removerReuniao, salvarReuniao, vincularMissoes, excluirAtrasadas } from '../acoes'
+import { decidirEntrega, editarMentorado, excluirMissao, novoLinkMentorado, pausarMissao, removerReuniao, salvarReuniao, vincularMissoes, excluirAtrasadas, comentarEntrega } from '../acoes'
 import { EditorMissao } from '../EditorMissao'
 import { resumoDoDia, textoPrazo } from '@/lib/tarefix/mentoriaTexto'
 import { Termometro } from '@/components/tarefix/Termometro'
@@ -477,6 +477,7 @@ function nomeDoDia(dia: string, hoje: string) {
 /** O dia do mentorado (hoje ou um dia passado): % entregue e a situação de cada missão. */
 function QuadroHoje({ entregas, hoje, primeiro }: { entregas: Entrega[]; hoje: string; primeiro: string }) {
   const [dia, setDia] = useState(hoje)
+  const [comentando, setComentando] = useState<Entrega | null>(null)
   const primeiroDia = entregas.reduce((min, e) => (e.prazo < min ? e.prazo : min), hoje)
   const ehHoje = dia === hoje
   const nome = nomeDoDia(dia, hoje)
@@ -551,11 +552,68 @@ function QuadroHoje({ entregas, hoje, primeiro }: { entregas: Entrega[]; hoje: s
                     {feitos === e.checklist.length && (e.situacao === 'hoje' || e.situacao === 'atrasada' || e.situacao === 'devolvida') && ' · completo, falta tocar em Entregar'}
                   </span>
                 )}
+                {e.comentario && (
+                  <span className="mt-1 block rounded-xl bg-tf-marca-clara px-3 py-2 text-sm">
+                    💬 <b>Seu comentário:</b> “{e.comentario}”
+                  </span>
+                )}
+                {e.situacao !== 'fechada' && (
+                  <button type="button" className="mt-1 min-h-[36px] text-sm font-bold text-tf-marca-texto" onClick={() => setComentando(e)}>
+                    {e.comentario ? 'Editar comentário' : '💬 Comentar'}
+                  </button>
+                )}
               </span>
             </li>
           )
         })}
       </ul>
+      {comentando && <ModalComentario entrega={comentando} primeiro={primeiro} aoFechar={() => setComentando(null)} />}
     </section>
+  )
+}
+
+/** Comentar uma missão: o mentorado vê o recado no link e recebe notificação. */
+function ModalComentario({ entrega, primeiro, aoFechar }: { entrega: Entrega; primeiro: string; aoFechar: () => void }) {
+  const router = useRouter()
+  const acao = useAcao()
+  const [texto, setTexto] = useState(entrega.comentario ?? '')
+  const salvar = (valor: string) =>
+    acao.rodar(
+      () => comentarEntrega(entrega.id, valor),
+      () => {
+        router.refresh()
+        aoFechar()
+      }
+    )
+  return (
+    <Modal aberto aoFechar={() => !acao.pendente && aoFechar()} titulo="Comentar missão">
+      <form
+        className="space-y-4"
+        onSubmit={(ev) => {
+          ev.preventDefault()
+          salvar(texto)
+        }}
+      >
+        <p className="font-bold">{entrega.titulo}</p>
+        <textarea
+          className="tf-campo min-h-[110px] py-3"
+          autoFocus
+          maxLength={500}
+          value={texto}
+          onChange={(ev) => setTexto(ev.target.value)}
+          placeholder={`Ex.: ${primeiro}, o que aconteceu? Amanhã não pode passar!`}
+        />
+        <p className="text-sm text-tf-suave">{primeiro} vê o comentário no link e recebe uma notificação no celular.</p>
+        <Erro texto={acao.erro} />
+        <button type="submit" className="tf-botao w-full" disabled={acao.pendente || !texto.trim()}>
+          {acao.pendente ? 'Enviando…' : 'Enviar comentário'}
+        </button>
+        {entrega.comentario && (
+          <button type="button" className="w-full text-sm font-bold text-tf-suave" disabled={acao.pendente} onClick={() => salvar('')}>
+            Apagar comentário
+          </button>
+        )}
+      </form>
+    </Modal>
   )
 }
