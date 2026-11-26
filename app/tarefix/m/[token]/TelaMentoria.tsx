@@ -94,6 +94,12 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
     { titulo: 'Esperando o mentor aprovar', itens: doDia.filter((x) => x.situacao === 'aguardando'), tom: 'normal' },
   ]
   const concluidas = doDia.filter((x) => x.situacao === 'concluida').reverse()
+  // recados do mentor em missões que não estão nos cartões acima (últimos 7 dias)
+  const nosCartoes = new Set(grupos.flatMap((g) => g.itens.map((x) => x.id)))
+  const desde = new Date(Date.now() - 7 * 864e5).toISOString()
+  const recados = e
+    .filter((x) => x.comentario && x.comentario_em && x.comentario_em >= desde && !nosCartoes.has(x.id))
+    .sort((a, b) => (b.comentario_em ?? '').localeCompare(a.comentario_em ?? ''))
   const fechadoHoje = e.some((x) => x.prazo === hoje && x.situacao === 'fechada')
   const abertasHoje = e.filter((x) => x.prazo === hoje && x.status === 'pendente').length
   const [fechando, setFechando] = useState(false)
@@ -200,6 +206,22 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
         <Erro texto={!entregando ? erro : null} />
       </div>
 
+      {recados.length > 0 && (
+        <section className="mt-6">
+          <h2 className="mb-2 text-lg font-extrabold">💬 Recados de {estado.mentor}</h2>
+          <ul className="space-y-3">
+            {recados.map((x) => (
+              <li key={x.id} className="tf-cartao !border-2 !border-tf-marca p-4">
+                <p className="text-sm font-bold text-tf-suave">
+                  {x.titulo} · {x.prazo.split('-').reverse().slice(0, 2).join('/')}
+                </p>
+                <p className="mt-1 text-base">“{x.comentario}”</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {grupos.map(
         (g) =>
           g.itens.length > 0 && (
@@ -227,6 +249,11 @@ export function TelaMentoria({ token, nome, inicial, hoje }: { token: string; no
                       desabilitado={x.situacao === 'aguardando'}
                       aoMarcar={(i, f) => marcarItem(x, i, f)}
                     />
+                    {x.comentario && (
+                      <p className="mt-2 rounded-xl bg-tf-marca-clara px-3 py-2 text-sm">
+                        💬 <b>{estado.mentor}:</b> “{x.comentario}”
+                      </p>
+                    )}
                     {x.situacao === 'devolvida' && x.motivo && (
                       <p className="mt-2 rounded-xl bg-tf-texto px-3 py-2 text-sm font-bold text-tf-fundo">
                         {estado.mentor} pediu ajuste: “{x.motivo}”
