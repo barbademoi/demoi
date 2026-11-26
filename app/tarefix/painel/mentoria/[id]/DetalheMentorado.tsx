@@ -9,7 +9,7 @@ import { EditorMissao } from '../EditorMissao'
 import { resumoDoDia, textoPrazo } from '@/lib/tarefix/mentoriaTexto'
 import { Termometro } from '@/components/tarefix/Termometro'
 import { textoPeriodo } from '@/lib/tarefix/periodo'
-import { hojeSP } from '@/lib/tarefix/datas'
+import { diaDaSemana, hojeSP, somarDias } from '@/lib/tarefix/datas'
 
 type Entrega = EntregaTela & { foto_url: string | null }
 type MissaoPara = Missao & { para: string[] }
@@ -466,28 +466,38 @@ export function DetalheMentorado(p: {
 
 const horaBR = (iso: string) => new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
 
-/** O dia de hoje do mentorado: % entregue e a situação de cada missão. */
+const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
+function nomeDoDia(dia: string, hoje: string) {
+  if (dia === hoje) return 'Hoje'
+  if (dia === somarDias(hoje, -1)) return 'Ontem'
+  const [, mes, d] = dia.split('-')
+  return `${SEMANA[diaDaSemana(dia)]}, ${d}/${mes}`
+}
+
+/** O dia do mentorado (hoje ou um dia passado): % entregue e a situação de cada missão. */
 function QuadroHoje({ entregas, hoje, primeiro }: { entregas: Entrega[]; hoje: string; primeiro: string }) {
-  const doDia = entregas.filter((e) => e.prazo === hoje)
-  const r = resumoDoDia(entregas, hoje)
-  if (doDia.length === 0) {
-    return (
-      <section className="tf-cartao p-5">
-        <h2 className="text-lg font-extrabold">Hoje</h2>
-        <p className="mt-1 text-tf-suave">{primeiro} não tem missão para hoje.</p>
-      </section>
-    )
-  }
+  const [dia, setDia] = useState(hoje)
+  const primeiroDia = entregas.reduce((min, e) => (e.prazo < min ? e.prazo : min), hoje)
+  const ehHoje = dia === hoje
+  const nome = nomeDoDia(dia, hoje)
+  const doDia = entregas.filter((e) => e.prazo === dia)
+  const r = resumoDoDia(entregas, dia)
   const ordem: Record<string, number> = { atrasada: 0, devolvida: 1, hoje: 2, aguardando: 3, concluida: 4, fechada: 5, proxima: 6 }
   const lista = [...doDia].sort((a, b) => Number(b.destaque) - Number(a.destaque) || ordem[a.situacao] - ordem[b.situacao])
+  const quando = (iso: string) => {
+    const d = hojeSP(new Date(iso))
+    return d === dia ? `às ${horaBR(iso)}` : `${nomeDoDia(d, hoje).toLowerCase()} às ${horaBR(iso)}`
+  }
   const situacao = (e: Entrega): { texto: string; cor: string; icone: string } => {
     switch (e.situacao) {
       case 'concluida':
-        return { texto: e.enviada_em ? `feita às ${horaBR(e.enviada_em)}` : 'feita', cor: 'text-[#0E7A3B]', icone: '✓' }
+        return { texto: e.enviada_em ? `feita ${quando(e.enviada_em)}` : 'feita', cor: 'text-[#0E7A3B]', icone: '✓' }
       case 'aguardando':
-        return { texto: `entregue às ${e.enviada_em ? horaBR(e.enviada_em) : '—'} · esperando você aprovar`, cor: 'text-tf-marca-texto', icone: '⏳' }
+        return { texto: `entregue ${e.enviada_em ? quando(e.enviada_em) : ''} · esperando você aprovar`, cor: 'text-tf-marca-texto', icone: '⏳' }
       case 'atrasada':
-        return { texto: `passou do horário${e.hora ? ` (era até ${e.hora})` : ''}`, cor: 'text-tf-texto font-bold', icone: '!' }
+        return ehHoje
+          ? { texto: `passou do horário${e.hora ? ` (era até ${e.hora})` : ''}`, cor: 'text-tf-texto font-bold', icone: '!' }
+          : { texto: 'não fez', cor: 'text-tf-texto font-bold', icone: '✗' }
       case 'devolvida':
         return { texto: 'devolvida, esperando refazer', cor: 'text-tf-texto', icone: '↩' }
       case 'fechada':
@@ -496,13 +506,29 @@ function QuadroHoje({ entregas, hoje, primeiro }: { entregas: Entrega[]; hoje: s
         return { texto: e.hora ? `pendente · até ${e.hora}` : 'pendente', cor: 'text-tf-suave', icone: '○' }
     }
   }
+  const seta = 'flex h-11 w-11 items-center justify-center rounded-full border border-tf-borda text-xl font-black disabled:opacity-30'
   return (
     <section className="tf-cartao space-y-4 p-5">
-      <h2 className="text-lg font-extrabold">Hoje</h2>
-      {r.percentual !== null ? (
-        <Termometro rotulo="Entregues hoje" percentual={r.percentual} detalhe={`${r.feitas} de ${r.total} missões`} />
+      <div className="flex items-center gap-2">
+        <button type="button" className={seta} aria-label="Dia anterior" disabled={dia <= primeiroDia} onClick={() => setDia(somarDias(dia, -1))}>
+          ‹
+        </button>
+        <h2 className="flex-1 text-center text-lg font-extrabold">{nome}</h2>
+        <button type="button" className={seta} aria-label="Próximo dia" disabled={ehHoje} onClick={() => setDia(somarDias(dia, 1))}>
+          ›
+        </button>
+      </div>
+      {!ehHoje && (
+        <button type="button" className="mx-auto block text-sm font-bold text-tf-marca-texto" onClick={() => setDia(hoje)}>
+          Voltar para hoje
+        </button>
+      )}
+      {doDia.length === 0 ? (
+        <p className="text-center text-tf-suave">{primeiro} não tinha missão {ehHoje ? 'para hoje' : 'neste dia'}.</p>
+      ) : r.percentual !== null ? (
+        <Termometro rotulo={ehHoje ? 'Entregues hoje' : 'Entregues no dia'} percentual={r.percentual} detalhe={`${r.feitas} de ${r.total} missões`} />
       ) : (
-        <p className="text-tf-suave">🔒 {primeiro} marcou que a barbearia não abriu hoje.</p>
+        <p className="text-tf-suave">🔒 {primeiro} marcou que a barbearia não abriu {ehHoje ? 'hoje' : 'neste dia'}.</p>
       )}
       <ul className="divide-y divide-tf-borda">
         {lista.map((e) => {
