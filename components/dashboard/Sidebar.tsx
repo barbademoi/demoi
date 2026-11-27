@@ -16,6 +16,7 @@ import { contarCondutaNaoLidas } from '@/lib/conduta/unread'
 import type { BrindoletaStatus } from '@/lib/brindoleta/config'
 import PreviewPlusModal from './PreviewPlusModal'
 import BrindoletaLaunchModal from './BrindoletaLaunchModal'
+import TarefixLaunchModal from '@/components/tarefixModulo/TarefixLaunchModal'
 
 const COMPORTAMENTO_HREF = '/dashboard/comportamento'
 
@@ -84,6 +85,18 @@ const navItems: NavItem[] = [
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
         <circle cx="12" cy="12" r="10" />
         <polygon points="10 8 16 12 10 16 10 8" />
+      </svg>
+    ),
+  },
+  {
+    href: '/dashboard/tarefix',
+    label: 'Tarefix',
+    badge: 'NOVO',
+    destaque: true,
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" aria-hidden>
+        <circle cx="12" cy="12" r="10" fill="#5B3DF5" />
+        <path d="M7.5 12.4l3 3 6-6.3" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },
@@ -625,6 +638,7 @@ export default function Sidebar({ barbeariaNome, onFerramentasClick, showFerrame
       </aside>
 
       <BrindoletaLaunchModal status={brindoletaStatus} />
+      <TarefixLaunchModal />
       <PreviewPlusModal open={showPreview} onClose={() => setShowPreview(false)} />
     </>
   )

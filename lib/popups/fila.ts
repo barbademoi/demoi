@@ -48,6 +48,8 @@ export const PRIORIDADE = {
   'lembrete-meta': 1,
   'brindoleta-lancamento': 2,
   'brindoleta-oferta': 3,
+  /** Lançamento do Tarefix (módulo extra). */
+  'tarefix-lancamento': 3.2,
   /**
    * Convite pra ligar as notificações. Vem antes do aviso de lançamento
    * porque resolve o mesmo problema de um jeito melhor: quem liga os avisos
