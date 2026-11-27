@@ -3,6 +3,7 @@
 import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import { createTarefixServer } from '@/lib/tarefix/supabase/server'
 import { criarEmpresaEDono, dentroDoLimite, type Uso } from '@/lib/tarefix/cadastro'
+import { ehClienteBarbermeta } from '@/lib/tarefixModulo/clienteBarbermeta'
 
 type Resposta = { ok: true; destino: string } | { ok: false; erro: string; jaTemConta?: boolean }
 
@@ -36,7 +37,7 @@ export async function criarConta(d: { nome: string; email: string; senha: string
   })
   if (error || !criado.user) {
     if (/already|registered|exists/i.test(error?.message ?? '')) {
-      return { ok: false, jaTemConta: true, erro: 'Este e-mail já tem conta (pode ser do BarberMeta). Entre com ela: lá você cria o seu Tarefix em um toque.' }
+      return { ok: false, jaTemConta: true, erro: 'Este e-mail já tem conta. Entre com ela. Se for cliente do BarberMeta, o Tarefix fica no menu do BarberMeta.' }
     }
     return { ok: false, erro: 'Não consegui criar a conta agora. Tente de novo.' }
   }
@@ -56,6 +57,8 @@ export async function criarMeuTarefix(d: { empresa: string; uso: Uso }): Promise
   const { data: ja } = await db.from('donos').select('id').eq('id', user.id).maybeSingle()
   const uso: Uso = d.uso === 'equipe' ? 'equipe' : 'pessoal'
   if (ja) return { ok: true, destino: destino(uso) }
+  // cliente do BarberMeta: o Tarefix é módulo pago, comprado dentro do BarberMeta
+  if (await ehClienteBarbermeta(user.id)) return { ok: false, erro: 'Para clientes do BarberMeta, o Tarefix é liberado pelo menu Tarefix do BarberMeta.' }
   const nome = String(user.user_metadata?.nome ?? user.user_metadata?.name ?? user.email.split('@')[0]).slice(0, 80)
   const r = await criarEmpresaEDono(db, { userId: user.id, nome, email: user.email, empresa: nomeEmpresa(uso, nome, d.empresa) })
   return r.ok ? { ok: true, destino: destino(uso) } : { ok: false, erro: r.erro }
