@@ -65,8 +65,8 @@ export function FormCompra({ pixKey, pixReceiver, pixQrImageUrl, pixPaymentUrl }
             <input id="v-nome" className="tf-campo" required maxLength={80} autoComplete="name" value={d.nome} onChange={set('nome')} />
           </div>
           <div>
-            <label className="tf-rotulo" htmlFor="v-empresa">Nome da barbearia</label>
-            <input id="v-empresa" className="tf-campo" required maxLength={80} value={d.empresa} onChange={set('empresa')} placeholder="Ex.: Barbearia Navalha" />
+            <label className="tf-rotulo" htmlFor="v-empresa">Nome da empresa ou negócio</label>
+            <input id="v-empresa" className="tf-campo" required maxLength={80} value={d.empresa} onChange={set('empresa')} placeholder="Ex.: Studio Bella, Clínica Sorriso…" />
           </div>
           <div>
             <label className="tf-rotulo" htmlFor="v-zap">WhatsApp (com DDD)</label>

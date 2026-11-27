@@ -35,7 +35,7 @@ export async function registrarPedido(d: DadosPedido, podeCadastrar: () => Promi
   if (nome.length < 2) return { ok: false, erro: 'Diga o seu nome.' }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return { ok: false, erro: 'E-mail inválido.' }
   if (!whatsapp) return { ok: false, erro: 'Informe um WhatsApp válido, com DDD.' }
-  if (empresa.length < 2) return { ok: false, erro: 'Informe o nome da barbearia.' }
+  if (empresa.length < 2) return { ok: false, erro: 'Informe o nome da empresa ou negócio.' }
 
   const db = createTarefixAdmin()
   // mesmo e-mail com pedido em aberto: não duplica

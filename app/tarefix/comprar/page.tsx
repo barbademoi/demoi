@@ -5,7 +5,7 @@ import { tarefixPaymentConfig } from '@/lib/tarefixModulo/config'
 import { FormCompra } from './FormCompra'
 
 export const metadata: Metadata = {
-  title: 'Tarefix: a rotina da sua barbearia no piloto automático',
+  title: 'Tarefix: a rotina do seu negócio no piloto automático',
   description: 'Tarefas da equipe no celular, com horário, prova com foto e um painel que mostra quem cumpriu. R$ 47, pagamento único.',
   openGraph: {
     title: 'Tarefix: pare de cobrar a equipe no grupo',
@@ -15,12 +15,12 @@ export const metadata: Metadata = {
 }
 
 const DORES = [
-  'Você chega e a bancada está suja, o chão com cabelo, a toalha fora do lugar.',
+  'Você chega e o lugar não está do jeito que deveria: sujo, desorganizado, nada pronto.',
   'Repete a mesma coisa todo dia no grupo do WhatsApp — e ninguém lê.',
-  'A pomada acabou na vitrine e ninguém avisou. O cliente quis comprar e não tinha.',
-  'O story do dia não foi postado. De novo.',
+  'O produto acabou e ninguém avisou. O cliente quis comprar e não tinha.',
+  'O post do dia não foi feito. O relatório não foi enviado. De novo.',
   'Você só descobre que algo não foi feito quando o cliente reclama.',
-  'No fim, você virou fiscal da barbearia em vez de dono dela.',
+  'No fim, você virou fiscal do próprio negócio em vez de dono dele.',
 ]
 
 const PASSOS = [
@@ -45,8 +45,8 @@ const FAQ = [
   ['Como a equipe entra?', 'Cada colaborador recebe um link próprio e um PIN de 4 números. Ele vê só as tarefas dele.'],
   ['Tem mensalidade?', 'Não. São R$ 47 uma única vez.'],
   ['Como recebo o acesso?', 'Depois que o Pix é conferido, você recebe no WhatsApp o link, o seu e-mail de login e uma senha provisória.'],
-  ['Serve para recepção também?', 'Sim: confirmar agendamentos, mandar mensagem para clientes sumidos, fechar o caixa… qualquer função.'],
-  ['E se eu não tiver equipe?', 'Use o “Meu dia”: a sua lista de tarefas com lembretes, para não esquecer nada da barbearia.'],
+  ['Serve para o meu tipo de negócio?', 'Sim. Qualquer rotina que se repete vira tarefa: abrir e fechar, limpeza, estoque, atendimento, redes sociais, caixa, relatórios… em qualquer função e qualquer ramo.'],
+  ['E se eu não tiver equipe?', 'Use o “Meu dia”: a sua lista de tarefas com lembretes, para não esquecer nada do dia.'],
 ]
 
 function Celular({ src, alt, legenda, texto }: { src: string; alt: string; legenda: string; texto: string }) {
@@ -82,16 +82,16 @@ export default function Comprar() {
       {/* hero */}
       <section className="mx-auto grid max-w-5xl items-center gap-10 px-4 pb-14 pt-6 md:grid-cols-[1.1fr_0.9fr]">
         <div>
-          <span className="inline-flex rounded-full bg-tf-marca-clara px-3 py-1 text-xs font-extrabold uppercase tracking-[0.14em] text-tf-marca-texto">Para donos de barbearia</span>
+          <span className="inline-flex rounded-full bg-tf-marca-clara px-3 py-1 text-xs font-extrabold uppercase tracking-[0.14em] text-tf-marca-texto">Para qualquer negócio ou pessoa</span>
           <h1 className="mt-4 text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl">
             Sua equipe faz o que tem que ser feito. <span className="text-tf-marca-texto">Sem você precisar cobrar.</span>
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-tf-suave">
-            O Tarefix coloca a rotina da barbearia no celular de cada colaborador: tarefas com horário, prova com foto e um painel que mostra para você quem cumpriu.
+            O Tarefix transforma a rotina em processo: cada pessoa recebe no celular as tarefas com horário, manda a prova com foto, e você vê num painel quem cumpriu. Serve para barbearia, salão, clínica, loja, restaurante, escritório… ou só para você.
           </p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
             <a href="#comprar" className={cta}>
-              Quero organizar minha barbearia
+              Quero organizar meu negócio
             </a>
             <span className="text-center text-sm text-tf-suave sm:text-left">
               <b className="text-tf-texto">R$ 47</b> · pagamento único
@@ -169,8 +169,8 @@ export default function Comprar() {
       <section id="comprar" className="scroll-mt-4 bg-[#17152b] py-16">
         <div className="mx-auto grid max-w-5xl gap-10 px-4 md:grid-cols-2 md:items-start">
           <div className="text-white">
-            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Organize a barbearia hoje</h2>
-            <p className="mt-4 text-lg leading-relaxed text-white/80">Menos do que um corte com barba. Uma vez só, sem mensalidade.</p>
+            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Organize sua rotina hoje</h2>
+            <p className="mt-4 text-lg leading-relaxed text-white/80">Menos do que um almoço fora. Uma vez só, sem mensalidade.</p>
             <div className="mt-8 rounded-3xl border border-white/15 bg-white/5 p-6">
               <p className="text-white/70">Tarefix completo</p>
               <p className="mt-1 text-5xl font-black">R$ 47</p>
