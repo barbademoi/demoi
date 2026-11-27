@@ -6,7 +6,7 @@ import { NIVEIS, SEMANAS_CICLO } from '../opcoes'
 
 export default async function Encontros() {
   const { supabase } = await requireAdmin()
-  const { data } = await supabase.from('meetings').select('*').order('data', { ascending: false })
+  const { data } = await supabase.from('mdc_meetings').select('*').order('data', { ascending: false })
   const itens = (data ?? []).map((m) => ({
     ...m,
     nivel: String(m.nivel),
@@ -16,11 +16,11 @@ export default async function Encontros() {
 
   async function salvar(id: string | null, d: Record<string, unknown>) {
     'use server'
-    await salvarItem('meetings', id, d)
+    await salvarItem('mdc_meetings', id, d)
   }
   async function excluir(id: string) {
     'use server'
-    await excluirItem('meetings', id)
+    await excluirItem('mdc_meetings', id)
   }
 
   return (

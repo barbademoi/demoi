@@ -37,12 +37,17 @@ export async function criarConta(fd: FormData): Promise<ResultadoConta> {
   if (erroCriar || !criado.user) {
     const existe = /already|registered|exists/i.test(erroCriar?.message ?? '')
     return existe
-      ? { ok: false, erros: { email: 'Esse e-mail já tem conta.' }, jaExiste: true, mensagem: 'Esse e-mail já tem conta. Entre para continuar.' }
+      ? {
+          ok: false,
+          erros: { email: 'Esse e-mail já tem conta.' },
+          jaExiste: true,
+          mensagem: 'Esse e-mail já tem conta (pode ser a do BarberMeta). Entre com a mesma senha para continuar a compra.',
+        }
       : { ok: false, erros: {}, mensagem: 'Não deu pra criar a conta agora. Tenta de novo.' }
   }
   const uid = criado.user.id
 
-  const { error: erroMembro } = await admin.from('members').insert({ id: uid, nome, email, whatsapp, plano, status: 'pendente' })
+  const { error: erroMembro } = await admin.from('mdc_members').insert({ id: uid, nome, email, whatsapp, plano, status: 'pendente' })
   if (erroMembro) {
     await admin.auth.admin.deleteUser(uid)
     return { ok: false, erros: {}, mensagem: 'Não deu pra criar a conta agora. Tenta de novo.' }
@@ -50,7 +55,7 @@ export async function criarConta(fd: FormData): Promise<ResultadoConta> {
 
   const termo = await lerConfig('termo', TERMO_PADRAO)
   const h = headers()
-  await admin.from('terms_acceptances').insert({
+  await admin.from('mdc_terms_acceptances').insert({
     member_id: uid,
     versao: termo.versao,
     ip: (h.get('x-forwarded-for') ?? '').split(',')[0].trim() || null,
@@ -59,5 +64,43 @@ export async function criarConta(fd: FormData): Promise<ResultadoConta> {
 
   const supabase = createClient()
   await supabase.auth.signInWithPassword({ email, password: senha })
+  return { ok: true }
+}
+
+/**
+ * Quem já tem login (ex.: cliente do BarberMeta, que divide o mesmo cadastro)
+ * só completa os dados do MDC e aceita o termo.
+ */
+export async function criarMembroLogado(fd: FormData): Promise<ResultadoConta> {
+  const plano = String(fd.get('plano') ?? '')
+  const nome = String(fd.get('nome') ?? '').trim().slice(0, 120)
+  const whatsapp = digitos(String(fd.get('whatsapp') ?? ''))
+  const aceite = fd.get('aceite') === 'on'
+  const erros: Record<string, string> = {}
+  if (!planoValido(plano)) erros.plano = 'Escolhe um plano.'
+  if (nome.length < 2) erros.nome = 'Coloca seu nome.'
+  if (whatsapp.length < 10 || whatsapp.length > 11) erros.whatsapp = 'Coloca o WhatsApp com DDD.'
+  if (!aceite) erros.aceite = 'Precisa aceitar o termo de adesão.'
+  if (Object.keys(erros).length) return { ok: false, erros }
+
+  const supabase = createClient()
+  const { data } = await supabase.auth.getUser()
+  const user = data.user
+  if (!user?.email) return { ok: false, erros: {}, mensagem: 'Sessão expirada. Entre de novo.' }
+
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('mdc_members')
+    .upsert({ id: user.id, nome, email: user.email.toLowerCase(), whatsapp, plano, status: 'pendente' }, { onConflict: 'id', ignoreDuplicates: true })
+  if (error) return { ok: false, erros: {}, mensagem: 'Não deu pra continuar agora. Tenta de novo.' }
+
+  const termo = await lerConfig('termo', TERMO_PADRAO)
+  const h = headers()
+  await admin.from('mdc_terms_acceptances').insert({
+    member_id: user.id,
+    versao: termo.versao,
+    ip: (h.get('x-forwarded-for') ?? '').split(',')[0].trim() || null,
+    user_agent: (h.get('user-agent') ?? '').slice(0, 300) || null,
+  })
   return { ok: true }
 }

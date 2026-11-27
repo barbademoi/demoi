@@ -18,9 +18,9 @@ export default async function Missoes() {
 
   const hoje = hojeSP()
   const [{ data: ms }, { data: rs }, { data: kits }] = await Promise.all([
-    supabase.from('mission_templates').select('*').eq('ativo', true),
-    supabase.from('mission_logs').select('id, template_id, dia, semana, observacao').eq('member_id', user.id),
-    supabase.from('kit_materials').select('id, titulo, file_path'),
+    supabase.from('mdc_mission_templates').select('*').eq('ativo', true),
+    supabase.from('mdc_mission_logs').select('id, template_id, dia, semana, observacao').eq('member_id', user.id),
+    supabase.from('mdc_kit_materials').select('id, titulo, file_path'),
   ])
   const modelos = (ms as Modelo[]) ?? []
   const registros = (rs as Registro[]) ?? []

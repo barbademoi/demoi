@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/server'
 export async function lerConfig<T>(key: string, padrao: T): Promise<T> {
   try {
     const supabase = createClient()
-    const { data } = await supabase.from('settings').select('value').eq('key', key).maybeSingle()
+    const { data } = await supabase.from('mdc_settings').select('value').eq('key', key).maybeSingle()
     return mesclar(padrao, data?.value)
   } catch {
     return padrao

@@ -27,10 +27,10 @@ type Pagamento = {
 export default async function MembroDetalhe({ params }: { params: { id: string } }) {
   const { supabase } = await requireAdmin()
   const [{ data: m }, { data: pags }, { data: termos }, { data: diags }] = await Promise.all([
-    supabase.from('members').select('*').eq('id', params.id).maybeSingle(),
-    supabase.from('payments').select('*').eq('member_id', params.id).order('created_at', { ascending: false }),
-    supabase.from('terms_acceptances').select('*').eq('member_id', params.id).order('aceito_em', { ascending: false }),
-    supabase.from('diagnosticos').select('*').eq('member_id', params.id),
+    supabase.from('mdc_members').select('*').eq('id', params.id).maybeSingle(),
+    supabase.from('mdc_payments').select('*').eq('member_id', params.id).order('created_at', { ascending: false }),
+    supabase.from('mdc_terms_acceptances').select('*').eq('member_id', params.id).order('aceito_em', { ascending: false }),
+    supabase.from('mdc_diagnosticos').select('*').eq('member_id', params.id),
   ])
   if (!m) notFound()
   const membro = m as Membro
@@ -43,7 +43,7 @@ export default async function MembroDetalhe({ params }: { params: { id: string }
     pagamentos
       .filter((p) => p.comprovante_path)
       .map(async (p) => {
-        const { data } = await admin.storage.from('comprovantes').createSignedUrl(p.comprovante_path!, 3600)
+        const { data } = await admin.storage.from('mdc-comprovantes').createSignedUrl(p.comprovante_path!, 3600)
         if (data?.signedUrl) links[p.id] = data.signedUrl
       }),
   )

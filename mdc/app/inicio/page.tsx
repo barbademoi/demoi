@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 export default async function Inicio() {
   const { supabase, user } = await usuarioAtual()
   if (!user) redirect('/entrar')
-  const { data: ehAdmin } = await supabase.rpc('is_admin')
+  const { data: ehAdmin } = await supabase.rpc('mdc_is_admin')
   if (ehAdmin) redirect('/admin')
   // /app decide: pagamento, aguardando, renovar, diagnóstico ou área do membro.
   redirect('/app')

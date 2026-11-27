@@ -12,10 +12,10 @@ export default async function Inicio({ searchParams }: { searchParams: { 'boas-v
 
   const [links, { data: ciclo }, { data: ultimo }, { data: prog }, { count: fez90 }] = await Promise.all([
     lerConfig('links_membros', LINKS_PADRAO),
-    supabase.from('ciclo').select('*').eq('semana', semanaCiclo).maybeSingle(),
-    supabase.from('meetings').select('*').eq('is_ultimo', true).maybeSingle(),
-    supabase.rpc('meu_progresso').maybeSingle(),
-    supabase.from('diagnosticos').select('id', { count: 'exact', head: true }).eq('member_id', user.id).eq('tipo', '90dias'),
+    supabase.from('mdc_ciclo').select('*').eq('semana', semanaCiclo).maybeSingle(),
+    supabase.from('mdc_meetings').select('*').eq('is_ultimo', true).maybeSingle(),
+    supabase.rpc('mdc_meu_progresso').maybeSingle(),
+    supabase.from('mdc_diagnosticos').select('id', { count: 'exact', head: true }).eq('member_id', user.id).eq('tipo', '90dias'),
   ])
   const c = ciclo as Ciclo | null
   const p = (prog as { hoje: number; semana: number; mes: number; hoje_prev: number; hoje_feitos: number } | null) ?? null

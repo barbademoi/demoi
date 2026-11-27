@@ -17,10 +17,10 @@ export default function UploadImagem({ valor, onChange, pasta }: { valor: string
     const ext = (f.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '')
     const path = `${pasta}/${Date.now()}.${ext}`
     const supabase = createClient()
-    const { error } = await supabase.storage.from('publico').upload(path, f, { contentType: f.type })
+    const { error } = await supabase.storage.from('mdc-publico').upload(path, f, { contentType: f.type })
     setEnviando(false)
     if (error) return setErro(error.message)
-    onChange(supabase.storage.from('publico').getPublicUrl(path).data.publicUrl)
+    onChange(supabase.storage.from('mdc-publico').getPublicUrl(path).data.publicUrl)
   }
 
   return (

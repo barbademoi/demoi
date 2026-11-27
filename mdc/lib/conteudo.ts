@@ -10,7 +10,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export async function assinar(paths: (string | null | undefined)[], segundos = 60 * 60 * 3): Promise<Record<string, string>> {
   const lista = Array.from(new Set(paths.filter((p): p is string => !!p)))
   if (!lista.length) return {}
-  const { data } = await createAdminClient().storage.from('conteudo').createSignedUrls(lista, segundos)
+  const { data } = await createAdminClient().storage.from('mdc-conteudo').createSignedUrls(lista, segundos)
   const out: Record<string, string> = {}
   for (const d of data ?? []) if (d.path && d.signedUrl) out[d.path] = d.signedUrl
   return out

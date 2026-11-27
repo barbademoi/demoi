@@ -53,7 +53,7 @@ export function semanaDoMembro(dataInicio: string | null | undefined, hoje = hoj
 export async function buscarMembro() {
   const { supabase, user } = await usuarioAtual()
   if (!user) return { supabase, user: null, membro: null }
-  const { data } = await supabase.from('members').select('*').eq('id', user.id).maybeSingle()
+  const { data } = await supabase.from('mdc_members').select('*').eq('id', user.id).maybeSingle()
   return { supabase, user, membro: (data as Membro | null) ?? null }
 }
 
@@ -66,7 +66,7 @@ export async function requireMembro(opcoes: { semDiagnostico?: boolean } = {}) {
   const { supabase, user, membro } = await buscarMembro()
   if (!user) redirect('/entrar?next=/app')
   if (!membro) {
-    const { data: ehAdmin } = await supabase.rpc('is_admin')
+    const { data: ehAdmin } = await supabase.rpc('mdc_is_admin')
     redirect(ehAdmin ? '/admin' : '/comprar')
   }
   const st = statusExibido(membro)
@@ -76,7 +76,7 @@ export async function requireMembro(opcoes: { semDiagnostico?: boolean } = {}) {
 
   if (!opcoes.semDiagnostico) {
     const { count } = await supabase
-      .from('diagnosticos')
+      .from('mdc_diagnosticos')
       .select('id', { count: 'exact', head: true })
       .eq('member_id', membro.id)
       .eq('tipo', 'entrada')

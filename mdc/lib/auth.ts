@@ -14,7 +14,7 @@ export async function usuarioAtual() {
 export async function requireAdmin() {
   const { supabase, user } = await usuarioAtual()
   if (!user) redirect('/entrar?next=/admin')
-  const { data: ehAdmin } = await supabase.rpc('is_admin')
+  const { data: ehAdmin } = await supabase.rpc('mdc_is_admin')
   if (!ehAdmin) redirect('/entrar?erro=sem-acesso')
   return { supabase, user }
 }
@@ -23,7 +23,7 @@ export async function requireAdmin() {
 export async function assertAdmin() {
   const { supabase, user } = await usuarioAtual()
   if (!user) throw new Error('Sessão expirada. Entre de novo.')
-  const { data: ehAdmin } = await supabase.rpc('is_admin')
+  const { data: ehAdmin } = await supabase.rpc('mdc_is_admin')
   if (!ehAdmin) throw new Error('Sem permissão.')
   return { supabase, user }
 }

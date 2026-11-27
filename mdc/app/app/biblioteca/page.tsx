@@ -16,9 +16,9 @@ export default async function Biblioteca({ searchParams }: { searchParams: { niv
   const nivel = Math.min(Math.max(Number(searchParams.nivel) || nivelMax, 1), nivelMax)
 
   const [{ data: ciclo }, { data: es }, { data: ks }] = await Promise.all([
-    supabase.from('ciclo').select('*').order('semana'),
-    supabase.from('meetings').select('*').eq('nivel', nivel).order('data', { ascending: false }),
-    supabase.from('kit_materials').select('*').eq('nivel', nivel).order('ordem'),
+    supabase.from('mdc_ciclo').select('*').order('semana'),
+    supabase.from('mdc_meetings').select('*').eq('nivel', nivel).order('data', { ascending: false }),
+    supabase.from('mdc_kit_materials').select('*').eq('nivel', nivel).order('ordem'),
   ])
   const encontros = (es as Encontro[]) ?? []
   const kits = (ks as Kit[]) ?? []

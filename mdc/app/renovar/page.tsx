@@ -22,7 +22,7 @@ export default async function Renovar({ searchParams }: { searchParams: { plano?
   const p = acharPlano(searchParams.plano) ?? acharPlano(membro.plano) ?? PLANOS[0]
   const [cfg, { data: enviado }] = await Promise.all([
     lerConfig('pagamento', PAGAMENTO_PADRAO),
-    supabase.from('payments').select('id, created_at').eq('member_id', user.id).eq('status', 'enviado').limit(1).maybeSingle(),
+    supabase.from('mdc_payments').select('id, created_at').eq('member_id', user.id).eq('status', 'enviado').limit(1).maybeSingle(),
   ])
   const emDia = st === 'ativo' || st === 'vence_em_breve'
 

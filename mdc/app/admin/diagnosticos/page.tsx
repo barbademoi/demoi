@@ -7,8 +7,8 @@ import { rotulo, FATURAMENTO } from '@/lib/opcoes'
 export default async function Diagnosticos() {
   const { supabase } = await requireAdmin()
   const [{ data: ms }, { data: ds }] = await Promise.all([
-    supabase.from('members').select('*').in('status', ['ativo', 'cancelado']).order('nome'),
-    supabase.from('diagnosticos').select('member_id, tipo, created_at, respostas'),
+    supabase.from('mdc_members').select('*').in('status', ['ativo', 'cancelado']).order('nome'),
+    supabase.from('mdc_diagnosticos').select('member_id, tipo, created_at, respostas'),
   ])
   const hoje = hojeSP()
   const membros = (ms as Membro[]) ?? []

@@ -16,7 +16,7 @@ export default function UploadArquivo({ valor, onChange, pasta }: { valor: strin
     const base = f.name.replace(/\.[^.]+$/, '').normalize('NFD').replace(/[^\w-]+/g, '-').slice(0, 60)
     const ext = (f.name.split('.').pop() || 'pdf').toLowerCase()
     const path = `${pasta}/${Date.now()}-${base}.${ext}`
-    const { error } = await createClient().storage.from('conteudo').upload(path, f, { contentType: f.type || 'application/pdf' })
+    const { error } = await createClient().storage.from('mdc-conteudo').upload(path, f, { contentType: f.type || 'application/pdf' })
     setEnviando(false)
     if (error) return setErro(error.message)
     onChange(path)

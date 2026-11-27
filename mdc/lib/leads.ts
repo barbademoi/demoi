@@ -37,7 +37,7 @@ function limpar(v: string) {
 }
 
 export function consultarLeads(supabase: SupabaseClient, f: FiltrosLead) {
-  let q = supabase.from('leads').select('*').order('created_at', { ascending: false })
+  let q = supabase.from('mdc_leads').select('*').order('created_at', { ascending: false })
   if (f.perfil) q = q.eq('perfil', f.perfil)
   if (f.disposicao) q = q.eq('disposicao', f.disposicao)
   if (f.faturamento) q = q.eq('faturamento', f.faturamento)

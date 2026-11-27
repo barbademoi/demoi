@@ -7,7 +7,7 @@ export const metadata = { title: 'Diagnóstico de entrada — MDC' }
 
 export default async function Diagnostico() {
   const { supabase, user, membro } = await requireMembro({ semDiagnostico: true })
-  const { count } = await supabase.from('diagnosticos').select('id', { count: 'exact', head: true }).eq('member_id', user.id).eq('tipo', 'entrada')
+  const { count } = await supabase.from('mdc_diagnosticos').select('id', { count: 'exact', head: true }).eq('member_id', user.id).eq('tipo', 'entrada')
   if (count) redirect('/app')
 
   return (

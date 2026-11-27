@@ -7,7 +7,7 @@ export const metadata = { title: 'Reavaliação de 90 dias — MDC' }
 export default async function Reavaliacao() {
   const { supabase, user, semana } = await requireMembro()
   if (semana < 13) redirect('/app')
-  const { count } = await supabase.from('diagnosticos').select('id', { count: 'exact', head: true }).eq('member_id', user.id).eq('tipo', '90dias')
+  const { count } = await supabase.from('mdc_diagnosticos').select('id', { count: 'exact', head: true }).eq('member_id', user.id).eq('tipo', '90dias')
   if (count) redirect('/app')
 
   return (

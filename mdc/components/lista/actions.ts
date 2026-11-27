@@ -61,7 +61,7 @@ export async function entrarNaLista(fd: FormData): Promise<ResultadoLead> {
   }
 
   const supabase = createClient()
-  const { error } = await supabase.from('leads').insert({
+  const { error } = await supabase.from('mdc_leads').insert({
     nome,
     whatsapp,
     cidade,

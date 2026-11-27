@@ -21,7 +21,7 @@ export default async function Leads({ searchParams }: { searchParams: FiltrosLea
   const [{ data: leads, error }, modelo, { data: contagem }] = await Promise.all([
     consultarLeads(supabase, f),
     lerConfig('msg_lead', MSG_LEAD_PADRAO),
-    supabase.from('leads').select('status'),
+    supabase.from('mdc_leads').select('status'),
   ])
 
   const total = contagem?.length ?? 0

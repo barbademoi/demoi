@@ -44,8 +44,8 @@ export async function salvarItem(tabela: string, id: string | null, dados: Recor
   if (!(tabela in TABELAS)) throw new Error('Tabela inválida')
   const linha = limpar(tabela, dados)
   // Só um "último encontro" por vez.
-  if (tabela === 'meetings' && linha.is_ultimo) {
-    await supabase.from('meetings').update({ is_ultimo: false }).eq('is_ultimo', true)
+  if (tabela === 'mdc_meetings' && linha.is_ultimo) {
+    await supabase.from('mdc_meetings').update({ is_ultimo: false }).eq('is_ultimo', true)
   }
   const { error } = id ? await supabase.from(tabela).update(linha).eq('id', id) : await supabase.from(tabela).insert(linha)
   if (error) throw new Error(error.message)
@@ -59,7 +59,7 @@ export async function excluirItem(tabela: string, id: string) {
   if (col) {
     const { data } = await supabase.from(tabela).select(col).eq('id', id).maybeSingle()
     const path = (data as Record<string, string> | null)?.[col]
-    if (path) await supabase.storage.from('conteudo').remove([path])
+    if (path) await supabase.storage.from('mdc-conteudo').remove([path])
   }
   const { error } = await supabase.from(tabela).delete().eq('id', id)
   if (error) throw new Error(error.message)

@@ -8,8 +8,12 @@ export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Entrar no MDC' }
 
 export default async function Comprar({ searchParams }: { searchParams: { plano?: string } }) {
+  let logado: { nome: string; email: string } | null = null
   try {
-    const { membro } = await buscarMembro()
+    const { user, membro } = await buscarMembro()
+    if (user && !membro) {
+      logado = { nome: String(user.user_metadata?.nome ?? ''), email: user.email ?? '' }
+    }
     if (membro) {
       const st = statusExibido(membro)
       if (st === 'pendente') redirect('/comprar/pagamento')
@@ -25,7 +29,7 @@ export default async function Comprar({ searchParams }: { searchParams: { plano?
   return (
     <main className="mx-auto max-w-xl px-4 pb-16 pt-6">
       <Marca href="/mdc" />
-      <WizardCompra planoInicial={inicial} />
+      <WizardCompra planoInicial={inicial} logado={logado} />
     </main>
   )
 }

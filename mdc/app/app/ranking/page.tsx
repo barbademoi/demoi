@@ -8,7 +8,7 @@ const MEDALHA = ['🥇', '🥈', '🥉']
 
 export default async function Ranking() {
   const { supabase } = await requireMembro()
-  const { data } = await supabase.from('ranking_mensal').select('*')
+  const { data } = await supabase.from('mdc_ranking_mensal').select('*')
   const linhas = (data as Linha[]) ?? []
   const mes = MESES[Number(hojeSP().slice(5, 7)) - 1]
   const podio = linhas.filter((l) => l.posicao <= 3)

@@ -7,8 +7,8 @@ import { PERFIS_MISSAO, TIPOS_MISSAO } from '../opcoes'
 export default async function ModelosMissao({ searchParams }: { searchParams: { semana?: string } }) {
   const { supabase } = await requireAdmin()
   const [{ data }, { data: kits }] = await Promise.all([
-    supabase.from('mission_templates').select('*').order('semana').order('tipo').order('ordem'),
-    supabase.from('kit_materials').select('id, nivel, semana, titulo').order('nivel').order('semana'),
+    supabase.from('mdc_mission_templates').select('*').order('semana').order('tipo').order('ordem'),
+    supabase.from('mdc_kit_materials').select('id, nivel, semana, titulo').order('nivel').order('semana'),
   ])
   const todos = data ?? []
   const semanas = Array.from(new Set(todos.map((t) => t.semana as number))).sort((a, b) => a - b)
@@ -29,11 +29,11 @@ export default async function ModelosMissao({ searchParams }: { searchParams: { 
     const s = Number(d.semana)
     if (!(s >= 1 && s <= 200)) throw new Error('Semana entre 1 e 200.')
     if (!String(d.titulo ?? '').trim()) throw new Error('Coloque o título.')
-    await salvarItem('mission_templates', id, d)
+    await salvarItem('mdc_mission_templates', id, d)
   }
   async function excluir(id: string) {
     'use server'
-    await excluirItem('mission_templates', id)
+    await excluirItem('mdc_mission_templates', id)
   }
 
   return (

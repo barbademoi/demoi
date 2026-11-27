@@ -15,7 +15,7 @@ function celula(v: unknown): string {
 
 export async function GET(request: NextRequest) {
   const supabase = createClient()
-  const { data: ehAdmin } = await supabase.rpc('is_admin')
+  const { data: ehAdmin } = await supabase.rpc('mdc_is_admin')
   if (!ehAdmin) return new NextResponse('Sem permissão', { status: 403 })
 
   const sp = request.nextUrl.searchParams

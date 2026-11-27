@@ -15,11 +15,11 @@ export async function registrarComprovante(path: string, planoEscolhido?: string
   if (membro.status === 'cancelado') return { ok: false, erro: 'Sua conta está cancelada. Fala com a gente no WhatsApp.' }
 
   const plano = planoValido(planoEscolhido) ? planoEscolhido : membro.plano
-  const { error } = await supabase.from('payments').insert({ member_id: user.id, plano, comprovante_path: path, status: 'enviado' })
+  const { error } = await supabase.from('mdc_payments').insert({ member_id: user.id, plano, comprovante_path: path, status: 'enviado' })
   if (error) return { ok: false, erro: 'Não deu pra registrar o comprovante. Tenta de novo.' }
 
   if (membro.status === 'pendente') {
-    await createAdminClient().from('members').update({ status: 'aguardando', plano }).eq('id', user.id).eq('status', 'pendente')
+    await createAdminClient().from('mdc_members').update({ status: 'aguardando', plano }).eq('id', user.id).eq('status', 'pendente')
   }
   revalidatePath('/aguardando')
   return { ok: true }
@@ -30,6 +30,6 @@ export async function trocarPlano(plano: string): Promise<void> {
   const { user, membro } = await buscarMembro()
   if (!user || !membro || !planoValido(plano)) return
   if (membro.status !== 'pendente' && membro.status !== 'aguardando') return
-  await createAdminClient().from('members').update({ plano }).eq('id', user.id)
+  await createAdminClient().from('mdc_members').update({ plano }).eq('id', user.id)
   revalidatePath('/comprar/pagamento')
 }

@@ -25,7 +25,7 @@ export async function salvarDiagnostico(tipo: 'entrada' | '90dias', bruto: Respo
 
   const admin = createAdminClient()
   const { error } = await admin
-    .from('diagnosticos')
+    .from('mdc_diagnosticos')
     .upsert({ member_id: user.id, tipo, respostas }, { onConflict: 'member_id,tipo', ignoreDuplicates: tipo === 'entrada' })
   if (error) return { ok: false, erro: 'Não deu pra salvar. Tenta de novo.' }
 
@@ -36,7 +36,7 @@ export async function salvarDiagnostico(tipo: 'entrada' | '90dias', bruto: Respo
     if (respostas.whatsapp) upd.whatsapp = String(respostas.whatsapp)
     if (respostas.cidade) upd.cidade = String(respostas.cidade)
     if (respostas.uf) upd.uf = String(respostas.uf)
-    await admin.from('members').update(upd).eq('id', user.id)
+    await admin.from('mdc_members').update(upd).eq('id', user.id)
   }
   return { ok: true }
 }

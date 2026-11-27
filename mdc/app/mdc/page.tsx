@@ -20,8 +20,8 @@ export default async function Vendas() {
   try {
     const supabase = createClient()
     const [d, f] = await Promise.all([
-      supabase.from('testimonials').select('id,nome,local,texto,foto_url').eq('ativo', true).order('ordem'),
-      supabase.from('faqs').select('id,pergunta,resposta').eq('ativo', true).order('ordem'),
+      supabase.from('mdc_testimonials').select('id,nome,local,texto,foto_url').eq('ativo', true).order('ordem'),
+      supabase.from('mdc_faqs').select('id,pergunta,resposta').eq('ativo', true).order('ordem'),
     ])
     depoimentos = (d.data as Depoimento[]) ?? []
     faqs = (f.data as Faq[]) ?? []

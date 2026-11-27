@@ -9,8 +9,8 @@ import { progressoMesTodos } from '@/lib/progresso-admin'
 export default async function Membros({ searchParams }: { searchParams: { status?: string; q?: string } }) {
   const { supabase } = await requireAdmin()
   const [{ data }, { data: enviados }] = await Promise.all([
-    supabase.from('members').select('*').order('created_at', { ascending: false }),
-    supabase.from('payments').select('member_id').eq('status', 'enviado'),
+    supabase.from('mdc_members').select('*').order('created_at', { ascending: false }),
+    supabase.from('mdc_payments').select('member_id').eq('status', 'enviado'),
   ])
   const hoje = hojeSP()
   const comComprovante = new Set((enviados ?? []).map((p) => p.member_id))

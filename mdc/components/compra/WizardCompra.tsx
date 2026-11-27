@@ -5,9 +5,9 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { mascaraWhatsapp } from '@/lib/format'
 import { PLANOS } from '@/lib/planos'
-import { criarConta } from '@/app/comprar/actions'
+import { criarConta, criarMembroLogado } from '@/app/comprar/actions'
 
-export default function WizardCompra({ planoInicial }: { planoInicial: string }) {
+export default function WizardCompra({ planoInicial, logado }: { planoInicial: string; logado: { nome: string; email: string } | null }) {
   const router = useRouter()
   const [etapa, setEtapa] = useState(planoInicial ? 2 : 1)
   const [plano, setPlano] = useState(planoInicial)
@@ -23,7 +23,7 @@ export default function WizardCompra({ planoInicial }: { planoInicial: string })
     setJaExiste(false)
     fd.set('plano', plano)
     iniciar(async () => {
-      const r = await criarConta(fd)
+      const r = logado ? await criarMembroLogado(fd) : await criarConta(fd)
       if (r.ok) {
         router.push('/comprar/pagamento')
         router.refresh()
@@ -72,19 +72,25 @@ export default function WizardCompra({ planoInicial }: { planoInicial: string })
             <button type="button" onClick={() => setEtapa(1)} className="btn-sm border border-linha">Trocar</button>
           </div>
 
-          <h1 className="mb-2 text-3xl font-black">Crie sua conta</h1>
-          <p className="mb-6 text-suave">É com ela que você vai entrar na área do membro.</p>
+          <h1 className="mb-2 text-3xl font-black">{logado ? 'Confirme seus dados' : 'Crie sua conta'}</h1>
+          <p className="mb-6 text-suave">
+            {logado ? `Você já está logado como ${logado.email}. É com esse login que vai entrar na área do membro.` : 'É com ela que você vai entrar na área do membro.'}
+          </p>
 
           <form action={enviar} className="space-y-5" noValidate>
             <Campo id="nome" rotulo="Nome completo" erro={erros.nome}>
-              <input id="nome" name="nome" className="campo" autoComplete="name" required />
+              <input id="nome" name="nome" className="campo" autoComplete="name" defaultValue={logado?.nome} required />
             </Campo>
-            <Campo id="email" rotulo="E-mail" erro={erros.email}>
-              <input id="email" name="email" type="email" className="campo" autoComplete="email" autoCapitalize="none" required />
-            </Campo>
-            <Campo id="senha" rotulo="Senha" erro={erros.senha} ajuda="Pelo menos 8 caracteres.">
-              <input id="senha" name="senha" type="password" className="campo" autoComplete="new-password" minLength={8} required />
-            </Campo>
+            {!logado && (
+              <>
+                <Campo id="email" rotulo="E-mail" erro={erros.email}>
+                  <input id="email" name="email" type="email" className="campo" autoComplete="email" autoCapitalize="none" required />
+                </Campo>
+                <Campo id="senha" rotulo="Senha" erro={erros.senha} ajuda="Pelo menos 8 caracteres.">
+                  <input id="senha" name="senha" type="password" className="campo" autoComplete="new-password" minLength={8} required />
+                </Campo>
+              </>
+            )}
             <Campo id="whatsapp" rotulo="WhatsApp" erro={erros.whatsapp}>
               <input
                 id="whatsapp"
@@ -116,7 +122,7 @@ export default function WizardCompra({ planoInicial }: { planoInicial: string })
               <div className="rounded-xl bg-perigo/10 p-4 text-perigo">
                 {mensagem}
                 {jaExiste && (
-                  <Link href="/entrar?next=/comprar/pagamento" className="mt-2 block font-bold underline">
+                  <Link href="/entrar?next=/comprar" className="mt-2 block font-bold underline">
                     Entrar com esse e-mail
                   </Link>
                 )}

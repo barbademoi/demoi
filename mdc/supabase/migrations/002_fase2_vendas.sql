@@ -12,7 +12,7 @@
 --                pela data de vencimento, não ficam guardados)
 --   cancelado  → desligado pelo admin
 -- ---------------------------------------------------------------------
-create table if not exists public.members (
+create table if not exists public.mdc_members (
   id           uuid primary key references auth.users (id) on delete cascade,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
@@ -31,28 +31,28 @@ create table if not exists public.members (
   convidado    boolean not null default false,   -- mentorado convidado
   observacao   text
 );
-create index if not exists members_venc_idx on public.members (vencimento);
-create index if not exists members_status_idx on public.members (status);
+create index if not exists mdc_members_venc_idx on public.mdc_members (vencimento);
+create index if not exists mdc_members_status_idx on public.mdc_members (status);
 
-alter table public.members enable row level security;
+alter table public.mdc_members enable row level security;
 
-drop trigger if exists members_touch on public.members;
-create trigger members_touch before update on public.members
-  for each row execute function public.touch_updated_at();
+drop trigger if exists mdc_members_touch on public.mdc_members;
+create trigger mdc_members_touch before update on public.mdc_members
+  for each row execute function public.mdc_touch_updated_at();
 
 -- Membro só LÊ a própria linha. Toda escrita passa pelo servidor (service
 -- role) depois de conferir quem é — assim ninguém se dá "ativo" sozinho.
-drop policy if exists members_select_own on public.members;
-create policy members_select_own on public.members
-  for select using (id = auth.uid() or public.is_admin());
+drop policy if exists mdc_members_select_own on public.mdc_members;
+create policy mdc_members_select_own on public.mdc_members
+  for select using (id = auth.uid() or public.mdc_is_admin());
 
-drop policy if exists members_admin_all on public.members;
-create policy members_admin_all on public.members
-  for all using (public.is_admin()) with check (public.is_admin());
+drop policy if exists mdc_members_admin_all on public.mdc_members;
+create policy mdc_members_admin_all on public.mdc_members
+  for all using (public.mdc_is_admin()) with check (public.mdc_is_admin());
 
 -- Membro com acesso liberado: ativo e dentro do vencimento (o dia do
 -- vencimento ainda vale).
-create or replace function public.is_active_member(p_uid uuid default auth.uid())
+create or replace function public.mdc_is_active_member(p_uid uuid default auth.uid())
 returns boolean
 language sql
 stable
@@ -60,18 +60,18 @@ security definer
 set search_path = public
 as $$
   select exists (
-    select 1 from public.members
+    select 1 from public.mdc_members
     -- só sobre si mesmo (ou admin): ninguém consulta o status de outro membro
-    where id = p_uid and (p_uid = auth.uid() or public.is_admin()) and status = 'ativo'
+    where id = p_uid and (p_uid = auth.uid() or public.mdc_is_admin()) and status = 'ativo'
       and vencimento is not null and vencimento >= public.mdc_hoje()
   );
 $$;
 -- anon pode chamar (usado dentro das policies): para quem não está logado a resposta é sempre falso/vazio.
-revoke all on function public.is_active_member(uuid) from public;
-grant execute on function public.is_active_member(uuid) to anon, authenticated, service_role;
+revoke all on function public.mdc_is_active_member(uuid) from public;
+grant execute on function public.mdc_is_active_member(uuid) to anon, authenticated, service_role;
 
 -- Semana do membro = semanas completas desde o início + 1.
-create or replace function public.member_week(p_uid uuid default auth.uid())
+create or replace function public.mdc_member_week(p_uid uuid default auth.uid())
 returns int
 language sql
 stable
@@ -80,19 +80,19 @@ set search_path = public
 as $$
   select case when data_inicio is null or data_inicio > public.mdc_hoje() then 0
               else ((public.mdc_hoje() - data_inicio) / 7) + 1 end
-  from public.members where id = p_uid and (p_uid = auth.uid() or public.is_admin());
+  from public.mdc_members where id = p_uid and (p_uid = auth.uid() or public.mdc_is_admin());
 $$;
 -- anon pode chamar (usado dentro das policies): para quem não está logado a resposta é sempre falso/vazio.
-revoke all on function public.member_week(uuid) from public;
-grant execute on function public.member_week(uuid) to anon, authenticated, service_role;
+revoke all on function public.mdc_member_week(uuid) from public;
+grant execute on function public.mdc_member_week(uuid) to anon, authenticated, service_role;
 
 -- ---------------------------------------------------------------------
 -- Pagamentos
 -- ---------------------------------------------------------------------
-create table if not exists public.payments (
+create table if not exists public.mdc_payments (
   id               uuid primary key default gen_random_uuid(),
   created_at       timestamptz not null default now(),
-  member_id        uuid not null references public.members (id) on delete cascade,
+  member_id        uuid not null references public.mdc_members (id) on delete cascade,
   plano            text not null check (plano in ('semestral_cartao', 'semestral_pix', 'mensal_pix')),
   comprovante_path text,
   status           text not null default 'enviado' check (status in ('enviado', 'confirmado', 'recusado')),
@@ -105,18 +105,18 @@ create table if not exists public.payments (
   confirmado_por   uuid references auth.users (id),
   observacao       text
 );
-create index if not exists payments_member_idx on public.payments (member_id, created_at desc);
-create index if not exists payments_status_idx on public.payments (status);
+create index if not exists mdc_payments_member_idx on public.mdc_payments (member_id, created_at desc);
+create index if not exists mdc_payments_status_idx on public.mdc_payments (status);
 
-alter table public.payments enable row level security;
+alter table public.mdc_payments enable row level security;
 
-drop policy if exists payments_select_own on public.payments;
-create policy payments_select_own on public.payments
-  for select using (member_id = auth.uid() or public.is_admin());
+drop policy if exists mdc_payments_select_own on public.mdc_payments;
+create policy mdc_payments_select_own on public.mdc_payments
+  for select using (member_id = auth.uid() or public.mdc_is_admin());
 
 -- Membro só cria "enviado", sem valor nem confirmação.
-drop policy if exists payments_insert_own on public.payments;
-create policy payments_insert_own on public.payments
+drop policy if exists mdc_payments_insert_own on public.mdc_payments;
+create policy mdc_payments_insert_own on public.mdc_payments
   for insert to authenticated
   with check (
     member_id = auth.uid() and status = 'enviado' and valor is null
@@ -124,57 +124,57 @@ create policy payments_insert_own on public.payments
     and periodo_inicio is null and periodo_fim is null
   );
 
-drop policy if exists payments_admin_all on public.payments;
-create policy payments_admin_all on public.payments
-  for all using (public.is_admin()) with check (public.is_admin());
+drop policy if exists mdc_payments_admin_all on public.mdc_payments;
+create policy mdc_payments_admin_all on public.mdc_payments
+  for all using (public.mdc_is_admin()) with check (public.mdc_is_admin());
 
 -- ---------------------------------------------------------------------
 -- Aceite do termo de adesão (data, hora e versão)
 -- ---------------------------------------------------------------------
-create table if not exists public.terms_acceptances (
+create table if not exists public.mdc_terms_acceptances (
   id          uuid primary key default gen_random_uuid(),
-  member_id   uuid not null references public.members (id) on delete cascade,
+  member_id   uuid not null references public.mdc_members (id) on delete cascade,
   versao      text not null,
   aceito_em   timestamptz not null default now(),
   ip          text,
   user_agent  text
 );
-create index if not exists terms_member_idx on public.terms_acceptances (member_id);
-alter table public.terms_acceptances enable row level security;
+create index if not exists mdc_terms_member_idx on public.mdc_terms_acceptances (member_id);
+alter table public.mdc_terms_acceptances enable row level security;
 
-drop policy if exists terms_select_own on public.terms_acceptances;
-create policy terms_select_own on public.terms_acceptances
-  for select using (member_id = auth.uid() or public.is_admin());
-drop policy if exists terms_admin_all on public.terms_acceptances;
-create policy terms_admin_all on public.terms_acceptances
-  for all using (public.is_admin()) with check (public.is_admin());
+drop policy if exists mdc_terms_select_own on public.mdc_terms_acceptances;
+create policy mdc_terms_select_own on public.mdc_terms_acceptances
+  for select using (member_id = auth.uid() or public.mdc_is_admin());
+drop policy if exists mdc_terms_admin_all on public.mdc_terms_acceptances;
+create policy mdc_terms_admin_all on public.mdc_terms_acceptances
+  for all using (public.mdc_is_admin()) with check (public.mdc_is_admin());
 
 -- ---------------------------------------------------------------------
 -- Diagnósticos (entrada e reavaliação de 90 dias)
 -- As respostas ficam em JSON: dá pra mudar pergunta sem migração.
 -- ---------------------------------------------------------------------
-create table if not exists public.diagnosticos (
+create table if not exists public.mdc_diagnosticos (
   id          uuid primary key default gen_random_uuid(),
   created_at  timestamptz not null default now(),
-  member_id   uuid not null references public.members (id) on delete cascade,
+  member_id   uuid not null references public.mdc_members (id) on delete cascade,
   tipo        text not null check (tipo in ('entrada', '90dias')),
   respostas   jsonb not null,
   unique (member_id, tipo)
 );
-alter table public.diagnosticos enable row level security;
+alter table public.mdc_diagnosticos enable row level security;
 
-drop policy if exists diag_select_own on public.diagnosticos;
-create policy diag_select_own on public.diagnosticos
-  for select using (member_id = auth.uid() or public.is_admin());
-drop policy if exists diag_admin_all on public.diagnosticos;
-create policy diag_admin_all on public.diagnosticos
-  for all using (public.is_admin()) with check (public.is_admin());
+drop policy if exists mdc_diag_select_own on public.mdc_diagnosticos;
+create policy mdc_diag_select_own on public.mdc_diagnosticos
+  for select using (member_id = auth.uid() or public.mdc_is_admin());
+drop policy if exists mdc_diag_admin_all on public.mdc_diagnosticos;
+create policy mdc_diag_admin_all on public.mdc_diagnosticos
+  for all using (public.mdc_is_admin()) with check (public.mdc_is_admin());
 -- (gravação pelo servidor, depois de conferir que o membro está ativo)
 
 -- ---------------------------------------------------------------------
 -- Página de vendas: resultados de mentorados e perguntas frequentes
 -- ---------------------------------------------------------------------
-create table if not exists public.testimonials (
+create table if not exists public.mdc_testimonials (
   id         uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
   nome       text not null,
@@ -184,14 +184,14 @@ create table if not exists public.testimonials (
   ordem      int not null default 0,
   ativo      boolean not null default true
 );
-alter table public.testimonials enable row level security;
-drop policy if exists testimonials_public on public.testimonials;
-create policy testimonials_public on public.testimonials for select using (ativo or public.is_admin());
-drop policy if exists testimonials_admin on public.testimonials;
-create policy testimonials_admin on public.testimonials
-  for all using (public.is_admin()) with check (public.is_admin());
+alter table public.mdc_testimonials enable row level security;
+drop policy if exists mdc_testimonials_public on public.mdc_testimonials;
+create policy mdc_testimonials_public on public.mdc_testimonials for select using (ativo or public.mdc_is_admin());
+drop policy if exists mdc_testimonials_admin on public.mdc_testimonials;
+create policy mdc_testimonials_admin on public.mdc_testimonials
+  for all using (public.mdc_is_admin()) with check (public.mdc_is_admin());
 
-create table if not exists public.faqs (
+create table if not exists public.mdc_faqs (
   id         uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
   pergunta   text not null,
@@ -199,12 +199,12 @@ create table if not exists public.faqs (
   ordem      int not null default 0,
   ativo      boolean not null default true
 );
-alter table public.faqs enable row level security;
-drop policy if exists faqs_public on public.faqs;
-create policy faqs_public on public.faqs for select using (ativo or public.is_admin());
-drop policy if exists faqs_admin on public.faqs;
-create policy faqs_admin on public.faqs
-  for all using (public.is_admin()) with check (public.is_admin());
+alter table public.mdc_faqs enable row level security;
+drop policy if exists mdc_faqs_public on public.mdc_faqs;
+create policy mdc_faqs_public on public.mdc_faqs for select using (ativo or public.mdc_is_admin());
+drop policy if exists mdc_faqs_admin on public.mdc_faqs;
+create policy mdc_faqs_admin on public.mdc_faqs
+  for all using (public.mdc_is_admin()) with check (public.mdc_is_admin());
 
 -- ---------------------------------------------------------------------
 -- Storage
@@ -213,34 +213,34 @@ create policy faqs_admin on public.faqs
 --   publico      → público: QR Code do Pix e fotos dos resultados.
 -- ---------------------------------------------------------------------
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('comprovantes', 'comprovantes', false, 10485760,
+values ('mdc-comprovantes', 'mdc-comprovantes', false, 10485760,
         array['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'application/pdf'])
 on conflict (id) do update set public = false;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('publico', 'publico', true, 5242880, array['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'])
+values ('mdc-publico', 'mdc-publico', true, 5242880, array['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'])
 on conflict (id) do update set public = true;
 
-drop policy if exists comprovantes_insert_own on storage.objects;
-create policy comprovantes_insert_own on storage.objects
+drop policy if exists mdc_comprovantes_insert_own on storage.objects;
+create policy mdc_comprovantes_insert_own on storage.objects
   for insert to authenticated
-  with check (bucket_id = 'comprovantes' and (storage.foldername(name))[1] = auth.uid()::text);
+  with check (bucket_id = 'mdc-comprovantes' and (storage.foldername(name))[1] = auth.uid()::text);
 
-drop policy if exists comprovantes_select on storage.objects;
-create policy comprovantes_select on storage.objects
+drop policy if exists mdc_comprovantes_select on storage.objects;
+create policy mdc_comprovantes_select on storage.objects
   for select to authenticated
-  using (bucket_id = 'comprovantes' and ((storage.foldername(name))[1] = auth.uid()::text or public.is_admin()));
+  using (bucket_id = 'mdc-comprovantes' and ((storage.foldername(name))[1] = auth.uid()::text or public.mdc_is_admin()));
 
-drop policy if exists publico_admin_write on storage.objects;
-create policy publico_admin_write on storage.objects
+drop policy if exists mdc_publico_admin_write on storage.objects;
+create policy mdc_publico_admin_write on storage.objects
   for all to authenticated
-  using (bucket_id = 'publico' and public.is_admin())
-  with check (bucket_id = 'publico' and public.is_admin());
+  using (bucket_id = 'mdc-publico' and public.mdc_is_admin())
+  with check (bucket_id = 'mdc-publico' and public.mdc_is_admin());
 
 -- ---------------------------------------------------------------------
 -- Configurações novas
 -- ---------------------------------------------------------------------
-insert into public.settings (key, value, visibilidade) values
+insert into public.mdc_settings (key, value, visibilidade) values
   ('vendas',          '{}'::jsonb, 'public'),
   ('termo',           '{}'::jsonb, 'public'),
   ('pagamento',       '{}'::jsonb, 'auth'),

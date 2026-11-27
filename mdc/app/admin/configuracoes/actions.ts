@@ -9,7 +9,7 @@ export async function salvarConfig(key: string, value: unknown): Promise<{ ok: b
     const { supabase } = await assertAdmin()
     if (!(key in CHAVES_CONFIG)) return { ok: false, erro: 'Configuração desconhecida.' }
     const visibilidade = CHAVES_CONFIG[key as ChaveConfig]
-    const { error } = await supabase.from('settings').upsert({ key, value, visibilidade }, { onConflict: 'key' })
+    const { error } = await supabase.from('mdc_settings').upsert({ key, value, visibilidade }, { onConflict: 'key' })
     if (error) return { ok: false, erro: error.message }
     revalidatePath('/', 'layout')
     return { ok: true }

@@ -5,7 +5,7 @@ const PILARES = ['Dono', 'Ambiente e atendimento', 'Equipe', 'Números e retenç
 
 export default async function Ciclo() {
   const { supabase } = await requireAdmin()
-  const { data } = await supabase.from('ciclo').select('*').order('semana')
+  const { data } = await supabase.from('mdc_ciclo').select('*').order('semana')
 
   async function salvar(fd: FormData) {
     'use server'
@@ -15,7 +15,7 @@ export default async function Ciclo() {
       tema: String(fd.get(`tema_${s}`) ?? '').trim().slice(0, 200) || `Tema da semana ${s}`,
       pilar: PILARES.includes(String(fd.get(`pilar_${s}`))) ? String(fd.get(`pilar_${s}`)) : 'Dono',
     }))
-    await supabase.from('ciclo').upsert(linhas, { onConflict: 'semana' })
+    await supabase.from('mdc_ciclo').upsert(linhas, { onConflict: 'semana' })
     revalidatePath('/admin/conteudo/ciclo')
     revalidatePath('/app', 'layout')
   }

@@ -30,11 +30,11 @@ export async function confirmarPagamento(fd: FormData): Promise<Res> {
     if (!DATA.test(pagoEm)) return { ok: false, erro: 'Data do pagamento inválida.' }
     if (inicio && !DATA.test(inicio)) return { ok: false, erro: 'Data de início inválida.' }
 
-    const { data: m } = await supabase.from('members').select('id, data_inicio, vencimento, whatsapp').eq('id', memberId).single()
+    const { data: m } = await supabase.from('mdc_members').select('id, data_inicio, vencimento, whatsapp').eq('id', memberId).single()
     if (!m) return { ok: false, erro: 'Membro não encontrado.' }
 
     if (paymentId) {
-      const { data: p } = await supabase.from('payments').select('status, member_id').eq('id', paymentId).single()
+      const { data: p } = await supabase.from('mdc_payments').select('status, member_id').eq('id', paymentId).single()
       if (!p || p.member_id !== memberId) return { ok: false, erro: 'Pagamento não encontrado.' }
       if (p.status === 'confirmado') return { ok: false, erro: 'Esse pagamento já foi confirmado.' }
     }
@@ -59,19 +59,19 @@ export async function confirmarPagamento(fd: FormData): Promise<Res> {
       confirmado_por: user.id,
     }
     const { error: e1 } = paymentId
-      ? await supabase.from('payments').update(dadosPagamento).eq('id', paymentId)
-      : await supabase.from('payments').insert({ ...dadosPagamento, member_id: memberId })
+      ? await supabase.from('mdc_payments').update(dadosPagamento).eq('id', paymentId)
+      : await supabase.from('mdc_payments').insert({ ...dadosPagamento, member_id: memberId })
     if (e1) return { ok: false, erro: e1.message }
 
     const { error: e2 } = await supabase
-      .from('members')
+      .from('mdc_members')
       .update({ status: 'ativo', plano: planoId, data_inicio: per.dataInicio, vencimento: per.vencimento })
       .eq('id', memberId)
     if (e2) return { ok: false, erro: e2.message }
 
     // Se veio da lista de espera, marca o lead como "comprou".
     if (per.primeiraVez && m.whatsapp) {
-      await supabase.from('leads').update({ status: 'comprou' }).in('whatsapp', [m.whatsapp, m.whatsapp.replace(/^55/, '')])
+      await supabase.from('mdc_leads').update({ status: 'comprou' }).in('whatsapp', [m.whatsapp, m.whatsapp.replace(/^55/, '')])
     }
 
     revalidatePath('/admin/membros')
@@ -85,12 +85,12 @@ export async function confirmarPagamento(fd: FormData): Promise<Res> {
 export async function recusarPagamento(paymentId: string, motivo: string): Promise<Res> {
   try {
     const { supabase } = await assertAdmin()
-    const { data: p } = await supabase.from('payments').select('member_id, status').eq('id', paymentId).single()
+    const { data: p } = await supabase.from('mdc_payments').select('member_id, status').eq('id', paymentId).single()
     if (!p || p.status !== 'enviado') return { ok: false, erro: 'Pagamento não está aguardando.' }
-    await supabase.from('payments').update({ status: 'recusado', observacao: motivo.slice(0, 500) || null }).eq('id', paymentId)
+    await supabase.from('mdc_payments').update({ status: 'recusado', observacao: motivo.slice(0, 500) || null }).eq('id', paymentId)
     // Sem outro comprovante na fila, volta pra "aguardando pagamento" (pode mandar de novo).
-    const { count } = await supabase.from('payments').select('id', { count: 'exact', head: true }).eq('member_id', p.member_id).eq('status', 'enviado')
-    if (!count) await supabase.from('members').update({ status: 'pendente' }).eq('id', p.member_id).eq('status', 'aguardando')
+    const { count } = await supabase.from('mdc_payments').select('id', { count: 'exact', head: true }).eq('member_id', p.member_id).eq('status', 'enviado')
+    if (!count) await supabase.from('mdc_members').update({ status: 'pendente' }).eq('id', p.member_id).eq('status', 'aguardando')
     revalidatePath(`/admin/membros/${p.member_id}`)
     return { ok: true, msg: 'Comprovante recusado.' }
   } catch (e) {
@@ -114,7 +114,7 @@ export async function salvarMembro(fd: FormData): Promise<Res> {
     if (status === 'ativo' && (!data_inicio || !vencimento)) return { ok: false, erro: 'Membro ativo precisa de início e vencimento.' }
 
     const { error } = await supabase
-      .from('members')
+      .from('mdc_members')
       .update({
         data_inicio,
         vencimento,

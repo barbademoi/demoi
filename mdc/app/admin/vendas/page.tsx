@@ -9,25 +9,25 @@ export default async function AdminVendas() {
   const { supabase } = await requireAdmin()
   const [vendas, { data: depo }, { data: faqs }] = await Promise.all([
     lerConfig('vendas', VENDAS_PADRAO),
-    supabase.from('testimonials').select('*').order('ordem'),
-    supabase.from('faqs').select('*').order('ordem'),
+    supabase.from('mdc_testimonials').select('*').order('ordem'),
+    supabase.from('mdc_faqs').select('*').order('ordem'),
   ])
 
   async function salvarDepo(id: string | null, d: Record<string, unknown>) {
     'use server'
-    await salvarItem('testimonials', id, d)
+    await salvarItem('mdc_testimonials', id, d)
   }
   async function excluirDepo(id: string) {
     'use server'
-    await excluirItem('testimonials', id)
+    await excluirItem('mdc_testimonials', id)
   }
   async function salvarFaq(id: string | null, d: Record<string, unknown>) {
     'use server'
-    await salvarItem('faqs', id, d)
+    await salvarItem('mdc_faqs', id, d)
   }
   async function excluirFaq(id: string) {
     'use server'
-    await excluirItem('faqs', id)
+    await excluirItem('mdc_faqs', id)
   }
 
   return (

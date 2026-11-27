@@ -10,30 +10,30 @@
 -- Admins
 -- Quem está nesta tabela tem acesso total ao /admin.
 -- Para virar admin: crie o usuário em Authentication → Users e rode
---   insert into public.admins (user_id)
+--   insert into public.mdc_admins (user_id)
 --   select id from auth.users where email = 'SEU-EMAIL' on conflict do nothing;
 -- ---------------------------------------------------------------------
-create table if not exists public.admins (
+create table if not exists public.mdc_admins (
   user_id    uuid primary key references auth.users (id) on delete cascade,
   created_at timestamptz not null default now()
 );
-alter table public.admins enable row level security;
+alter table public.mdc_admins enable row level security;
 
-create or replace function public.is_admin()
+create or replace function public.mdc_is_admin()
 returns boolean
 language sql
 stable
 security definer
 set search_path = public
 as $$
-  select exists (select 1 from public.admins where user_id = auth.uid());
+  select exists (select 1 from public.mdc_admins where user_id = auth.uid());
 $$;
-revoke all on function public.is_admin() from public;
-grant execute on function public.is_admin() to anon, authenticated, service_role;
+revoke all on function public.mdc_is_admin() from public;
+grant execute on function public.mdc_is_admin() to anon, authenticated, service_role;
 
-drop policy if exists admins_select_self on public.admins;
-create policy admins_select_self on public.admins
-  for select using (user_id = auth.uid() or public.is_admin());
+drop policy if exists mdc_admins_select_self on public.mdc_admins;
+create policy mdc_admins_select_self on public.mdc_admins
+  for select using (user_id = auth.uid() or public.mdc_is_admin());
 
 -- "Hoje" sempre no horário de Brasília (o servidor do Supabase roda em UTC).
 create or replace function public.mdc_hoje()
@@ -50,32 +50,32 @@ as $$ select (now() at time zone 'America/Sao_Paulo')::date $$;
 --   member → membro ativo (links do Meet, grupo, BarberMeta, Tarefix) — fase 3
 --   admin  → só admin (modelos de mensagem do WhatsApp)
 -- ---------------------------------------------------------------------
-create table if not exists public.settings (
+create table if not exists public.mdc_settings (
   key          text primary key,
   value        jsonb not null default '{}'::jsonb,
   visibilidade text not null default 'admin'
                check (visibilidade in ('public', 'auth', 'member', 'admin')),
   updated_at   timestamptz not null default now()
 );
-alter table public.settings enable row level security;
+alter table public.mdc_settings enable row level security;
 
-drop policy if exists settings_select on public.settings;
-create policy settings_select on public.settings
+drop policy if exists mdc_settings_select on public.mdc_settings;
+create policy mdc_settings_select on public.mdc_settings
   for select using (
     visibilidade = 'public'
     or (visibilidade = 'auth' and auth.uid() is not null)
-    or public.is_admin()
+    or public.mdc_is_admin()
   );
 -- (a fase 3 troca esta policy por uma que também libera 'member')
 
-drop policy if exists settings_admin_all on public.settings;
-create policy settings_admin_all on public.settings
-  for all using (public.is_admin()) with check (public.is_admin());
+drop policy if exists mdc_settings_admin_all on public.mdc_settings;
+create policy mdc_settings_admin_all on public.mdc_settings
+  for all using (public.mdc_is_admin()) with check (public.mdc_is_admin());
 
 -- ---------------------------------------------------------------------
 -- Leads (lista de espera)
 -- ---------------------------------------------------------------------
-create table if not exists public.leads (
+create table if not exists public.mdc_leads (
   id               uuid primary key default gen_random_uuid(),
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now(),
@@ -104,40 +104,40 @@ create table if not exists public.leads (
   notas            text
 );
 
-create index if not exists leads_created_idx on public.leads (created_at desc);
-create index if not exists leads_status_idx  on public.leads (status);
-create index if not exists leads_whatsapp_idx on public.leads (whatsapp);
+create index if not exists mdc_leads_created_idx on public.mdc_leads (created_at desc);
+create index if not exists mdc_leads_status_idx  on public.mdc_leads (status);
+create index if not exists mdc_leads_whatsapp_idx on public.mdc_leads (whatsapp);
 
-alter table public.leads enable row level security;
+alter table public.mdc_leads enable row level security;
 
 -- Visitante só INSERE (e só com status 'novo' e sem notas). Não lê nada.
-drop policy if exists leads_insert_public on public.leads;
-create policy leads_insert_public on public.leads
+drop policy if exists mdc_leads_insert_public on public.mdc_leads;
+create policy mdc_leads_insert_public on public.mdc_leads
   for insert to anon, authenticated
   with check (status = 'novo' and notas is null);
 
-drop policy if exists leads_admin_all on public.leads;
-create policy leads_admin_all on public.leads
-  for all using (public.is_admin()) with check (public.is_admin());
+drop policy if exists mdc_leads_admin_all on public.mdc_leads;
+create policy mdc_leads_admin_all on public.mdc_leads
+  for all using (public.mdc_is_admin()) with check (public.mdc_is_admin());
 
 -- updated_at automático
-create or replace function public.touch_updated_at()
+create or replace function public.mdc_touch_updated_at()
 returns trigger language plpgsql as $$
 begin new.updated_at = now(); return new; end $$;
 
-drop trigger if exists leads_touch on public.leads;
-create trigger leads_touch before update on public.leads
-  for each row execute function public.touch_updated_at();
+drop trigger if exists mdc_leads_touch on public.mdc_leads;
+create trigger mdc_leads_touch before update on public.mdc_leads
+  for each row execute function public.mdc_touch_updated_at();
 
-drop trigger if exists settings_touch on public.settings;
-create trigger settings_touch before update on public.settings
-  for each row execute function public.touch_updated_at();
+drop trigger if exists mdc_settings_touch on public.mdc_settings;
+create trigger mdc_settings_touch before update on public.mdc_settings
+  for each row execute function public.mdc_touch_updated_at();
 
 -- ---------------------------------------------------------------------
 -- Configurações iniciais da fase 1 (os textos padrão ficam no código;
 -- aqui só criamos as linhas com a visibilidade certa).
 -- ---------------------------------------------------------------------
-insert into public.settings (key, value, visibilidade) values
+insert into public.mdc_settings (key, value, visibilidade) values
   ('landing',          '{}'::jsonb, 'public'),
   ('grupo_espera_url', '""'::jsonb, 'public'),
   ('msg_lead',         '""'::jsonb, 'admin')

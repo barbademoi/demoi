@@ -5,8 +5,14 @@ vendas com confirmação manual de pagamento, área do membro com conteúdo
 liberado por semana e acompanhamento das missões.
 
 App Next.js **independente** dentro do repositório (pasta `mdc/`), com projeto
-Supabase próprio e projeto Vercel próprio, no domínio `metododemoi.com.br`.
-Não mexe em nada do BarberMeta (raiz do repositório).
+Vercel próprio, no domínio `metododemoi.com.br`.
+
+**Banco:** o MDC usa o **mesmo projeto Supabase do BarberMeta** (limite de
+projetos gratuitos). Para não encostar em nada do BarberMeta, todo objeto do MDC
+tem prefixo: tabelas e funções `mdc_*`, índices/regras `mdc_*`, buckets
+`mdc-comprovantes`, `mdc-publico`, `mdc-conteudo`. O login (auth.users) é
+compartilhado: cliente do BarberMeta entra no MDC com o mesmo e-mail e senha, e
+na compra só completa os dados.
 
 ## Stack
 - Next.js 14 (App Router) + TypeScript + Tailwind
@@ -40,21 +46,21 @@ npm run dev                  # http://localhost:3000
 ```
 
 ## Supabase — primeira vez
-1. Crie um projeto **novo** em supabase.com (região São Paulo).
+1. Use o projeto do BarberMeta (o mesmo das variáveis do BarberMeta na Vercel).
 2. SQL Editor → cole e rode `supabase/migrations/001_fase1_lista_espera.sql`
    (e depois os das próximas fases).
 3. Authentication → Users → **Add user** com o seu e-mail e senha
    (marque "Auto Confirm User").
 4. SQL Editor → vire admin:
    ```sql
-   insert into public.admins (user_id)
+   insert into public.mdc_admins (user_id)
    select id from auth.users where email = 'SEU-EMAIL'
    on conflict do nothing;
    ```
-5. Authentication → URL Configuration:
-   - Site URL: `https://metododemoi.com.br`
-   - Redirect URLs: `https://metododemoi.com.br/auth/callback` e
-     `http://localhost:3000/auth/callback`
+5. Authentication → URL Configuration: **não mude o Site URL** (é o do BarberMeta).
+   Só ACRESCENTE em Redirect URLs: `https://metododemoi.com.br/auth/callback`
+   e `http://localhost:3000/auth/callback`. Sem isso o "esqueci minha senha"
+   do MDC volta para o BarberMeta.
 
 ## Publicar na Vercel
 1. Vercel → Add New → Project → importe `barbademoi/demoi`.

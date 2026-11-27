@@ -13,7 +13,7 @@ export default async function Vencimentos() {
   const em5 = somarDias(hoje, 5)
   const ontem = somarDias(hoje, -1)
   const [{ data }, msgs, pag] = await Promise.all([
-    supabase.from('members').select('*').eq('status', 'ativo').in('vencimento', [em5, hoje, ontem]).order('nome'),
+    supabase.from('mdc_members').select('*').eq('status', 'ativo').in('vencimento', [em5, hoje, ontem]).order('nome'),
     lerConfig('msgs_vencimento', MSGS_VENCIMENTO_PADRAO),
     lerConfig('pagamento', PAGAMENTO_PADRAO),
   ])

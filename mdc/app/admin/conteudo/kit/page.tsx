@@ -5,17 +5,17 @@ import { NIVEIS, SEMANAS_CICLO } from '../opcoes'
 
 export default async function Kit() {
   const { supabase } = await requireAdmin()
-  const { data } = await supabase.from('kit_materials').select('*').order('nivel').order('semana').order('ordem')
+  const { data } = await supabase.from('mdc_kit_materials').select('*').order('nivel').order('semana').order('ordem')
   const itens = (data ?? []).map((k) => ({ ...k, nivel: String(k.nivel), semana: String(k.semana), _rotulo: `N${k.nivel} S${k.semana} · ${k.titulo}` }))
 
   async function salvar(id: string | null, d: Record<string, unknown>) {
     'use server'
     if (!d.file_path) throw new Error('Envie o PDF antes de salvar.')
-    await salvarItem('kit_materials', id, d)
+    await salvarItem('mdc_kit_materials', id, d)
   }
   async function excluir(id: string) {
     'use server'
-    await excluirItem('kit_materials', id)
+    await excluirItem('mdc_kit_materials', id)
   }
 
   return (

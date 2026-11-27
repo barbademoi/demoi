@@ -19,10 +19,10 @@ export async function marcar(templateId: string, tipo: 'habito_diario' | 'missao
   const { supabase, uid, semana } = await contexto()
   const dia = tipo === 'habito_diario' ? hojeSP() : null
   if (marcado) {
-    const { error } = await supabase.from('mission_logs').insert({ member_id: uid, template_id: templateId, dia, semana })
+    const { error } = await supabase.from('mdc_mission_logs').insert({ member_id: uid, template_id: templateId, dia, semana })
     if (error && error.code !== '23505') throw new Error('Não deu pra marcar.')
   } else {
-    let q = supabase.from('mission_logs').delete().eq('member_id', uid).eq('template_id', templateId)
+    let q = supabase.from('mdc_mission_logs').delete().eq('member_id', uid).eq('template_id', templateId)
     q = dia ? q.eq('dia', dia) : q.is('dia', null).eq('semana', semana)
     const { error } = await q
     if (error) throw new Error('Não deu pra desmarcar.')
@@ -35,7 +35,7 @@ export async function salvarObservacao(templateId: string, texto: string) {
   const { supabase, uid, semana } = await contexto()
   const observacao = texto.trim().slice(0, 1000) || null
   const { data } = await supabase
-    .from('mission_logs')
+    .from('mdc_mission_logs')
     .select('id')
     .eq('member_id', uid)
     .eq('template_id', templateId)
@@ -44,7 +44,7 @@ export async function salvarObservacao(templateId: string, texto: string) {
     .maybeSingle()
   if (!data && !observacao) return
   const { error } = data
-    ? await supabase.from('mission_logs').update({ observacao }).eq('id', data.id)
-    : await supabase.from('mission_logs').insert({ member_id: uid, template_id: templateId, dia: null, semana, observacao })
+    ? await supabase.from('mdc_mission_logs').update({ observacao }).eq('id', data.id)
+    : await supabase.from('mdc_mission_logs').insert({ member_id: uid, template_id: templateId, dia: null, semana, observacao })
   if (error) throw new Error('Não deu pra salvar.')
 }
