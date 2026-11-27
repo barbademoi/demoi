@@ -75,3 +75,29 @@ npm run dev                  # http://localhost:3000
 - `/entrar`, `/esqueci-senha`, `/redefinir-senha`
 - `/admin/leads` (filtros, busca, status, anotação, WhatsApp, CSV)
 - `/admin/configuracoes` (textos da página, link do grupo, mensagem do WhatsApp)
+
+### Fase 2
+- `/mdc` página de vendas (textos, resultados e perguntas editáveis em `/admin/vendas`)
+- `/comprar` → plano → conta + aceite do termo (salva data/hora, versão, IP)
+- `/comprar/pagamento` → link InfinitePay (cartão) ou Pix com QR Code gerado
+  com o valor do plano → "Já paguei" com comprovante (imagem ou PDF)
+- `/aguardando` "Recebemos! Assim que o pagamento for confirmado, seu acesso é liberado."
+- `/renovar` tela de quem venceu (ou quer renovar antes), com envio de comprovante
+- `/termo` texto do termo de adesão
+- `/app/diagnostico` diagnóstico de entrada em 6 etapas (rascunho no aparelho)
+- `/app/reavaliacao` reavaliação de 90 dias (abre na semana 13 do membro)
+- `/admin/membros` lista, filtros por status, comprovantes na fila
+- `/admin/membros/[id]` ver comprovante (link assinado), confirmar/recusar,
+  registrar pagamento sem comprovante, fundador/convidado, ajuste manual,
+  aceite do termo, diagnóstico e comparação entrada × 90 dias
+- `/admin/vencimentos` vence em 5 dias / hoje / venceu ontem, com WhatsApp pronto
+- `/admin/diagnosticos` quem respondeu o quê
+- `/admin/configuracoes` + pagamento, termo e mensagens de vencimento
+
+#### Regras de datas (confirmar pagamento)
+- Primeira confirmação: início = data escolhida (padrão: hoje; fundador: 18/01/2027).
+  Vencimento = início + 6 meses (semestral) ou + 1 mês (mensal).
+- Renovação: soma a partir do vencimento atual, mesmo se pagar antes ou com até
+  15 dias de atraso. Mais que isso, conta a partir da data do pagamento.
+- O dia do vencimento ainda tem acesso. No dia seguinte, o membro vê `/renovar`.
+- Confirmar a primeira vez marca o lead com o mesmo WhatsApp como "comprou".

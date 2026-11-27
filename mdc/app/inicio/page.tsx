@@ -9,5 +9,6 @@ export default async function Inicio() {
   if (!user) redirect('/entrar')
   const { data: ehAdmin } = await supabase.rpc('is_admin')
   if (ehAdmin) redirect('/admin')
-  redirect('/')
+  // /app decide: pagamento, aguardando, renovar, diagnóstico ou área do membro.
+  redirect('/app')
 }

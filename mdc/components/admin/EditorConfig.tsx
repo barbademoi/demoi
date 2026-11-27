@@ -2,11 +2,12 @@
 
 import { useState, useTransition } from 'react'
 import { salvarConfig } from '@/app/admin/configuracoes/actions'
+import UploadImagem from './UploadImagem'
 
 export type CampoConfig = {
   nome: string
   rotulo: string
-  tipo?: 'texto' | 'area' | 'lista' | 'url' | 'numero'
+  tipo?: 'texto' | 'area' | 'lista' | 'url' | 'numero' | 'imagem'
   ajuda?: string
   linhas?: number
 }
@@ -76,12 +77,13 @@ export default function EditorConfig({
       onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDados({ ...dados, [nome]: e.target.value }),
       className: 'campo',
     }
+    if (tipo === 'imagem') return <UploadImagem valor={dados[nome] ?? ''} onChange={(url) => setDados({ ...dados, [nome]: url })} pasta={chave} />
     if (tipo === 'area' || tipo === 'lista') return <textarea {...comum} rows={linhas ?? (tipo === 'lista' ? 6 : 5)} />
     return <input {...comum} type={tipo === 'url' ? 'url' : 'text'} inputMode={tipo === 'numero' ? 'decimal' : undefined} />
   }
 
   return (
-    <section className="card p-5">
+    <section id={chave} className="card scroll-mt-28 p-5">
       <h2 className="text-xl font-bold">{titulo}</h2>
       {descricao && <p className="mt-1 text-sm text-suave">{descricao}</p>}
       <div className="mt-5 space-y-5">
