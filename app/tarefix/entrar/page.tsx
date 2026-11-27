@@ -20,9 +20,9 @@ export default async function Entrar() {
       </div>
       <FormEntrar semAcesso={s === 'sem-acesso'} />
       <p className="text-center text-sm text-tf-suave">
-        Ainda não tem conta?{' '}
-        <Link href="/tarefix/criar-conta" className="font-bold text-tf-marca-texto underline">
-          Criar conta grátis
+        Ainda não tem?{' '}
+        <Link href="/tarefix/comprar" className="font-bold text-tf-marca-texto underline">
+          Conheça o Tarefix
         </Link>
       </p>
       <p className="text-center text-sm text-tf-suave">Colaborador? Use o link que você recebeu.</p>

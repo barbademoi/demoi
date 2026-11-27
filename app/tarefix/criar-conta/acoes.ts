@@ -7,6 +7,9 @@ import { ehClienteBarbermeta } from '@/lib/tarefixModulo/clienteBarbermeta'
 
 type Resposta = { ok: true; destino: string } | { ok: false; erro: string; jaTemConta?: boolean }
 
+/** Cadastro público grátis desligado (venda pela página /tarefix/comprar). */
+const CADASTRO_FECHADO = true
+
 const destino = (uso: Uso) => (uso === 'pessoal' ? '/tarefix/painel/meu-dia' : '/tarefix/painel')
 
 function nomeEmpresa(uso: Uso, nome: string, empresa: string) {
@@ -17,6 +20,8 @@ function nomeEmpresa(uso: Uso, nome: string, empresa: string) {
 
 /** Cadastro público: cria a conta (só Tarefix), a empresa e o dono. O navegador entra logo depois. */
 export async function criarConta(d: { nome: string; email: string; senha: string; empresa: string; uso: Uso; site?: string }): Promise<Resposta> {
+  // cadastro grátis fechado: o acesso é vendido em /tarefix/comprar ou concedido pelo admin
+  if (CADASTRO_FECHADO) return { ok: false, erro: 'O Tarefix agora é adquirido pela página de compra: /tarefix/comprar' }
   if (d.site) return { ok: false, erro: 'Não foi possível criar a conta.' } // campo-isca para robôs
   const nome = d.nome.trim().slice(0, 80)
   const email = d.email.trim().toLowerCase()
@@ -57,6 +62,7 @@ export async function criarMeuTarefix(d: { empresa: string; uso: Uso }): Promise
   const { data: ja } = await db.from('donos').select('id').eq('id', user.id).maybeSingle()
   const uso: Uso = d.uso === 'equipe' ? 'equipe' : 'pessoal'
   if (ja) return { ok: true, destino: destino(uso) }
+  if (CADASTRO_FECHADO) return { ok: false, erro: 'O Tarefix agora é adquirido pela página de compra: /tarefix/comprar' }
   // cliente do BarberMeta: o Tarefix é módulo pago, comprado dentro do BarberMeta
   if (await ehClienteBarbermeta(user.id)) return { ok: false, erro: 'Para clientes do BarberMeta, o Tarefix é liberado pelo menu Tarefix do BarberMeta.' }
   const nome = String(user.user_metadata?.nome ?? user.user_metadata?.name ?? user.email.split('@')[0]).slice(0, 80)

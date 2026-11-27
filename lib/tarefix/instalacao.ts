@@ -16,9 +16,10 @@ import sql13 from '@/supabase/tarefix/013_checklist_missoes.sql'
 import sql14 from '@/supabase/tarefix/014_missao_destaque.sql'
 import sql15 from '@/supabase/tarefix/015_mentoria_acessos.sql'
 import sql16 from '@/supabase/tarefix/016_comentario_entrega.sql'
+import sql17 from '@/supabase/tarefix/017_vendas.sql'
 
 /** SQL completo de instalação, numa transação só (se der erro, nada fica pela metade). */
-export const SQL_INSTALACAO = ['begin;', sql1, sql2, sql3, sql4, sql5, sql6, sql7, sql8, sql9, sql10, sql11, sql12, sql13, sql14, sql15, sql16, 'commit;'].join('\n\n')
+export const SQL_INSTALACAO = ['begin;', sql1, sql2, sql3, sql4, sql5, sql6, sql7, sql8, sql9, sql10, sql11, sql12, sql13, sql14, sql15, sql16, sql17, 'commit;'].join('\n\n')
 
 export const VARIAVEIS = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'] as const
 

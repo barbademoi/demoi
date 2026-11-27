@@ -1,11 +1,13 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { emailEhAdminCortesia } from '@/lib/admin/cortesia'
 import type { TarefixLicencaStatus } from '@/lib/tarefixModulo/config'
 import { garantirTarefixDoDono, suspenderTarefixDoDono } from '@/lib/tarefixModulo/liberacao'
+import { liberarVenda, listarVendas, mensagemAcesso, recusarVenda, type Venda } from '@/lib/tarefixModulo/vendas'
 
 export type TarefixPedido = {
   barbeariaId: string
@@ -135,5 +137,33 @@ export async function revisarPedidoTarefix(formData: FormData): Promise<{ ok?: b
   }
   revalidatePath('/admin/tarefix')
   revalidatePath('/dashboard/tarefix')
+  return { ok: true }
+}
+
+/* ------------------------- vendas pelo Instagram ------------------------- */
+
+export async function listarVendasTarefix(): Promise<{ vendas: Venda[]; error?: string }> {
+  if (!(await assertAdmin())) return { vendas: [], error: 'Sem permissão.' }
+  return { vendas: await listarVendas() }
+}
+
+/** Libera a venda: cria a conta (senha provisória) e devolve a mensagem pronta para o WhatsApp. */
+export async function liberarVendaTarefix(id: string): Promise<{ ok: true; mensagem: string; whatsapp: string; senha: string | null } | { ok: false; error: string }> {
+  const revisor = await assertAdmin()
+  if (!revisor) return { ok: false, error: 'Sem permissão.' }
+  const r = await liberarVenda(revisor.id, id)
+  if (!r.ok) return { ok: false, error: r.erro }
+  const h = headers()
+  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'www.barbermeta.com.br'
+  const site = `${host.includes('localhost') ? 'http' : 'https'}://${host}`
+  revalidatePath('/admin/tarefix')
+  return { ok: true, mensagem: mensagemAcesso({ nome: r.nome, email: r.email, senha: r.senha, site }), whatsapp: r.whatsapp, senha: r.senha }
+}
+
+export async function recusarVendaTarefix(id: string, motivo: string): Promise<{ ok?: true; error?: string }> {
+  if (!(await assertAdmin())) return { error: 'Sem permissão.' }
+  const r = await recusarVenda(id, motivo)
+  if (!r.ok) return { error: r.erro }
+  revalidatePath('/admin/tarefix')
   return { ok: true }
 }
