@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    background-color: #0b0b0c;
+    color: #f3f1ec;
+    -webkit-tap-highlight-color: transparent;
+  }
+  ::selection {
+    background-color: rgba(217, 164, 65, 0.35);
+  }
+  /* Inputs de 16px: abaixo disso o iPhone dá zoom ao focar. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-2xl px-6 text-lg font-bold transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto;
+  }
+  .btn-primario {
+    @apply btn bg-latao text-fundo hover:bg-latao-forte;
+  }
+  .btn-secundario {
+    @apply btn border border-linha bg-card-2 text-texto hover:border-latao/60;
+  }
+  .btn-whats {
+    @apply btn bg-[#25D366] text-fundo hover:brightness-110;
+  }
+  .btn-sm {
+    @apply inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl px-3.5 text-sm font-semibold transition disabled:opacity-50;
+  }
+  .card {
+    @apply rounded-2xl border border-linha bg-card;
+  }
+  .campo {
+    @apply block w-full rounded-xl border border-linha bg-card-2 px-4 py-3.5 text-texto placeholder:text-suave/60 focus:border-latao focus:outline-none focus:ring-2 focus:ring-latao/30;
+  }
+  .rotulo {
+    @apply mb-2 block text-base font-semibold text-texto;
+  }
+  .ajuda {
+    @apply mt-1.5 text-sm text-suave;
+  }
+  .erro {
+    @apply mt-1.5 text-sm font-medium text-perigo;
+  }
+  .chip {
+    @apply flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border border-linha bg-card-2 px-4 py-3 text-base transition;
+  }
+  .chip-ativo {
+    @apply border-latao bg-latao/10 text-texto;
+  }
+}
