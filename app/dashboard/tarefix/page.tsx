@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { emailEhAdminCortesia } from '@/lib/admin/cortesia'
 import { TAREFIX_PRICE_LABEL, tarefixPaymentConfig, type TarefixLicencaStatus } from '@/lib/tarefixModulo/config'
 import TarefixCheckout from './TarefixCheckout'
+import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 import BotaoComoFunciona from './BotaoComoFunciona'
 
 export const metadata = { title: 'Tarefix — BarberMeta' }
@@ -41,7 +42,9 @@ export default async function TarefixModuloPage() {
     .eq('barbearia_id', usuario.barbearia_id)
     .maybeSingle()
   const status = (lic?.status ?? null) as TarefixLicencaStatus | null
-  const liberado = status === 'active'
+  // quem já tinha um Tarefix antes do módulo pago (ou ganhou do admin) continua com ele
+  const { data: jaDono } = status === 'active' ? { data: null } : await createTarefixAdmin().from('donos').select('id').eq('id', user.id).maybeSingle()
+  const liberado = status === 'active' || (Boolean(jaDono) && status !== 'suspended')
   const pay = tarefixPaymentConfig()
   const isAdmin = emailEhAdminCortesia(user.email)
   const nome = usuario.barbearias.nome as string

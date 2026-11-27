@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { TAREFIX_PRICE_CENTS, limparWhatsapp } from '@/lib/tarefixModulo/config'
 import { avisarAdminTarefix } from '@/lib/tarefixModulo/liberacao'
+import { createTarefixAdmin } from '@/lib/tarefix/supabase/admin'
 
 export type SolicitarTarefixResult = { ok?: boolean; status?: 'pending' | 'active'; error?: string }
 
@@ -66,4 +67,16 @@ export async function solicitarAcessoTarefix(formData: FormData): Promise<Solici
   revalidatePath('/dashboard/tarefix')
   revalidatePath('/admin/tarefix')
   return { ok: true, status: 'pending' }
+}
+
+/** O popup de lançamento deve aparecer? Só para quem não tem o Tarefix nem pedido em análise. */
+export async function deveOfertarTarefix(): Promise<boolean> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: lic } = await (supabase as any).from('tarefix_licencas').select('status').maybeSingle()
+  if (lic?.status && lic.status !== 'rejected') return false
+  const { data: dono } = await createTarefixAdmin().from('donos').select('id').eq('id', user.id).maybeSingle()
+  return !dono
 }

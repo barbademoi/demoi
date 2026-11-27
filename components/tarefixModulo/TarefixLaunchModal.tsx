@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useFilaDePopups } from '@/lib/popups/fila'
-import { createClient } from '@/lib/supabase/client'
+import { deveOfertarTarefix } from '@/app/dashboard/tarefix/actions'
 import TarefixApresentacao from './TarefixApresentacao'
 
 /**
@@ -49,13 +49,10 @@ export default function TarefixLaunchModal() {
   useEffect(() => {
     if (pathname !== '/dashboard' || !prazoPassou()) return
     let cancel = false
-    // só para quem ainda não tem o Tarefix (nem pedido em análise)
+    // só para quem ainda não tem o Tarefix (nem pedido em análise) — o servidor decide
     ;(async () => {
       try {
-        const sb = createClient()
-        const { data } = await sb.from('tarefix_licencas').select('status').maybeSingle()
-        const status = (data as { status?: string } | null)?.status
-        if (!cancel && (!status || status === 'rejected')) setQuer(true)
+        if ((await deveOfertarTarefix()) && !cancel) setQuer(true)
       } catch {
         /* sem popup se não deu para conferir */
       }
