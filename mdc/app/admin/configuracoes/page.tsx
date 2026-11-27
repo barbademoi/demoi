@@ -1,17 +1,18 @@
 import EditorConfig from '@/components/admin/EditorConfig'
 import { requireAdmin } from '@/lib/auth'
-import { LANDING_PADRAO, MSG_LEAD_PADRAO, MSGS_VENCIMENTO_PADRAO, PAGAMENTO_PADRAO, TERMO_PADRAO } from '@/lib/defaults'
+import { LANDING_PADRAO, MSG_LEAD_PADRAO, MSGS_VENCIMENTO_PADRAO, PAGAMENTO_PADRAO, TERMO_PADRAO, LINKS_PADRAO } from '@/lib/defaults'
 import { lerConfig } from '@/lib/settings'
 
 export default async function Configuracoes() {
   await requireAdmin()
-  const [landing, grupo, msgLead, pagamento, termo, msgsVenc] = await Promise.all([
+  const [landing, grupo, msgLead, pagamento, termo, msgsVenc, linksMembros] = await Promise.all([
     lerConfig('landing', LANDING_PADRAO),
     lerConfig('grupo_espera_url', ''),
     lerConfig('msg_lead', MSG_LEAD_PADRAO),
     lerConfig('pagamento', PAGAMENTO_PADRAO),
     lerConfig('termo', TERMO_PADRAO),
     lerConfig('msgs_vencimento', MSGS_VENCIMENTO_PADRAO),
+    lerConfig('links_membros', LINKS_PADRAO),
   ])
 
   return (
@@ -20,6 +21,20 @@ export default async function Configuracoes() {
         <h1 className="text-2xl font-black">Textos e links</h1>
         <p className="text-suave">O que você salvar aqui aparece no site na hora.</p>
       </div>
+
+      <EditorConfig
+        chave="links_membros"
+        titulo="Links da área do membro"
+        descricao="Só membros ativos veem."
+        valor={linksMembros}
+        campos={[
+          { nome: 'meet_url', rotulo: 'Link do Google Meet (encontro de segunda)', tipo: 'url' },
+          { nome: 'grupo_membros_url', rotulo: 'Link do grupo do WhatsApp dos membros', tipo: 'url' },
+          { nome: 'barbermeta_url', rotulo: 'Link do BarberMeta', tipo: 'url' },
+          { nome: 'tarefix_url', rotulo: 'Link do Tarefix', tipo: 'url' },
+          { nome: 'renovacao_texto', rotulo: 'Instruções de renovação (Meu plano)', tipo: 'area', linhas: 3 },
+        ]}
+      />
 
       <EditorConfig
         chave="pagamento"

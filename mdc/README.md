@@ -101,3 +101,58 @@ npm run dev                  # http://localhost:3000
   15 dias de atraso. Mais que isso, conta a partir da data do pagamento.
 - O dia do vencimento ainda tem acesso. No dia seguinte, o membro vê `/renovar`.
 - Confirmar a primeira vez marca o lead com o mesmo WhatsApp como "comprou".
+
+### Fase 3
+- `/app` Semana X + pilar, barras hoje/semana/mês, missões de hoje, último
+  encontro (PDF + gravação, sempre liberado), Meet, grupo, BarberMeta, Tarefix,
+  aviso de vencimento e da reavaliação de 90 dias
+- `/app/missoes` hábitos de hoje (acumulativos), missões da semana com material
+  do Kit e observação, histórico das semanas anteriores
+- `/app/ranking` % do mês dos membros ativos (primeiro nome, cidade, barra; top 3 em destaque)
+- `/app/biblioteca` 13 semanas com cadeado ("Abre na sua semana N"), nível 2 a partir da semana 14
+- `/app/plano` plano, status, vencimento e como renovar
+- `/admin/conteudo/encontros` · `/missoes` · `/kit` · `/ciclo`
+- `/admin/configuracoes` + links da área do membro
+
+#### Como os cadeados funcionam
+- Conteúdo da semana N do nível L abre quando a semana do membro ≥ (L−1)×13 + N.
+- Quem decide é o banco (RLS de `meetings`, `kit_materials`, `mission_templates`):
+  semana bloqueada não retorna linha. Os PDFs ficam no bucket privado `conteudo`
+  e o link assinado (3 horas) só é gerado para o que o RLS devolveu.
+
+#### Como o percentual é calculado
+- Itens marcados ÷ itens previstos no período, contando só até hoje.
+- Hoje: hábitos de hoje. Semana: hábitos de cada dia da semana do membro até
+  hoje + missões da semana. Mês (calendário): hábitos de cada dia do mês desde o
+  início do membro + missões das semanas que começaram no mês.
+- Hábito pode ser marcado hoje ou ontem (pra quem esquece à noite); missão, só
+  na semana atual.
+
+## O que você precisa preencher
+No `/admin/configuracoes`:
+- [ ] Link do grupo de espera (WhatsApp)
+- [ ] Mensagem do WhatsApp para leads (já vem uma pronta)
+- [ ] Link de pagamento da InfinitePay (R$ 997 em até 6x)
+- [ ] Chave Pix + nome do recebedor + cidade (o QR com valor é gerado sozinho)
+- [ ] Termo de adesão (texto + versão)
+- [ ] Mensagens de vencimento (já vêm prontas)
+- [ ] Link do Meet de segunda, grupo dos membros, BarberMeta, Tarefix
+No `/admin/vendas`:
+- [ ] Copy da página de vendas (os textos entre [colchetes])
+- [ ] Foto do Carlos, resultados de mentorados (texto + foto), perguntas frequentes
+No `/admin/conteudo`:
+- [ ] Tema e pilar das 13 semanas do ciclo
+- [ ] Modelos de missão por semana e perfil (hábitos e missões)
+- [ ] PDFs do Kit Demôi
+- [ ] A cada segunda: o encontro (PDF do resumo + link do YouTube não listado, marcar "último")
+
+## Teste rápido de ponta a ponta
+1. Anônimo: `/` → entra na lista → `/pronto`. Admin vê em `/admin/leads`.
+2. Anônimo: `/mdc` → plano → `/comprar` → cria conta → paga → "Já paguei" com
+   uma imagem → `/aguardando`.
+3. Admin: `/admin/membros` → comprovante → confirmar (para testar a semana,
+   escolha uma data de início no passado).
+4. Membro: entra → diagnóstico (6 etapas) → `/app`.
+5. Admin cadastra 1 hábito (semana 1) e 1 missão (semana 1) → membro marca em
+   `/app/missoes` → barras e `/app/ranking` mudam.
+6. Admin: em "Dados do membro", põe o vencimento para ontem → membro cai em `/renovar`.

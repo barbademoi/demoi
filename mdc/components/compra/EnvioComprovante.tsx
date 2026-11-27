@@ -38,7 +38,9 @@ export default function EnvioComprovante({
       const extOk = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'pdf'].includes(ext) ? ext : arquivo.type === 'application/pdf' ? 'pdf' : 'jpg'
       const path = `${userId}/${Date.now()}.${extOk}`
       const supabase = createClient()
-      const { error } = await supabase.storage.from('comprovantes').upload(path, arquivo, { contentType: arquivo.type || undefined })
+      // Alguns Android mandam o arquivo sem tipo: deduz pela extensão.
+      const tipo = arquivo.type || (extOk === 'pdf' ? 'application/pdf' : extOk === 'png' ? 'image/png' : extOk === 'webp' ? 'image/webp' : extOk.startsWith('hei') ? 'image/heic' : 'image/jpeg')
+      const { error } = await supabase.storage.from('comprovantes').upload(path, arquivo, { contentType: tipo })
       if (error) throw error
       const r = await registrarComprovante(path, plano)
       if (!r.ok) throw new Error(r.erro)

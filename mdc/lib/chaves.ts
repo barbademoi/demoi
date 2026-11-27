@@ -8,6 +8,7 @@ export const CHAVES_CONFIG = {
   termo: 'public',
   pagamento: 'auth',
   msgs_vencimento: 'admin',
+  links_membros: 'member',
 } as const
 
 export type ChaveConfig = keyof typeof CHAVES_CONFIG

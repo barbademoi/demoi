@@ -3,8 +3,16 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import UploadImagem from './UploadImagem'
+import UploadArquivo from './UploadArquivo'
 
-export type CampoItem = { nome: string; rotulo: string; tipo?: 'texto' | 'area' | 'numero' | 'imagem' | 'check' }
+export type CampoItem = {
+  nome: string
+  rotulo: string
+  tipo?: 'texto' | 'area' | 'numero' | 'imagem' | 'check' | 'select' | 'data' | 'arquivo'
+  opcoes?: { valor: string; rotulo: string }[]
+  pasta?: string
+  ajuda?: string
+}
 type Item = Record<string, unknown> & { id: string }
 
 /** CRUD simples de uma tabela (resultados, perguntas frequentes...). */
@@ -44,8 +52,8 @@ export default function ListaEditavel({
             ) : (
               <button className="flex w-full items-center justify-between gap-3 text-left" onClick={() => setEditando(it.id)}>
                 <span className={it.ativo === false ? 'text-suave line-through' : ''}>
-                  <span className="mr-2 text-xs text-suave">#{String(it.ordem ?? '')}</span>
-                  {String(it[resumo] ?? '')}
+                  {it.ordem !== undefined && <span className="mr-2 text-xs text-suave">#{String(it.ordem)}</span>}
+                  {resumo.split('|').map((k) => String(it[k] ?? '')).filter(Boolean).join(' · ')}
                 </span>
                 <span className="text-sm text-latao">Editar</span>
               </button>
@@ -88,7 +96,17 @@ function FormItem({
           ) : (
             <>
               <span className="rotulo text-sm">{c.rotulo}</span>
-              {c.tipo === 'imagem' ? (
+              {c.tipo === 'select' ? (
+                <select className="campo py-2.5" value={String(dados[c.nome] ?? '')} onChange={(e) => set(c.nome, e.target.value)}>
+                  {c.opcoes?.map((o) => (
+                    <option key={o.valor} value={o.valor}>{o.rotulo}</option>
+                  ))}
+                </select>
+              ) : c.tipo === 'arquivo' ? (
+                <UploadArquivo valor={String(dados[c.nome] ?? '')} onChange={(p) => set(c.nome, p)} pasta={c.pasta ?? 'arquivos'} />
+              ) : c.tipo === 'data' ? (
+                <input type="date" className="campo py-2.5" value={String(dados[c.nome] ?? '')} onChange={(e) => set(c.nome, e.target.value)} />
+              ) : c.tipo === 'imagem' ? (
                 <UploadImagem valor={String(dados[c.nome] ?? '')} onChange={(u) => set(c.nome, u)} pasta="itens" />
               ) : c.tipo === 'area' ? (
                 <textarea className="campo py-2.5" rows={4} value={String(dados[c.nome] ?? '')} onChange={(e) => set(c.nome, e.target.value)} />
@@ -100,6 +118,7 @@ function FormItem({
                   onChange={(e) => set(c.nome, e.target.value)}
                 />
               )}
+              {c.ajuda && <p className="ajuda">{c.ajuda}</p>}
             </>
           )}
         </div>

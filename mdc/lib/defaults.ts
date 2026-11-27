@@ -141,3 +141,22 @@ export const MSGS_VENCIMENTO_PADRAO: MsgsVencimento = {
   dia: '[Nome], tudo bem? Seu plano do MDC ([plano]) vence hoje, [data].\n\nValor da renovação: [valor]\nChave Pix: [chave]\n\nAguardamos o comprovante para renovarmos!',
   depois: '[Nome], tudo certo? Seu plano venceu ontem. Posso manter sua vaga?',
 }
+
+// ── Fase 3 ────────────────────────────────────────────────────────────────
+
+export type LinksMembros = {
+  meet_url: string
+  grupo_membros_url: string
+  barbermeta_url: string
+  tarefix_url: string
+  renovacao_texto: string
+}
+
+export const LINKS_PADRAO: LinksMembros = {
+  meet_url: '',
+  grupo_membros_url: '',
+  barbermeta_url: 'https://www.barbermeta.com.br',
+  tarefix_url: 'https://www.barbermeta.com.br/tarefix',
+  renovacao_texto:
+    'Pra renovar, é só pagar pelo Pix ou cartão e mandar o comprovante pela tela de renovação. Se preferir, chama a gente no grupo.',
+}

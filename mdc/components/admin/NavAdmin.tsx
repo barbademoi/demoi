@@ -8,6 +8,7 @@ export const LINKS_ADMIN = [
   { href: '/admin/membros', rotulo: 'Membros' },
   { href: '/admin/vencimentos', rotulo: 'Vencimentos' },
   { href: '/admin/diagnosticos', rotulo: 'Diagnósticos' },
+  { href: '/admin/conteudo', rotulo: 'Conteúdo' },
   { href: '/admin/vendas', rotulo: 'Página de vendas' },
   { href: '/admin/configuracoes', rotulo: 'Textos e links' },
 ]

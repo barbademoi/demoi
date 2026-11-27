@@ -61,12 +61,14 @@ set search_path = public
 as $$
   select exists (
     select 1 from public.members
-    where id = p_uid and status = 'ativo'
+    -- só sobre si mesmo (ou admin): ninguém consulta o status de outro membro
+    where id = p_uid and (p_uid = auth.uid() or public.is_admin()) and status = 'ativo'
       and vencimento is not null and vencimento >= public.mdc_hoje()
   );
 $$;
+-- anon pode chamar (usado dentro das policies): para quem não está logado a resposta é sempre falso/vazio.
 revoke all on function public.is_active_member(uuid) from public;
-grant execute on function public.is_active_member(uuid) to authenticated, service_role;
+grant execute on function public.is_active_member(uuid) to anon, authenticated, service_role;
 
 -- Semana do membro = semanas completas desde o início + 1.
 create or replace function public.member_week(p_uid uuid default auth.uid())
@@ -78,10 +80,11 @@ set search_path = public
 as $$
   select case when data_inicio is null or data_inicio > public.mdc_hoje() then 0
               else ((public.mdc_hoje() - data_inicio) / 7) + 1 end
-  from public.members where id = p_uid;
+  from public.members where id = p_uid and (p_uid = auth.uid() or public.is_admin());
 $$;
+-- anon pode chamar (usado dentro das policies): para quem não está logado a resposta é sempre falso/vazio.
 revoke all on function public.member_week(uuid) from public;
-grant execute on function public.member_week(uuid) to authenticated, service_role;
+grant execute on function public.member_week(uuid) to anon, authenticated, service_role;
 
 -- ---------------------------------------------------------------------
 -- Pagamentos
